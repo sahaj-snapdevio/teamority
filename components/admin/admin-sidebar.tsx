@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   LayoutDashboard,
   Users,
   Building2,
@@ -64,6 +65,14 @@ export function AdminSidebar({ email }: AdminSidebarProps) {
       </div>
 
       <nav className="flex-1 px-2 py-4 space-y-0.5">
+        {/* Return to the normal Kanbanica app without signing out. */}
+        <Link
+          href="/post-auth"
+          className="mb-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-white"
+        >
+          <ArrowLeft className="w-4 h-4 shrink-0" />
+          Back to app
+        </Link>
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive =

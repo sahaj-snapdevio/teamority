@@ -2,7 +2,6 @@ import { and, asc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { ADMIN_ROLE } from "@/config/platform";
 import { workspace, workspaceMember } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getAccessibleSpaceIds } from "@/lib/permissions";
@@ -12,7 +11,8 @@ export default async function PostAuthPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
-  if (session.user.role === ADMIN_ROLE) redirect("/orbit");
+  // Platform admins are normal users with extra capabilities — they land in the
+  // regular app (their workspaces), and reach the Admin Console via the sidebar.
 
   const [membership] = await db
     .select({

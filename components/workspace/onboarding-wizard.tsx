@@ -234,16 +234,16 @@ export function OnboardingWizard({
         <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
           <StackIcon className="size-5 text-primary" weight="duotone" />
         </div>
-        <CardTitle className="text-xl">Create your first Space</CardTitle>
+        <CardTitle className="text-xl">Create your first Project</CardTitle>
         <CardDescription>
-          A Space is where your team's work lives — like a department or project
+          A Project is where your team's work lives — like a department or team
           area. You can create more later.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleCreateSpace} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="space-name">Space name</Label>
+            <Label htmlFor="space-name">Project name</Label>
             <Input
               id="space-name"
               placeholder="e.g. Product, Engineering, Design"
@@ -282,7 +282,7 @@ export function OnboardingWizard({
             disabled={pending || !spaceName.trim()}
           >
             <ArrowRightIcon className="size-4" />
-            Create Space &amp; continue
+            Create Project &amp; continue
           </Button>
         </form>
       </CardContent>

@@ -30,6 +30,7 @@ import {
   PlusIcon,
   PushPinIcon,
   PushPinSlashIcon,
+  ShieldCheckIcon,
   SignOutIcon,
   TrashIcon,
   UserCircleIcon,
@@ -122,6 +123,8 @@ interface WorkspaceShellProps {
   archivedSpaces: SpaceSummary[];
   channels: ChannelSummary[];
   role: string;
+  /** Platform admin (user.role === "admin") — unlocks the Admin Console link. */
+  isPlatformAdmin?: boolean;
   user: { name: string | null; email: string; image: string | null };
 }
 
@@ -137,6 +140,7 @@ export function WorkspaceShell({
   archivedSpaces,
   channels,
   role,
+  isPlatformAdmin = false,
   user,
 }: WorkspaceShellProps) {
   const pathname = usePathname();
@@ -821,6 +825,21 @@ export function WorkspaceShell({
             </div>
           </div> */}
         </nav>
+
+        {/* Platform admins: an extra entry into the Admin Console. The normal
+            app stays the default experience; this is just an additional tool. */}
+        {isPlatformAdmin && (
+          <div className="border-t border-[rgba(255,255,255,0.08)] px-2 py-2">
+            <Link
+              href="/orbit"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] text-(--text-sidebar) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+            >
+              <ShieldCheckIcon className="size-4 shrink-0" weight="fill" />
+              <span className="flex-1">Admin Console</span>
+            </Link>
+          </div>
+        )}
 
         {/* Bottom user menu */}
         <div className="border-t border-[rgba(255,255,255,0.08)] p-2">

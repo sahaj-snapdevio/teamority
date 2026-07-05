@@ -13,6 +13,7 @@ import {
   workspace,
   workspaceMember,
 } from "@/db/schema";
+import { ADMIN_ROLE } from "@/config/platform";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -220,6 +221,7 @@ export default async function WorkspaceLayout({
       <RealtimeProvider workspaceId={workspaceId}>
       <WorkspaceShell
         role={membership.role}
+        isPlatformAdmin={session.user.role === ADMIN_ROLE}
         spaces={spaces.map((s) => ({
           ...s,
           lists: spaceListMap[s.id] ?? [],
