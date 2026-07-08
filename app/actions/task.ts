@@ -83,7 +83,16 @@ export async function createTask(
   workspaceId: string,
   spaceId: string,
   listId: string | null,
-  data: { title: string; statusId?: string },
+  data: {
+    title: string;
+    statusId?: string;
+    priority?: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+    description?: unknown;
+    dueDateStart?: Date | null;
+    dueDateEnd?: Date | null;
+    assigneeIds?: string[];
+    tagIds?: string[];
+  },
 ): Promise<{ taskId: string } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return { error: "Unauthorized" };
@@ -136,6 +145,9 @@ export async function createTask(
 
   const taskId = createId();
 
+  const assigneeIds = [...new Set(data.assigneeIds ?? [])];
+  const tagIds = [...new Set(data.tagIds ?? [])];
+
   await db.transaction(async (tx) => {
     await tx.insert(task).values({
       id: taskId,
@@ -145,15 +157,53 @@ export async function createTask(
       listId: effectiveListId,
       statusId: statusId ?? null,
       title,
-      priority: "NONE",
+      description: (data.description as Record<string, unknown>) ?? null,
+      priority: data.priority ?? "NONE",
+      dueDateStart: data.dueDateStart ?? null,
+      dueDateEnd: data.dueDateEnd ?? null,
       reporterId: session.user.id,
       orderIndex: taskSeq * 1000,
     });
-    // Auto-watch: creator
-    await tx.insert(taskWatcher).values({ taskId, userId: session.user.id }).onConflictDoNothing();
+    // Auto-watch: creator + assignees
+    const watcherIds = [...new Set([session.user.id, ...assigneeIds])];
+    await tx
+      .insert(taskWatcher)
+      .values(watcherIds.map((userId) => ({ taskId, userId })))
+      .onConflictDoNothing();
+
+    if (assigneeIds.length > 0) {
+      await tx
+        .insert(taskAssignee)
+        .values(assigneeIds.map((userId) => ({ taskId, userId })))
+        .onConflictDoNothing();
+    }
+
+    if (tagIds.length > 0) {
+      await tx
+        .insert(taskTag)
+        .values(tagIds.map((tagId) => ({ taskId, tagId })))
+        .onConflictDoNothing();
+    }
   });
 
   await writeActivityLog(taskId, session.user.id, "task_created", { title });
+
+  // Notify assignees (skip the creator assigning themselves)
+  const notifyIds = assigneeIds.filter((id) => id !== session.user.id);
+  if (notifyIds.length > 0) {
+    const actorName = session.user.name ?? session.user.email ?? "Someone";
+    createNotifications({
+      workspaceId,
+      actorId: session.user.id,
+      recipientIds: notifyIds,
+      triggerType: "task_assigned",
+      entityType: "TASK",
+      entityId: taskId,
+      title: `${actorName} assigned you to "${title}"`,
+      muteCheckEntityIds: [taskId],
+    });
+  }
+
   if (listId) revalidateList(workspaceId, spaceId, listId);
   return { taskId };
 }

@@ -4,11 +4,13 @@ import { eq } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { task, list, taskAttachment } from "@/db/schema";
+import { task, list, taskAttachment, taskAssignee } from "@/db/schema";
 import { storage, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from "@/lib/storage";
 import { canAccessSpace, getWorkspaceMembership } from "@/lib/permissions";
 import { rateLimit } from "@/lib/rate-limit";
 import { writeActivityLog } from "@/lib/activity-log";
+import { createNotifications } from "@/lib/notifications/create-notification";
+import { refreshWorkspace } from "@/lib/realtime/refresh";
 
 async function resolveTask(taskId: string) {
   const [row] = await db
@@ -16,6 +18,7 @@ async function resolveTask(taskId: string) {
       workspaceId: task.workspaceId,
       listId: task.listId,
       spaceId: list.spaceId,
+      title: task.title,
     })
     .from(task)
     .innerJoin(list, eq(task.listId, list.id))
@@ -137,6 +140,31 @@ export async function POST(
     file_name: file.name,
     file_size: file.size,
   });
+
+  // Notify assignees (other than the uploader) that a file was attached.
+  const assignees = await db
+    .select({ userId: taskAssignee.userId })
+    .from(taskAssignee)
+    .where(eq(taskAssignee.taskId, taskId));
+  const recipientIds = assignees
+    .map((a) => a.userId)
+    .filter((id) => id !== session.user.id);
+  if (recipientIds.length > 0) {
+    const actorName = session.user.name ?? session.user.email ?? "Someone";
+    createNotifications({
+      workspaceId: ctx.workspaceId,
+      actorId: session.user.id,
+      recipientIds,
+      triggerType: "attachment_added",
+      entityType: "TASK",
+      entityId: taskId,
+      title: `${actorName} attached a file to "${ctx.title}"`,
+      body: file.name,
+      muteCheckEntityIds: [taskId],
+    });
+  }
+
+  void refreshWorkspace(ctx.workspaceId);
 
   const url = await storage.url(storageKey);
 

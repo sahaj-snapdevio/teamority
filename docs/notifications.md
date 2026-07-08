@@ -42,6 +42,7 @@ Every event below creates a `Notification` record. Each trigger has:
 | Task completed (status -> closed type) | Reporter + Watchers | [x] | [x] | [ ] | Yes | *"[Task title] was marked as done by [Actor]"* |
 | Task moved to a different List | Assignees + Watchers | [x] | [ ] | [ ] | Yes (default off) | *"[Actor] moved [Task title] to [List name]"* |
 | Task deleted | Assignees + Watchers | [x] | [ ] | [ ] | Yes | *"[Actor] deleted task [Task title]"* |
+| Attachment added to a task | Assignees (except the uploader) | [x] | [ ] | [x] | Yes | *"[Actor] attached a file to [Task title]"* — body is the file name |
 | Subtask assigned to you | New assignee | [x] | [x] | [x] | Yes | *"[Actor] assigned you to [Subtask title] in [Parent task title]"* |
 | Subtask completed | Parent task assignees | [x] | [ ] | [ ] | Yes (default off) | *"[Actor] completed [Subtask title] in [Parent task title]"* |
 
@@ -468,6 +469,10 @@ Conventions to follow when emitting or rendering notifications.
 | `space_added` / `space_permission_changed` / `space_removed` | `space.ts` member actions | the affected user |
 | `space_archived` / `space_restored` | `archiveSpace` / `unarchiveSpace` | all project members (`spaceRecipientUserIds`) |
 | `task_unassigned` | `removeAssignee` (`task-assignee.ts`) | the unassigned user |
+| `attachment_added` | attachment upload POST (`app/api/tasks/[taskId]/attachments/route.ts`) | task assignees except the uploader |
+| `task_assigned` (extra call site) | also emitted by `createTask` (`app/actions/task.ts`) when assignees are set at creation, in addition to `addAssignee` | the new assignees |
+
+> **Naming note:** the corresponding **activity-log** event for an upload is `attachment_uploaded` (see `docs/collaboration.md`), while the **notification** trigger is `attachment_added`. These are two separate systems — the names differ intentionally and are not duplicates.
 
 Real-time propagation of *data* changes (task/list/board/sprint) is a separate system — see
 `docs/realtime.md`.

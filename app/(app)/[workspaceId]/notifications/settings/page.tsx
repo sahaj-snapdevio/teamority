@@ -23,6 +23,7 @@ const TRIGGER_LABELS: Record<string, string> = {
   task_completed: "Task marked complete",
   task_moved: "Task moved",
   task_deleted: "Task deleted",
+  attachment_added: "Attachment added",
   comment_added: "New comment",
   comment_reply: "Reply to my comment",
   mention_comment: "Mentioned in comment",

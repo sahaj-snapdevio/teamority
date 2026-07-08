@@ -472,6 +472,13 @@ export function TaskDetailPage({
     load();
   }
 
+  async function handleClearAllTags() {
+    await Promise.all(
+      tags.map((tag) => removeTaskTag(workspaceId, spaceId, listId, taskId, tag.id)),
+    );
+    load();
+  }
+
   async function handleCreateTag(name: string) {
     const res = await createTag(workspaceId, name);
     if ("tag" in res) {
@@ -1095,6 +1102,14 @@ export function TaskDetailPage({
                     </div>
                   </PopoverContent>
                 </Popover>
+                {tags.length > 1 && (
+                  <button
+                    onClick={handleClearAllTags}
+                    className="ml-0.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    Clear all
+                  </button>
+                )}
               </div>
             </FieldRow>
           </div>
