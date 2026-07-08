@@ -2,7 +2,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins/admin";
 import { magicLink } from "better-auth/plugins/magic-link";
-import { PRODUCT_NAME } from "@/config/platform";
+import { and, eq, sql } from "drizzle-orm";
+import { ADMIN_ROLE, PRODUCT_NAME } from "@/config/platform";
 import * as schema from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
@@ -120,6 +121,39 @@ export const auth = betterAuth({
             entityId: user.id,
             entityType: "user",
           });
+
+          // Self-hosted bootstrap: promote the very first user to platform
+          // (Orbit) admin so no manual CLI step is needed. Opt-in via env, and
+          // guarded to the first user ONLY (the count subquery makes concurrent
+          // or later signups no-ops, and prevents silently promoting a new
+          // signup on a running multi-user instance that lost its admin).
+          // Owner is assigned separately via onboarding, so the first user ends
+          // up Owner + Admin. A pre-seeded admin (create:admin) makes count > 1,
+          // so this correctly no-ops and the CLI takes precedence.
+          if (env.AUTO_PROMOTE_FIRST_ADMIN) {
+            const [promoted] = await db
+              .update(schema.user)
+              .set({ role: ADMIN_ROLE, updatedAt: new Date() })
+              .where(
+                and(
+                  eq(schema.user.id, user.id),
+                  sql`(select count(*) from ${schema.user}) = 1`
+                )
+              )
+              .returning({ id: schema.user.id });
+
+            if (promoted) {
+              await audit({
+                action: "user.first_admin_promoted",
+                actorEmail: user.email,
+                actorId: user.id,
+                description:
+                  "First user auto-promoted to platform admin (self-hosted bootstrap)",
+                entityId: user.id,
+                entityType: "user",
+              });
+            }
+          }
         },
       },
     },

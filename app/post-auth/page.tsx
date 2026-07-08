@@ -5,11 +5,18 @@ import { auth } from "@/lib/auth";
 import { workspace, workspaceMember } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getAccessibleSpaceIds } from "@/lib/permissions";
+import { activatePendingInvites } from "@/app/actions/workspace";
 import { list } from "@/db/schema";
 
 export default async function PostAuthPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
+
+  // Auto-accept any invitations addressed to this user's email so invited users
+  // (e.g. signing in with Google, no SMTP configured) are joined without needing
+  // the invite email/link. Must run before the membership lookup below so a
+  // freshly-activated workspace is picked up for the redirect.
+  await activatePendingInvites();
 
   // Platform admins are normal users with extra capabilities — they land in the
   // regular app (their workspaces), and reach the Admin Console via the sidebar.

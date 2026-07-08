@@ -170,11 +170,15 @@ curl -f http://localhost:3000/api/health     # → {"ok":true,"db":"connected"}
 
 ## 5. Create your first admin
 
-Sign in through the UI once (via magic link or Google) to create your user, then promote it:
+**Self-hosted (recommended):** set `AUTO_PROMOTE_FIRST_ADMIN=true` in your environment before first launch. The **first** user to sign in then automatically becomes the platform (Orbit) admin — no terminal step. This only fires on a brand-new install (empty user table).
+
+**Otherwise (or for hosted SaaS):** leave `AUTO_PROMOTE_FIRST_ADMIN` unset/`false`, sign in through the UI once to create your user, then promote it:
 
 ```bash
 docker compose exec worker pnpm make:admin you@yourcompany.com
 ```
+
+`make:admin` / `create:admin` are also the recovery path if an instance ever ends up with zero admins.
 
 ---
 

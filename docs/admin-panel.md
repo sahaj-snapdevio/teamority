@@ -22,9 +22,16 @@
 
 The Admin Panel is an internal tool for the Kanbanica platform operators (us) to monitor, manage, and support the SaaS platform. It is completely separate from the customer-facing app and is not accessible to any customer regardless of their Workspace Role.
 
-**Who has access:** Platform operators only — defined by a separate `is_platform_admin` flag on the User record. Being a Workspace Owner does NOT grant Admin Panel access.
+**Who has access:** Platform operators only. Access is defined by the platform role column **`user.role === "admin"`** (`ADMIN_ROLE` in `config/platform.ts`) — a distinct axis from `workspaceMember.role`, so being a Workspace Owner does NOT grant Admin Panel access. (The `is_platform_admin` boolean referenced elsewhere in this spec is aspirational; the shipped implementation uses `user.role`.) Gates: `requireAdmin()` (`lib/authz.ts`, used by `/orbit`) and `getAdminSession()` (`lib/admin-auth.ts`, used by `/admin` + all `/api/admin/*`), both re-read `role` + `banned` from the DB so a demoted/banned admin loses access immediately.
 
-**Access URL:** `/admin` — protected route, separate auth check
+**How an admin is created:**
+- **Self-hosted bootstrap (opt-in):** set `AUTO_PROMOTE_FIRST_ADMIN=true` and the **first** user to sign in is auto-promoted to platform admin (only fires when the user table is empty — see re-bootstrap note below). No terminal step needed.
+- **CLI (always available / SaaS):** `pnpm create:admin <email> <password> [name]` or `pnpm make:admin <email>`.
+- **In-app:** an existing admin promotes/demotes users on `/orbit/users`.
+
+**Re-bootstrap / recovery:** auto-promotion is scoped to a genuine first boot (user table has exactly one row) — it will **not** silently promote a new signup on a running multi-user instance. If an instance ends up with zero admins (the sole admin deleted their account), recover with `pnpm make:admin <existing-member-email>`.
+
+**Access URL:** `/orbit` (canonical) / `/admin` — protected routes, separate auth check
 
 ---
 
