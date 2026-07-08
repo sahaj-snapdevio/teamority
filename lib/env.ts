@@ -33,6 +33,14 @@ const envSchema = z.object({
   EMAIL_WEBHOOK_SECRET: optionalString,
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,
+  // Self-hosted bootstrap: when set to "true", the very first user to sign up
+  // becomes the platform (Orbit) admin, so no manual CLI step is needed.
+  // EXPLICIT OPT-IN — default false. Self-hosters set AUTO_PROMOTE_FIRST_ADMIN=true;
+  // hosted SaaS leaves it unset and provisions admins with `pnpm create:admin`.
+  AUTO_PROMOTE_FIRST_ADMIN: z.preprocess(
+    (v) => v === "true" || v === "1",
+    z.boolean()
+  ),
   STORAGE_DRIVER: z.enum(["local", "s3", "r2"]).default("local"),
   S3_ENDPOINT: z.string().min(1).default("http://localhost:9000"),
   S3_REGION: z.string().min(1).default("auto"),

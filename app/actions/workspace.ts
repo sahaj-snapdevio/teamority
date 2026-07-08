@@ -400,6 +400,104 @@ export async function declineInvite(token: string): Promise<{ ok: true } | { err
   return { ok: true };
 }
 
+/**
+ * Auto-accept any pending (INVITED) memberships addressed to the signed-in
+ * user's email. Called right after sign-in (from `/post-auth`) so a user who
+ * was invited by email is joined automatically — without ever receiving the
+ * invite email or opening the invite link. This is what makes invitations work
+ * with Google-only auth and no SMTP configured.
+ *
+ * Matching is by email, which is safe because the email is proven by the auth
+ * provider (Google / magic link) — this action only ever acts on the caller's
+ * own session, never an email passed by the client.
+ */
+export async function activatePendingInvites(): Promise<{ activated: number }> {
+  const session = await requireSession();
+  if (!session) return { activated: 0 };
+
+  const email = session.user.email?.toLowerCase();
+  if (!email) return { activated: 0 };
+
+  const now = new Date();
+
+  const pending = await db
+    .select()
+    .from(workspaceMember)
+    .where(
+      and(
+        eq(workspaceMember.email, email),
+        eq(workspaceMember.status, "INVITED")
+      )
+    );
+
+  let activated = 0;
+  for (const invite of pending) {
+    // Respect invite expiry, mirroring acceptInvite.
+    if (invite.inviteExpiresAt && invite.inviteExpiresAt < now) continue;
+
+    // If the user is somehow already an active member of this workspace (e.g.
+    // via a row under a different email), drop the redundant invite instead of
+    // creating a duplicate membership.
+    const [existingActive] = await db
+      .select({ id: workspaceMember.id })
+      .from(workspaceMember)
+      .where(
+        and(
+          eq(workspaceMember.workspaceId, invite.workspaceId),
+          eq(workspaceMember.userId, session.user.id),
+          eq(workspaceMember.status, "ACTIVE")
+        )
+      )
+      .limit(1);
+    if (existingActive) {
+      await db.delete(workspaceMember).where(eq(workspaceMember.id, invite.id));
+      continue;
+    }
+
+    const [updated] = await db
+      .update(workspaceMember)
+      .set({
+        userId: session.user.id,
+        status: "ACTIVE",
+        inviteToken: null,
+        inviteExpiresAt: null,
+        joinedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(workspaceMember.id, invite.id),
+          eq(workspaceMember.status, "INVITED") // guard against a concurrent accept
+        )
+      )
+      .returning({ id: workspaceMember.id });
+
+    if (!updated) continue;
+    activated++;
+
+    // Notify the inviter that their invitation was accepted (mirrors acceptInvite).
+    if (invite.invitedBy) {
+      const accepterName = session.user.name ?? session.user.email ?? "Someone";
+      const [wsRow] = await db
+        .select({ name: workspace.name })
+        .from(workspace)
+        .where(eq(workspace.id, invite.workspaceId))
+        .limit(1);
+      createNotifications({
+        workspaceId: invite.workspaceId,
+        actorId: session.user.id,
+        recipientIds: [invite.invitedBy],
+        triggerType: "invite_accepted",
+        entityType: "WORKSPACE",
+        entityId: invite.workspaceId,
+        title: `${accepterName} accepted your invitation to ${wsRow?.name ?? "your workspace"}`,
+      });
+    }
+  }
+
+  return { activated };
+}
+
 export async function cancelInvite(data: {
   workspaceId: string;
   memberId: string;
