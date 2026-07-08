@@ -27,6 +27,25 @@ settings (not files in the repo).
 - [ ] Set a real enforcement contact in `CODE_OF_CONDUCT.md`
 - [ ] Resolve the ⚠️ item in `public/ATTRIBUTIONS.md` — confirm `log-illus.webp` is redistribution-safe, or replace it
 
+## 3b. Production email — hosted demo SMTP (pre-release, ops)
+
+Replace Mailtrap Sandbox with a real SMTP provider so users testing the **live
+demo** receive real magic-link emails. This is an **operational deployment
+change only** — configured in the demo deployment's own environment. **No SMTP
+credentials are committed to the repository** (it ships only an empty
+`.env.example`). See [DEPLOYMENT.md → Production email (SMTP)](./DEPLOYMENT.md#production-email-smtp).
+
+> **Hosted demo (ours):** the live demo uses **our** SMTP credentials, set in the
+> demo server's environment. **Self-hosted deployments:** each operator must
+> configure **their own** SMTP provider and sending domain — we ship no default.
+
+- [ ] Choose a production provider (**Resend recommended**; Brevo/Postmark/SES/SMTP2GO also supported) and create the account
+- [ ] Verify the demo's **sending domain** and add the DNS records — **SPF + DKIM** (and a **DMARC** policy)
+- [ ] Set `SMTP_HOST`, `SMTP_PORT=587`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` (on the verified domain) in the **demo deployment's env / secret store** — not in the repo
+- [ ] **Verify end-to-end before public release:** request a magic link on the live demo → a real email arrives → login completes; confirm the `emailOutbox` row flips `queued → sent` in `/orbit/email`
+- [ ] Rotate the old Mailtrap Sandbox (and any dev Google) credentials
+- [ ] Confirm `.env.example` still ships **empty** SMTP variables (no secrets committed)
+
 ## 4. Docker / self-host verification (deferred RC checks)
 
 Run on a machine with Docker, from a clean clone:

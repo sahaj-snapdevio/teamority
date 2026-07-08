@@ -125,7 +125,7 @@ Phase 20 ->  QA & Launch Prep
   BETTER_AUTH_SECRET=                    # 32+ char random string
   BETTER_AUTH_URL=http://localhost:3000
 
-  # SMTP (use Mailtrap or similar for local dev)
+  # SMTP (any provider — Resend recommended; a sandbox inbox is fine for local dev)
   SMTP_HOST=
   SMTP_PORT=587
   SMTP_SECURE=false

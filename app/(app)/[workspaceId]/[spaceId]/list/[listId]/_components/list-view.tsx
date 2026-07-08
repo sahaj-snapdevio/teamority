@@ -286,6 +286,7 @@ function QuickCreateRow({
           if (e.key === "Enter") { e.preventDefault(); void submit(); }
           if (e.key === "Escape") { onOpenChange(false); setTitle(""); }
         }}
+        onBlur={() => { if (!title.trim()) { onOpenChange(false); setTitle(""); } }}
         disabled={saving}
         className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
       />
@@ -319,6 +320,8 @@ function StatusGroup({
   selectedIds,
   onSelect,
   statuses,
+  addOpen,
+  onAddOpenChange,
 }: {
   status: Status;
   tasks: Task[];
@@ -332,10 +335,11 @@ function StatusGroup({
   selectedIds: Set<string>;
   onSelect: (id: string, checked: boolean) => void;
   statuses: Status[];
+  addOpen: boolean;
+  onAddOpenChange: (v: boolean) => void;
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
-  const [quickCreateOpen, setQuickCreateOpen] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [renameOpen, setRenameOpen] = React.useState(false);
   const [newStatusOpen, setNewStatusOpen] = React.useState(false);
@@ -449,7 +453,7 @@ function StatusGroup({
 
             <button
               className="flex size-6 items-center justify-center rounded hover:bg-accent transition-colors cursor-pointer"
-              onClick={() => setQuickCreateOpen(true)}
+              onClick={() => onAddOpenChange(true)}
             >
               <PlusIcon className="size-3.5 text-muted-foreground" />
             </button>
@@ -503,8 +507,8 @@ function StatusGroup({
               )}
 
               <QuickCreateRow
-                open={quickCreateOpen}
-                onOpenChange={setQuickCreateOpen}
+                open={addOpen}
+                onOpenChange={onAddOpenChange}
                 workspaceId={workspaceId}
                 spaceId={spaceId}
                 listId={listId}
@@ -857,7 +861,9 @@ export function ListView({
   const [sortBy, setSortBy] = React.useState<"name" | "due" | "priority" | null>(null);
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc");
   const [groupBy, setGroupBy] = React.useState<"status" | "priority" | "assignee">("status");
-  
+  // Only one group's inline "Add Task" row may be open at a time.
+  const [openAddGroupId, setOpenAddGroupId] = React.useState<string | null>(null);
+
   const [priorityFilter, setPriorityFilter] = React.useState<string[]>([]);
   const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([]);
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
@@ -1356,6 +1362,8 @@ export function ListView({
                 selectedIds={selectedIds}
                 onSelect={handleSelect}
                 statuses={statuses}
+                addOpen={openAddGroupId === group.id}
+                onAddOpenChange={(v) => setOpenAddGroupId(v ? group.id : null)}
               />
             ))}
           </div>

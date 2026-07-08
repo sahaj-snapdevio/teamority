@@ -7,6 +7,7 @@ export const NOTIFICATION_TRIGGERS = {
   TASK_COMPLETED: "task_completed",
   TASK_MOVED: "task_moved",
   TASK_DELETED: "task_deleted",
+  ATTACHMENT_ADDED: "attachment_added",
   COMMENT_ADDED: "comment_added",
   COMMENT_REPLY: "comment_reply",
   MENTION_COMMENT: "mention_comment",

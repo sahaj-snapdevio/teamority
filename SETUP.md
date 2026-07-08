@@ -140,7 +140,10 @@ Create a workspace, add a project, and start making tasks.
 Everything below is optional — the app works fully without it in local development.
 
 ### Real email (SMTP)
-Without SMTP, emails (including magic links) are logged to the terminal instead of sent. To send real email, fill these in `.env` (works with Mailtrap, SendGrid, Postmark, AWS SES, etc.):
+Without SMTP, emails (including magic links) are logged to the terminal instead
+of sent — which is all you need for local development. To send real email, fill
+these in `.env`. Kanbanica works with **any SMTP provider** (Resend recommended,
+or Brevo, Postmark, Amazon SES, SMTP2GO, …):
 
 ```
 SMTP_HOST=...
@@ -150,7 +153,9 @@ SMTP_PASS=...
 EMAIL_FROM=you@yourdomain.com
 ```
 
-Restart `pnpm dev` after editing `.env`.
+Restart `pnpm dev` after editing `.env`. For production setup (provider choices,
+domain verification, SPF/DKIM/DMARC), see
+[DEPLOYMENT.md → Production email (SMTP)](./DEPLOYMENT.md#production-email-smtp).
 
 ### Google sign-in
 Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` to enable "Sign in with Google". Leave blank to use magic links only.

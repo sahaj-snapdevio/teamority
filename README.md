@@ -99,6 +99,8 @@ cp .env.example .env   # configure DATABASE_URL, APP_SECRET, NEXT_PUBLIC_APP_URL
 docker compose up -d --build
 ```
 
+**Email:** magic-link login works with **any SMTP provider** (Resend recommended, or Brevo/Postmark/SES/…) — configure it via env vars; see [DEPLOYMENT.md → Production email](./DEPLOYMENT.md#production-email-smtp). Each deployment uses its own credentials; nothing is committed.
+
 ## Documentation
 
 - [SETUP.md](./SETUP.md) — local development, start to finish

@@ -73,11 +73,13 @@ Workspace
 ### 1. Create Task
 
 - **Who can create:** Members with **Edit** or **Full Access** on the Space, Admin, Owner
-- **Quick create:** Click `+ Add Task` inside a List -> type title -> press Enter -> task is created instantly
-- **Full create:** Open task detail panel to fill all fields before saving
+- **Quick create:** Click `+ Add Task` inside a List -> type title -> press Enter -> task is created instantly (title only)
+- **Full create:** Open the Create Task modal to set **status, priority, description, due date, assignees, and tags** — all of these are persisted with the task on create (not only after creation)
 - On creation:
-  - Status defaults to the first `open` status in the List (e.g. "Todo")
+  - Status defaults to the first `open` status in the List (e.g. "Todo") when none is chosen
   - Reporter is set to the current user automatically
+  - Any priority, description, due date, assignees, and tags entered in the Create Task modal are saved with the new task
+  - Creator + assignees are auto-added as Watchers; **assignees set at creation receive a `task_assigned` notification** (see `docs/notifications.md`)
   - Task appears at the bottom of the List (or top, based on user sort preference)
 
 ---

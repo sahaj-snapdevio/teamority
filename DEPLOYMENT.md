@@ -59,17 +59,17 @@ POSTGRES_DB=kanbanica
 
 ### At least one authentication provider (required in production)
 
-**Option A — SMTP** (enables magic-link login):
+**Option A — SMTP** (enables magic-link login). See
+[Production email (SMTP)](#production-email-smtp) below for provider choices and
+DNS. Minimal shape:
 
 ```bash
 SMTP_HOST=smtp.yourprovider.com
-SMTP_PORT=587
+SMTP_PORT=587                      # 587 (STARTTLS) for most providers; some use 465
 SMTP_USER=...
 SMTP_PASS=...
-EMAIL_FROM=noreply@yourcompany.com
+EMAIL_FROM=noreply@yourdomain.com  # must be on a domain you've verified (SPF/DKIM)
 ```
-
-Set up SPF/DKIM/DMARC DNS records with your provider so magic-link emails aren't spam-filtered.
 
 **Option B — Google OAuth** (login without email):
 
@@ -108,6 +108,46 @@ Complete list of variables (validated by `lib/env.ts`). "Client" means it's inli
 | `APP_PORT` | Docker only | `3000` | Host port mapped to the app container. |
 
 > **Production auth rule:** if `NODE_ENV=production` and **neither** full SMTP **nor** Google OAuth is configured, the app refuses to start (so login can never silently break).
+
+### Production email (SMTP)
+
+Kanbanica sends magic-link and notification emails over **standard SMTP via
+Nodemailer**, so it works with **any SMTP provider** — you bring the credentials.
+Swapping providers is an **environment-variable change only**; no code changes.
+
+Pick whichever fits your deployment:
+
+| Provider | Free tier | Notes |
+|----------|-----------|-------|
+| **Resend** (recommended) | ~3,000/mo (100/day) | Best developer experience; great docs. Requires a verified domain. |
+| **Brevo** | ~300/day | Generous free tier; can start without owning a domain. |
+| **SMTP2GO** | ~1,000/mo | Very simple SMTP setup. |
+| **Postmark** | 100/mo then paid | Best transactional deliverability. |
+| **Amazon SES** | pay-as-you-go | Cheapest at scale; more setup (sandbox → production request). |
+
+Typical settings (check your provider's dashboard for exact values):
+
+```bash
+# Example — Resend
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=587
+SMTP_USER=resend
+SMTP_PASS=<your-api-key>
+EMAIL_FROM="Kanbanica <noreply@yourdomain.com>"
+```
+
+**DNS / deliverability (required):** in your provider's dashboard, add and verify
+your sending domain, then create the DNS records it gives you — **SPF** and
+**DKIM** at minimum, plus a **DMARC** policy. `EMAIL_FROM` must be an address on
+that verified domain, or mail is rejected or spam-filtered. Use port **587
+(STARTTLS)** unless the provider specifies **465** (implicit TLS).
+
+**Multiple deployments:** each instance (your hosted demo, and every self-hosted
+install) sets its **own** `SMTP_*`/`EMAIL_FROM` in its own environment. Secrets
+are never committed — the repo ships only an empty `.env.example`.
+
+Local development needs **no SMTP**: magic links print to the terminal (see
+[SETUP.md](./SETUP.md)).
 
 ---
 

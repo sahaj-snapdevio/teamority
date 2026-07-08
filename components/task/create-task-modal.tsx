@@ -150,7 +150,21 @@ export function CreateTaskModal({
     if (!title.trim()) { setError("Task name is required"); return; }
     setLoading(true);
     setError("");
-    const res = await createTask(workspaceId, spaceId, listId, { title: title.trim(), statusId });
+    const trimmedDescription = description.trim();
+    const res = await createTask(workspaceId, spaceId, listId, {
+      title: title.trim(),
+      statusId,
+      priority,
+      description: trimmedDescription
+        ? {
+            type: "doc",
+            content: [{ type: "paragraph", content: [{ type: "text", text: trimmedDescription }] }],
+          }
+        : undefined,
+      dueDateEnd: dueDate,
+      assigneeIds,
+      tagIds,
+    });
     if ("error" in res) { setLoading(false); setError(res.error); return; }
     await onCreated?.(res.taskId);
     setLoading(false);

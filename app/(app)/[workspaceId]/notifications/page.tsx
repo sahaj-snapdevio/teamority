@@ -33,6 +33,7 @@ interface NotificationsResponse {
 }
 
 interface TaskLocation {
+  notifId: string;
   taskId: string;
   workspaceId: string;
   spaceId: string;
@@ -171,7 +172,10 @@ export default function InboxPage() {
 
     // target.type === "task" — open inline, using the notification's OWN workspace
     // (the Inbox is cross-workspace, so it may differ from the page's workspace).
-    if (selectedTask?.taskId === n.entityId) {
+    // Toggle-close only when re-clicking the SAME notification row — multiple
+    // notifications can point at the same task, so we key off the notification id,
+    // not the task id (otherwise clicking a sibling notification would just close it).
+    if (selectedTask?.notifId === n.id) {
       setSelectedTask(null); // toggle closed
       return;
     }
@@ -181,6 +185,7 @@ export default function InboxPage() {
       return;
     }
     setSelectedTask({
+      notifId: n.id,
       taskId: n.entityId,
       workspaceId: n.workspaceId,
       spaceId: result.spaceId,
@@ -265,7 +270,7 @@ export default function InboxPage() {
             </div>
           )}
           {notifications.map((n) => {
-            const isSelected = selectedTask?.taskId === n.entityId;
+            const isSelected = selectedTask?.notifId === n.id;
             return (
               <div
                 key={n.id}
