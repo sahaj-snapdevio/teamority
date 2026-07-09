@@ -510,6 +510,8 @@ export function TaskDetailPanel({
                 onChange={setDescDraft}
                 onSave={saveDescription}
                 taskId={taskId}
+                workspaceId={workspaceId}
+                spaceId={spaceId}
               />
             </div>
 

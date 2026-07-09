@@ -261,6 +261,8 @@ export function CreateTaskModal({
             value={descriptionJson}
             onChange={setDescriptionJson}
             imageUpload={descImages}
+            workspaceId={workspaceId}
+            spaceId={spaceId}
             placeholder="Add a description… paste an image to attach"
           />
 

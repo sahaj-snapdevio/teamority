@@ -117,9 +117,18 @@ async function _create(params: CreateNotificationParams) {
         expiresAt,
       })),
     );
-    // Push SSE event to all connected browsers for each recipient
+    // Push SSE event to all connected browsers for each recipient. Include the
+    // title/body/url so the client can show an in-app toast popup, not just
+    // refresh the badge.
+    const toastUrl = pushUrl ?? `/${workspaceId}/notifications`;
     for (const recipientId of notifRecipients) {
-      pushToUser(recipientId, { type: "new_notification" });
+      pushToUser(recipientId, {
+        type: "new_notification",
+        title,
+        body: body ?? null,
+        url: toastUrl,
+        workspaceId,
+      });
     }
   }
 

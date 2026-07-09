@@ -83,7 +83,7 @@ GOOGLE_CLIENT_SECRET=...
 ### Optional
 
 - **File storage** — defaults to `STORAGE_DRIVER=local` (persisted in the `uploads` Docker volume). For object storage set `STORAGE_DRIVER=s3` (or `r2`) and the `S3_*` variables.
-- **Web Push** — set the `VAPID_*` keys (`npx web-push generate-vapid-keys`).
+- **Web Push (browser/desktop notifications)** — set the runtime `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` (`npx web-push generate-vapid-keys`) on the **app and worker**. That's all — the client fetches the public key at runtime from `/api/push/vapid-public-key`, so it works on **any** deployment (bare `pnpm build && pnpm start`, PM2, Vercel/Railway/Render/Coolify, Docker) with **no build-time key and no rebuild when keys rotate**. `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is optional/legacy (a build-time fallback). Requires HTTPS (behind Cloudflare, use SSL mode **Full (strict)**); `/sw.js` is served `no-cache` so CDNs/browsers never keep a stale service worker.
 
 ### Environment variable reference
 

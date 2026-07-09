@@ -23,6 +23,9 @@ RUN corepack enable
 # public URL must be provided here. Changing the domain later requires a rebuild.
 ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+# Note: Web Push does NOT need a build-time key — the client fetches the VAPID
+# public key at runtime from /api/push/vapid-public-key. Just set the runtime
+# VAPID_* env vars (works on any deployment).
 
 # Placeholders so build-time env validation (lib/env.ts) passes. These are NOT
 # used at runtime — real values are injected when the container starts.

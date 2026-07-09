@@ -1122,6 +1122,8 @@ export function TaskDetailPage({
               onChange={setDescDraft}
               onSave={saveDescription}
               taskId={taskId}
+              workspaceId={workspaceId}
+              spaceId={spaceId}
             />
           </div>
 

@@ -9,7 +9,7 @@ import { comment, commentReaction, task, taskAttachment, taskWatcher, user } fro
 import { canAccessSpace, getSpacePermission, hasPermissionLevel } from "@/lib/permissions";
 import { writeActivityLog } from "@/lib/activity-log";
 import { createNotifications } from "@/lib/notifications/create-notification";
-import { extractInlineImageAttachmentIds } from "@/lib/notes";
+import { extractInlineImageAttachmentIds, extractMentionIds } from "@/lib/notes";
 import { storage } from "@/lib/storage";
 import { refreshWorkspace } from "@/lib/realtime/refresh";
 
@@ -56,25 +56,6 @@ function revalidateTask(workspaceId: string, spaceId: string, listId: string) {
   void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`]);
 }
 
-// ─── extractMentionIds ────────────────────────────────────────────────────────
-
-function extractMentionIds(body: unknown): string[] {
-  if (!body || typeof body !== "object") return [];
-  const ids: string[] = [];
-  function walk(node: unknown) {
-    if (!node || typeof node !== "object") return;
-    const n = node as Record<string, unknown>;
-    if (n.type === "mention" && n.attrs && typeof n.attrs === "object") {
-      const attrs = n.attrs as Record<string, unknown>;
-      if (typeof attrs.id === "string") ids.push(attrs.id);
-    }
-    if (Array.isArray(n.content)) {
-      for (const child of n.content) walk(child);
-    }
-  }
-  walk(body);
-  return [...new Set(ids)];
-}
 
 
 // ─── getTaskComments ──────────────────────────────────────────────────────────
@@ -530,10 +511,45 @@ export async function resolveComment(
   const err = await requireSpaceAccess(session.user.id, workspaceId, spaceId);
   if (err) return err;
 
+  const [resolved] = await db
+    .select({ taskId: comment.taskId, authorId: comment.authorId })
+    .from(comment)
+    .where(eq(comment.id, commentId))
+    .limit(1);
+
   await db
     .update(comment)
     .set({ isResolved: true, resolvedBy: session.user.id, resolvedAt: new Date(), updatedAt: new Date() })
     .where(eq(comment.id, commentId));
+
+  // Notify the thread's author + everyone who replied in it (resolver excluded).
+  if (resolved) {
+    const replies = await db
+      .select({ authorId: comment.authorId })
+      .from(comment)
+      .where(eq(comment.parentCommentId, commentId));
+    const recipientIds = [
+      ...new Set([resolved.authorId, ...replies.map((r) => r.authorId)]),
+    ];
+    if (recipientIds.length > 0) {
+      const [taskRow] = await db
+        .select({ title: task.title })
+        .from(task)
+        .where(eq(task.id, resolved.taskId))
+        .limit(1);
+      const actorName = session.user.name ?? session.user.email ?? "Someone";
+      createNotifications({
+        workspaceId,
+        actorId: session.user.id,
+        recipientIds,
+        triggerType: "comment_resolved",
+        entityType: "TASK",
+        entityId: resolved.taskId,
+        title: `${actorName} resolved a comment thread on "${taskRow?.title ?? "a task"}"`,
+        muteCheckEntityIds: [resolved.taskId],
+      });
+    }
+  }
 
   revalidateTask(workspaceId, spaceId, listId);
   return { ok: true };

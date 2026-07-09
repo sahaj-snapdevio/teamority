@@ -39,7 +39,7 @@ function actorNameFrom(session: { user: { name?: string | null; email?: string |
  * NOTE: public spaces usually have no explicit `space_member` rows, so we must derive
  * recipients from workspace membership, not just the `space_member` table.
  */
-async function spaceRecipientUserIds(workspaceId: string, spaceId: string): Promise<string[]> {
+export async function spaceRecipientUserIds(workspaceId: string, spaceId: string): Promise<string[]> {
   const [sp] = await db
     .select({ isPrivate: space.isPrivate })
     .from(space)

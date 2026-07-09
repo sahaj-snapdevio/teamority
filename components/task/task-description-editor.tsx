@@ -9,6 +9,7 @@ import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import Mention from "@tiptap/extension-mention";
 import {
   CodeBlockIcon,
   CodeIcon,
@@ -34,6 +35,8 @@ import {
 import { NoteImage } from "@/components/task/note-image";
 import { useNoteImageUpload } from "@/hooks/use-note-image-upload";
 import { LINK_OPTIONS } from "@/lib/tiptap-link";
+import { getWorkspaceMentionMembers, type MentionMember } from "@/app/actions/mention";
+import { buildMentionSuggestion } from "@/components/task/mention-suggestion";
 import { LinkIcon } from "@phosphor-icons/react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -52,6 +55,9 @@ interface TaskDescriptionEditorProps {
    * enables the image button even without a taskId.
    */
   imageUpload?: ReturnType<typeof useNoteImageUpload>;
+  /** When both are set, enables @mentions (fetches workspace members). */
+  workspaceId?: string;
+  spaceId?: string;
 }
 
 function ToolbarButton({
@@ -113,6 +119,8 @@ export function TaskDescriptionEditor({
   className,
   taskId,
   imageUpload: externalImageUpload,
+  workspaceId,
+  spaceId,
 }: TaskDescriptionEditorProps) {
   const [focused, setFocused] = React.useState(false);
   const [linkOpen, setLinkOpen] = React.useState(false);
@@ -127,6 +135,30 @@ export function TaskDescriptionEditor({
   // until the upload finishes so we never persist a keyless placeholder node.
   const pendingSaveRef = React.useRef(false);
 
+  // @mentions — enabled when workspaceId+spaceId are provided. The suggestion
+  // reads the latest members from a ref (fetched async), same as the comment
+  // composer, so it works even though the extension is created once on mount.
+  const canMention = !!workspaceId && !!spaceId;
+  const membersRef = React.useRef<MentionMember[]>([]);
+  React.useEffect(() => {
+    if (!workspaceId || !spaceId) return;
+    let active = true;
+    getWorkspaceMentionMembers(workspaceId, spaceId).then((m) => {
+      if (active && Array.isArray(m)) membersRef.current = m;
+    });
+    return () => { active = false; };
+  }, [workspaceId, spaceId]);
+  const mentionExtension = React.useMemo(() => {
+    if (!canMention) return null;
+    return Mention.configure({
+      HTMLAttributes: { class: "mention" },
+      renderText: ({ node }) =>
+        `@${(node.attrs.label as string | null) ?? (node.attrs.id as string) ?? "someone"}`,
+      suggestion: buildMentionSuggestion(() => membersRef.current, () => undefined),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canMention]);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -140,6 +172,7 @@ export function TaskDescriptionEditor({
       TaskList,
       TaskItem.configure({ nested: true }),
       NoteImage,
+      ...(mentionExtension ? [mentionExtension] : []),
     ],
     content: (() => {
       if (!value) return "";
