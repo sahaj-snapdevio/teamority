@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { and, eq, inArray, asc } from "drizzle-orm";
+import { and, eq, inArray, notInArray, asc, isNull } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -9,6 +9,7 @@ import { comment, commentReaction, task, taskAttachment, taskWatcher, user } fro
 import { canAccessSpace, getSpacePermission, hasPermissionLevel } from "@/lib/permissions";
 import { writeActivityLog } from "@/lib/activity-log";
 import { createNotifications } from "@/lib/notifications/create-notification";
+import { extractInlineImageAttachmentIds } from "@/lib/notes";
 import { storage } from "@/lib/storage";
 import { refreshWorkspace } from "@/lib/realtime/refresh";
 
@@ -74,6 +75,7 @@ function extractMentionIds(body: unknown): string[] {
   walk(body);
   return [...new Set(ids)];
 }
+
 
 // ─── getTaskComments ──────────────────────────────────────────────────────────
 
@@ -153,6 +155,7 @@ export async function getTaskComments(
             fileUrl: taskAttachment.fileUrl,
             mimeType: taskAttachment.mimeType,
             fileSize: taskAttachment.fileSize,
+            isInline: taskAttachment.isInline,
           })
           .from(taskAttachment)
           .where(inArray(taskAttachment.commentId, allCommentIds))
@@ -164,6 +167,9 @@ export async function getTaskComments(
   for (let i = 0; i < attachmentRows.length; i++) {
     const a = attachmentRows[i];
     if (!a.commentId) continue;
+    // Inline images are rendered inside the note body — keep them out of the
+    // attachment grid so they aren't shown twice.
+    if (a.isInline) continue;
     if (!attachmentMap.has(a.commentId)) attachmentMap.set(a.commentId, []);
     attachmentMap.get(a.commentId)!.push({
       id: a.id,
@@ -257,6 +263,23 @@ export async function createComment(
     createdAt: now,
     updatedAt: now,
   });
+
+  // Link any inline images (uploaded during compose, commentId still null) to
+  // this comment so they're cleaned up when the comment is edited/deleted.
+  const inlineImageIds = extractInlineImageAttachmentIds(body);
+  if (inlineImageIds.length > 0) {
+    await db
+      .update(taskAttachment)
+      .set({ commentId: id })
+      .where(
+        and(
+          eq(taskAttachment.taskId, taskId),
+          eq(taskAttachment.isInline, true),
+          isNull(taskAttachment.commentId),
+          inArray(taskAttachment.id, inlineImageIds),
+        ),
+      );
+  }
 
   void writeActivityLog(taskId, session.user.id, "comment_added", { comment_id: id });
 
@@ -364,6 +387,55 @@ export async function editComment(
     .update(comment)
     .set({ body, editedAt: new Date(), updatedAt: new Date() })
     .where(eq(comment.id, commentId));
+
+  // Reconcile inline images. Link any newly-added ones (uploaded during the
+  // edit, still unlinked) to this comment.
+  const newImageIds = extractInlineImageAttachmentIds(body);
+  if (newImageIds.length > 0) {
+    await db
+      .update(taskAttachment)
+      .set({ commentId })
+      .where(
+        and(
+          eq(taskAttachment.isInline, true),
+          isNull(taskAttachment.commentId),
+          inArray(taskAttachment.id, newImageIds),
+        ),
+      );
+  }
+
+  // Delete inline images that were removed from the body (their storage object
+  // + row). Scoped to THIS comment's inline images only — never touches other
+  // images or file attachments.
+  const orphanRows = await db
+    .select({ id: taskAttachment.id, fileUrl: taskAttachment.fileUrl })
+    .from(taskAttachment)
+    .where(
+      and(
+        eq(taskAttachment.commentId, commentId),
+        eq(taskAttachment.isInline, true),
+        ...(newImageIds.length > 0
+          ? [notInArray(taskAttachment.id, newImageIds)]
+          : []),
+      ),
+    );
+  if (orphanRows.length > 0) {
+    await Promise.all(
+      orphanRows.map(async (a) => {
+        try {
+          await storage.delete(a.fileUrl);
+        } catch {
+          // Best-effort: a missing storage file must not block the edit.
+        }
+      }),
+    );
+    await db.delete(taskAttachment).where(
+      inArray(
+        taskAttachment.id,
+        orphanRows.map((a) => a.id),
+      ),
+    );
+  }
 
   revalidateTask(workspaceId, spaceId, listId);
   return { ok: true };

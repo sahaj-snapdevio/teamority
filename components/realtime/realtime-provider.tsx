@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { mutate } from "swr";
 
 /**
  * Realtime collaboration client.
@@ -133,6 +134,18 @@ export function RealtimeProvider({
         try {
           data = JSON.parse(event.data);
         } catch {
+          return;
+        }
+        // A new in-app notification arrived — revalidate every notification
+        // query (sidebar unread badge + the Inbox list) immediately, so the
+        // badge updates live instead of waiting for the next SWR poll.
+        // Notifications are cross-workspace, so this is NOT gated on workspaceId.
+        if (data.type === "new_notification") {
+          void mutate(
+            (key) => typeof key === "string" && key.startsWith("/api/me/notifications"),
+            undefined,
+            { revalidate: true },
+          );
           return;
         }
         if (data.type !== "data_changed" || data.v !== 1) return;

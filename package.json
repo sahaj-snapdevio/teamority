@@ -39,6 +39,7 @@
     "@paralleldrive/cuid2": "^3.3.0",
     "@phosphor-icons/react": "^2.1.10",
     "@react-email/render": "^2.0.8",
+    "@tiptap/core": "^3.26.1",
     "@tiptap/extension-link": "^3.26.1",
     "@tiptap/extension-mention": "^3.26.1",
     "@tiptap/extension-placeholder": "^3.26.1",

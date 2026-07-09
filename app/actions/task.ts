@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { createId } from "@paralleldrive/cuid2";
-import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, notInArray, isNull, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -15,6 +15,7 @@ import {
   tag,
   taskDependency,
   taskDescriptionSnapshot,
+  taskAttachment,
   timeLog,
   workspace,
   workspaceMember,
@@ -29,6 +30,8 @@ import { canAccessSpace, getSpacePermission, hasPermissionLevel } from "@/lib/pe
 import { writeActivityLog } from "@/lib/activity-log";
 import { refreshWorkspace } from "@/lib/realtime/refresh";
 import { createNotifications } from "@/lib/notifications/create-notification";
+import { extractInlineImageAttachmentIds } from "@/lib/notes";
+import { storage } from "@/lib/storage";
 
 // ─── Permission helpers ──────────────────────────────────────────────────────
 
@@ -440,6 +443,40 @@ export async function updateTask(
     }
     updates.description = data.description as Record<string, unknown>;
     logs.push(() => writeActivityLog(taskId, session.user.id, "description_updated"));
+
+    // Reconcile inline images: delete the storage object + row for any inline
+    // image removed from the description. Scoped to THIS task's DESCRIPTION
+    // inline images (isInline + no commentId) — never touches comment images,
+    // file attachments, or other tasks. Mirrors editComment.
+    const keptIds = extractInlineImageAttachmentIds(data.description);
+    const removed = await db
+      .select({ id: taskAttachment.id, fileUrl: taskAttachment.fileUrl })
+      .from(taskAttachment)
+      .where(
+        and(
+          eq(taskAttachment.taskId, taskId),
+          eq(taskAttachment.isInline, true),
+          isNull(taskAttachment.commentId),
+          ...(keptIds.length > 0 ? [notInArray(taskAttachment.id, keptIds)] : []),
+        ),
+      );
+    if (removed.length > 0) {
+      await Promise.all(
+        removed.map(async (a) => {
+          try {
+            await storage.delete(a.fileUrl);
+          } catch {
+            // Best-effort: a missing storage file must not block the update.
+          }
+        }),
+      );
+      await db.delete(taskAttachment).where(
+        inArray(
+          taskAttachment.id,
+          removed.map((a) => a.id),
+        ),
+      );
+    }
   }
 
   if (data.dueDateStart !== undefined) updates.dueDateStart = data.dueDateStart;
@@ -557,6 +594,25 @@ export async function deleteTask(
 
   const permErr = await requireFullAccess(session.user.id, workspaceId, spaceId);
   if (permErr) return { error: "You don't have permission to delete tasks" };
+
+  // Delete attachment storage objects before the task (the rows cascade on
+  // task delete, but the stored files would otherwise orphan). Covers file
+  // attachments AND inline note/description images.
+  const taskFiles = await db
+    .select({ fileUrl: taskAttachment.fileUrl })
+    .from(taskAttachment)
+    .where(eq(taskAttachment.taskId, taskId));
+  if (taskFiles.length > 0) {
+    await Promise.all(
+      taskFiles.map(async (a) => {
+        try {
+          await storage.delete(a.fileUrl);
+        } catch {
+          // Best-effort: a missing storage file must not block task deletion.
+        }
+      }),
+    );
+  }
 
   await db.delete(task).where(and(eq(task.id, taskId), listId ? eq(task.listId, listId) : isNull(task.listId)));
 

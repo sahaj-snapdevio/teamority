@@ -60,6 +60,9 @@ export const taskAttachment = pgTable(
     fileUrl: text("file_url").notNull(),
     fileSize: integer("file_size").notNull(),
     mimeType: text("mime_type").notNull(),
+    // Inline images embedded in a comment/note body (rendered inside the note,
+    // excluded from the task "Attachments" file section). Regular uploads = false.
+    isInline: boolean("is_inline").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("task_attachment_task_id_idx").on(t.taskId)],

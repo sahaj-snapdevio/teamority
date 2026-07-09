@@ -9,6 +9,7 @@ import {
   FileIcon,
   CodeBlockIcon,
   FilePdfIcon,
+  ImageIcon,
   ListBulletsIcon,
   ListNumbersIcon,
   PaperclipIcon,
@@ -31,8 +32,12 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Mention from "@tiptap/extension-mention";
 import Placeholder from "@tiptap/extension-placeholder";
+import Link from "@tiptap/extension-link";
+import { LINK_OPTIONS } from "@/lib/tiptap-link";
 import { getWorkspaceMentionMembers, type MentionMember } from "@/app/actions/mention";
 import { buildMentionSuggestion } from "@/components/task/mention-suggestion";
+import { NoteImage } from "@/components/task/note-image";
+import { useNoteImageUpload } from "@/hooks/use-note-image-upload";
 import {
   SlashCommandGrid,
   SlashCommandMenu,
@@ -198,6 +203,7 @@ function CommentEditor({
   enableAttachments,
   compact,
   members,
+  taskId,
 }: {
   placeholder?: string;
   onSubmit: (content: unknown, files: File[]) => Promise<void>;
@@ -207,16 +213,21 @@ function CommentEditor({
   enableAttachments?: boolean;
   compact?: boolean;
   members?: MentionMember[];
+  taskId?: string;
 }) {
   const [submitting, setSubmitting] = React.useState(false);
   const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
   const [editorEmpty, setEditorEmpty] = React.useState(!initialContent);
   const [plusOpen, setPlusOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
   // Stable refs so the editor's handleKeyDown always calls the latest versions
   const submitRef = React.useRef<() => void>(() => undefined);
   const splitListItemRef = React.useRef<() => void>(() => undefined);
   const isMentionActiveRef = React.useRef(false);
+  // Inline-image paste/drop upload is available when we know the task.
+  const canInlineImages = !!taskId;
+  const imageUpload = useNoteImageUpload({ taskId });
 
   // Keep a ref so the mention suggestion always reads the latest members list,
   // even though the Tiptap extension is created only once on mount.
@@ -247,6 +258,8 @@ function CommentEditor({
       StarterKit,
       Placeholder.configure({ placeholder: placeholder ?? "Write a comment…" }),
       mentionExtension,
+      NoteImage,
+      Link.configure(LINK_OPTIONS),
     ],
     content: (initialContent as object) ?? "",
     autofocus: autoFocus,
@@ -257,6 +270,12 @@ function CommentEditor({
     onSelectionUpdate: ({ editor: e }) => slashMenu.refresh(e),
     onBlur: () => slashMenu.close(),
     editorProps: {
+      // Paste a screenshot / drop image files → upload inline. Non-image
+      // pastes/drops fall through to Tiptap's default handling (unchanged).
+      handlePaste: (view, event) =>
+        canInlineImages ? imageUpload.handlePaste(view, event) : false,
+      handleDrop: (view, event) =>
+        canInlineImages ? imageUpload.handleDrop(view, event as DragEvent) : false,
       handleKeyDown: (view, event) => {
         // Slash command menu takes priority while it's open.
         if (slashMenu.handleKeyDown(event)) return true;
@@ -297,10 +316,20 @@ function CommentEditor({
     },
   });
 
-  React.useEffect(() => { slashMenu.setEditor(editor); }, [editor, slashMenu]);
+  const setImageEditor = imageUpload.setEditor;
+  React.useEffect(() => {
+    slashMenu.setEditor(editor);
+    setImageEditor(editor);
+  }, [editor, slashMenu, setImageEditor]);
+
+  function handleImageButton(e: React.ChangeEvent<HTMLInputElement>) {
+    imageUpload.pickAndUpload(e.target.files);
+    e.target.value = "";
+  }
 
   async function handleSubmit() {
-    if (!editor || (editorEmpty && pendingFiles.length === 0)) return;
+    if (!editor || imageUpload.uploading) return;
+    if (editorEmpty && pendingFiles.length === 0) return;
     setSubmitting(true);
     try {
       // Deep-clone through JSON.parse/stringify to convert ProseMirror's
@@ -326,7 +355,9 @@ function CommentEditor({
     setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const canSubmit = !editorEmpty || pendingFiles.length > 0;
+  // Block submit while an inline image is still uploading (a note must not be
+  // posted with a placeholder image node).
+  const canSubmit = (!editorEmpty || pendingFiles.length > 0) && !imageUpload.uploading;
 
   // Keep submitRef pointing at the latest handleSubmit so the editor keydown
   // closure (created once) always calls the current version.
@@ -435,6 +466,27 @@ function CommentEditor({
           </>
         )}
 
+        {/* Inline image (paste, drop, or pick) */}
+        {canInlineImages && (
+          <>
+            <button
+              onClick={() => imageInputRef.current?.click()}
+              className="size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              title="Add image"
+            >
+              <ImageIcon className="size-4" />
+            </button>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              multiple
+              onChange={handleImageButton}
+            />
+          </>
+        )}
+
         {/* Mention */}
         <button
           onClick={() => editor?.chain().focus().insertContent("@").run()}
@@ -502,6 +554,8 @@ function CommentBody({ body }: { body: unknown }) {
         renderText: ({ node }) =>
           `@${(node.attrs.label as string | null) ?? (node.attrs.id as string) ?? "someone"}`,
       }),
+      NoteImage,
+      Link.configure(LINK_OPTIONS),
     ],
     content: (body as object) ?? "",
     editable: false,
@@ -515,11 +569,15 @@ function CommentBody({ body }: { body: unknown }) {
   // Tiptap only applies `content` at init. When the comment is edited and the
   // feed refetches, the `body` prop changes but the editor keeps the old text
   // until it remounts — so push new content into the editor on every change.
+  // Deferred to a microtask: with the NoteImage React NodeView, setContent
+  // triggers a synchronous React flush that's illegal inside an effect.
   React.useEffect(() => {
     if (!editor) return;
     const next = (body as object) ?? "";
     if (JSON.stringify(editor.getJSON()) !== JSON.stringify(next)) {
-      editor.commands.setContent(next);
+      queueMicrotask(() => {
+        if (!editor.isDestroyed) editor.commands.setContent(next);
+      });
     }
   }, [body, editor]);
 
@@ -773,6 +831,7 @@ function CommentItem({
               autoFocus
               compact
               members={members}
+              taskId={taskId}
             />
           ) : (
             <CommentBody body={comment.body} />
@@ -873,6 +932,7 @@ function CommentItem({
             autoFocus
             compact
             members={members}
+            taskId={taskId}
           />
         </div>
       )}
@@ -1065,6 +1125,7 @@ function TaskActivityFeed({
           onSubmit={handleNewComment}
           enableAttachments
           members={members}
+          taskId={taskId}
         />
       </div>
     </div>

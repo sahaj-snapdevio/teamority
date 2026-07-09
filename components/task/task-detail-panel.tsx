@@ -82,7 +82,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
+import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { TaskActivityFeed, type TaskActivityFeedHandle } from "@/components/task/task-activity-feed";
@@ -143,7 +143,6 @@ export function TaskDetailPanel({
   const [titleEditing, setTitleEditing] = React.useState(false);
   const [titleDraft, setTitleDraft] = React.useState("");
   const [descDraft, setDescDraft] = React.useState("");
-  const [descEditing, setDescEditing] = React.useState(false);
   const [members, setMembers] = React.useState<{ userId: string | null; name: string; email: string; image: string | null }[]>([]);
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [allTags, setAllTags] = React.useState<{ id: string; name: string; color: string }[]>([]);
@@ -211,7 +210,6 @@ export function TaskDetailPanel({
 
   const { task: t, assignees, watchers, tags, checklists, dependencies, statuses, currentUserId } = data;
   const isWatching = watchers.some((w) => w.userId === currentUserId);
-  const currentStatus = statuses.find((s) => s.id === t.statusId);
   const priority = PRIORITY_CONFIG[t.priority as Priority] ?? PRIORITY_CONFIG.NONE;
   const totalChecked = checklists.flatMap((c) => c.items).filter((i) => i.isChecked).length;
   const totalItems = checklists.flatMap((c) => c.items).length;
@@ -226,7 +224,6 @@ export function TaskDetailPanel({
 
   async function saveDescription() {
     await updateTask(workspaceId, spaceId, listId, taskId, { description: descDraft });
-    setDescEditing(false);
     load();
   }
 
@@ -443,9 +440,7 @@ export function TaskDetailPanel({
               <div className="flex items-center gap-1">
                 <Select value={t.statusId ?? undefined} onValueChange={handleStatusChange}>
                   <SelectTrigger className="h-7 w-auto text-xs px-2 gap-1.5">
-                    {currentStatus && (
-                      <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: currentStatus.color }} />
-                    )}
+                    {/* SelectValue already renders the selected item's dot + name. */}
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -490,7 +485,7 @@ export function TaskDetailPanel({
 
               <Select value={t.priority} onValueChange={(v) => handlePriorityChange(v as Priority)}>
                 <SelectTrigger className={cn("h-7 w-auto text-xs px-2 gap-1.5", priority.color, priority.bg)}>
-                  <span>{priority.icon}</span>
+                  {/* SelectValue already renders the selected item's icon + label. */}
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -509,33 +504,13 @@ export function TaskDetailPanel({
             {/* Description */}
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Description</Label>
-              {descEditing ? (
-                <div className="space-y-2">
-                  <Textarea
-                    autoFocus
-                    value={descDraft}
-                    onChange={(e) => setDescDraft(e.target.value)}
-                    rows={6}
-                    className="text-sm resize-none"
-                    placeholder="Add a description…"
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={saveDescription}>Save</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDescEditing(false)}>Cancel</Button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  onClick={() => setDescEditing(true)}
-                  className="min-h-15 rounded-md border border-transparent hover:border-border hover:bg-accent/30 px-2 py-1.5 text-sm cursor-text transition-colors"
-                >
-                  {descDraft ? (
-                    <p className="whitespace-pre-wrap">{descDraft}</p>
-                  ) : (
-                    <p className="text-muted-foreground">Add a description…</p>
-                  )}
-                </div>
-              )}
+              <TaskDescriptionEditor
+                key={taskId}
+                value={descDraft}
+                onChange={setDescDraft}
+                onSave={saveDescription}
+                taskId={taskId}
+              />
             </div>
 
             {/* Checklists */}

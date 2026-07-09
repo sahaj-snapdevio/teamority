@@ -1,0 +1,1 @@
+ALTER TABLE "task_attachment" ADD COLUMN "is_inline" boolean DEFAULT false NOT NULL;

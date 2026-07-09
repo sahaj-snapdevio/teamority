@@ -257,6 +257,7 @@ export function TaskDetailPage({
       mimeType: string;
       url: string;
       commentId: string | null;
+      isInline?: boolean;
       uploadedBy: string;
       createdAt: Date;
     }[]
@@ -1120,6 +1121,7 @@ export function TaskDetailPage({
               value={descDraft}
               onChange={setDescDraft}
               onSave={saveDescription}
+              taskId={taskId}
             />
           </div>
 
@@ -1515,10 +1517,10 @@ export function TaskDetailPage({
               <div className="flex items-center gap-2">
                 <PaperclipIcon className="size-4 text-muted-foreground" />
                 <h3 className="text-sm font-semibold">Attachments</h3>
-                {attachments.filter((a) => !a.commentId).length > 0 && (
+                {attachments.filter((a) => !a.commentId && !a.isInline).length > 0 && (
                   <span className="text-xs text-muted-foreground">
-                    {attachments.filter((a) => !a.commentId).length} file
-                    {attachments.filter((a) => !a.commentId).length !== 1
+                    {attachments.filter((a) => !a.commentId && !a.isInline).length} file
+                    {attachments.filter((a) => !a.commentId && !a.isInline).length !== 1
                       ? "s"
                       : ""}
                   </span>
@@ -1547,7 +1549,7 @@ export function TaskDetailPage({
             </div>
 
             {/* Drop zone + uploaded files — only once at least one attachment exists */}
-            {attachments.filter((a) => !a.commentId).length > 0 && (
+            {attachments.filter((a) => !a.commentId && !a.isInline).length > 0 && (
               <div
                 className="rounded-lg border-2 border-dashed border-border/50 p-4 transition-colors hover:border-primary/30 hover:bg-accent/20 cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
@@ -1579,7 +1581,7 @@ export function TaskDetailPage({
                   onClick={(e) => e.stopPropagation()}
                 >
                   {attachments
-                    .filter((a) => !a.commentId)
+                    .filter((a) => !a.commentId && !a.isInline)
                     .map((att) => (
                       <TaskAttachmentCard
                         key={att.id}

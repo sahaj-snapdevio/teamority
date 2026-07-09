@@ -9,6 +9,7 @@ import {
 import {
   AlertTriangle,
   ArrowRight,
+  BadgeCheck,
   BarChart3,
   Bell,
   CalendarDays,
@@ -16,14 +17,19 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  Code2,
+  Container,
+  Database,
   Globe,
   Kanban,
+  KeyRound,
   LayoutList,
   Menu,
   MessageSquare,
   MessagesSquare,
   MoveHorizontal,
   Search,
+  Server,
   ShieldCheck,
   Sparkles,
   Star,
@@ -1290,6 +1296,90 @@ function StatsSection() {
                 <Icon className="size-4.5 text-white" />
               </div>
               <div className="text-4xl font-bold tracking-tight">{value}</div>
+              <div className="mt-1 text-sm text-white/70">{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Open-source replacement for StatsSection. Reuses the exact dark-band styling,
+// blur orbs, dot texture, useInView stagger, and icon → bold-title → muted-desc
+// hierarchy — but swaps unverifiable SaaS metrics for real, verifiable project
+// strengths. `StatsSection` above is kept intact; to restore the SaaS metrics,
+// render <StatsSection /> instead of this in the LandingPage composition.
+function OpenSourceHighlightsSection() {
+  const { ref, visible } = useInView();
+  const highlights = [
+    {
+      value: "MIT Licensed",
+      label: "Free and open source — fork it, extend it, ship it.",
+      icon: BadgeCheck,
+    },
+    {
+      value: "Self-Hosted",
+      label: "Own your data and infrastructure. No vendor lock-in.",
+      icon: Server,
+    },
+    {
+      value: "Deploy with Docker",
+      label: "Ships with Docker Compose — one command to run.",
+      icon: Container,
+    },
+    {
+      value: "Postgres + Drizzle",
+      label: "A type-safe data layer with SQL-first migrations.",
+      icon: Database,
+    },
+    {
+      value: "Magic Link & Google OAuth",
+      label: "Passwordless sign-in built in — no passwords to store.",
+      icon: KeyRound,
+    },
+    {
+      value: "Modern Next.js Stack",
+      label: "Next.js, TypeScript, Tailwind, and shadcn/ui.",
+      icon: Code2,
+    },
+  ];
+  return (
+    <section className="relative overflow-hidden py-16 text-white">
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(135deg, #174D38 0%, #174D38 55%, #4D1717 100%)",
+        }}
+      />
+      <div className="pointer-events-none absolute -top-20 -left-24 size-72 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-20 size-80 rounded-full bg-[#4D1717]/20 blur-3xl" />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='1' fill='white'/%3E%3C/svg%3E\")",
+          backgroundSize: "20px 20px",
+        }}
+      />
+      <div className="relative mx-auto max-w-6xl px-6" ref={ref}>
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {highlights.map(({ value, label, icon: Icon }, i) => (
+            <div
+              className={cn(
+                "flex flex-col items-center text-center transition-all duration-500 sm:items-start sm:text-left",
+                visible
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-4 opacity-0",
+              )}
+              key={value}
+              style={{ transitionDelay: visible ? `${i * 90}ms` : "0ms" }}
+            >
+              <div className="mb-3 flex size-9 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20 backdrop-blur-sm">
+                <Icon className="size-4.5 text-white" />
+              </div>
+              <div className="text-xl font-bold tracking-tight">{value}</div>
               <div className="mt-1 text-sm text-white/70">{label}</div>
             </div>
           ))}
@@ -2634,6 +2724,10 @@ function Footer() {
   );
 }
 
+// Open-source build renders OpenSourceHighlightsSection in the Stats slot.
+// Set to true for the SaaS build to show the original StatsSection metrics.
+const SHOW_SAAS_STATS = false;
+
 export default function LandingPage() {
   return (
     <div className="force-light min-h-screen bg-white text-[#174D38]">
@@ -2644,7 +2738,10 @@ export default function LandingPage() {
       <FeaturesSection />
       <BentoSection />
       <HowItWorksSection />
-      <StatsSection />
+      {/* Open-source build shows developer-focused highlights instead of the
+          unverifiable SaaS metrics. Flip SHOW_SAAS_STATS to true to restore the
+          original <StatsSection /> (kept intact above). */}
+      {SHOW_SAAS_STATS ? <StatsSection /> : <OpenSourceHighlightsSection />}
       <ViewsShowcaseSection />
       <BeforeAfterSection />
       <TestimonialsSection />

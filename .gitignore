@@ -37,6 +37,9 @@ pnpm-debug.log*
 /.pgdata
 /.krova-postgres
 
+# local file storage (fs adapter) — uploaded attachments/images in dev
+/uploads
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
