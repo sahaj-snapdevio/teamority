@@ -11,6 +11,19 @@ const nextConfig = {
     root: resolve(__dirname),
   },
   transpilePackages: ["@emoji-mart/react"],
+  // Always revalidate the service worker so a CDN (e.g. Cloudflare, which caches
+  // .js by default) or the browser never serves a stale /sw.js after a deploy.
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -30,7 +30,8 @@ import { canAccessSpace, getSpacePermission, hasPermissionLevel } from "@/lib/pe
 import { writeActivityLog } from "@/lib/activity-log";
 import { refreshWorkspace } from "@/lib/realtime/refresh";
 import { createNotifications } from "@/lib/notifications/create-notification";
-import { extractInlineImageAttachmentIds } from "@/lib/notes";
+import { extractInlineImageAttachmentIds, extractMentionIds, toTiptapDoc } from "@/lib/notes";
+import { spaceRecipientUserIds } from "@/app/actions/space";
 import { storage } from "@/lib/storage";
 
 // ─── Permission helpers ──────────────────────────────────────────────────────
@@ -68,6 +69,25 @@ async function requireFullAccess(
   if (permission === null) return { error: "Forbidden" };
   if (!hasPermissionLevel(permission, "full_access")) return { error: "Forbidden" };
   return null;
+}
+
+// User-facing priority labels for notification messages.
+const PRIORITY_LABELS: Record<string, string> = {
+  NONE: "No Priority",
+  LOW: "Low",
+  MEDIUM: "Medium",
+  HIGH: "High",
+  URGENT: "Urgent",
+};
+
+// Deduped set of a task's assignees + watchers — the standard recipient set for
+// task-level change notifications (priority, moved, etc.).
+async function assigneeAndWatcherIds(taskId: string): Promise<string[]> {
+  const [a, w] = await Promise.all([
+    db.select({ userId: taskAssignee.userId }).from(taskAssignee).where(eq(taskAssignee.taskId, taskId)),
+    db.select({ userId: taskWatcher.userId }).from(taskWatcher).where(eq(taskWatcher.taskId, taskId)),
+  ]);
+  return [...new Set([...a, ...w].map((r) => r.userId))];
 }
 
 // ─── Revalidation helper ─────────────────────────────────────────────────────
@@ -191,10 +211,11 @@ export async function createTask(
 
   await writeActivityLog(taskId, session.user.id, "task_created", { title });
 
-  // Notify assignees (skip the creator assigning themselves)
+  const actorName = session.user.name ?? session.user.email ?? "Someone";
+
+  // Notify assignees (skip the creator assigning themselves).
   const notifyIds = assigneeIds.filter((id) => id !== session.user.id);
   if (notifyIds.length > 0) {
-    const actorName = session.user.name ?? session.user.email ?? "Someone";
     createNotifications({
       workspaceId,
       actorId: session.user.id,
@@ -203,6 +224,42 @@ export async function createTask(
       entityType: "TASK",
       entityId: taskId,
       title: `${actorName} assigned you to "${title}"`,
+      muteCheckEntityIds: [taskId],
+    });
+  }
+
+  // Task created → notify the project (space) members so the team sees new work.
+  // Exclude assignees (they already got task_assigned) and the creator (the actor
+  // is auto-excluded by createNotifications). Uses the shared project-recipient
+  // helper so public/private/guest visibility is respected. Users who find this
+  // noisy can turn off "Task created" in notification settings.
+  const projectMemberIds = await spaceRecipientUserIds(workspaceId, spaceId);
+  const createdRecipients = projectMemberIds.filter((id) => !assigneeIds.includes(id));
+  if (createdRecipients.length > 0) {
+    createNotifications({
+      workspaceId,
+      actorId: session.user.id,
+      recipientIds: createdRecipients,
+      triggerType: "task_created",
+      entityType: "TASK",
+      entityId: taskId,
+      title: `${actorName} created "${title}"`,
+      muteCheckEntityIds: [taskId],
+    });
+  }
+
+  // @mentions in the initial description → notify mentioned users (actor
+  // auto-excluded). Same trigger/parser as edited-description mentions.
+  const descMentions = extractMentionIds(data.description);
+  if (descMentions.length > 0) {
+    createNotifications({
+      workspaceId,
+      actorId: session.user.id,
+      recipientIds: descMentions,
+      triggerType: "mention_description",
+      entityType: "TASK",
+      entityId: taskId,
+      title: `${actorName} mentioned you in the description of "${title}"`,
       muteCheckEntityIds: [taskId],
     });
   }
@@ -391,7 +448,7 @@ export async function updateTask(
   if (err) return err;
 
   const [existing] = await db
-    .select({ title: task.title, priority: task.priority, description: task.description })
+    .select({ title: task.title, priority: task.priority, description: task.description, dueDateEnd: task.dueDateEnd })
     .from(task)
     .where(and(eq(task.id, taskId), listId ? eq(task.listId, listId) : isNull(task.listId)))
     .limit(1);
@@ -448,34 +505,42 @@ export async function updateTask(
     // image removed from the description. Scoped to THIS task's DESCRIPTION
     // inline images (isInline + no commentId) — never touches comment images,
     // file attachments, or other tasks. Mirrors editComment.
-    const keptIds = extractInlineImageAttachmentIds(data.description);
-    const removed = await db
-      .select({ id: taskAttachment.id, fileUrl: taskAttachment.fileUrl })
-      .from(taskAttachment)
-      .where(
-        and(
-          eq(taskAttachment.taskId, taskId),
-          eq(taskAttachment.isInline, true),
-          isNull(taskAttachment.commentId),
-          ...(keptIds.length > 0 ? [notInArray(taskAttachment.id, keptIds)] : []),
-        ),
-      );
-    if (removed.length > 0) {
-      await Promise.all(
-        removed.map(async (a) => {
-          try {
-            await storage.delete(a.fileUrl);
-          } catch {
-            // Best-effort: a missing storage file must not block the update.
-          }
-        }),
-      );
-      await db.delete(taskAttachment).where(
-        inArray(
-          taskAttachment.id,
-          removed.map((a) => a.id),
-        ),
-      );
+    //
+    // SAFETY: only run the deletion when the new description is actually
+    // readable. The description is persisted as a JSON *string*; if we can't
+    // parse it we must NOT treat it as "no images kept" — doing so previously
+    // deleted every description image on save, so other users saw broken images.
+    const newDescDoc = toTiptapDoc(data.description);
+    if (newDescDoc !== null && newDescDoc !== undefined) {
+      const keptIds = extractInlineImageAttachmentIds(newDescDoc);
+      const removed = await db
+        .select({ id: taskAttachment.id, fileUrl: taskAttachment.fileUrl })
+        .from(taskAttachment)
+        .where(
+          and(
+            eq(taskAttachment.taskId, taskId),
+            eq(taskAttachment.isInline, true),
+            isNull(taskAttachment.commentId),
+            ...(keptIds.length > 0 ? [notInArray(taskAttachment.id, keptIds)] : []),
+          ),
+        );
+      if (removed.length > 0) {
+        await Promise.all(
+          removed.map(async (a) => {
+            try {
+              await storage.delete(a.fileUrl);
+            } catch {
+              // Best-effort: a missing storage file must not block the update.
+            }
+          }),
+        );
+        await db.delete(taskAttachment).where(
+          inArray(
+            taskAttachment.id,
+            removed.map((a) => a.id),
+          ),
+        );
+      }
     }
   }
 
@@ -490,7 +555,12 @@ export async function updateTask(
   await Promise.all(logs.map((fn) => fn()));
 
   // Notify watchers of due date change
-  if (data.dueDateEnd !== undefined) {
+  // Only when the due date actually changed (compare timestamps; null-safe) —
+  // matches the priority guard, so re-saving the same date sends nothing.
+  const dueDateEndChanged =
+    data.dueDateEnd !== undefined &&
+    (data.dueDateEnd?.getTime() ?? null) !== (existing.dueDateEnd?.getTime() ?? null);
+  if (dueDateEndChanged) {
     const dueDateWatchers = await db
       .select({ userId: taskWatcher.userId })
       .from(taskWatcher)
@@ -506,6 +576,46 @@ export async function updateTask(
         entityType: "TASK",
         entityId: taskId,
         title: `${actorName} changed due date of "${existing.title}"`,
+        muteCheckEntityIds: [taskId],
+      });
+    }
+  }
+
+  // Notify assignees + watchers when the priority actually changed.
+  if (data.priority !== undefined && data.priority !== existing.priority) {
+    const recipientIds = await assigneeAndWatcherIds(taskId);
+    if (recipientIds.length > 0) {
+      const actorName = session.user.name ?? session.user.email ?? "Someone";
+      createNotifications({
+        workspaceId,
+        actorId: session.user.id,
+        recipientIds,
+        triggerType: "task_priority_changed",
+        entityType: "TASK",
+        entityId: taskId,
+        title: `${actorName} changed priority of "${existing.title}" to ${PRIORITY_LABELS[data.priority]}`,
+        muteCheckEntityIds: [taskId],
+      });
+    }
+  }
+
+  // Mention in description → notify only NEWLY added mentions (compare old vs
+  // new). Reuses the same mention parser + trigger as comments.
+  if (data.description !== undefined) {
+    const oldMentions = extractMentionIds(existing.description);
+    const addedMentions = extractMentionIds(data.description).filter(
+      (id) => !oldMentions.includes(id),
+    );
+    if (addedMentions.length > 0) {
+      const actorName = session.user.name ?? session.user.email ?? "Someone";
+      createNotifications({
+        workspaceId,
+        actorId: session.user.id,
+        recipientIds: addedMentions,
+        triggerType: "mention_description",
+        entityType: "TASK",
+        entityId: taskId,
+        title: `${actorName} mentioned you in the description of "${existing.title}"`,
         muteCheckEntityIds: [taskId],
       });
     }
@@ -542,39 +652,45 @@ export async function updateTaskStatus(
     .set({ statusId, updatedAt: new Date() })
     .where(and(eq(task.id, taskId), listId ? eq(task.listId, listId) : isNull(task.listId)));
 
-  await writeActivityLog(taskId, session.user.id, "status_changed", {
-    from: existing.statusId,
-    to: statusId,
-  });
-
-  // Notify watchers of status change
-  const taskWatchers = await db
-    .select({ userId: taskWatcher.userId })
-    .from(taskWatcher)
-    .where(eq(taskWatcher.taskId, taskId));
-
-  const newStatus = await db
-    .select({ name: listStatus.name, type: listStatus.type })
-    .from(listStatus)
-    .where(eq(listStatus.id, statusId))
-    .limit(1)
-    .then((r) => r[0] ?? null);
-
-  const watcherIds = taskWatchers.map((w) => w.userId);
-  if (watcherIds.length > 0) {
-    const actorName = session.user.name ?? session.user.email ?? "Someone";
-    createNotifications({
-      workspaceId,
-      actorId: session.user.id,
-      recipientIds: watcherIds,
-      triggerType: newStatus?.type === "CLOSED" ? "task_completed" : "task_status_changed",
-      entityType: "TASK",
-      entityId: taskId,
-      title: newStatus?.type === "CLOSED"
-        ? `${actorName} completed "${existing.title}"`
-        : `${actorName} changed status of "${existing.title}" to "${newStatus?.name ?? statusId}"`,
-      muteCheckEntityIds: [taskId],
+  // Only log + notify when the status actually changed — matches the priority
+  // guard, so re-saving the same status (e.g. dropping on the same column)
+  // doesn't spam the activity feed or watchers.
+  const statusChanged = statusId !== existing.statusId;
+  if (statusChanged) {
+    await writeActivityLog(taskId, session.user.id, "status_changed", {
+      from: existing.statusId,
+      to: statusId,
     });
+
+    // Notify watchers of status change
+    const taskWatchers = await db
+      .select({ userId: taskWatcher.userId })
+      .from(taskWatcher)
+      .where(eq(taskWatcher.taskId, taskId));
+
+    const newStatus = await db
+      .select({ name: listStatus.name, type: listStatus.type })
+      .from(listStatus)
+      .where(eq(listStatus.id, statusId))
+      .limit(1)
+      .then((r) => r[0] ?? null);
+
+    const watcherIds = taskWatchers.map((w) => w.userId);
+    if (watcherIds.length > 0) {
+      const actorName = session.user.name ?? session.user.email ?? "Someone";
+      createNotifications({
+        workspaceId,
+        actorId: session.user.id,
+        recipientIds: watcherIds,
+        triggerType: newStatus?.type === "CLOSED" ? "task_completed" : "task_status_changed",
+        entityType: "TASK",
+        entityId: taskId,
+        title: newStatus?.type === "CLOSED"
+          ? `${actorName} completed "${existing.title}"`
+          : `${actorName} changed status of "${existing.title}" to "${newStatus?.name ?? statusId}"`,
+        muteCheckEntityIds: [taskId],
+      });
+    }
   }
 
   if (listId) revalidateList(workspaceId, spaceId, listId); else revalidateSpace(workspaceId, spaceId);
@@ -594,6 +710,21 @@ export async function deleteTask(
 
   const permErr = await requireFullAccess(session.user.id, workspaceId, spaceId);
   if (permErr) return { error: "You don't have permission to delete tasks" };
+
+  // Gather notification recipients + title BEFORE the delete (the rows are gone
+  // afterwards). Notify assignees + watchers that the task was deleted.
+  const [existing] = await db
+    .select({ title: task.title })
+    .from(task)
+    .where(eq(task.id, taskId))
+    .limit(1);
+  const [delAssignees, delWatchers] = await Promise.all([
+    db.select({ userId: taskAssignee.userId }).from(taskAssignee).where(eq(taskAssignee.taskId, taskId)),
+    db.select({ userId: taskWatcher.userId }).from(taskWatcher).where(eq(taskWatcher.taskId, taskId)),
+  ]);
+  const deleteRecipientIds = [
+    ...new Set([...delAssignees, ...delWatchers].map((r) => r.userId)),
+  ];
 
   // Delete attachment storage objects before the task (the rows cascade on
   // task delete, but the stored files would otherwise orphan). Covers file
@@ -615,6 +746,27 @@ export async function deleteTask(
   }
 
   await db.delete(task).where(and(eq(task.id, taskId), listId ? eq(task.listId, listId) : isNull(task.listId)));
+
+  // Notify assignees + watchers (actor auto-excluded). The task no longer
+  // exists, so the inbox shows an info toast on click (see getNotificationTarget)
+  // and the push click points at the list/workspace instead of a 404 task page.
+  if (deleteRecipientIds.length > 0) {
+    const actorName = session.user.name ?? session.user.email ?? "Someone";
+    const taskTitle = existing?.title ?? "a task";
+    createNotifications({
+      workspaceId,
+      actorId: session.user.id,
+      recipientIds: deleteRecipientIds,
+      triggerType: "task_deleted",
+      entityType: "TASK",
+      entityId: taskId,
+      title: `${actorName} deleted task "${taskTitle}"`,
+      muteCheckEntityIds: [taskId],
+      pushTitle: taskTitle,
+      pushBody: `${actorName} deleted this task`,
+      pushUrl: listId ? `/${workspaceId}/${spaceId}/list/${listId}` : `/${workspaceId}`,
+    });
+  }
 
   if (listId) revalidateList(workspaceId, spaceId, listId); else revalidateSpace(workspaceId, spaceId);
   return { ok: true };
@@ -824,6 +976,34 @@ export async function moveTask(
     fromListId: t.listId,
     toListId: targetListId,
   });
+
+  // Notify assignees + watchers of the move, with old → new list names.
+  const moveRecipientIds = await assigneeAndWatcherIds(taskId);
+  if (moveRecipientIds.length > 0) {
+    const [[taskRow], fromList, [toList]] = await Promise.all([
+      db.select({ title: task.title }).from(task).where(eq(task.id, taskId)).limit(1),
+      t.listId
+        ? db.select({ name: list.name }).from(list).where(eq(list.id, t.listId)).limit(1)
+        : Promise.resolve([] as { name: string }[]),
+      db.select({ name: list.name }).from(list).where(eq(list.id, targetListId)).limit(1),
+    ]);
+    const actorName = session.user.name ?? session.user.email ?? "Someone";
+    const taskTitle = taskRow?.title ?? "a task";
+    const toName = toList?.name ?? "another list";
+    const fromName = fromList[0]?.name;
+    createNotifications({
+      workspaceId,
+      actorId: session.user.id,
+      recipientIds: moveRecipientIds,
+      triggerType: "task_moved",
+      entityType: "TASK",
+      entityId: taskId,
+      title: fromName
+        ? `${actorName} moved "${taskTitle}" from ${fromName} to ${toName}`
+        : `${actorName} moved "${taskTitle}" to ${toName}`,
+      muteCheckEntityIds: [taskId],
+    });
+  }
 
   void refreshWorkspace(workspaceId);
   return { ok: true };

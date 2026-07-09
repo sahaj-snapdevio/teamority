@@ -1156,8 +1156,10 @@ export function ListView({
         {/* ClickUp-style unified workspace container */}
         <div className="w-full bg-card border border-border rounded-2xl p-5 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)] overflow-hidden flex flex-col gap-4">
 
-          {/* Sticky Toolbar + Table Header Section */}
-          <div className="sticky top-0 z-30 bg-card pb-2 border-b border-border flex flex-col gap-3">
+          {/* Sticky Toolbar + Table Header Section. z-10 keeps it above the
+              scrolling rows but BELOW the mobile sidebar drawer + backdrop
+              (z-20/z-30) — otherwise it floats over the open sidebar. */}
+          <div className="sticky top-0 z-10 bg-card pb-2 border-b border-border flex flex-col gap-3">
             {/* Action Bar / Toolbar */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">

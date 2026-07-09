@@ -2,7 +2,21 @@
 
 import * as React from "react";
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+// The VAPID public key is resolved at RUNTIME from the server (works on every
+// deployment without a build-time NEXT_PUBLIC_ var). Falls back to the
+// build-time inlined value for backward compatibility with older setups.
+async function fetchVapidPublicKey(): Promise<string | null> {
+  try {
+    const res = await fetch("/api/push/vapid-public-key");
+    if (res.ok) {
+      const data = (await res.json()) as { key?: string | null };
+      if (data.key) return data.key;
+    }
+  } catch {
+    // ignore — fall back below
+  }
+  return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null;
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -11,8 +25,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-async function registerAndSubscribe(): Promise<boolean> {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !VAPID_PUBLIC_KEY) {
+async function registerAndSubscribe(vapidKey: string): Promise<boolean> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !vapidKey) {
     return false;
   }
 
@@ -25,7 +39,7 @@ async function registerAndSubscribe(): Promise<boolean> {
 
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
     });
 
     const json = sub.toJSON();
@@ -52,25 +66,38 @@ export function usePushSubscription() {
   const [permission, setPermission] = React.useState<NotificationPermission>("default");
   const [subscribed, setSubscribed] = React.useState(false);
   const [supported, setSupported] = React.useState(false);
+  const vapidKeyRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
-    const ok =
+    const browserOk =
       "Notification" in window &&
       "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      !!VAPID_PUBLIC_KEY;
-    setSupported(ok);
-    if (!ok) return;
+      "PushManager" in window;
+    if (!browserOk) return;
 
-    setPermission(Notification.permission);
+    let active = true;
+    void (async () => {
+      const key = await fetchVapidPublicKey();
+      if (!active) return;
+      vapidKeyRef.current = key;
+      // Supported only when the browser can do push AND a VAPID key is configured.
+      setSupported(!!key);
+      if (!key) return;
 
-    if (Notification.permission === "granted") {
-      void registerAndSubscribe().then(setSubscribed);
-    }
+      setPermission(Notification.permission);
+      if (Notification.permission === "granted") {
+        const ok = await registerAndSubscribe(key);
+        if (active) setSubscribed(ok);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function enable(): Promise<boolean> {
-    if (!supported) return false;
+    const key = vapidKeyRef.current;
+    if (!supported || !key) return false;
     if (Notification.permission === "denied") return false;
 
     let perm: NotificationPermission = Notification.permission;
@@ -81,7 +108,7 @@ export function usePushSubscription() {
 
     if (perm !== "granted") return false;
 
-    const ok = await registerAndSubscribe();
+    const ok = await registerAndSubscribe(key);
     setSubscribed(ok);
     return ok;
   }

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 
 const TRIGGER_LABELS: Record<string, string> = {
+  task_created: "Task created",
   task_assigned: "Task assigned to me",
   task_unassigned: "Task unassigned from me",
   task_status_changed: "Task status changed",

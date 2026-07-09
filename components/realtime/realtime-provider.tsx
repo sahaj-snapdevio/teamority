@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
+import { toast } from "sonner";
 
 /**
  * Realtime collaboration client.
@@ -130,7 +131,14 @@ export function RealtimeProvider({
         delay = RECONNECT_MIN_MS;
       };
       es.onmessage = (event) => {
-        let data: { type?: string; v?: number; workspaceId?: string };
+        let data: {
+          type?: string;
+          v?: number;
+          workspaceId?: string;
+          title?: string;
+          body?: string | null;
+          url?: string;
+        };
         try {
           data = JSON.parse(event.data);
         } catch {
@@ -146,6 +154,24 @@ export function RealtimeProvider({
             undefined,
             { revalidate: true },
           );
+          // Show an in-app toast ONLY when this window is focused + visible.
+          // When it isn't (hidden tab, minimized, unfocused, or app closed), the
+          // service worker shows a browser/desktop notification instead — this
+          // avoids a duplicate popup. Either way the badge/Inbox already updated
+          // above and the notification is saved server-side.
+          const appFocused =
+            typeof document !== "undefined" &&
+            document.visibilityState === "visible" &&
+            document.hasFocus();
+          if (data.title && appFocused) {
+            const url = data.url;
+            toast(data.title, {
+              description: data.body ?? undefined,
+              action: url
+                ? { label: "View", onClick: () => routerRef.current.push(url) }
+                : undefined,
+            });
+          }
           return;
         }
         if (data.type !== "data_changed" || data.v !== 1) return;
