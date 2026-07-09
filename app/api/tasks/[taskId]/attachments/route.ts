@@ -56,6 +56,7 @@ export async function GET(
       fileName: a.fileName,
       fileSize: a.fileSize,
       mimeType: a.mimeType,
+      isInline: a.isInline,
       createdAt: a.createdAt,
       url: await storage.url(a.fileUrl),
     })),
@@ -115,11 +116,24 @@ export async function POST(
 
   const mimeType = file.type || "application/octet-stream";
   const commentId = formData.get("commentId");
+  // Inline images embedded in a comment/note body. They render inside the note
+  // and are excluded from the task Attachments section; they must be images and
+  // do NOT generate their own activity/notifications (the note is the event).
+  const isInline = formData.get("inline") === "true";
+
+  if (isInline && !ALLOWED_MIME_TYPES.has(mimeType)) {
+    return NextResponse.json({ error: "Only image files can be embedded" }, { status: 415 });
+  }
+  if (isInline && !mimeType.startsWith("image/")) {
+    return NextResponse.json({ error: "Only image files can be embedded" }, { status: 415 });
+  }
 
   const attachmentId = createId();
   const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const storageKey = `attachments/${ctx.workspaceId}/${taskId}/${attachmentId}/${safeFileName}`;
 
+  // Store the original bytes as-is — no re-encoding, so pasted screenshots stay
+  // pixel-perfect.
   const buffer = await file.arrayBuffer();
   await storage.upload(storageKey, buffer, { contentType: mimeType });
 
@@ -133,38 +147,43 @@ export async function POST(
     fileUrl: storageKey,
     fileSize: file.size,
     mimeType,
+    isInline,
     createdAt: now,
   });
 
-  void writeActivityLog(taskId, session.user.id, "attachment_uploaded", {
-    file_name: file.name,
-    file_size: file.size,
-  });
-
-  // Notify assignees (other than the uploader) that a file was attached.
-  const assignees = await db
-    .select({ userId: taskAssignee.userId })
-    .from(taskAssignee)
-    .where(eq(taskAssignee.taskId, taskId));
-  const recipientIds = assignees
-    .map((a) => a.userId)
-    .filter((id) => id !== session.user.id);
-  if (recipientIds.length > 0) {
-    const actorName = session.user.name ?? session.user.email ?? "Someone";
-    createNotifications({
-      workspaceId: ctx.workspaceId,
-      actorId: session.user.id,
-      recipientIds,
-      triggerType: "attachment_added",
-      entityType: "TASK",
-      entityId: taskId,
-      title: `${actorName} attached a file to "${ctx.title}"`,
-      body: file.name,
-      muteCheckEntityIds: [taskId],
+  // Inline note images skip the activity-log row + assignee notification — the
+  // parent note's comment_added notification is the single event.
+  if (!isInline) {
+    void writeActivityLog(taskId, session.user.id, "attachment_uploaded", {
+      file_name: file.name,
+      file_size: file.size,
     });
-  }
 
-  void refreshWorkspace(ctx.workspaceId);
+    // Notify assignees (other than the uploader) that a file was attached.
+    const assignees = await db
+      .select({ userId: taskAssignee.userId })
+      .from(taskAssignee)
+      .where(eq(taskAssignee.taskId, taskId));
+    const recipientIds = assignees
+      .map((a) => a.userId)
+      .filter((id) => id !== session.user.id);
+    if (recipientIds.length > 0) {
+      const actorName = session.user.name ?? session.user.email ?? "Someone";
+      createNotifications({
+        workspaceId: ctx.workspaceId,
+        actorId: session.user.id,
+        recipientIds,
+        triggerType: "attachment_added",
+        entityType: "TASK",
+        entityId: taskId,
+        title: `${actorName} attached a file to "${ctx.title}"`,
+        body: file.name,
+        muteCheckEntityIds: [taskId],
+      });
+    }
+
+    void refreshWorkspace(ctx.workspaceId);
+  }
 
   const url = await storage.url(storageKey);
 
@@ -177,6 +196,8 @@ export async function POST(
       fileName: file.name,
       fileSize: file.size,
       mimeType,
+      isInline,
+      key: storageKey,
       createdAt: now,
       url,
     },

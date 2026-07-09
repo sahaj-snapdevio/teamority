@@ -12,9 +12,13 @@ import {
   UserIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { createTask } from "@/app/actions/task";
+import { toast } from "sonner";
+import { createTask, updateTask } from "@/app/actions/task";
 import { getWorkspaceMembers } from "@/app/actions/task";
 import { getWorkspaceTags, createTag } from "@/app/actions/task-tag";
+import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
+import { useNoteImageUpload } from "@/hooks/use-note-image-upload";
+import { tiptapHasContent } from "@/lib/notes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +35,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -84,7 +87,8 @@ export function CreateTaskModal({
   const [localStatuses, setLocalStatuses] = React.useState(initialStatuses);
   const [manageStatusesOpen, setManageStatusesOpen] = React.useState(false);
   const [title, setTitle] = React.useState("");
-  const [description, setDescription] = React.useState("");
+  const [descriptionJson, setDescriptionJson] = React.useState("");
+  const descImages = useNoteImageUpload({ deferred: true });
   const [statusId, setStatusId] = React.useState(defaultStatusId ?? initialStatuses[0]?.id ?? "");
 
   React.useEffect(() => {
@@ -110,7 +114,8 @@ export function CreateTaskModal({
     if (open) {
       setStatusId(defaultStatusId ?? localStatuses[0]?.id ?? "");
       setTitle("");
-      setDescription("");
+      setDescriptionJson("");
+      descImages.reset();
       setPriority("NONE");
       setDueDate(null);
       setAssigneeIds([]);
@@ -150,22 +155,46 @@ export function CreateTaskModal({
     if (!title.trim()) { setError("Task name is required"); return; }
     setLoading(true);
     setError("");
-    const trimmedDescription = description.trim();
+
+    let doc: unknown;
+    if (descriptionJson) {
+      try {
+        const parsed = JSON.parse(descriptionJson);
+        if (tiptapHasContent(parsed)) doc = parsed;
+      } catch {
+        doc = undefined;
+      }
+    }
+    const hasImages = descImages.hasPending();
+
+    // When there are pending images we DON'T save the description yet — the task
+    // row must never hold keyless placeholder image nodes. We upload the images
+    // against the new taskId, then persist the finalized description exactly once.
     const res = await createTask(workspaceId, spaceId, listId, {
       title: title.trim(),
       statusId,
       priority,
-      description: trimmedDescription
-        ? {
-            type: "doc",
-            content: [{ type: "paragraph", content: [{ type: "text", text: trimmedDescription }] }],
-          }
-        : undefined,
+      description: hasImages ? undefined : doc,
       dueDateEnd: dueDate,
       assigneeIds,
       tagIds,
     });
     if ("error" in res) { setLoading(false); setError(res.error); return; }
+
+    if (hasImages) {
+      const { total, uploaded, failed, doc: finalDoc } = await descImages.flushPending(res.taskId);
+      // Deep-clone to strip ProseMirror null-prototype attrs (React Flight drops them).
+      const finalDescription = finalDoc
+        ? (JSON.parse(JSON.stringify(finalDoc)) as unknown)
+        : undefined;
+      if (finalDescription && tiptapHasContent(finalDescription)) {
+        await updateTask(workspaceId, spaceId, listId, res.taskId, { description: finalDescription });
+      }
+      if (failed > 0) {
+        toast.error(`${uploaded} of ${total} images uploaded. You can retry from the task description.`);
+      }
+    }
+
     await onCreated?.(res.taskId);
     setLoading(false);
     onOpenChange(false);
@@ -180,28 +209,39 @@ export function CreateTaskModal({
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-2xl p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o && loading) return; onOpenChange(o); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-2xl p-0 gap-0 overflow-hidden max-h-[85vh] flex flex-col"
+        aria-describedby={undefined}
+        // Don't let Esc / outside-click abandon the modal while the task is
+        // being created and its images uploaded.
+        onEscapeKeyDown={(e) => { if (loading) e.preventDefault(); }}
+        onPointerDownOutside={(e) => { if (loading) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (loading) e.preventDefault(); }}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Create Task</DialogTitle>
         </DialogHeader>
 
         {/* Top bar: tab + close button */}
-        <div className="flex items-center border-b px-5">
+        <div className="flex items-center border-b px-5 shrink-0">
           <button className="border-b-2 border-primary py-3 px-1 text-sm font-medium text-foreground">
             Task
           </button>
           <div className="flex-1" />
           <button
             onClick={() => onOpenChange(false)}
-            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+            disabled={loading}
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <XIcon className="size-4" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-6 py-4 space-y-3">
+        {/* Body — scrolls so the footer (Create button) stays visible even
+            with a long description or images. */}
+        <div className="px-6 py-4 space-y-3 flex-1 overflow-y-auto min-h-0">
           {/* Title */}
           <input
             autoFocus
@@ -212,13 +252,16 @@ export function CreateTaskModal({
             className="w-full text-xl font-semibold bg-transparent outline-none placeholder:text-muted-foreground/40"
           />
 
-          {/* Description */}
-          <Textarea
-            placeholder="Add a description…"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="resize-none border-none shadow-none focus-visible:ring-0 text-sm px-0 text-muted-foreground placeholder:text-muted-foreground/40"
+          {/* Description — rich text with inline image paste/drop (deferred
+              upload: images upload after the task is created). Keyed on `open`
+              so it remounts empty each time the modal is reopened (the modal
+              stays mounted; its editor content would otherwise persist). */}
+          <TaskDescriptionEditor
+            key={open ? "open" : "closed"}
+            value={descriptionJson}
+            onChange={setDescriptionJson}
+            imageUpload={descImages}
+            placeholder="Add a description… paste an image to attach"
           />
 
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -441,7 +484,7 @@ export function CreateTaskModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end border-t px-6 py-3 bg-muted/30">
+        <div className="flex items-center justify-end border-t px-6 py-3 bg-muted/30 shrink-0">
           <Button
             variant="default"
             onClick={handleSubmit}
