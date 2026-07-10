@@ -19,13 +19,10 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable
 
-# NEXT_PUBLIC_* values are inlined into the client bundle at build time, so the
-# public URL must be provided here. Changing the domain later requires a rebuild.
-ARG NEXT_PUBLIC_APP_URL
-ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
-# Note: Web Push does NOT need a build-time key — the client fetches the VAPID
-# public key at runtime from /api/push/vapid-public-key. Just set the runtime
-# VAPID_* env vars (works on any deployment).
+# Nothing deployment-specific is baked into this image — no domain, no secrets,
+# no VAPID key. APP_URL is read on the server at runtime, and the client fetches
+# the VAPID public key from /api/push/vapid-public-key. One published image
+# therefore serves any domain, and changing your domain needs no rebuild.
 
 # Placeholders so build-time env validation (lib/env.ts) passes. These are NOT
 # used at runtime — real values are injected when the container starts.
@@ -46,8 +43,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-RUN groupadd --system --gid 1001 krova \
-  && useradd --system --uid 1001 --gid krova krova
+# uid/gid 1001 is deliberate and must not change: existing `uploads` volumes are
+# owned by it, so a redeploy keeps write access. Only the account name changed.
+RUN groupadd --system --gid 1001 kanbanica \
+  && useradd --system --uid 1001 --gid kanbanica kanbanica
 
 # Standalone output: server + minimal node_modules, plus static assets & public/.
 COPY --from=builder /app/public ./public
@@ -55,9 +54,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
 # Local-storage uploads live here; mount a volume to persist across redeploys.
-RUN mkdir -p /app/uploads && chown -R krova:krova /app/uploads
+RUN mkdir -p /app/uploads && chown -R kanbanica:kanbanica /app/uploads
 
-USER krova
+USER kanbanica
 EXPOSE 3000
 
 CMD ["node", "server.js"]

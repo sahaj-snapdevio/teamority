@@ -1,0 +1,55 @@
+# ── Kanbanica — external PostgreSQL overlay ───────────────────────────────────
+# Use your own PostgreSQL (company cluster, RDS, Neon, Supabase, Railway,
+# Render, DigitalOcean, …) instead of the bundled `postgres` container.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.external-db.yml up -d
+#
+# Point DATABASE_URL at your database in .env, then bring the stack up with BOTH
+# files. This overlay only *subtracts* — it never redefines app/worker/migrate,
+# so there is nothing here to keep in sync with the base file.
+#
+# Requires Docker Compose >= 2.20 (for `depends_on.<svc>.required`).
+#
+# `depends_on` is merged by key, so setting `required: false` on `postgres`
+# replaces the base file's "wait for postgres to be healthy" entry, while the
+# `migrate` gate below is preserved. Migrations still run first, exactly as they
+# do with the bundled database — `scripts/migrate.ts` waits for the database
+# itself (retrying with backoff) rather than relying on a container healthcheck.
+
+services:
+  # Assigned a profile that is never enabled, so the container is not created.
+  postgres:
+    profiles: ["disabled"]
+
+  migrate:
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+
+  app:
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+      migrate:
+        condition: service_completed_successfully
+
+# If your database runs on the Docker *host* (not a remote server), containers
+# cannot reach it via `localhost`. Uncomment the block below and use
+# `DATABASE_URL=postgresql://user:pass@host.docker.internal:5432/kanbanica`.
+#
+#   app:
+#     extra_hosts: ["host.docker.internal:host-gateway"]
+#   worker:
+#     extra_hosts: ["host.docker.internal:host-gateway"]
+#   migrate:
+#     extra_hosts: ["host.docker.internal:host-gateway"]

@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import EmbeddedPostgres from "embedded-postgres";
+import { DEV_DATABASE_DIR, DEV_DATABASE_URL } from "@/config/dev-database";
 
 if (existsSync(".env")) {
   process.loadEnvFile();
@@ -8,15 +9,16 @@ if (existsSync(".env")) {
 
 // Fall back to the standard local dev URL so `pnpm db:local` works without a
 // .env. Copying .env.example is still recommended; this just enables zero-config.
-const databaseUrl =
-  process.env.DATABASE_URL ?? "postgresql://krova:krova@localhost:54329/krova";
+const databaseUrl = process.env.DATABASE_URL ?? DEV_DATABASE_URL;
 
 const url = new URL(databaseUrl);
 const user = decodeURIComponent(url.username) || "postgres";
 const password = decodeURIComponent(url.password) || "password";
 const port = Number(url.port) || 54_329;
 const database = url.pathname.replace(/^\//, "") || "postgres";
-const dataDir = path.resolve(process.cwd(), ".krova-postgres");
+// Reuses `.krova-postgres` when a pre-rename checkout has one, so existing
+// local data keeps working. See config/dev-database.ts.
+const dataDir = path.resolve(process.cwd(), DEV_DATABASE_DIR);
 
 const postgres = new EmbeddedPostgres({
   databaseDir: dataDir,

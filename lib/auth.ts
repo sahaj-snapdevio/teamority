@@ -8,9 +8,11 @@ import * as schema from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { enqueueEmail } from "@/lib/email";
-import { emailChangeTemplate } from "@/lib/email/templates/email-change";
 import { magicLinkTemplate } from "@/lib/email/templates/magic-link";
+import { passwordResetTemplate } from "@/lib/email/templates/password-reset";
+import { verifyEmailTemplate } from "@/lib/email/templates/verify-email";
 import { env } from "@/lib/env";
+import { isSmtpConfigured } from "@/lib/smtp/client";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -23,7 +25,7 @@ export const auth = betterAuth({
     },
   }),
   secret: env.APP_SECRET,
-  baseURL: env.NEXT_PUBLIC_APP_URL,
+  baseURL: env.APP_URL,
   socialProviders: {
     ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
       ? {
@@ -36,17 +38,71 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
-    disableSignUp: true,
+    // Self-serve registration is an explicit opt-in (see lib/env.ts). Sign-IN
+    // is always on, so `create:admin`-provisioned accounts keep working.
+    disableSignUp: !env.ALLOW_PASSWORD_SIGNUP,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+    // Only enforce verification when we can actually deliver the email —
+    // otherwise an SMTP-less self-host could never sign in. A verified user is
+    // also what lets Better Auth implicitly link a Google account onto the same
+    // row later (it requires `emailVerified` on the local user).
+    requireEmailVerification: isSmtpConfigured(),
+    // A reset means the old password may be compromised — kill every existing
+    // session for that user. (Password *changes* pass `revokeOtherSessions`
+    // per-request from the profile card, keeping the current session alive.)
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      // Dev convenience, mirroring sendMagicLink: never log in production.
+      if (env.NODE_ENV !== "production") {
+        console.log(`[password-reset] ${user.email} → ${url}`);
+      }
+      const { html, text } = await passwordResetTemplate({
+        email: user.email,
+        resetUrl: url,
+      });
+
+      await enqueueEmail({
+        to: user.email,
+        subject: `Reset your ${PRODUCT_NAME} password`,
+        html,
+        text,
+      });
+
+      await audit({
+        action: "auth.password_reset_requested",
+        actorEmail: user.email,
+        actorId: user.id,
+        description: `Password reset requested for ${user.email}`,
+        entityId: user.id,
+        entityType: "user",
+      });
+    },
+    onPasswordReset: async ({ user }) => {
+      await audit({
+        action: "auth.password_reset_completed",
+        actorEmail: user.email,
+        actorId: user.id,
+        description: `Password reset completed for ${user.email}`,
+        entityId: user.id,
+        entityType: "user",
+      });
+    },
   },
   emailVerification: {
+    // Serves BOTH new sign-ups and email changes — Better Auth passes an
+    // identical payload for each, so the copy is deliberately neutral.
     sendVerificationEmail: async ({ user, url }) => {
-      const { html, text } = await emailChangeTemplate({
-        newEmail: user.email,
+      if (env.NODE_ENV !== "production") {
+        console.log(`[verify-email] ${user.email} → ${url}`);
+      }
+      const { html, text } = await verifyEmailTemplate({
+        email: user.email,
         verifyUrl: url,
       });
       await enqueueEmail({
         to: user.email,
-        subject: `Confirm your new email address for ${PRODUCT_NAME}`,
+        subject: `Verify your email address for ${PRODUCT_NAME}`,
         html,
         text,
       });
@@ -91,6 +147,11 @@ export const auth = betterAuth({
       },
     }),
   ],
+  // OAuth callback failures (notably "account not linked") redirect here instead
+  // of Better Auth's built-in error page, so we can explain what happened.
+  onAPIError: {
+    errorURL: "/login",
+  },
   session: {
     cookieCache: {
       enabled: true,
@@ -107,6 +168,9 @@ export const auth = betterAuth({
     customRules: {
       "/sign-in/magic-link": { window: 60, max: 5 },
       "/sign-in/email": { window: 60, max: 10 },
+      "/sign-up/email": { window: 60, max: 5 },
+      "/request-password-reset": { window: 60, max: 3 },
+      "/reset-password": { window: 60, max: 5 },
     },
   },
   databaseHooks: {

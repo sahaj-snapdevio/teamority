@@ -7,6 +7,7 @@ import { workspace } from "@/db/schema";
 import { getWorkspaceMembership } from "@/lib/permissions";
 import { SecuritySettings } from "@/components/workspace/security-settings";
 import { PRODUCT_NAME } from "@/config/platform";
+import { env } from "@/lib/env";
 
 interface SecurityPageProps {
   params: Promise<{ workspaceId: string }>;
@@ -34,7 +35,7 @@ export default async function SecurityPage({ params }: SecurityPageProps) {
       workspaceId={ws.id}
       workspaceName={ws.name}
       inviteLinkToken={ws.inviteLinkToken ?? null}
-      appUrl={process.env.NEXT_PUBLIC_APP_URL ?? ""}
+      appUrl={env.APP_URL}
     />
   );
 }

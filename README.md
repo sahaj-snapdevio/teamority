@@ -28,21 +28,14 @@ Kanbanica is a self-hostable, ClickUp-style project management app. Teams organi
 - ⚡ **Real-time sync** — live updates over SSE as teammates make changes
 - 🔔 **Notifications** — in-app, email digests, and Web Push
 - 🔐 **Two-level permissions** — workspace roles + per-project permissions, with guests
-- 🔑 **Passwordless auth** — magic-link login (or Google OAuth)
+- 🔑 **Flexible auth** — magic link, Google OAuth, or email + password — all on one account
 - 🎨 **Themeable UI** — light/dark, built on shadcn/ui + Tailwind CSS v4
 - 🛠️ **Admin panel** — user, queue, and email visibility
 
 ## Screenshots
 
-> _Screenshots coming soon — replace these placeholders with real captures._
-
-| Board view | List view | Sprint view |
-|:---:|:---:|:---:|
-| _`docs/screenshots/board.png`_ | _`docs/screenshots/list.png`_ | _`docs/screenshots/sprint.png`_ |
-
-| Task detail | Mobile |
-|:---:|:---:|
-| _`docs/screenshots/task.png`_ | _`docs/screenshots/mobile.png`_ |
+> _Screenshots coming soon._ See [`docs/screenshots/`](./docs/screenshots/) for the
+> list of captures we're looking for — contributions welcome.
 
 ## Tech Stack
 
@@ -65,7 +58,7 @@ Kanbanica is a self-hostable, ClickUp-style project management app. Teams organi
 Requires **Node.js 22** and **pnpm**. No separate database install needed — a local Postgres is bundled for development.
 
 ```bash
-git clone <REPO_URL> kanbanica
+git clone https://github.com/sahaj-snapdevio/Kanbanica.git kanbanica
 cd kanbanica
 pnpm install
 cp .env.example .env
@@ -74,7 +67,7 @@ pnpm db:migrate   # create the tables (first time only)
 pnpm dev          # start the web app + worker
 ```
 
-Open <http://localhost:3000>, sign in with a magic link (the link is printed in the terminal when SMTP isn't configured), then make yourself an admin:
+Open <http://localhost:3000> and sign in with a magic link — with no SMTP configured, the link is **printed in your terminal**. (Prefer a password? Set `ALLOW_PASSWORD_SIGNUP=true` in `.env` and register at `/signup`; without SMTP you're signed in immediately, no verification step.) Then make yourself an admin:
 
 ```bash
 pnpm make:admin you@example.com
@@ -90,14 +83,43 @@ pnpm make:admin you@example.com
 
 See **[SETUP.md](./SETUP.md)** for the complete local-development guide.
 
+## Authentication
+
+Three login methods, all producing the same session and the same user record — **one account per email address**, however someone signs in.
+
+| Method | Needs | Enabled |
+|--------|-------|---------|
+| **Magic link** | SMTP (in production) | always |
+| **Google OAuth** | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | when both are set |
+| **Email + password** | nothing | sign-in always; self-serve sign-up needs `ALLOW_PASSWORD_SIGNUP=true` |
+
+Every screen renders only the methods you actually configured. In production the app refuses to start unless at least one of them is available, so login can't silently break.
+
+**Signup behaviour depends on whether SMTP is configured** — this is the part that catches people out:
+
+- **No SMTP** → `/signup` creates the account and signs the user straight in. No verification email, because there'd be no way to deliver one.
+- **SMTP configured** → a verification email is sent, and the user can't sign in until they click the link. Verification is also what allows them to link Google to that same email later.
+
+Passwords are 8–128 characters. `/signup` and `/forgot-password` return **404** unless password signup (and, for reset, SMTP) is enabled — so a fresh install is invite-only by default.
+
+Full reference: **[docs/authentication.md](./docs/authentication.md)**.
+
 ## Self-Hosting
 
 Deploy Kanbanica for your team with Docker Compose (Postgres + app + worker, one command). See the full production guide: **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
 ```bash
-cp .env.example .env   # configure DATABASE_URL, APP_SECRET, NEXT_PUBLIC_APP_URL + an auth provider
+cp .env.example .env   # configure DATABASE_URL, APP_SECRET, APP_URL + a login method
 docker compose up -d --build
 ```
+
+**Already have a PostgreSQL?** Point `DATABASE_URL` at it and add the overlay — the bundled database container is then never started. Migrations still run automatically before the app boots.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.external-db.yml up -d
+```
+
+Any PostgreSQL 16+ reachable over the network works (company cluster, RDS, Neon, Supabase, Railway, Render, DigitalOcean, …) — there's no provider-specific code. See [DEPLOYMENT.md → external PostgreSQL](./DEPLOYMENT.md#using-an-external-postgresql).
 
 **Email:** magic-link login works with **any SMTP provider** (Resend recommended, or Brevo/Postmark/SES/…) — configure it via env vars; see [DEPLOYMENT.md → Production email](./DEPLOYMENT.md#production-email-smtp). Each deployment uses its own credentials; nothing is committed.
 

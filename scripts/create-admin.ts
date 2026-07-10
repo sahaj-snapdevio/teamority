@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 import { ADMIN_ROLE } from "@/config/platform";
 
@@ -33,16 +33,25 @@ async function main() {
     const hashed = await hashPassword(password);
     const now = new Date();
 
+    // `emailVerified` so the account can sign in even when
+    // `requireEmailVerification` is active (SMTP configured).
     await db
       .update(user)
-      .set({ role: ADMIN_ROLE, updatedAt: now })
+      .set({ role: ADMIN_ROLE, emailVerified: true, updatedAt: now })
       .where(eq(user.id, existing.id));
 
-    // Upsert credential account
+    // Upsert the CREDENTIAL account. Filtering on providerId matters: a user who
+    // signed up with Google has a `google` account row, and writing the password
+    // into that row would both corrupt it and leave password sign-in broken.
     const [existingAccount] = await db
       .select({ id: account.id })
       .from(account)
-      .where(eq(account.userId, existing.id));
+      .where(
+        and(
+          eq(account.userId, existing.id),
+          eq(account.providerId, "credential")
+        )
+      );
 
     if (existingAccount) {
       await db

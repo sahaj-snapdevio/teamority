@@ -38,6 +38,7 @@ import { getWorkspaceMentionMembers, type MentionMember } from "@/app/actions/me
 import { buildMentionSuggestion } from "@/components/task/mention-suggestion";
 import { NoteImage } from "@/components/task/note-image";
 import { useNoteImageUpload } from "@/hooks/use-note-image-upload";
+import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
 import {
   SlashCommandGrid,
   SlashCommandMenu,
@@ -1041,6 +1042,15 @@ function TaskActivityFeed({
   React.useImperativeHandle(ref, () => ({ refresh: () => { void load(); } }), [load]);
 
   React.useEffect(() => { void load(); }, [load]);
+
+  // Live updates: refetch comments + activity when THIS task changes elsewhere.
+  // Events for other tasks are ignored; events without a taskId refetch (safe
+  // default). The composer's text is local editor state, so a refetch never
+  // clears a half-typed comment (and the provider defers while it's focused).
+  useRealtimeRefetch((meta) => {
+    if (meta?.taskId && meta.taskId !== taskId) return;
+    void load();
+  });
 
   const feed: FeedItem[] = React.useMemo(() => {
     const items: FeedItem[] = [

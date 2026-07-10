@@ -21,7 +21,13 @@ const DEBOUNCE_MS = 600;
 const RECONNECT_MIN_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
 
-type RefetchHandler = () => void;
+/** Scope hint carried by a `data_changed` event (see lib/realtime/broadcast.ts). */
+export interface RefetchMeta {  
+  /** Present when the change was task-scoped. Absent = "might affect anyone". */
+  taskId?: string;
+}
+
+type RefetchHandler = (meta?: RefetchMeta) => void;
 
 interface RealtimeContextValue {
   /** Subscribe a client-fetched view's re-fetch. Returns an unsubscribe fn. */
@@ -53,6 +59,9 @@ export function RealtimeProvider({
   // of a burst and stays set (ignoring further events) until it's flushed.
   const pendingRef = React.useRef(false);
   const pendingForRef = React.useRef<string | null>(null);
+  // Scope hint of the coalesced burst. Cleared to `undefined` (= generic) as
+  // soon as a burst mixes different tasks, so no subscriber wrongly skips.
+  const pendingMetaRef = React.useRef<RefetchMeta | undefined>(undefined);
   const flushTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // True while a refresh must wait: inactive tab, active editing, an open
@@ -77,11 +86,11 @@ export function RealtimeProvider({
     return false;
   }, []);
 
-  const doRefresh = React.useCallback(() => {
+  const doRefresh = React.useCallback((meta?: RefetchMeta) => {
     routerRef.current.refresh();
     for (const handler of subscribersRef.current) {
       try {
-        handler();
+        handler(meta);
       } catch {
         /* a bad subscriber must not break the others */
       }
@@ -99,18 +108,30 @@ export function RealtimeProvider({
       // User navigated to a different workspace since the event — drop it.
       pendingRef.current = false;
       pendingForRef.current = null;
+      pendingMetaRef.current = undefined;
       return;
     }
+    const meta = pendingMetaRef.current;
     pendingRef.current = false;
     pendingForRef.current = null;
-    doRefresh();
+    pendingMetaRef.current = undefined;
+    doRefresh(meta);
   }, [shouldDefer, doRefresh]);
 
   const requestRefresh = React.useCallback(
-    (forWorkspace: string) => {
-      if (pendingRef.current) return; // coalesce a burst into one refresh
+    (forWorkspace: string, meta?: RefetchMeta) => {
+      if (pendingRef.current) {
+        // Coalescing a burst: if this event names a different task than the
+        // pending one (or either is generic), widen to a generic refetch so no
+        // subscriber wrongly skips its update.
+        if (pendingMetaRef.current?.taskId !== meta?.taskId) {
+          pendingMetaRef.current = undefined;
+        }
+        return;
+      }
       pendingRef.current = true;
       pendingForRef.current = forWorkspace;
+      pendingMetaRef.current = meta;
       if (!flushTimerRef.current) {
         flushTimerRef.current = setTimeout(attemptFlush, DEBOUNCE_MS);
       }
@@ -135,6 +156,7 @@ export function RealtimeProvider({
           type?: string;
           v?: number;
           workspaceId?: string;
+          taskId?: string;
           title?: string;
           body?: string | null;
           url?: string;
@@ -176,7 +198,8 @@ export function RealtimeProvider({
         }
         if (data.type !== "data_changed" || data.v !== 1) return;
         if (!data.workspaceId || data.workspaceId !== workspaceIdRef.current) return;
-        requestRefresh(data.workspaceId);
+        // `taskId` is optional — when absent, subscribers do a generic refetch.
+        requestRefresh(data.workspaceId, data.taskId ? { taskId: data.taskId } : undefined);
       };
       es.onerror = () => {
         es?.close();
@@ -233,14 +256,18 @@ export function RealtimeProvider({
   return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;
 }
 
-/** Re-fetch a client-fetched view (e.g. Sprint) when a live change arrives. */
-export function useRealtimeRefetch(handler: () => void) {
+/**
+ * Re-fetch a client-fetched view (e.g. Sprint, task detail) when a live change
+ * arrives. `meta.taskId` is present only for task-scoped changes, so a view can
+ * skip work: `if (meta?.taskId && meta.taskId !== myTaskId) return;`
+ */
+export function useRealtimeRefetch(handler: (meta?: RefetchMeta) => void) {
   const ctx = React.useContext(RealtimeContext);
   const handlerRef = React.useRef(handler);
   handlerRef.current = handler;
   React.useEffect(() => {
     if (!ctx) return;
-    return ctx.subscribe(() => handlerRef.current());
+    return ctx.subscribe((meta) => handlerRef.current(meta));
   }, [ctx]);
 }
 

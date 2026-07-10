@@ -4,7 +4,7 @@ import { s3 } from "files-sdk/s3";
 import path from "path";
 import { env } from "@/lib/env";
 
-const APP_URL = env.NEXT_PUBLIC_APP_URL;
+const APP_URL = env.APP_URL;
 
 function createStorage() {
   // ── Production: S3 or Cloudflare R2 ─────────────────────────────────────────

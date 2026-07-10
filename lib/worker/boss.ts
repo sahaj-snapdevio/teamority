@@ -1,12 +1,17 @@
 import { type Job, PgBoss } from "pg-boss";
 import { env } from "@/lib/env";
-import { normalizePgConnectionString } from "@/lib/pg-connection";
+import { sanitizeDatabaseUrl } from "@/lib/pg-connection";
 import { sleep } from "@/lib/utils";
 import { ensureJobQueues } from "@/lib/worker/ensure-queues";
 import { JOB_NAMES } from "@/lib/worker/job-types";
 
+// `ssl` must be passed explicitly: `pg` lets a parsed connection string override
+// its own `ssl` option, so `sslmode` is stripped from the URL instead.
+const { url: bossUrl, ssl: bossSsl } = sanitizeDatabaseUrl(env.DATABASE_URL);
+
 const boss = new PgBoss({
-  connectionString: normalizePgConnectionString(env.DATABASE_URL),
+  connectionString: bossUrl,
+  ssl: bossSsl,
 });
 
 export { boss };

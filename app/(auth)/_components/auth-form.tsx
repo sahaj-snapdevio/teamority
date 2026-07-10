@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { EnvelopeIcon, PaperPlaneTiltIcon, CheckCircleIcon, GoogleLogoIcon } from "@phosphor-icons/react";
+import { EnvelopeIcon, PaperPlaneTiltIcon, CheckCircleIcon, GoogleLogoIcon, SignInIcon } from "@phosphor-icons/react";
 import { authClient } from "@/lib/auth-client";
+import { authErrorMessage } from "@/lib/auth-errors";
+import type { AuthMethods } from "@/lib/auth-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/common/password-input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,20 +22,34 @@ import { Spinner } from "@/components/ui/spinner";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address"),
+  password: z.string().optional(),
 });
 type FormData = z.infer<typeof schema>;
 
-function useLoginForm() {
+// When password auth is off this component renders exactly as it always has:
+// Google (if configured) + magic link. Nothing about that path changed.
+const DEFAULT_METHODS: AuthMethods = {
+  google: true,
+  magicLink: true,
+  passwordSignup: false,
+  passwordReset: false,
+  requiresEmailVerification: false,
+};
+
+function useLoginForm(methods: AuthMethods) {
+  const router = useRouter();
   const [sent, setSent] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "" },
+    defaultValues: { email: "", password: "" },
     mode: "onChange",
   });
 
   const { isSubmitting, isValid } = form.formState;
+  const busy = isSubmitting || googleLoading || magicLoading;
 
   async function handleGoogleSignIn() {
     form.clearErrors("root");
@@ -43,23 +62,71 @@ function useLoginForm() {
     }
   }
 
-  async function onSubmit({ email }: FormData) {
+  async function sendMagicLink() {
+    form.clearErrors("root");
+    const email = form.getValues("email");
+    const parsedEmail = z.string().email().safeParse(email);
+    if (!parsedEmail.success) {
+      form.setError("email", { message: "Enter a valid email address" });
+      return;
+    }
+
+    setMagicLoading(true);
     const { error } = await authClient.signIn.magicLink({ email, callbackURL: "/post-auth" });
+    setMagicLoading(false);
+
     if (error) {
-      form.setError("root", { message: error.message ?? "Something went wrong" });
+      form.setError("root", { message: authErrorMessage(error.code, error.message) });
       return;
     }
     setSent(true);
     toast.success("Magic link sent!", { description: "Check your inbox to sign in." });
   }
 
-  return { sent, setSent, googleLoading, form, isSubmitting, isValid, handleGoogleSignIn, onSubmit };
+  async function onSubmit({ email, password }: FormData) {
+    form.clearErrors("root");
+
+    // Password auth disabled → the form's only job is to request a magic link.
+    if (!methods.passwordSignup) {
+      await sendMagicLink();
+      return;
+    }
+
+    if (!password) {
+      form.setError("password", { message: "Enter your password" });
+      return;
+    }
+
+    const { error } = await authClient.signIn.email({ email, password });
+    if (error) {
+      form.setError("root", { message: authErrorMessage(error.code, error.message) });
+      return;
+    }
+    router.push("/post-auth");
+    router.refresh();
+  }
+
+  return { sent, setSent, googleLoading, magicLoading, busy, form, isSubmitting, isValid, handleGoogleSignIn, sendMagicLink, onSubmit };
+}
+
+function TermsNotice({ className = "" }: { className?: string }) {
+  return (
+    <p className={`text-center text-muted-foreground text-xs ${className}`}>
+      By signing in you agree to our{" "}
+      <a href="/terms" className="underline underline-offset-4 hover:text-foreground transition-colors">Terms of Service</a>{" "}
+      and{" "}
+      <a href="/privacy" className="underline underline-offset-4 hover:text-foreground transition-colors">Privacy Policy</a>.
+    </p>
+  );
 }
 
 // ── Flat (inline) form — used inside the modal page layout ─────────────────────
 
-export function LoginFormFlat() {
-  const { sent, setSent, googleLoading, form, isSubmitting, isValid, handleGoogleSignIn, onSubmit } = useLoginForm();
+export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMethods }) {
+  const { sent, setSent, googleLoading, magicLoading, busy, form, isSubmitting, isValid, handleGoogleSignIn, sendMagicLink, onSubmit } =
+    useLoginForm(methods);
+
+  const passwordEnabled = methods.passwordSignup;
 
   if (sent) {
     return (
@@ -86,23 +153,26 @@ export function LoginFormFlat() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Google */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full gap-2 rounded-lg h-11 text-foreground border-input disabled:opacity-60"
-        disabled={isSubmitting || googleLoading}
-        onClick={handleGoogleSignIn}
-      >
-        {googleLoading ? <Spinner className="size-4" /> : <GoogleLogoIcon className="size-4" />}
-        {googleLoading ? "Connecting…" : "Continue with Google"}
-      </Button>
+      {methods.google && (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2 rounded-lg h-11 text-foreground border-input disabled:opacity-60"
+            disabled={busy}
+            onClick={handleGoogleSignIn}
+          >
+            {googleLoading ? <Spinner className="size-4" /> : <GoogleLogoIcon className="size-4" />}
+            {googleLoading ? "Connecting…" : "Continue with Google"}
+          </Button>
 
-      <div className="flex items-center gap-3">
-        <Separator className="flex-1" />
-        <span className="text-muted-foreground text-xs">or continue with email</span>
-        <Separator className="flex-1" />
-      </div>
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-muted-foreground text-xs">or continue with email</span>
+            <Separator className="flex-1" />
+          </div>
+        </>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -120,6 +190,35 @@ export function LoginFormFlat() {
             )}
           />
 
+          {passwordEnabled && (
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-sm font-semibold text-foreground">Password</FormLabel>
+                    {methods.passwordReset && (
+                      <Link href="/forgot-password" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors">
+                        Forgot password?
+                      </Link>
+                    )}
+                  </div>
+                  <FormControl>
+                    <PasswordInput
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      className="h-11 rounded-lg text-foreground font-medium"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           {form.formState.errors.root && (
             <Alert variant="destructive">
               <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
@@ -128,32 +227,53 @@ export function LoginFormFlat() {
 
           <Button
             type="submit"
-            disabled={!isValid || isSubmitting}
+            disabled={!isValid || busy}
             className="w-full gap-2 h-11 rounded-lg text-sm font-semibold shadow-sm disabled:opacity-100 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
           >
             {isSubmitting ? (
-              <><Spinner className="size-4" />Sending…</>
+              <><Spinner className="size-4" />{passwordEnabled ? "Signing in…" : "Sending…"}</>
+            ) : passwordEnabled ? (
+              <><SignInIcon className="size-4" />Sign in</>
             ) : (
               <><PaperPlaneTiltIcon className="size-4" />Send magic link</>
             )}
           </Button>
+
+          {/* Magic link stays available as a secondary path when passwords are on. */}
+          {passwordEnabled && methods.magicLink && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full gap-2 h-10 rounded-lg text-sm font-medium"
+              disabled={busy}
+              onClick={sendMagicLink}
+            >
+              {magicLoading ? <Spinner className="size-4" /> : <PaperPlaneTiltIcon className="size-4" />}
+              {magicLoading ? "Sending…" : "Email me a magic link instead"}
+            </Button>
+          )}
         </form>
       </Form>
 
-      <p className="text-center text-muted-foreground text-xs pt-1">
-        By signing in you agree to our{" "}
-        <a href="/terms" className="underline underline-offset-4 hover:text-foreground transition-colors">Terms of Service</a>{" "}
-        and{" "}
-        <a href="/privacy" className="underline underline-offset-4 hover:text-foreground transition-colors">Privacy Policy</a>.
-      </p>
+      {passwordEnabled && (
+        <p className="text-center text-sm text-foreground/70">
+          {"Don't have an account? "}
+          <Link href="/signup" className="font-semibold text-foreground underline underline-offset-4 hover:opacity-80 transition-opacity">
+            Sign up
+          </Link>
+        </p>
+      )}
+
+      <TermsNotice className="pt-1" />
     </div>
   );
 }
 
 // ── Card-wrapped form — used standalone if needed ──────────────────────────────
 
-export function LoginForm() {
-  const { sent, setSent, googleLoading, form, isSubmitting, isValid, handleGoogleSignIn, onSubmit } = useLoginForm();
+export function LoginForm({ methods = DEFAULT_METHODS }: { methods?: AuthMethods }) {
+  const { sent, setSent, googleLoading, busy, form, isSubmitting, isValid, handleGoogleSignIn, onSubmit } = useLoginForm(methods);
+  const passwordEnabled = methods.passwordSignup;
 
   if (sent) {
     return (
@@ -188,17 +308,23 @@ export function LoginForm() {
         </div>
         <div>
           <h2 className="text-xl font-bold">Sign in</h2>
-          <p className="text-muted-foreground text-sm mt-0.5">Enter your email and we'll send you a magic link.</p>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            {passwordEnabled ? "Enter your email and password to continue." : "Enter your email and we'll send you a magic link."}
+          </p>
         </div>
-        <Button type="button" variant="outline" className="w-full gap-2" disabled={isSubmitting || googleLoading} onClick={handleGoogleSignIn}>
-          {googleLoading ? <Spinner className="size-4" /> : <GoogleLogoIcon className="size-4" />}
-          Continue with Google
-        </Button>
-        <div className="flex items-center gap-3">
-          <Separator className="flex-1" />
-          <span className="text-muted-foreground text-xs">or continue with email</span>
-          <Separator className="flex-1" />
-        </div>
+        {methods.google && (
+          <>
+            <Button type="button" variant="outline" className="w-full gap-2" disabled={busy} onClick={handleGoogleSignIn}>
+              {googleLoading ? <Spinner className="size-4" /> : <GoogleLogoIcon className="size-4" />}
+              Continue with Google
+            </Button>
+            <div className="flex items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-muted-foreground text-xs">or continue with email</span>
+              <Separator className="flex-1" />
+            </div>
+          </>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField control={form.control} name="email" render={({ field }) => (
@@ -208,20 +334,32 @@ export function LoginForm() {
                 <FormMessage />
               </FormItem>
             )} />
+            {passwordEnabled && (
+              <FormField control={form.control} name="password" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <PasswordInput autoComplete="current-password" placeholder="Enter your password" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            )}
             {form.formState.errors.root && (
               <Alert variant="destructive"><AlertDescription>{form.formState.errors.root.message}</AlertDescription></Alert>
             )}
-            <Button type="submit" disabled={!isValid || isSubmitting} className="w-full gap-2">
-              {isSubmitting ? <><Spinner className="size-4" />Sending…</> : <><PaperPlaneTiltIcon className="size-4" />Send magic link</>}
+            <Button type="submit" disabled={!isValid || busy} className="w-full gap-2">
+              {isSubmitting ? (
+                <><Spinner className="size-4" />{passwordEnabled ? "Signing in…" : "Sending…"}</>
+              ) : passwordEnabled ? (
+                <><SignInIcon className="size-4" />Sign in</>
+              ) : (
+                <><PaperPlaneTiltIcon className="size-4" />Send magic link</>
+              )}
             </Button>
           </form>
         </Form>
-        <p className="text-center text-muted-foreground text-xs pb-2">
-          By signing in you agree to our{" "}
-          <a href="/terms" className="underline underline-offset-4 hover:text-foreground transition-colors">Terms of Service</a>{" "}
-          and{" "}
-          <a href="/privacy" className="underline underline-offset-4 hover:text-foreground transition-colors">Privacy Policy</a>.
-        </p>
+        <TermsNotice className="pb-2" />
       </CardContent>
     </Card>
   );

@@ -182,7 +182,7 @@ export async function POST(
       });
     }
 
-    void refreshWorkspace(ctx.workspaceId);
+    void refreshWorkspace(ctx.workspaceId, undefined, { taskId });
   }
 
   const url = await storage.url(storageKey);

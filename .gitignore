@@ -35,6 +35,8 @@ pnpm-debug.log*
 
 # embedded postgres (dev)
 /.pgdata
+/.kanbanica-postgres
+# legacy data dir from before the Krova → Kanbanica rename; still reused when present
 /.krova-postgres
 
 # local file storage (fs adapter) — uploaded attachments/images in dev
@@ -48,4 +50,5 @@ next-env.d.ts
 *.sql.gz
 *.sql.zst
 *.dump
+kanbanica-db-*
 krova-db-*
