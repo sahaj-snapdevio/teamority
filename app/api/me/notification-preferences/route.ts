@@ -5,7 +5,8 @@ import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { userNotificationPreference } from "@/db/schema";
-import { NOTIFICATION_TRIGGERS } from "@/lib/notifications/types";
+import { NOTIFICATION_TRIGGERS, emailDefaultFor } from "@/lib/notifications/types";
+import { isSmtpConfigured } from "@/lib/smtp/client";
 
 const ALL_TRIGGERS = Object.values(NOTIFICATION_TRIGGERS);
 
@@ -30,12 +31,15 @@ export async function GET(_req: NextRequest) {
     return {
       triggerType,
       inAppEnabled: pref?.inAppEnabled ?? true,
-      emailEnabled: pref?.emailEnabled ?? true,
+      // Email is the one channel whose default is per-trigger, not `true`.
+      emailEnabled: pref?.emailEnabled ?? emailDefaultFor(triggerType),
       pushEnabled: pref?.pushEnabled ?? true,
     };
   });
 
-  return NextResponse.json({ preferences });
+  // Additive: lets the settings page show the email controls only when email
+  // can actually be delivered. Existing clients ignore it.
+  return NextResponse.json({ preferences, smtpConfigured: isSmtpConfigured() });
 }
 
 export async function PATCH(req: NextRequest) {

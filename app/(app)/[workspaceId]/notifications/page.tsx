@@ -308,24 +308,41 @@ export default function InboxPage() {
                   </p>
                 </div>
 
-                {/* Time → actions on hover */}
-                <div className="hidden group-hover:flex items-center gap-1 shrink-0">
+                {/* Actions on hover. Overlaid instead of laid out in flow — if they
+                    took up space, the text column would shrink on hover and the title
+                    would reflow onto extra lines. Icon-only and translucent so the
+                    tray stays narrow and reads as floating above the row rather than
+                    punching a hole in it. */}
+                <div
+                  className={cn(
+                    "absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5",
+                    "rounded-lg border border-border/60 bg-background/90 p-1 shadow-sm backdrop-blur-sm",
+                    "pointer-events-none translate-x-1 opacity-0",
+                    "transition-[opacity,transform] duration-150 ease-out",
+                    "group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100",
+                    "group-focus-within:pointer-events-auto group-focus-within:translate-x-0 group-focus-within:opacity-100",
+                  )}
+                >
                   {getNotificationTarget(n).type !== "info" && (
                     <ActionBtn onClick={(e) => { e.stopPropagation(); void handleRowClick(n); }} title="Open">
-                      <ArrowSquareOutIcon className="size-3.5" />
+                      <ArrowSquareOutIcon className="size-4" />
                     </ActionBtn>
                   )}
                   {n.isRead ? (
                     <ActionBtn onClick={(e) => void markUnread(n.id, e)} title="Mark as unread">
-                      <EnvelopeIcon className="size-3.5" />
+                      <EnvelopeIcon className="size-4" />
                     </ActionBtn>
                   ) : (
                     <ActionBtn onClick={(e) => void markRead(n.id, e)} title="Mark as read">
-                      <EnvelopeOpenIcon className="size-3.5" />
+                      <EnvelopeOpenIcon className="size-4" />
                     </ActionBtn>
                   )}
-                  <ActionBtn onClick={(e) => void dismiss(n.id, e)} title="Dismiss" label="Dismiss">
-                    <XIcon className="size-3.5" />
+                  <ActionBtn
+                    onClick={(e) => void dismiss(n.id, e)}
+                    title="Dismiss"
+                    destructive
+                  >
+                    <XIcon className="size-4" />
                   </ActionBtn>
                 </div>
               </div>
@@ -363,22 +380,34 @@ export default function InboxPage() {
   );
 }
 
+/**
+ * Square icon-only action. The visible text label was dropped so the hover tray
+ * stays narrow enough not to cover the notification title — `title` supplies the
+ * tooltip and `aria-label` keeps it accessible.
+ */
 function ActionBtn({
-  onClick, title, label, children,
+  onClick, title, destructive, children,
 }: {
   onClick: (e: React.MouseEvent) => void;
   title: string;
-  label?: string;
+  destructive?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       title={title}
-      className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer"
+      aria-label={title}
+      className={cn(
+        "flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground",
+        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        destructive
+          ? "hover:bg-destructive/10 hover:text-destructive"
+          : "hover:bg-accent hover:text-foreground",
+      )}
     >
       {children}
-      {label && <span className="font-medium">{label}</span>}
     </button>
   );
 }

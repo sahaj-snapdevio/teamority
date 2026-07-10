@@ -161,13 +161,34 @@ These are sent by the system on a schedule — no human actor. Shown with a syst
 
 ## 3. Email Notifications
 
+### Requires SMTP
+
+Notification email is **capability-gated on `isSmtpConfigured()`**. With no SMTP:
+
+- `createNotifications()` enqueues nothing (no `email_outbox` rows accumulate).
+- `GET /api/me/notification-preferences` returns `smtpConfigured: false`, and the settings page hides the **Email** column and the **Email Delivery** card entirely — no disabled controls, no "coming soon".
+
+Configure SMTP and the email UI and delivery simply appear. In-app and push are unaffected either way.
+
+### Which events email you by default
+
+`email_enabled` defaults to **false**. Only the high-signal triggers — the ones that are *about you* — are on by default:
+
+`mention_comment` · `mention_description` · `task_assigned` · `comment_reply` · `comment_resolved` · `due_date_today` · `task_overdue`
+
+Everything else (task created / status / priority / due-date changed / moved / deleted, attachments, `comment_added`, and all project- and workspace-wide activity) is **off by default** so enabling email never floods a workspace. Users can switch any trigger on.
+
+This list is defined **once**, as `EMAIL_DEFAULT_ENABLED_TRIGGERS` in [lib/notifications/types.ts](../lib/notifications/types.ts), and read through `emailDefaultFor()` by every default site: the API fallback, the notification fan-out, the digest filter, and the migration backfill. Do not duplicate it — in-app and push defaults remain `true` and are unrelated.
+
 ### Delivery modes (user configurable)
 
 | Mode | Description |
 |------|-------------|
-| Instant | Email sent immediately when the event occurs |
-| Daily Digest | One summary email per day with all notifications from that day (sent at a fixed time, e.g. 8:00 AM user's timezone) |
+| Instant (default) | One email per notification, sent as the event occurs |
+| Daily Digest | One summary email per scan bucket, at the user's `digest_time` in their `digest_timezone` |
 | Off | No email notifications |
+
+All three honour the per-trigger Email toggles. `instant` is enqueued from `createNotifications()`; `digest` is collected by the digest workers straight from the `notification` table; `off` sends nothing.
 
 ### Email content
 

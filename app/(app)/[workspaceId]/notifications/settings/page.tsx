@@ -14,6 +14,17 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 
+// Triggers whose notifications are never emitted by any code path yet, so a
+// toggle for them would do nothing. Hidden from the UI only — the trigger
+// definitions, DB rows and API fields are untouched, so showing them again is
+// a one-line change once the sprint notifications are implemented.
+const HIDDEN_TRIGGERS = new Set([
+  "sprint_started",
+  "sprint_ending_soon",
+  "sprint_closed",
+  "sprint_auto_created",
+]);
+
 const TRIGGER_LABELS: Record<string, string> = {
   task_created: "Task created",
   task_assigned: "Task assigned to me",
@@ -58,21 +69,34 @@ interface NotifPref {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function NotificationSettingsPage() {
-  const { data: emailPrefData, mutate: mutateEmail } = useSWR(
-    "/api/me/email-preferences",
-    fetcher,
-  );
   const { data: notifPrefData, mutate: mutateNotif } = useSWR(
     "/api/me/notification-preferences",
     fetcher,
   );
 
+  // Email is only shown when the deployment can actually deliver it. No
+  // disabled controls, no "coming soon" — the email UI simply appears once
+  // SMTP is configured.
+  const emailAvailable: boolean = notifPrefData?.smtpConfigured ?? false;
+
+  // Conditional key: don't request email preferences we could never render.
+  const { data: emailPrefData, mutate: mutateEmail } = useSWR(
+    emailAvailable ? "/api/me/email-preferences" : null,
+    fetcher,
+  );
+
+  const [prefs, setPrefs] = React.useState<NotifPref[]>([]);
   const [deliveryMode, setDeliveryMode] = React.useState<string>("instant");
   const [digestTime, setDigestTime] = React.useState<string>("08:00");
-  const [prefs, setPrefs] = React.useState<NotifPref[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [pushEnabling, setPushEnabling] = React.useState(false);
   const { supported: pushSupported, permission, subscribed, enable: enablePush, disable: disablePush } = usePushSubscription();
+
+  React.useEffect(() => {
+    if (notifPrefData?.preferences) {
+      setPrefs(notifPrefData.preferences);
+    }
+  }, [notifPrefData]);
 
   React.useEffect(() => {
     if (emailPrefData?.preference) {
@@ -80,12 +104,6 @@ export default function NotificationSettingsPage() {
       setDigestTime(emailPrefData.preference.digestTime ?? "08:00");
     }
   }, [emailPrefData]);
-
-  React.useEffect(() => {
-    if (notifPrefData?.preferences) {
-      setPrefs(notifPrefData.preferences);
-    }
-  }, [notifPrefData]);
 
   async function saveEmailPrefs() {
     setSaving(true);
@@ -100,6 +118,13 @@ export default function NotificationSettingsPage() {
       setSaving(false);
     }
   }
+
+  // `prefs` keeps every trigger (and its emailEnabled value) so PATCH payloads
+  // stay unchanged; only the rendered rows are filtered.
+  const visiblePrefs = React.useMemo(
+    () => prefs.filter((p) => !HIDDEN_TRIGGERS.has(p.triggerType)),
+    [prefs],
+  );
 
   async function saveNotifPref(
     triggerType: string,
@@ -175,42 +200,44 @@ export default function NotificationSettingsPage() {
         </div>
       )}
 
-      {/* Email delivery section */}
-      <div className="space-y-4 rounded-lg border p-4">
-        <h3 className="font-medium">Email Delivery</h3>
-        <div className="flex items-center gap-4">
-          <Label htmlFor="delivery-mode" className="w-32 shrink-0">
-            Delivery mode
-          </Label>
-          <Select value={deliveryMode} onValueChange={setDeliveryMode}>
-            <SelectTrigger id="delivery-mode" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="instant">Instant</SelectItem>
-              <SelectItem value="digest">Daily Digest</SelectItem>
-              <SelectItem value="off">Off</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {deliveryMode === "digest" && (
+      {/* Email delivery — only when SMTP can actually deliver it. */}
+      {emailAvailable && (
+        <div className="space-y-4 rounded-lg border p-4">
+          <h3 className="font-medium">Email Delivery</h3>
           <div className="flex items-center gap-4">
-            <Label htmlFor="digest-time" className="w-32 shrink-0">
-              Digest time (UTC)
+            <Label htmlFor="delivery-mode" className="w-32 shrink-0">
+              Delivery mode
             </Label>
-            <input
-              id="digest-time"
-              type="time"
-              value={digestTime}
-              onChange={(e) => setDigestTime(e.target.value)}
-              className="rounded-md border bg-background px-3 py-1.5 text-sm"
-            />
+            <Select value={deliveryMode} onValueChange={setDeliveryMode}>
+              <SelectTrigger id="delivery-mode" className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="instant">Instant</SelectItem>
+                <SelectItem value="digest">Daily Digest</SelectItem>
+                <SelectItem value="off">Off</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
-        <Button onClick={saveEmailPrefs} disabled={saving} size="sm">
-          {saving ? "Saving..." : "Save email preferences"}
-        </Button>
-      </div>
+          {deliveryMode === "digest" && (
+            <div className="flex items-center gap-4">
+              <Label htmlFor="digest-time" className="w-32 shrink-0">
+                Digest time
+              </Label>
+              <input
+                id="digest-time"
+                type="time"
+                value={digestTime}
+                onChange={(e) => setDigestTime(e.target.value)}
+                className="rounded-md border bg-background px-3 py-1.5 text-sm"
+              />
+            </div>
+          )}
+          <Button onClick={saveEmailPrefs} disabled={saving} size="sm">
+            {saving ? "Saving..." : "Save email preferences"}
+          </Button>
+        </div>
+      )}
 
       {/* Per-trigger toggles */}
       <div className="space-y-4">
@@ -221,12 +248,14 @@ export default function NotificationSettingsPage() {
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-2 text-left font-medium">Event</th>
                 <th className="px-4 py-2 text-center font-medium">In-App</th>
-                <th className="px-4 py-2 text-center font-medium">Email</th>
+                {emailAvailable && (
+                  <th className="px-4 py-2 text-center font-medium">Email</th>
+                )}
                 <th className="px-4 py-2 text-center font-medium">Push</th>
               </tr>
             </thead>
             <tbody>
-              {prefs.map((pref) => (
+              {visiblePrefs.map((pref) => (
                 <tr key={pref.triggerType} className="border-b last:border-0">
                   <td className="px-4 py-2.5 text-sm">
                     {TRIGGER_LABELS[pref.triggerType] ?? pref.triggerType}
@@ -239,14 +268,16 @@ export default function NotificationSettingsPage() {
                       }
                     />
                   </td>
-                  <td className="px-4 py-2.5 text-center">
-                    <Switch
-                      checked={pref.emailEnabled}
-                      onCheckedChange={(v) =>
-                        void saveNotifPref(pref.triggerType, "emailEnabled", v)
-                      }
-                    />
-                  </td>
+                  {emailAvailable && (
+                    <td className="px-4 py-2.5 text-center">
+                      <Switch
+                        checked={pref.emailEnabled}
+                        onCheckedChange={(v) =>
+                          void saveNotifPref(pref.triggerType, "emailEnabled", v)
+                        }
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-2.5 text-center">
                     <Switch
                       checked={pref.pushEnabled}
@@ -259,7 +290,10 @@ export default function NotificationSettingsPage() {
               ))}
               {prefs.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td
+                    colSpan={emailAvailable ? 4 : 3}
+                    className="px-4 py-8 text-center text-sm text-muted-foreground"
+                  >
                     Loading preferences...
                   </td>
                 </tr>

@@ -5,10 +5,46 @@ import { eq } from "drizzle-orm";
 import { enqueueJob } from "@/lib/worker/enqueue";
 import { JOB_NAMES } from "@/lib/worker/job-types";
 
+const SCAN_INTERVAL_MINUTES = 30; // must match the cron in lib/worker/boss.ts
+
+/**
+ * The user's wall-clock time in their own timezone: minutes-since-midnight plus
+ * their local YYYY-MM-DD. Falls back to UTC if the stored timezone isn't a
+ * valid IANA name.
+ */
+export function localTime(
+  now: Date,
+  timeZone: string,
+): { minutes: number; date: string } {
+  const opts: Intl.DateTimeFormatOptions = {
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  };
+
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-CA", { ...opts, timeZone }).formatToParts(now);
+  } catch {
+    parts = new Intl.DateTimeFormat("en-CA", { ...opts, timeZone: "UTC" }).formatToParts(now);
+  }
+
+  const get = (t: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === t)?.value ?? "00";
+
+  // Some hourCycles render midnight as "24"; normalise it.
+  const hour = Number(get("hour")) % 24;
+  return {
+    minutes: hour * 60 + Number(get("minute")),
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+  };
+}
+
 export async function handleNotificationDigestScan(_jobs: Job<Record<string, never>>[]) {
   const now = new Date();
-  const currentHour = now.getUTCHours();
-  const currentMinute = now.getUTCMinutes();
 
   // Get all users with digest delivery mode
   const digestUsers = await db
@@ -16,27 +52,47 @@ export async function handleNotificationDigestScan(_jobs: Job<Record<string, nev
     .from(userEmailPreference)
     .where(eq(userEmailPreference.deliveryMode, "digest"));
 
-  for (const pref of digestUsers) {
-    // Parse digestTime (HH:MM) - treat as UTC since we use simple approach
-    const [hours, minutes] = pref.digestTime.split(":").map(Number);
-    if (isNaN(hours) || isNaN(minutes)) continue;
+  let queued = 0;
 
-    // Check if current time is within 30 min window of digest time
+  for (const pref of digestUsers) {
+    const [hours, minutes] = pref.digestTime.split(":").map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+      continue;
+    }
+
+    // Compare against the user's OWN timezone, not UTC.
+    const local = localTime(now, pref.digestTimezone);
     const digestMinutes = hours * 60 + minutes;
-    const currentMinutes = currentHour * 60 + currentMinute;
-    const diff = Math.abs(currentMinutes - digestMinutes);
-    // Within 30-minute window (1410 = 24*60 - 30 to handle day wrap)
-    if (diff > 30 && diff < 1410) continue;
+
+    // Fire in exactly one scan bucket: [digestTime, digestTime + interval).
+    // The old `Math.abs(diff) <= 30` test matched three consecutive scans
+    // (07:30, 08:00 and 08:30 for an 08:00 digest) — up to three digests.
+    const delta = local.minutes - digestMinutes;
+    if (delta < 0 || delta >= SCAN_INTERVAL_MINUTES) {
+      continue;
+    }
 
     const windowEnd = now.toISOString();
-    const windowStart = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
+    const windowStart = new Date(
+      now.getTime() - SCAN_INTERVAL_MINUTES * 60 * 1000,
+    ).toISOString();
 
     await enqueueJob(
       JOB_NAMES.NOTIFICATION_DIGEST_SEND,
       { userId: pref.userId, windowStart, windowEnd },
-      { singletonKey: `digest-${pref.userId}-${hours}-${minutes}` },
+      {
+        // Date-scoped: pg-boss only dedupes while a job is active, so without
+        // the local date the same key becomes reusable the next day.
+        singletonKey: `digest-${pref.userId}-${local.date}-${pref.digestTime}`,
+      },
     );
+    queued++;
   }
 
-  console.log("[notification-digest-scan] scanned", digestUsers.length, "digest users");
+  console.log(
+    "[notification-digest-scan] scanned",
+    digestUsers.length,
+    "digest users, queued",
+    queued,
+  );
 }

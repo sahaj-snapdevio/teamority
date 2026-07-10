@@ -41,7 +41,10 @@ export const userNotificationPreference = pgTable(
     workspaceId: text("workspace_id"),
     triggerType: text("trigger_type").notNull(),
     inAppEnabled: boolean("in_app_enabled").notNull().default(true),
-    emailEnabled: boolean("email_enabled").notNull().default(true),
+    // Defaults OFF. Only the high-signal triggers listed in
+    // EMAIL_DEFAULT_ENABLED_TRIGGERS (lib/notifications/types.ts) send email
+    // without the user opting in — see `emailDefaultFor()`.
+    emailEnabled: boolean("email_enabled").notNull().default(false),
     pushEnabled: boolean("push_enabled").notNull().default(true),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
