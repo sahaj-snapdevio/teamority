@@ -10,8 +10,9 @@ import { task, taskDependency, listStatus } from "@/db/schema";
 import { canAccessSpace, getSpacePermission, hasPermissionLevel } from "@/lib/permissions";
 import { writeActivityLog } from "@/lib/activity-log";
 
-function revalidateList(workspaceId: string, spaceId: string, listId: string) {
-  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`]);
+// `taskId` lets an open task detail view skip refetching for other tasks.
+function revalidateList(workspaceId: string, spaceId: string, listId: string, taskId?: string) {
+  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`], { taskId });
 }
 
 // DFS cycle detection: returns true if adding taskId -> dependsOnTaskId would create a cycle
@@ -81,7 +82,7 @@ export async function addDependency(
   });
 
   await writeActivityLog(taskId, session.user.id, "dependency_added", { dependsOnTaskId });
-  revalidateList(workspaceId, spaceId, listId);
+  revalidateList(workspaceId, spaceId, listId, taskId);
   return { dependencyId: depId };
 }
 
@@ -109,7 +110,7 @@ export async function removeDependency(
   await writeActivityLog(taskId, session.user.id, "dependency_removed", {
     dependsOnTaskId: dep?.dependsOnTaskId,
   });
-  revalidateList(workspaceId, spaceId, listId);
+  revalidateList(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }
 

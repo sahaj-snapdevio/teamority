@@ -33,12 +33,15 @@ jobs:
       # Required gate: the app must build. Placeholder env satisfies build-time
       # validation (lib/env.ts); real values are provided at runtime. The
       # production auth guard is skipped during `next build` (NEXT_PHASE).
+      #
+      # APP_URL is deliberately NOT set here: the build must never depend on a
+      # deployment's public URL, or a prebuilt image could not serve any domain.
+      # If this step ever starts requiring it, that guarantee has regressed.
       - name: Build
         run: pnpm build
         env:
           DATABASE_URL: postgresql://build:build@localhost:5432/build
           APP_SECRET: build-time-placeholder-value-000000000000
-          NEXT_PUBLIC_APP_URL: https://ci.example.com
 
       # Lint is intentionally ADVISORY (continue-on-error) for now.
       #

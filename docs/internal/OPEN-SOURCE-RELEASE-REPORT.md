@@ -113,7 +113,7 @@ deployment via Docker Compose:
 
 Multi-instance / horizontally-scaled deployments are **not** supported in v1.0.0
 (see Current limitations). Setup is documented in
-[SETUP.md](./SETUP.md) (local) and [DEPLOYMENT.md](./DEPLOYMENT.md) (self-host).
+[SETUP.md](../../SETUP.md) (local) and [DEPLOYMENT.md](../../DEPLOYMENT.md) (self-host).
 
 ## Current limitations
 
@@ -129,7 +129,7 @@ Multi-instance / horizontally-scaled deployments are **not** supported in v1.0.0
 ## Not included in v1.0.0
 
 The following are intentionally out of scope for the first release and tracked in
-[ROADMAP.md](./ROADMAP.md):
+[ROADMAP.md](../../ROADMAP.md):
 
 - Multi-instance / high-availability support (Redis-backed realtime and rate limiting).
 - A hosted demo instance.

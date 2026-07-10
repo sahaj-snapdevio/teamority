@@ -1,6 +1,6 @@
 import { PgBoss } from "pg-boss";
 import { env } from "@/lib/env";
-import { normalizePgConnectionString } from "@/lib/pg-connection";
+import { sanitizeDatabaseUrl } from "@/lib/pg-connection";
 import { ensureJobQueues } from "@/lib/worker/ensure-queues";
 import type { JobName, JobPayloads } from "@/lib/worker/job-types";
 
@@ -8,8 +8,12 @@ let boss: PgBoss | null = null;
 let initPromise: Promise<PgBoss> | null = null;
 
 async function initBoss() {
+  // `ssl` must be passed explicitly — see lib/pg-connection.ts.
+  const { url, ssl } = sanitizeDatabaseUrl(env.DATABASE_URL);
+
   const instance = new PgBoss({
-    connectionString: normalizePgConnectionString(env.DATABASE_URL),
+    connectionString: url,
+    ssl,
     schedule: false,
     supervise: false,
   });

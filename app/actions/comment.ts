@@ -52,8 +52,10 @@ async function requireSpaceAccess(userId: string, workspaceId: string, spaceId: 
   return null;
 }
 
-function revalidateTask(workspaceId: string, spaceId: string, listId: string) {
-  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`]);
+// `taskId` lets an open task detail view skip refetching for other tasks.
+// Omitted where the action only knows the commentId → generic refetch (safe).
+function revalidateTask(workspaceId: string, spaceId: string, listId: string, taskId?: string) {
+  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`], { taskId });
 }
 
 
@@ -335,7 +337,7 @@ export async function createComment(
     });
   }
 
-  revalidateTask(workspaceId, spaceId, listId);
+  revalidateTask(workspaceId, spaceId, listId, taskId);
 
   return { commentId: id };
 }
@@ -493,7 +495,7 @@ export async function deleteComment(
   }
 
   void writeActivityLog(taskId, session.user.id, "comment_deleted", { comment_id: commentId });
-  revalidateTask(workspaceId, spaceId, listId);
+  revalidateTask(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }
 
@@ -551,7 +553,7 @@ export async function resolveComment(
     }
   }
 
-  revalidateTask(workspaceId, spaceId, listId);
+  revalidateTask(workspaceId, spaceId, listId, resolved?.taskId);
   return { ok: true };
 }
 

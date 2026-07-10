@@ -20,8 +20,9 @@ function randomTagColor() {
   return TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
 }
 
-function revalidateList(workspaceId: string, spaceId: string, listId: string) {
-  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`]);
+// `taskId` lets an open task detail view skip refetching for other tasks.
+function revalidateList(workspaceId: string, spaceId: string, listId: string, taskId?: string) {
+  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`], { taskId });
 }
 
 export async function getWorkspaceTags(workspaceId: string) {
@@ -90,7 +91,7 @@ export async function addTaskTag(
   const [t] = await db.select({ name: tag.name }).from(tag).where(eq(tag.id, tagId)).limit(1);
   await writeActivityLog(taskId, session.user.id, "tag_added", { tagName: t?.name });
 
-  revalidateList(workspaceId, spaceId, listId);
+  revalidateList(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }
 
@@ -129,6 +130,6 @@ export async function removeTaskTag(
   const [t] = await db.select({ name: tag.name }).from(tag).where(eq(tag.id, tagId)).limit(1);
   await writeActivityLog(taskId, session.user.id, "tag_removed", { tagName: t?.name });
 
-  revalidateList(workspaceId, spaceId, listId);
+  revalidateList(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }

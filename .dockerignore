@@ -9,5 +9,6 @@ node_modules
 npm-debug.log*
 pnpm-debug.log*
 coverage
+.kanbanica-postgres
 .krova-postgres
 tsconfig.tsbuildinfo

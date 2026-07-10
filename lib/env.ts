@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEV_DATABASE_URL } from "@/config/dev-database";
 
 const optionalString = z.preprocess(
   (value) => (value === "" ? undefined : value),
@@ -10,7 +11,13 @@ const optionalString = z.preprocess(
 // and the app fails fast if any is missing — so runtime behavior for configured
 // deployments (dev with .env, or production) is unchanged.
 const isProduction = process.env.NODE_ENV === "production";
-const DEV_DATABASE_URL = "postgresql://krova:krova@localhost:54329/krova";
+const DEV_APP_URL = "http://localhost:3000";
+
+// `next build` evaluates this module while prerendering. The public URL is only
+// needed at RUNTIME (nothing inlines it into the client bundle), so during the
+// build phase we fall back to a placeholder rather than demanding a real value.
+// This is what lets one prebuilt image serve any domain.
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
 
 const envSchema = z.object({
   DATABASE_URL: isProduction
@@ -19,9 +26,10 @@ const envSchema = z.object({
   APP_SECRET: isProduction
     ? z.string().min(1)
     : z.string().min(1).default("dev-only-insecure-app-secret-change-me"),
-  NEXT_PUBLIC_APP_URL: isProduction
-    ? z.url()
-    : z.url().default("http://localhost:3000"),
+  // The public URL users hit. Read at runtime — see `appUrl` below.
+  APP_URL: optionalString,
+  /** @deprecated Use APP_URL. Kept so existing deployments keep working. */
+  NEXT_PUBLIC_APP_URL: optionalString,
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
@@ -38,6 +46,15 @@ const envSchema = z.object({
   // EXPLICIT OPT-IN — default false. Self-hosters set AUTO_PROMOTE_FIRST_ADMIN=true;
   // hosted SaaS leaves it unset and provisions admins with `pnpm create:admin`.
   AUTO_PROMOTE_FIRST_ADMIN: z.preprocess(
+    (v) => v === "true" || v === "1",
+    z.boolean()
+  ),
+  // Self-serve email+password registration. EXPLICIT OPT-IN — default false.
+  // Kanbanica is invite-based, so leaving this unset keeps a deployment closed:
+  // password sign-IN still works for anyone who has a password, but nobody can
+  // create an account from the login page. Self-hosters set
+  // ALLOW_PASSWORD_SIGNUP=true to allow open registration.
+  ALLOW_PASSWORD_SIGNUP: z.preprocess(
     (v) => v === "true" || v === "1",
     z.boolean()
   ),
@@ -64,13 +81,46 @@ if (!parsed.success) {
   throw new Error("Invalid environment variables");
 }
 
-export const env = parsed.data;
+// Resolve the public URL. `APP_URL` is canonical; `NEXT_PUBLIC_APP_URL` is the
+// deprecated spelling and still honoured so existing deployments keep working.
+// It is NOT baked into the build — every consumer reads it on the server at
+// runtime — so the same image can serve any domain.
+const parsedEnv = parsed.data;
 
-// In production, require at least one working authentication provider so login
-// cannot silently break. Either full SMTP (enables magic-link delivery) OR
-// Google OAuth is enough — SMTP is not mandatory. In development, magic links
-// are logged to the console, so no provider is required. Skipped during
-// `next build` (no runtime env yet) — the check runs when the server boots.
+function resolveAppUrl(): string {
+  const configured = parsedEnv.APP_URL ?? parsedEnv.NEXT_PUBLIC_APP_URL;
+
+  if (!configured) {
+    // Dev and `next build` get a placeholder; a real production server does not.
+    if (!isProduction || isBuildPhase) {
+      return DEV_APP_URL;
+    }
+    throw new Error(
+      "APP_URL is not set. In production you must set APP_URL to the public URL " +
+        "users visit, e.g. APP_URL=https://tasks.yourcompany.com — it is used for " +
+        "sign-in links, invite links, email content, and file URLs."
+    );
+  }
+
+  const url = z.url().safeParse(configured);
+  if (!url.success) {
+    throw new Error(
+      `APP_URL must be a valid absolute URL (got "${configured}"), e.g. https://tasks.yourcompany.com`
+    );
+  }
+  // Trailing slashes would produce "https://host//invite/..." when concatenated.
+  return url.data.replace(/\/+$/, "");
+}
+
+export const env = { ...parsedEnv, APP_URL: resolveAppUrl() };
+
+// In production, require at least one way for a user to OBTAIN an account so
+// login cannot silently break: full SMTP (magic-link delivery), Google OAuth,
+// or self-serve password sign-up. Password sign-IN alone doesn't count — with
+// none of these, an operator could only ever provision users via `create:admin`.
+// In development, magic links are logged to the console, so no provider is
+// required. Skipped during `next build` (no runtime env yet) — the check runs
+// when the server boots.
 if (
   env.NODE_ENV === "production" &&
   process.env.NEXT_PHASE !== "phase-production-build"
@@ -83,12 +133,13 @@ if (
   );
   const googleConfigured = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
-  if (!smtpConfigured && !googleConfigured) {
+  if (!smtpConfigured && !googleConfigured && !env.ALLOW_PASSWORD_SIGNUP) {
     throw new Error(
-      "No authentication provider configured. In production you must set either " +
+      "No authentication provider configured. In production you must set one of: " +
         "SMTP (SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_FROM) so magic links can be " +
-        "delivered, or Google OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET). " +
-        "Without one of these, users cannot log in."
+        "delivered; Google OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET); or " +
+        "ALLOW_PASSWORD_SIGNUP=true to enable email + password registration. " +
+        "Without one of these, users cannot sign up or log in."
     );
   }
 }

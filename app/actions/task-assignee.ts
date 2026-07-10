@@ -10,8 +10,9 @@ import { canAccessSpace, getSpacePermission, hasPermissionLevel, getWorkspaceMem
 import { writeActivityLog } from "@/lib/activity-log";
 import { createNotifications } from "@/lib/notifications/create-notification";
 
-function revalidateTask(workspaceId: string, spaceId: string, listId: string) {
-  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`]);
+// `taskId` lets an open task detail view skip refetching for other tasks.
+function revalidateTask(workspaceId: string, spaceId: string, listId: string, taskId?: string) {
+  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`], { taskId });
 }
 
 export async function addAssignee(
@@ -68,7 +69,7 @@ export async function addAssignee(
   }
 
   await writeActivityLog(taskId, session.user.id, "assignee_added", { userId: assigneeUserId });
-  if (listId) revalidateTask(workspaceId, spaceId, listId);
+  if (listId) revalidateTask(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }
 
@@ -111,7 +112,7 @@ export async function removeAssignee(
     }
   }
 
-  if (listId) revalidateTask(workspaceId, spaceId, listId);
+  if (listId) revalidateTask(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }
 
@@ -133,7 +134,7 @@ export async function addWatcher(
   await db.insert(taskWatcher).values({ taskId, userId }).onConflictDoNothing();
 
   await writeActivityLog(taskId, session.user.id, "watcher_added", { userId });
-  revalidateTask(workspaceId, spaceId, listId);
+  revalidateTask(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }
 
@@ -157,7 +158,7 @@ export async function removeWatcher(
     .where(and(eq(taskWatcher.taskId, taskId), eq(taskWatcher.userId, userId)));
 
   await writeActivityLog(taskId, session.user.id, "watcher_removed", { userId });
-  revalidateTask(workspaceId, spaceId, listId);
+  revalidateTask(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }
 
@@ -183,11 +184,11 @@ export async function toggleWatcher(
     await db
       .delete(taskWatcher)
       .where(and(eq(taskWatcher.taskId, taskId), eq(taskWatcher.userId, session.user.id)));
-    revalidateTask(workspaceId, spaceId, listId);
+    revalidateTask(workspaceId, spaceId, listId, taskId);
     return { watching: false };
   } else {
     await db.insert(taskWatcher).values({ taskId, userId: session.user.id }).onConflictDoNothing();
-    revalidateTask(workspaceId, spaceId, listId);
+    revalidateTask(workspaceId, spaceId, listId, taskId);
     return { watching: true };
   }
 }

@@ -6,10 +6,16 @@ Authentication handles user identity — who you are, how you prove it, and how 
 
 **Powered by:** [Better Auth](https://better-auth.com)
 
-**Auth method: Magic Link (passwordless)**
-- User enters their email address -> receives a one-time sign-in link -> clicks it -> session created
-- No passwords to remember or manage
-- First-time use automatically creates an account (sign up and sign in are the same flow)
+**Auth methods.** All three produce the same `session` row — there is only one session system, and one `user` row per email address.
+
+| Method | Requires | Enabled |
+|--------|----------|---------|
+| Magic Link (passwordless) | SMTP in production (console-logged in dev) | Always |
+| Google OAuth | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | When both are set |
+| Email + Password | nothing | Sign-in always; **sign-up** only when `ALLOW_PASSWORD_SIGNUP=true` |
+
+- Magic link: user enters their email -> receives a one-time sign-in link -> clicks it -> session created. First-time use automatically creates an account.
+- Email + password: see [§ 1a](#1a-email--password) below. Registration is an explicit opt-in so an instance stays invite-only by default.
 
 **Why Better Auth:**
 - Built specifically for Next.js (API Routes + Server Actions)
@@ -64,6 +70,77 @@ When a magic link is used and no account exists for that email:
 | Field | Rules |
 |-------|-------|
 | Email | Required, valid email format |
+
+---
+
+## 1a. Email + Password
+
+Uses Better Auth's built-in `emailAndPassword` — no custom password code, no extra client plugin, and **no database migration** (`account.password`, `user.email_verified` and the `verification` table already exist).
+
+### Configuration
+
+| Env | Effect |
+|-----|--------|
+| `ALLOW_PASSWORD_SIGNUP=false` (default) | Password **sign-in** works; `/signup` returns 404 and `/login` shows no password field. Instance stays invite-only. |
+| `ALLOW_PASSWORD_SIGNUP=true` | `/signup` and the password field on `/login` appear. |
+
+`ALLOW_PASSWORD_SIGNUP=true` also satisfies the production start-up check in `lib/env.ts` on its own — a self-hosted instance needs neither SMTP nor Google.
+
+Password rules: **8–128 characters**, enforced server-side (`minPasswordLength` / `maxPasswordLength`). Hashing is Better Auth's scrypt.
+
+### Email verification
+
+`requireEmailVerification` is **on exactly when SMTP is configured**. This is not cosmetic:
+
+- Magic-link and Google sign-ups land with `email_verified = true`.
+- `/sign-up/email` lands with `email_verified = false`.
+- Better Auth refuses to implicitly link an OAuth account onto an **unverified** local user (`accountLinking.requireLocalEmailVerified`, default `true`).
+
+So an unverified password account cannot later use "Continue with Google" — it fails with `account_not_linked`. Requiring verification (when we can actually send the mail) is what keeps all three methods converging on a single account. **Do not** set `requireLocalEmailVerified: false` to work around this: it would let an attacker pre-register a password account on someone's address and have that person's Google sign-in link straight into it.
+
+Without SMTP the trade-off is accepted deliberately: sign-up works, the user stays unverified, and Google linking is unavailable (Google is usually not configured on such a deployment either).
+
+### Password reset
+
+`/forgot-password` → `authClient.requestPasswordReset()` → `sendResetPassword` → `/reset-password?token=…`.
+
+- The reset link expires in 1 hour and is single-use.
+- `revokeSessionsOnPasswordReset: true` — completing a reset signs out **every** device.
+- The flow **requires SMTP**: `sendEmailViaSmtp` only console-logs when unconfigured, so `/forgot-password` returns 404 and the "Forgot password?" link is hidden in that case.
+- `/forgot-password` always reports success, whether or not the address exists.
+
+### Setting or changing a password
+
+The profile page shows a **Set a Password** card to users who have none (magic-link / Google sign-ups), and **Change Password** to those who do.
+
+- Set: `setPasswordAction` (`app/actions/auth.ts`) — Better Auth's `setPassword` is a **server-only** endpoint, so it cannot be called from `authClient`. The action refuses if a password already exists.
+- Change: `authClient.changePassword({ revokeOtherSessions: true })` — requires the current password, keeps the current session, signs out other devices.
+
+### Rate limits (`lib/auth.ts`)
+
+| Endpoint | Limit |
+|----------|-------|
+| `/sign-in/magic-link` | 5 / 60s |
+| `/sign-in/email` | 10 / 60s |
+| `/sign-up/email` | 5 / 60s |
+| `/request-password-reset` | 3 / 60s |
+| `/reset-password` | 5 / 60s |
+
+Both this limiter and `lib/rate-limit.ts` are **in-memory**, so they are per-process. A multi-instance deployment needs a shared store.
+
+### Known limitations
+
+- `/sign-up/email` returns `USER_ALREADY_EXISTS`, which confirms an email is registered. The signup UI collapses that into the neutral "check your inbox" screen **when verification is on**; without SMTP the difference is observable.
+- With sign-up enabled, an address can be registered before its real owner ever signs in. If that owner later uses a magic link, Better Auth signs them into the existing row and marks it verified — leaving the squatter's password valid. Mitigations: sign-up defaults to off, verification is required when SMTP exists, and onboarding is invite-based.
+
+### Validation
+
+| Field | Rules |
+|-------|-------|
+| Name | Required, 1–100 characters |
+| Email | Required, valid email format |
+| Password | Required, 8–128 characters |
+| Confirm password | Must match |
 
 ---
 
@@ -243,6 +320,13 @@ Better Auth exposes a unified handler at `/api/auth/[...all]` in Next.js. These 
 |--------|----------|-------------|
 | POST | `/api/auth/magic-link/send` | Request a magic link for an email address |
 | GET | `/api/auth/magic-link/verify?token=` | Verify magic link token, create session |
+| POST | `/api/auth/sign-in/email` | Sign in with email + password |
+| POST | `/api/auth/sign-up/email` | Register with email + password (only when `ALLOW_PASSWORD_SIGNUP=true`) |
+| POST | `/api/auth/request-password-reset` | Send a password reset link (requires SMTP) |
+| POST | `/api/auth/reset-password` | Consume a reset token and set a new password |
+| POST | `/api/auth/change-password` | Change a known password (requires the current one) |
+| POST | `/api/auth/set-password` | Set a first password — **server-only**, called via `setPasswordAction` |
+| GET | `/api/auth/verify-email?token=` | Confirm an email address (sign-up + email change) |
 | POST | `/api/auth/sign-out` | Sign out current session |
 | GET | `/api/auth/get-session` | Get current session + user |
 | GET | `/api/auth/list-sessions` | List all active sessions for current user |
@@ -258,9 +342,14 @@ Better Auth exposes a unified handler at `/api/auth/[...all]` in Next.js. These 
 | Sign In | `/sign-in` | Unauthenticated — includes one-line explainer: *"We'll email you a secure link — no password needed."* |
 | Magic Link Sent | `/sign-in?sent=true` | Unauthenticated (shown after requesting link) |
 | Magic Link Verify | `/api/auth/magic-link/verify?token=` | Unauthenticated (handled by Better Auth) |
+| Sign Up | `/signup` | Unauthenticated — **404 unless `ALLOW_PASSWORD_SIGNUP=true`** |
+| Forgot Password | `/forgot-password` | Unauthenticated — **404 unless SMTP is configured** |
+| Reset Password | `/reset-password?token=` | Unauthenticated — renders an "expired link" state on `?error=` |
 | Onboarding | `/onboarding` | Authenticated (new user only) |
 | Account Settings | `/settings/account` | Authenticated |
 | Session Management | `/settings/sessions` | Authenticated |
+
+Each auth screen renders only the providers this deployment actually has — `getAuthMethods()` (`lib/auth-config.ts`) is read server-side and passed down, so a self-host without Google never shows a Google button that can only fail. OAuth callback failures redirect to `/login?error=…` (`onAPIError.errorURL`) and are rendered through `authErrorMessage()` (`lib/auth-errors.ts`).
 
 ### Magic Link Sent Screen — UI Spec
 

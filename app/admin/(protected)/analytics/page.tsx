@@ -1,9 +1,10 @@
 import { getAdminSession } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { env } from "@/lib/env";
 
 async function getAnalytics() {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const base = env.APP_URL;
   const hdrs = await headers();
   const res = await fetch(`${base}/api/admin/analytics/feature-usage`, {
     headers: { cookie: hdrs.get("cookie") ?? "" },

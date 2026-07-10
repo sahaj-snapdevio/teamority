@@ -92,12 +92,15 @@ async function assigneeAndWatcherIds(taskId: string): Promise<string[]> {
 
 // ─── Revalidation helper ─────────────────────────────────────────────────────
 
-function revalidateList(workspaceId: string, spaceId: string, listId: string) {
-  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`]);
+// `taskId` (optional) lets an open task detail view skip refetching when the
+// change belongs to a different task. Omit it for changes that could affect any
+// view — subscribers then refetch (the safe default).
+function revalidateList(workspaceId: string, spaceId: string, listId: string, taskId?: string) {
+  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`], { taskId });
 }
 
-function revalidateSpace(workspaceId: string, spaceId: string) {
-  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}`, `/${workspaceId}`]);
+function revalidateSpace(workspaceId: string, spaceId: string, taskId?: string) {
+  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}`, `/${workspaceId}`], { taskId });
 }
 
 // ─── Create Task ─────────────────────────────────────────────────────────────
@@ -264,7 +267,7 @@ export async function createTask(
     });
   }
 
-  if (listId) revalidateList(workspaceId, spaceId, listId);
+  if (listId) revalidateList(workspaceId, spaceId, listId, taskId);
   return { taskId };
 }
 
@@ -621,7 +624,7 @@ export async function updateTask(
     }
   }
 
-  if (listId) revalidateList(workspaceId, spaceId, listId); else revalidateSpace(workspaceId, spaceId);
+  if (listId) revalidateList(workspaceId, spaceId, listId, taskId); else revalidateSpace(workspaceId, spaceId, taskId);
   return { ok: true };
 }
 
@@ -693,7 +696,7 @@ export async function updateTaskStatus(
     }
   }
 
-  if (listId) revalidateList(workspaceId, spaceId, listId); else revalidateSpace(workspaceId, spaceId);
+  if (listId) revalidateList(workspaceId, spaceId, listId, taskId); else revalidateSpace(workspaceId, spaceId, taskId);
   return { ok: true };
 }
 
@@ -768,7 +771,7 @@ export async function deleteTask(
     });
   }
 
-  if (listId) revalidateList(workspaceId, spaceId, listId); else revalidateSpace(workspaceId, spaceId);
+  if (listId) revalidateList(workspaceId, spaceId, listId, taskId); else revalidateSpace(workspaceId, spaceId, taskId);
   return { ok: true };
 }
 
@@ -800,7 +803,7 @@ export async function archiveTask(
     .where(and(eq(task.id, taskId), listId ? eq(task.listId, listId) : isNull(task.listId)));
 
   await writeActivityLog(taskId, session.user.id, "task_archived");
-  if (listId) revalidateList(workspaceId, spaceId, listId); else revalidateSpace(workspaceId, spaceId);
+  if (listId) revalidateList(workspaceId, spaceId, listId, taskId); else revalidateSpace(workspaceId, spaceId, taskId);
   return { ok: true };
 }
 
@@ -822,7 +825,7 @@ export async function unarchiveTask(
     .where(and(eq(task.id, taskId), listId ? eq(task.listId, listId) : isNull(task.listId)));
 
   await writeActivityLog(taskId, session.user.id, "task_unarchived");
-  if (listId) revalidateList(workspaceId, spaceId, listId); else revalidateSpace(workspaceId, spaceId);
+  if (listId) revalidateList(workspaceId, spaceId, listId, taskId); else revalidateSpace(workspaceId, spaceId, taskId);
   return { ok: true };
 }
 
@@ -901,7 +904,7 @@ export async function duplicateTask(
   }
 
   await writeActivityLog(newTaskId, session.user.id, "task_created", { duplicatedFrom: taskId });
-  if (listId) revalidateList(workspaceId, spaceId, listId); else revalidateSpace(workspaceId, spaceId);
+  if (listId) revalidateList(workspaceId, spaceId, listId, taskId); else revalidateSpace(workspaceId, spaceId, taskId);
   return { taskId: newTaskId };
 }
 
@@ -1005,7 +1008,7 @@ export async function moveTask(
     });
   }
 
-  void refreshWorkspace(workspaceId);
+  void refreshWorkspace(workspaceId, undefined, { taskId });
   return { ok: true };
 }
 

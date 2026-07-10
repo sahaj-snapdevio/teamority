@@ -31,7 +31,7 @@ If any are missing:
 ## 2. Get the code
 
 ```bash
-git clone <REPO_URL> kanbanica
+git clone https://github.com/sahaj-snapdevio/Kanbanica.git kanbanica
 cd kanbanica
 pnpm install
 ```
@@ -65,12 +65,14 @@ pnpm db:local
 Leave this terminal **running**. When you see a line like:
 
 ```
-Postgres running at postgresql://krova:krova@localhost:54329/krova
+Postgres running at postgresql://kanbanica:kanbanica@localhost:54329/kanbanica
 ```
 
-…the database is up. The data is saved in a `.krova-postgres/` folder, so it survives restarts.
+…the database is up. The data is saved in a `.kanbanica-postgres/` folder, so it survives restarts.
 
 > Keep this window open the whole time you use the app. To stop the database later, press `Ctrl+C` here.
+
+> **Upgrading an older checkout?** If you already have a `.krova-postgres/` folder from before the rename, it keeps being used automatically — your local data is not lost, and your existing `DATABASE_URL` keeps working.
 
 ---
 
@@ -103,11 +105,34 @@ Open <http://localhost:3000> in your browser. 🎉
 
 ### Sign in (magic link)
 
-Kanbanica uses passwordless **magic-link** sign-in.
+Out of the box, Kanbanica uses passwordless **magic-link** sign-in.
 
 1. On the login page, enter any email address (e.g. `you@example.com`) and submit.
 2. Because email (SMTP) isn't configured yet, **the magic link is printed in your terminal** — look at the `worker`/`next` logs for a line containing a `http://localhost:3000/...` link.
 3. Copy that link into your browser and open it. You're now signed in, and your account is created.
+
+### Sign in with a password (optional)
+
+If you'd rather use a normal email + password, set this in `.env` and restart:
+
+```bash
+ALLOW_PASSWORD_SIGNUP=true
+```
+
+A password field appears on `/login`, and `/signup` starts working. **With no SMTP
+configured, registering signs you straight in — there's no verification email**, because
+there'd be no way to deliver one.
+
+Once you add SMTP (see [Real email](#real-email-smtp) below), signup switches to requiring
+email verification: the account is created but can't sign in until the link is clicked. In
+local dev that link is printed to the terminal too:
+
+```
+[verify-email] you@example.com → http://localhost:3000/api/auth/verify-email?token=…
+[password-reset] you@example.com → http://localhost:3000/api/auth/reset-password/…
+```
+
+Passwords are 8–128 characters. `/forgot-password` only exists once SMTP is configured.
 
 ### Make yourself an admin (optional)
 
@@ -173,7 +198,8 @@ Set the `VAPID_*` keys in `.env` to enable browser push notifications.
 | Command | What it does |
 |---------|--------------|
 | `pnpm db:local` | Start the bundled local database (keep running) |
-| `pnpm db:migrate` | Create/update database tables |
+| `pnpm db:migrate` | Create/update database tables (development — uses `drizzle-kit`) |
+| `pnpm db:migrate:prod` | Same, without `drizzle-kit`. This is what the Docker `migrate` container runs; it waits for the database and takes an advisory lock. |
 | `pnpm dev` | Start web app + worker together |
 | `pnpm dev:next` | Start only the web app (no worker) |
 | `pnpm worker` | Start only the worker |
@@ -190,15 +216,15 @@ Set the `VAPID_*` keys in `.env` to enable browser push notifications.
 
 **`pnpm db:migrate` errors with a connection refused** — The database isn't running. Make sure `pnpm db:local` is running in another terminal and shows "Postgres running…" before you migrate.
 
-**Port 3000 already in use** — Another app is using it. Stop that app, or run `pnpm dev:next` on a different port with `next dev -p 3001` (and update `NEXT_PUBLIC_APP_URL` in `.env`).
+**Port 3000 already in use** — Another app is using it. Stop that app, or run `pnpm dev:next` on a different port with `next dev -p 3001` (and update `APP_URL` in `.env`).
 
-**Port 54329 already in use** — A previous database is still running. Find and stop it, or delete the `.krova-postgres/` folder to start fresh (this erases local data).
+**Port 54329 already in use** — A previous database is still running. Find and stop it, or delete the `.kanbanica-postgres/` folder to start fresh (this erases local data).
 
 **I never got the magic-link email** — That's expected without SMTP. The link is printed in the terminal running `pnpm dev`. Search the logs for `localhost:3000`.
 
 **Wrong Node version** — Run `node --version`; it must be `22.x`. Switch with `nvm use 22`.
 
-**Start completely over** — Stop everything (`Ctrl+C` in both terminals), delete `.krova-postgres/`, then repeat steps 4 → 5 → 6.
+**Start completely over** — Stop everything (`Ctrl+C` in both terminals), delete `.kanbanica-postgres/`, then repeat steps 4 → 5 → 6.
 
 ---
 
@@ -206,7 +232,7 @@ Set the `VAPID_*` keys in `.env` to enable browser push notifications.
 
 - **Web app** (Next.js) — the UI and API at `localhost:3000`.
 - **Worker** — a separate process that handles background jobs (email, notification digests, due-date reminders, sprint auto-close). It's why `pnpm dev` starts *two* things.
-- **Database** (PostgreSQL) — stores everything; runs locally from `.krova-postgres/` in development.
+- **Database** (PostgreSQL) — stores everything; runs locally from `.kanbanica-postgres/` in development.
 
 In production these run as separate processes (web app + worker) against a managed PostgreSQL. See the deployment docs for details.
 

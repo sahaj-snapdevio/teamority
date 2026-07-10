@@ -1,15 +1,26 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/authz";
+import { getAuthMethods } from "@/lib/auth-config";
+import { authErrorMessage } from "@/lib/auth-errors";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LOGO_PATH, PRODUCT_NAME } from "@/config/platform";
 import { LoginFormFlat } from "../_components/auth-form";
 import { WatermarkBackground } from "../_components/watermark-background";
 
 export const metadata = { title: `Sign in — ${PRODUCT_NAME}` };
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await getCurrentSession();
   if (session) redirect("/post-auth");
+
+  const methods = getAuthMethods();
+  // Better Auth redirects OAuth callback failures here (see `onAPIError`).
+  const { error } = await searchParams;
 
   return (
     <div className="force-light relative flex min-h-screen items-center justify-center bg-[#eef2ee] p-4 sm:p-6">
@@ -36,11 +47,19 @@ export default async function LoginPage() {
           <div className="mb-7">
             <h1 className="text-[28px] font-bold text-foreground tracking-tight leading-tight">Sign in</h1>
             <p className="mt-1 text-sm leading-relaxed text-foreground/70">
-              Enter your work email and we&apos;ll send a secure sign-in link — no password to remember.
+              {methods.passwordSignup
+                ? "Welcome back. Sign in to pick up where you left off."
+                : "Enter your work email and we'll send a secure sign-in link — no password to remember."}
             </p>
           </div>
 
-          <LoginFormFlat />
+          {error && (
+            <Alert variant="destructive" className="mb-5">
+              <AlertDescription>{authErrorMessage(error)}</AlertDescription>
+            </Alert>
+          )}
+
+          <LoginFormFlat methods={methods} />
         </div>
 
         {/* Right — illustration */}

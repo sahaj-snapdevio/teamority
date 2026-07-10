@@ -196,7 +196,7 @@ export async function inviteMember(data: {
     .where(eq(workspace.id, data.workspaceId))
     .then((r) => r[0]);
 
-  const inviteUrl = `${env.NEXT_PUBLIC_APP_URL}/invite/${inviteToken}`;
+  const inviteUrl = `${env.APP_URL}/invite/${inviteToken}`;
   const inviterName = session.user.name ?? session.user.email ?? "Someone";
   const workspaceName = ws?.name ?? "a workspace";
 
@@ -278,7 +278,7 @@ export async function resendInvite(data: {
       .where(eq(workspace.id, data.workspaceId))
       .then((r) => r[0]);
 
-    const inviteUrl = `${env.NEXT_PUBLIC_APP_URL}/invite/${newToken}`;
+    const inviteUrl = `${env.APP_URL}/invite/${newToken}`;
     const inviterName = session.user.name ?? session.user.email ?? "Someone";
     const workspaceName = ws?.name ?? "a workspace";
 

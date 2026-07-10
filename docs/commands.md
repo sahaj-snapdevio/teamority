@@ -29,5 +29,5 @@ pnpm db:reset
 Build the worker image:
 
 ```bash
-docker build -f Dockerfile.worker -t krova-worker .
+docker build -f Dockerfile.worker -t kanbanica-worker .
 ```

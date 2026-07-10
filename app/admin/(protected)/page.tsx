@@ -1,5 +1,6 @@
 import { getAdminSession } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
+import { env } from "@/lib/env";
 
 interface DashboardData {
   totalUsers: number;
@@ -21,7 +22,7 @@ interface DashboardData {
 }
 
 async function getDashboard(): Promise<DashboardData> {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const base = env.APP_URL;
   const { headers } = await import("next/headers");
   const hdrs = await headers();
   const res = await fetch(`${base}/api/admin/dashboard`, {

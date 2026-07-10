@@ -5,9 +5,16 @@
 #   cp .env.example .env      # then edit the required values (see DEPLOYMENT.md)
 #   docker compose up -d --build
 #
+# ALREADY HAVE A POSTGRES? (company cluster, RDS, Neon, Supabase, Railway, …)
+# Point DATABASE_URL at it and add the overlay, which skips the bundled DB:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.external-db.yml up -d
+#
 # Docker Compose auto-loads variables from a sibling .env file.
 
 services:
+  # Bundled database. Not started when the external-db overlay is used.
+  # Deliberately publishes no ports — reachable only on the compose network.
   postgres:
     image: postgres:16
     restart: unless-stopped
@@ -31,21 +38,21 @@ services:
       dockerfile: Dockerfile.worker
     # Run tsx directly (no pnpm/corepack at runtime — see Dockerfile.worker).
     command: ["/app/node_modules/.bin/tsx", "scripts/migrate.ts"]
+    # Only DATABASE_URL is needed: scripts/migrate.ts reads it from process.env
+    # directly and never imports lib/env, so no secret or public URL is required.
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      APP_SECRET: ${APP_SECRET}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
     depends_on:
       postgres:
         condition: service_healthy
     restart: "no"
 
   app:
+    # No build args: the image is deployment-agnostic. APP_URL is read at
+    # runtime from .env, so changing your domain needs no rebuild.
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
     restart: unless-stopped
     env_file: .env
     ports:

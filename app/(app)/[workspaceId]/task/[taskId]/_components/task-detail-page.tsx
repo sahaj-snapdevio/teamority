@@ -42,6 +42,7 @@ import {
 } from "@/app/actions/task";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { TaskActivityFeed, type TaskActivityFeedHandle } from "@/components/task/task-activity-feed";
+import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
 import {
   AttachmentPreviewProvider,
   useAttachmentPreview,
@@ -264,6 +265,10 @@ export function TaskDetailPage({
   >([]);
   const [uploadingFile, setUploadingFile] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  // Attachment drop-zone drag state. `dragDepth` counts enter/leave across child
+  // elements so the overlay doesn't flicker when moving over children.
+  const [attachmentDragOver, setAttachmentDragOver] = React.useState(false);
+  const attachmentDragDepth = React.useRef(0);
   const [creatingSubtask, setCreatingSubtask] = React.useState(false);
   // Focus the subtask input when the section is opened.
   React.useEffect(() => {
@@ -338,18 +343,47 @@ export function TaskDetailPage({
     fetchAll(true);
   }, [taskId]);
 
+  // Live updates: when another user changes THIS task, refetch just this task.
+  // Events carrying a different taskId are ignored; events without one (list /
+  // space / workspace changes) refetch, which is the safe default. The provider
+  // already debounces and defers while typing / an overlay is open / tab hidden.
+  useRealtimeRefetch((meta) => {
+    if (meta?.taskId && meta.taskId !== taskId) return;
+    void load();
+  });
+
+  // Last values the server gave us, so we can tell "no local edit" (draft still
+  // equals the server value) from "unsaved local edit" (draft diverged).
+  const serverTitleRef = React.useRef("");
+  const serverDescRef = React.useRef("");
+
   React.useEffect(() => {
-    if (data && !("error" in data)) {
-      setTitleDraft(data.task.title);
-      setDescDraft(
-        typeof data.task.description === "string"
-          ? data.task.description
-          : data.task.description
-            ? JSON.stringify(data.task.description)
-            : "",
-      );
-    }
-  }, [data]);
+    if (!data || "error" in data) return;
+    const nextTitle = data.task.title;
+    const nextDesc =
+      typeof data.task.description === "string"
+        ? data.task.description
+        : data.task.description
+          ? JSON.stringify(data.task.description)
+          : "";
+
+    // Capture the PREVIOUS server values before overwriting the refs — the
+    // functional updaters below run after this effect body, so they must close
+    // over the old values, not the new ones.
+    const prevServerTitle = serverTitleRef.current;
+    const prevServerDesc = serverDescRef.current;
+
+    // Adopt the incoming server value ONLY when the field has no unsaved local
+    // change. Leaving `descDraft` untouched also means TaskDescriptionEditor's
+    // setContent sync never runs → no cursor reset while someone is typing.
+    setTitleDraft((cur) => (!titleEditing && cur === prevServerTitle ? nextTitle : cur));
+    setDescDraft((cur) => (cur === prevServerDesc ? nextDesc : cur));
+
+    // Self-heals: after a save the draft equals the new server value again, so
+    // later remote updates are adopted normally.
+    serverTitleRef.current = nextTitle;
+    serverDescRef.current = nextDesc;
+  }, [data, titleEditing]);
 
   const listBackUrl = fromView === "sprint" && fromSprintId
     ? `/${workspaceId}/${spaceId}/sprint/${fromSprintId}`
@@ -605,10 +639,54 @@ export function TaskDetailPage({
     }
   }
 
+  // Upload several files by reusing the single-file flow above (same API,
+  // validation, permissions, activity log and notifications).
+  async function handleFilesUpload(files: FileList | File[] | null) {
+    if (!files) return;
+    for (const file of Array.from(files)) {
+      await handleFileUpload(file);
+    }
+  }
+
+  // Only react to real file drags — never to the app's dnd-kit card dragging
+  // (which uses pointer events and carries no `Files` dataTransfer type).
+  function isFileDrag(e: React.DragEvent) {
+    return Array.from(e.dataTransfer?.types ?? []).includes("Files");
+  }
+
+  function handleAttachmentDragEnter(e: React.DragEvent) {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    attachmentDragDepth.current += 1;
+    setAttachmentDragOver(true);
+  }
+
+  function handleAttachmentDragOver(e: React.DragEvent) {
+    if (!isFileDrag(e)) return;
+    e.preventDefault(); // required to allow the drop
+  }
+
+  function handleAttachmentDragLeave(e: React.DragEvent) {
+    if (!isFileDrag(e)) return;
+    attachmentDragDepth.current = Math.max(0, attachmentDragDepth.current - 1);
+    if (attachmentDragDepth.current === 0) setAttachmentDragOver(false);
+  }
+
+  function handleAttachmentDrop(e: React.DragEvent) {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    attachmentDragDepth.current = 0;
+    setAttachmentDragOver(false);
+    void handleFilesUpload(e.dataTransfer.files);
+  }
+
   async function handleDeleteAttachment(attachmentId: string) {
     await fetch(`/api/attachments/${attachmentId}`, { method: "DELETE" });
     setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
   }
+
+  // Task-level file attachments (excludes comment attachments and inline images).
+  const visibleAttachments = attachments.filter((a) => !a.commentId && !a.isInline);
 
   return (
     <AttachmentPreviewProvider>
@@ -1519,23 +1597,26 @@ export function TaskDetailPage({
               <div className="flex items-center gap-2">
                 <PaperclipIcon className="size-4 text-muted-foreground" />
                 <h3 className="text-sm font-semibold">Attachments</h3>
-                {attachments.filter((a) => !a.commentId && !a.isInline).length > 0 && (
+                {visibleAttachments.length > 0 && (
                   <span className="text-xs text-muted-foreground">
-                    {attachments.filter((a) => !a.commentId && !a.isInline).length} file
-                    {attachments.filter((a) => !a.commentId && !a.isInline).length !== 1
-                      ? "s"
-                      : ""}
+                    {visibleAttachments.length} file
+                    {visibleAttachments.length !== 1 ? "s" : ""}
                   </span>
                 )}
               </div>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingFile}
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-muted-foreground border hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
-              >
-                <PlusIcon className="size-3.5" />
-                {uploadingFile ? "Uploading…" : "Add attachment"}
-              </button>
+              {/* Hidden while empty — the large drop zone below is the only
+                  call-to-action. Returns once the first file is uploaded. */}
+              {visibleAttachments.length > 0 && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFile}
+                  className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-muted-foreground border hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  <PlusIcon className="size-3.5" />
+                  {uploadingFile ? "Uploading…" : "Add attachment"}
+                </button>
+              )}
+              {/* Always mounted — the drop zone and both buttons use this ref. */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1550,47 +1631,45 @@ export function TaskDetailPage({
               />
             </div>
 
-            {/* Drop zone + uploaded files — only once at least one attachment exists */}
-            {attachments.filter((a) => !a.commentId && !a.isInline).length > 0 && (
-              <div
-                className="rounded-lg border-2 border-dashed border-border/50 p-4 transition-colors hover:border-primary/30 hover:bg-accent/20 cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => {
+            {/* Drop zone — always rendered. Clicking anywhere opens the file
+                picker; dragging files in shows a drop overlay. Uses the same
+                upload flow as the "Add attachment" button. */}
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Add attachments — click to browse or drop files here"
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  e.currentTarget.classList.add(
-                    "border-primary/60",
-                    "bg-accent/30",
-                  );
-                }}
-                onDragLeave={(e) => {
-                  e.currentTarget.classList.remove(
-                    "border-primary/60",
-                    "bg-accent/30",
-                  );
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove(
-                    "border-primary/60",
-                    "bg-accent/30",
-                  );
-                  const file = e.dataTransfer.files[0];
-                  if (file) handleFileUpload(file);
-                }}
-              >
+                  fileInputRef.current?.click();
+                }
+              }}
+              onDragEnter={handleAttachmentDragEnter}
+              onDragOver={handleAttachmentDragOver}
+              onDragLeave={handleAttachmentDragLeave}
+              onDrop={handleAttachmentDrop}
+              className={cn(
+                "relative rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                attachmentDragOver
+                  ? "border-primary bg-primary/5"
+                  : "border-border/50 hover:border-primary/40 hover:bg-accent/30",
+                visibleAttachments.length === 0 && "min-h-40",
+              )}
+            >
+              {visibleAttachments.length > 0 ? (
                 <div
                   className="grid grid-cols-2 gap-2 sm:grid-cols-3"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {attachments
-                    .filter((a) => !a.commentId && !a.isInline)
-                    .map((att) => (
-                      <TaskAttachmentCard
-                        key={att.id}
-                        att={att}
-                        onDelete={handleDeleteAttachment}
-                      />
-                    ))}
+                  {visibleAttachments.map((att) => (
+                    <TaskAttachmentCard
+                      key={att.id}
+                      att={att}
+                      onDelete={handleDeleteAttachment}
+                    />
+                  ))}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1605,8 +1684,32 @@ export function TaskDetailPage({
                     </span>
                   </button>
                 </div>
-              </div>
-            )}
+              ) : (
+                /* Empty state — hidden as soon as one attachment exists */
+                <div className="flex flex-col items-center justify-center py-8 text-center select-none pointer-events-none">
+                  <PaperclipIcon className="size-6 text-muted-foreground" />
+                  <p className="mt-2 text-sm font-medium text-foreground">Attachments</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {uploadingFile ? "Uploading…" : "Drag & drop files here"}
+                  </p>
+                  {!uploadingFile && (
+                    <p className="text-sm text-muted-foreground">or click anywhere to upload</p>
+                  )}
+                  <p className="mt-2 text-xs text-muted-foreground/70">
+                    Supports images, PDFs, documents, and other supported files.
+                  </p>
+                </div>
+              )}
+
+              {/* Drag overlay — pointer-events-none so the drop lands on the zone */}
+              {attachmentDragOver && (
+                <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-primary/10 backdrop-blur-[1px]">
+                  <PaperclipIcon className="size-6 text-primary" />
+                  <p className="mt-2 text-sm font-semibold text-primary">Drop files here</p>
+                  <p className="text-xs text-muted-foreground">Release to upload</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import {
   DeleteAccountForm,
 } from "@/components/profile/account-forms";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
+import { PasswordCard } from "@/components/profile/password-card";
 import {
   type SessionRow,
   SessionsCard,
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { session as sessionTable, user } from "@/db/schema";
 import { requireSession } from "@/lib/authz";
+import { userHasPassword } from "@/lib/auth-password";
 import { db } from "@/lib/db";
 
 export const metadata = {
@@ -32,7 +34,7 @@ export default async function ProfilePage({
 }) {
   const { workspaceId } = await params;
   const current = await requireSession();
-  const [freshUser, sessions] = await Promise.all([
+  const [freshUser, sessions, hasPassword] = await Promise.all([
     db.query.user.findFirst({ where: eq(user.id, current.user.id) }),
     db
       .select({
@@ -46,6 +48,7 @@ export default async function ProfilePage({
       .from(sessionTable)
       .where(eq(sessionTable.userId, current.user.id))
       .orderBy(desc(sessionTable.createdAt)),
+    userHasPassword(current.user.id),
   ]);
 
   if (!freshUser) {
@@ -88,6 +91,8 @@ export default async function ProfilePage({
           name={freshUser.name}
           callbackURL={`/${workspaceId}/profile`}
         />
+
+        <PasswordCard hasPassword={hasPassword} />
 
         <SessionsCard sessions={sessionRows} />
 

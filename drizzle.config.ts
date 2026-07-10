@@ -1,4 +1,5 @@
 import { defineConfig } from "drizzle-kit";
+import { DEV_DATABASE_URL } from "./config/dev-database";
 
 export default defineConfig({
   schema: "./db/schema/index.ts",
@@ -7,8 +8,6 @@ export default defineConfig({
   dbCredentials: {
     // Falls back to the local dev database so migrations run without a .env.
     // Production always sets DATABASE_URL explicitly.
-    url:
-      process.env.DATABASE_URL ??
-      "postgresql://krova:krova@localhost:54329/krova",
+    url: process.env.DATABASE_URL ?? DEV_DATABASE_URL,
   },
 });

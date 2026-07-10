@@ -1,9 +1,32 @@
 {
   "name": "kanbanica",
   "version": "0.1.0",
+  "description": "A modern, open-source project management tool for teams — workspaces, projects, boards, sprints, and tasks with real-time collaboration.",
   "type": "module",
   "private": true,
   "license": "MIT",
+  "homepage": "https://github.com/sahaj-snapdevio/Kanbanica#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sahaj-snapdevio/Kanbanica.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sahaj-snapdevio/Kanbanica/issues"
+  },
+  "keywords": [
+    "project-management",
+    "kanban",
+    "task-management",
+    "scrum",
+    "sprints",
+    "self-hosted",
+    "open-source",
+    "nextjs",
+    "typescript",
+    "postgresql",
+    "drizzle-orm",
+    "collaboration"
+  ],
   "packageManager": "pnpm@11.6.0",
   "scripts": {
     "dev": "concurrently -n next,worker -c blue,yellow \"next dev --turbopack\" \"tsx --watch scripts/worker.ts\"",
