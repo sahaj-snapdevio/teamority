@@ -33,3 +33,31 @@ export const NOTIFICATION_TRIGGERS = {
 } as const;
 
 export type NotificationTriggerType = (typeof NOTIFICATION_TRIGGERS)[keyof typeof NOTIFICATION_TRIGGERS];
+
+/**
+ * Events that get an email by default: the ones that are *about you*.
+ * Everything else defaults to email OFF, so enabling email delivery never
+ * floods a workspace with mail for ambient activity (task created, status
+ * changed, …). Users can still switch any trigger on from notification settings.
+ *
+ * SINGLE SOURCE OF TRUTH. Every place that needs an email default calls
+ * `emailDefaultFor()` — the API fallback, the notification fan-out, the digest
+ * filter, and the migration backfill. In-app and push defaults stay `true` and
+ * are unrelated to this.
+ */
+export const EMAIL_DEFAULT_ENABLED_TRIGGERS = [
+  "mention_comment",
+  "mention_description",
+  "task_assigned",
+  "comment_reply",
+  "comment_resolved",
+  "due_date_today",
+  "task_overdue",
+] as const satisfies readonly NotificationTriggerType[];
+
+const EMAIL_DEFAULT_ENABLED = new Set<string>(EMAIL_DEFAULT_ENABLED_TRIGGERS);
+
+/** Whether `triggerType` should send email when the user has no stored preference. */
+export function emailDefaultFor(triggerType: string): boolean {
+  return EMAIL_DEFAULT_ENABLED.has(triggerType);
+}

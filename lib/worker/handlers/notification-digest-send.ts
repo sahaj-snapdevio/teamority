@@ -1,8 +1,9 @@
 import type { Job } from "pg-boss";
 import { and, eq, gte, lt } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { notification, user } from "@/db/schema";
+import { notification, user, userNotificationPreference } from "@/db/schema";
 import { enqueueEmail } from "@/lib/email/index";
+import { emailDefaultFor } from "@/lib/notifications/types";
 import { PRODUCT_NAME } from "@/config/platform";
 
 interface DigestSendPayload {
@@ -26,7 +27,7 @@ async function processDigest({ userId, windowStart, windowEnd }: DigestSendPaylo
 
   if (!userRow) return;
 
-  const notifications = await db
+  const unread = await db
     .select()
     .from(notification)
     .where(
@@ -39,7 +40,28 @@ async function processDigest({ userId, windowStart, windowEnd }: DigestSendPaylo
     )
     .limit(50);
 
-  if (notifications.length === 0) return;
+  if (unread.length === 0) {
+    return;
+  }
+
+  // Honour the per-trigger Email toggles. Without this the digest mails every
+  // unread notification regardless of what the user chose.
+  const prefs = await db
+    .select({
+      triggerType: userNotificationPreference.triggerType,
+      emailEnabled: userNotificationPreference.emailEnabled,
+    })
+    .from(userNotificationPreference)
+    .where(eq(userNotificationPreference.userId, userId));
+
+  const emailPref = new Map(prefs.map((p) => [p.triggerType, p.emailEnabled]));
+  const notifications = unread.filter(
+    (n) => emailPref.get(n.triggerType) ?? emailDefaultFor(n.triggerType),
+  );
+
+  if (notifications.length === 0) {
+    return;
+  }
 
   const rows = notifications
     .map(

@@ -1,11 +1,22 @@
 import { createId } from "@paralleldrive/cuid2";
 import { addDays } from "date-fns";
 import { db } from "@/lib/db";
-import { notification, mutedEntity, userNotificationPreference } from "@/db/schema";
+import {
+  notification,
+  mutedEntity,
+  userNotificationPreference,
+  userEmailPreference,
+  user,
+} from "@/db/schema";
 import { and, eq, inArray, or, isNull } from "drizzle-orm";
 import type { NotificationTriggerType } from "./types";
+import { emailDefaultFor } from "./types";
+import { notificationSettingsUrl, notificationUrl } from "./links";
 import { sendPushToUser } from "./push";
 import { pushToUser } from "@/lib/sse-clients";
+import { enqueueEmail } from "@/lib/email";
+import { notificationTemplate } from "@/lib/email/templates/notification";
+import { isSmtpConfigured } from "@/lib/smtp/client";
 
 export interface CreateNotificationParams {
   workspaceId: string;
@@ -70,6 +81,7 @@ async function _create(params: CreateNotificationParams) {
     .select({
       userId: userNotificationPreference.userId,
       inAppEnabled: userNotificationPreference.inAppEnabled,
+      emailEnabled: userNotificationPreference.emailEnabled,
       pushEnabled: userNotificationPreference.pushEnabled,
     })
     .from(userNotificationPreference)
@@ -95,6 +107,13 @@ async function _create(params: CreateNotificationParams) {
   const pushRecipients = finalRecipients.filter((id) => {
     const pref = prefMap.get(id);
     return pref ? pref.pushEnabled : true; // default on
+  });
+
+  // Email defaults are NOT `true` like in-app/push — only high-signal triggers
+  // opt in by default. See emailDefaultFor() in ./types.
+  const emailRecipients = finalRecipients.filter((id) => {
+    const pref = prefMap.get(id);
+    return pref ? pref.emailEnabled : emailDefaultFor(triggerType);
   });
 
   const now = new Date();
@@ -144,4 +163,61 @@ async function _create(params: CreateNotificationParams) {
       ),
     );
   }
+
+  // Instant email. Skipped entirely when SMTP isn't configured, so an
+  // unconfigured self-host never accumulates undeliverable outbox rows.
+  // `digest` recipients are picked up later by the digest worker straight from
+  // the `notification` table; `off` recipients get nothing.
+  if (emailRecipients.length > 0 && isSmtpConfigured()) {
+    await sendInstantEmails({
+      recipientIds: emailRecipients,
+      workspaceId,
+      entityType,
+      entityId,
+      title,
+      body: body ?? null,
+    });
+  }
+}
+
+async function sendInstantEmails({
+  recipientIds,
+  workspaceId,
+  entityType,
+  entityId,
+  title,
+  body,
+}: {
+  recipientIds: string[];
+  workspaceId: string;
+  entityType: CreateNotificationParams["entityType"];
+  entityId: string;
+  title: string;
+  body: string | null;
+}) {
+  const rows = await db
+    .select({
+      id: user.id,
+      email: user.email,
+      deliveryMode: userEmailPreference.deliveryMode,
+    })
+    .from(user)
+    .leftJoin(userEmailPreference, eq(userEmailPreference.userId, user.id))
+    .where(inArray(user.id, recipientIds));
+
+  // No preference row means the default delivery mode, "instant".
+  const instant = rows.filter((r) => (r.deliveryMode ?? "instant") === "instant");
+  if (instant.length === 0) {
+    return;
+  }
+
+  const url = notificationUrl(workspaceId, entityType, entityId);
+  const settingsUrl = notificationSettingsUrl(workspaceId);
+  const { html, text } = await notificationTemplate({ title, body, url, settingsUrl });
+
+  await Promise.allSettled(
+    instant.map((r) =>
+      enqueueEmail({ to: r.email, subject: title, html, text }),
+    ),
+  );
 }
