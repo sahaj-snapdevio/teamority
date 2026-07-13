@@ -1,0 +1,1 @@
+ALTER TABLE "workspace" ADD COLUMN "invite_link_role" "workspace_role" DEFAULT 'MEMBER' NOT NULL;

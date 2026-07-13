@@ -31,6 +31,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
     .select({
       workspaceId: workspaceMember.workspaceId,
       workspaceName: workspace.name,
+      role: workspaceMember.role,
     })
     .from(workspaceMember)
     .innerJoin(workspace, eq(workspaceMember.workspaceId, workspace.id))
@@ -56,6 +57,11 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
       if (firstList) {
         redirect(`/${membership.workspaceId}/${firstList.spaceId}/list/${firstList.id}`);
       }
+    }
+    // A guest can't create projects, so the onboarding wizard is a dead end for
+    // them. Send them into their workspace (empty state) instead of the wizard.
+    if (membership.role === "GUEST") {
+      redirect(`/${membership.workspaceId}`);
     }
   }
 

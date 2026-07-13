@@ -143,14 +143,34 @@ export default function InboxPage() {
   }
 
   async function markAllRead() {
-    await fetch("/api/me/notifications/read-all", { method: "PATCH" });
+    const res = await fetch("/api/me/notifications/read-all", { method: "PATCH" });
     await sync();
+    if (!res.ok) {
+      toast.error("Couldn't mark notifications as read");
+      return;
+    }
+    const { count = 0 } = await res.json().catch(() => ({ count: 0 }));
+    toast.success(
+      count > 0
+        ? `${count} notification${count === 1 ? "" : "s"} marked as read`
+        : "You're all caught up",
+    );
   }
 
   async function clearAll() {
-    await fetch("/api/me/notifications", { method: "DELETE" });
+    const res = await fetch("/api/me/notifications", { method: "DELETE" });
     await sync();
     setSelectedTask(null);
+    if (!res.ok) {
+      toast.error("Couldn't clear notifications");
+      return;
+    }
+    const { count = 0 } = await res.json().catch(() => ({ count: 0 }));
+    toast.success(
+      count > 0
+        ? `${count} notification${count === 1 ? "" : "s"} cleared`
+        : "No notifications to clear",
+    );
   }
 
   // Clicking marks read (notification stays in the Inbox) and then opens the

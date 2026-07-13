@@ -7,7 +7,6 @@ import { workspace } from "@/db/schema";
 import { getWorkspaceMembership } from "@/lib/permissions";
 import { SecuritySettings } from "@/components/workspace/security-settings";
 import { PRODUCT_NAME } from "@/config/platform";
-import { env } from "@/lib/env";
 
 interface SecurityPageProps {
   params: Promise<{ workspaceId: string }>;
@@ -25,17 +24,10 @@ export default async function SecurityPage({ params }: SecurityPageProps) {
   if (membership?.role !== "OWNER") redirect(`/${workspaceId}/settings/general`);
 
   const [ws] = await db
-    .select({ id: workspace.id, name: workspace.name, inviteLinkToken: workspace.inviteLinkToken })
+    .select({ id: workspace.id, name: workspace.name })
     .from(workspace)
     .where(eq(workspace.id, workspaceId));
   if (!ws) notFound();
 
-  return (
-    <SecuritySettings
-      workspaceId={ws.id}
-      workspaceName={ws.name}
-      inviteLinkToken={ws.inviteLinkToken ?? null}
-      appUrl={env.APP_URL}
-    />
-  );
+  return <SecuritySettings workspaceId={ws.id} workspaceName={ws.name} />;
 }

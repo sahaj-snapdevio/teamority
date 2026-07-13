@@ -5,6 +5,14 @@ export const workspaceStatusEnum = pgEnum("workspace_status", ["ACTIVE", "DELETI
 export const workspaceRoleEnum = pgEnum("workspace_role", ["OWNER", "ADMIN", "MEMBER", "GUEST"]);
 export const memberStatusEnum = pgEnum("member_status", ["ACTIVE", "INVITED"]);
 
+/**
+ * Roles a shared invite link is allowed to grant. Deliberately excludes OWNER
+ * and ADMIN — a link can only ever add MEMBER or GUEST. Enforced in the
+ * `setInviteLinkRole`/`joinViaLink` actions and the settings UI.
+ */
+export const INVITE_LINK_ROLES = ["MEMBER", "GUEST"] as const;
+export type InviteLinkRole = (typeof INVITE_LINK_ROLES)[number];
+
 export const workspace = pgTable("workspace", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -12,6 +20,7 @@ export const workspace = pgTable("workspace", {
   logoUrl: text("logo_url"),
   logoEmoji: text("logo_emoji"),
   inviteLinkToken: text("invite_link_token").unique(),
+  inviteLinkRole: workspaceRoleEnum("invite_link_role").notNull().default("MEMBER"),
   taskSeq: integer("task_seq").notNull().default(0),
   status: workspaceStatusEnum("status").notNull().default("ACTIVE"),
   theme: text("theme").notNull().default("forest"),

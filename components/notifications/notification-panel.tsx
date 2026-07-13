@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import useSWR, { mutate } from "swr";
+import { toast } from "sonner";
 import { XIcon } from "@phosphor-icons/react";
 import {
   Sheet,
@@ -61,15 +62,35 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
   const notifications = data?.notifications ?? [];
 
   async function markAllRead() {
-    await fetch("/api/me/notifications/read-all", { method: "PATCH" });
+    const res = await fetch("/api/me/notifications/read-all", { method: "PATCH" });
     await revalidate();
     await mutate("/api/me/notifications?filter=unread");
+    if (!res.ok) {
+      toast.error("Couldn't mark notifications as read");
+      return;
+    }
+    const { count = 0 } = await res.json().catch(() => ({ count: 0 }));
+    toast.success(
+      count > 0
+        ? `${count} notification${count === 1 ? "" : "s"} marked as read`
+        : "You're all caught up",
+    );
   }
 
   async function clearAll() {
-    await fetch("/api/me/notifications", { method: "DELETE" });
+    const res = await fetch("/api/me/notifications", { method: "DELETE" });
     await revalidate();
     await mutate("/api/me/notifications?filter=unread");
+    if (!res.ok) {
+      toast.error("Couldn't clear notifications");
+      return;
+    }
+    const { count = 0 } = await res.json().catch(() => ({ count: 0 }));
+    toast.success(
+      count > 0
+        ? `${count} notification${count === 1 ? "" : "s"} cleared`
+        : "No notifications to clear",
+    );
   }
 
   async function markRead(id: string) {

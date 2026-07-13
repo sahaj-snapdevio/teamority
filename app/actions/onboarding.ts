@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { workspace, workspaceMember, space, listStatus, list, userOnboardingProgress, task, taskAssignee, tag, taskTag, user as userTable } from "@/db/schema";
 import { and, count, eq } from "drizzle-orm";
 import { PRODUCT_NAME } from "@/config/platform";
+import { getWorkspaceMembership } from "@/lib/permissions";
 
 const DEFAULT_STATUSES = [
   { name: "Todo", color: "#9CA3AF", type: "OPEN" as const, orderIndex: 0 },
@@ -145,6 +146,13 @@ export async function createOnboardingSpace(input: {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const { workspaceId, name, color } = parsed.data;
+
+  // Only actual members who are allowed to create projects may do so. Guests
+  // (and non-members) cannot create a project in an existing workspace.
+  const membership = await getWorkspaceMembership(user.id, workspaceId);
+  if (!membership || membership.role === "GUEST") {
+    return { error: "You don't have permission to create a project in this workspace" };
+  }
 
   const spaceId = createId();
   const listId = createId();

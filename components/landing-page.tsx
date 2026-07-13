@@ -2743,9 +2743,10 @@ export default function LandingPage() {
           original <StatsSection /> (kept intact above). */}
       {SHOW_SAAS_STATS ? <StatsSection /> : <OpenSourceHighlightsSection />}
       <ViewsShowcaseSection />
-      <BeforeAfterSection />
-      <TestimonialsSection />
-      <FaqSection />
+      {/* <BeforeAfterSection /> */}
+      {/* "Hall of Armor Feedback" showroom hidden for now — no real user
+          testimonials yet. Re-enable <TestimonialsSection /> when ready. */}
+      {/* <FaqSection /> */}
       <CtaBanner />
       <Footer />
     </div>

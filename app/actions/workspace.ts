@@ -4,6 +4,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { and, eq, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { user, workspace, workspaceMember } from "@/db/schema";
+import { INVITE_LINK_ROLES, type InviteLinkRole } from "@/db/schema/workspace";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { enqueueEmail } from "@/lib/email";
@@ -102,9 +103,9 @@ export async function regenerateInviteLink(
   if (!session) {
     return { error: "Unauthorized" };
   }
-  const owner = await requireOwner(session.user.id, workspaceId);
-  if (!owner) {
-    return { error: "Only the owner can manage the invite link" };
+  const admin = await requireAdmin(session.user.id, workspaceId);
+  if (!admin) {
+    return { error: "Only owners and admins can manage the invite link" };
   }
 
   await db
@@ -122,9 +123,9 @@ export async function disableInviteLink(
   if (!session) {
     return { error: "Unauthorized" };
   }
-  const owner = await requireOwner(session.user.id, workspaceId);
-  if (!owner) {
-    return { error: "Only the owner can manage the invite link" };
+  const admin = await requireAdmin(session.user.id, workspaceId);
+  if (!admin) {
+    return { error: "Only owners and admins can manage the invite link" };
   }
 
   await db
@@ -133,6 +134,104 @@ export async function disableInviteLink(
     .where(eq(workspace.id, workspaceId));
 
   return { ok: true };
+}
+
+/**
+ * Set the role a shared invite link grants. Owners/Admins only. Constrained to
+ * MEMBER or GUEST — never ADMIN/OWNER (a link must not be able to hand out
+ * elevated access).
+ */
+export async function setInviteLinkRole(
+  workspaceId: string,
+  role: InviteLinkRole
+): Promise<{ ok: true } | { error: string }> {
+  const session = await requireSession();
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
+  const admin = await requireAdmin(session.user.id, workspaceId);
+  if (!admin) {
+    return { error: "Only owners and admins can manage the invite link" };
+  }
+  if (!INVITE_LINK_ROLES.includes(role)) {
+    return { error: "Invite links can only grant the Member or Guest role" };
+  }
+
+  await db
+    .update(workspace)
+    .set({ inviteLinkRole: role, updatedAt: new Date() })
+    .where(eq(workspace.id, workspaceId));
+
+  void refreshWorkspace(workspaceId);
+  return { ok: true };
+}
+
+/**
+ * Join a workspace via its shared invite link. Authenticated users only.
+ * Idempotent — an existing active member just gets routed back in, and no
+ * duplicate membership row is ever created. A disabled/regenerated/deleted
+ * link (token no longer matches an ACTIVE workspace) resolves to a single
+ * friendly error. The granted role is clamped to the MEMBER/GUEST allow-list
+ * so a bad stored value can never grant ADMIN/OWNER.
+ */
+export async function joinViaLink(
+  token: string
+): Promise<{ workspaceId: string } | { error: string }> {
+  const session = await requireSession();
+  if (!session) return { error: "Unauthorized" };
+
+  // Rate limit token attempts per user to slow invite-link guessing.
+  if (!rateLimit(`join-link:${session.user.id}`, 20, 60_000).ok) {
+    return { error: "Too many attempts. Please try again shortly." };
+  }
+
+  const [ws] = await db
+    .select({
+      id: workspace.id,
+      inviteLinkRole: workspace.inviteLinkRole,
+    })
+    .from(workspace)
+    .where(
+      and(
+        eq(workspace.inviteLinkToken, token),
+        eq(workspace.status, "ACTIVE")
+      )
+    );
+  if (!ws) return { error: "This invite link is invalid or has been disabled." };
+
+  // Already an active member → idempotent success, no duplicate row.
+  const [existing] = await db
+    .select({ id: workspaceMember.id })
+    .from(workspaceMember)
+    .where(
+      and(
+        eq(workspaceMember.workspaceId, ws.id),
+        eq(workspaceMember.userId, session.user.id),
+        eq(workspaceMember.status, "ACTIVE")
+      )
+    )
+    .limit(1);
+  if (existing) return { workspaceId: ws.id };
+
+  const role: InviteLinkRole = INVITE_LINK_ROLES.includes(ws.inviteLinkRole as InviteLinkRole)
+    ? (ws.inviteLinkRole as InviteLinkRole)
+    : "MEMBER";
+
+  const now = new Date();
+  await db.insert(workspaceMember).values({
+    id: createId(),
+    workspaceId: ws.id,
+    userId: session.user.id,
+    email: session.user.email?.toLowerCase() ?? null,
+    role,
+    status: "ACTIVE",
+    joinedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  void refreshWorkspace(ws.id);
+  return { workspaceId: ws.id };
 }
 
 // ── Members ────────────────────────────────────────────────────────────────
