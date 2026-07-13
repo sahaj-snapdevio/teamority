@@ -277,9 +277,14 @@ curl -f http://localhost:3000/api/health     # → {"ok":true,"db":"connected"}
 
 ## 5. Create your first admin
 
-**Self-hosted (recommended):** set `AUTO_PROMOTE_FIRST_ADMIN=true` in your environment before first launch. The **first** user to sign in then automatically becomes the platform (Orbit) admin — no terminal step. This only fires on a brand-new install (empty user table).
+**First-run setup (recommended):** open the app in a browser right after deploying. On a brand-new install (empty user table) every entry point redirects to the **`/setup` wizard** — enter a name, email, and password and you get the platform (Orbit) admin account, signed straight in. No environment flag, no terminal step. The page disappears the moment the first user exists, so it can't be used to create a second admin.
 
-**Otherwise (or for hosted SaaS):** leave `AUTO_PROMOTE_FIRST_ADMIN` unset/`false`, sign in through the UI once to create your user, then promote it:
+### Advanced / recovery options
+
+Not needed for a normal first launch — use these only if you prefer a different bootstrap or an instance ends up with zero admins.
+
+- **`AUTO_PROMOTE_FIRST_ADMIN=true`** (set before first launch): the **first** user to sign in — via magic link, Google, or password — is auto-promoted to admin instead of going through `/setup`. Only fires while the user table is empty. Handy if you'd rather bootstrap through an SSO/magic-link sign-in than the setup form.
+- **CLI scripts** — the recovery path if the sole admin was removed:
 
 ```bash
 docker compose exec worker node_modules/.bin/tsx scripts/make-admin.ts you@yourcompany.com
@@ -287,14 +292,10 @@ docker compose exec worker node_modules/.bin/tsx scripts/make-admin.ts you@yourc
 
 > The worker image has no `pnpm` at runtime (see `Dockerfile.worker`), so call `tsx` directly rather than `pnpm make:admin`. The `app` container can't run it either — it's a standalone build with no `scripts/`.
 
-Two scripts exist, for different situations:
-
 | Script | Use when |
 |---|---|
 | `scripts/make-admin.ts <email>` | The user **already signed in** — promotes that existing account. |
 | `scripts/create-admin.ts <email> <password> [name]` | No account exists — creates one with a password that can sign in at `/admin/login`. |
-
-Either is the recovery path if an instance ever ends up with zero admins.
 
 ---
 

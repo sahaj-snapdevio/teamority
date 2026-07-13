@@ -134,15 +134,26 @@ local dev that link is printed to the terminal too:
 
 Passwords are 8–128 characters. `/forgot-password` only exists once SMTP is configured.
 
-### Make yourself an admin (optional)
+### Become an admin
 
-To access the admin panel, promote the account you just created:
+**Fresh install (recommended):** the very first time you open the app with an empty
+database, every page redirects you to the **setup wizard** at
+[`/setup`](http://localhost:3000/setup). Create your administrator account there — it's
+created as a platform admin and you're signed straight in. Nothing else to do; the page
+disappears once the first user exists.
+
+**Already created a user** (e.g. you signed in with a magic link first, or want to promote
+an existing account), promote it from the terminal:
 
 ```bash
 pnpm make:admin you@example.com
 ```
 
 Use the same email you signed in with. Done — you now have full access.
+
+> Alternatively, set `AUTO_PROMOTE_FIRST_ADMIN=true` before the first sign-in to auto-promote
+> the first user instead of using `/setup`. See [DEPLOYMENT.md](./DEPLOYMENT.md) § "Create your
+> first admin" for all the options.
 
 ---
 

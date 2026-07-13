@@ -1,8 +1,5 @@
 ﻿"use client";
 
-import * as React from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import {
   ArchiveIcon,
   ArrowLeftIcon,
@@ -11,7 +8,6 @@ import {
   CaretRightIcon,
   CaretUpDownIcon,
   CaretUpIcon,
-  ChatCircleIcon,
   CheckCircleIcon,
   CheckIcon,
   ClockIcon,
@@ -20,8 +16,6 @@ import {
   FolderIcon,
   GearIcon,
   HeadsetIcon,
-  TrayIcon,
-  HashIcon,
   LightningIcon,
   ListIcon,
   LockSimpleIcon,
@@ -33,99 +27,113 @@ import {
   ShieldCheckIcon,
   SignOutIcon,
   TrashIcon,
+  TrayIcon,
   UserCircleIcon,
-  UserPlusIcon,
-  XIcon,
 } from "@phosphor-icons/react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { SearchPalette } from "@/components/search/search-palette";
-import { archiveSpace, deleteSpace, unarchiveSpace } from "@/app/actions/space";
 import { archiveList, duplicateList, unarchiveList } from "@/app/actions/list";
-import { toastWithUndo } from "@/lib/undo-toast";
-import { SpaceActionDialog } from "@/components/workspace/space-action-dialog";
-import { authClient } from "@/lib/auth-client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import { CreateSpaceModal } from "@/components/workspace/create-space-modal";
-import { CreateListModal } from "@/components/list/create-list-modal";
-import { CreateSprintModal } from "@/components/sprint/create-sprint-modal";
+import { archiveSpace, deleteSpace, unarchiveSpace } from "@/app/actions/space";
 import { getSprintSettings } from "@/app/actions/sprint";
+import { AddChannelMemberModal } from "@/components/channel/add-channel-member-modal";
+import { CreateChannelModal } from "@/components/channel/create-channel-modal";
+import { CreateListModal } from "@/components/list/create-list-modal";
 import { DeleteListDialog } from "@/components/list/delete-list-dialog";
 import { PushNotificationBanner } from "@/components/notifications/push-notification-banner";
+import { SearchPalette } from "@/components/search/search-palette";
+import { CreateSprintModal } from "@/components/sprint/create-sprint-modal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { CreateSpaceModal } from "@/components/workspace/create-space-modal";
+import { SpaceActionDialog } from "@/components/workspace/space-action-dialog";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
-import { CreateChannelModal } from "@/components/channel/create-channel-modal";
-import { AddChannelMemberModal } from "@/components/channel/add-channel-member-modal";
+import { authClient } from "@/lib/auth-client";
+import { rememberWorkspace } from "@/lib/last-workspace";
 import { TopbarProvider, useTopbarState } from "@/lib/topbar-context";
+import { toastWithUndo } from "@/lib/undo-toast";
+import { cn } from "@/lib/utils";
 
 function formatSprintDate(date: Date | null, fmt: string): string {
-  if (!date) return "?";
+  if (!date) {
+    return "?";
+  }
   const d = new Date(date);
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   const yy = String(d.getFullYear()).slice(2);
   const yyyy = String(d.getFullYear());
   switch (fmt) {
-    case "DD/MM": return `${dd}/${mm}`;
-    case "MM/DD/YY": return `${mm}/${dd}/${yy}`;
-    case "DD/MM/YY": return `${dd}/${mm}/${yy}`;
-    case "YYYY/MM/DD": return `${yyyy}/${mm}/${dd}`;
-    default: return `${mm}/${dd}`; // MM/DD
+    case "DD/MM":
+      return `${dd}/${mm}`;
+    case "MM/DD/YY":
+      return `${mm}/${dd}/${yy}`;
+    case "DD/MM/YY":
+      return `${dd}/${mm}/${yy}`;
+    case "YYYY/MM/DD":
+      return `${yyyy}/${mm}/${dd}`;
+    default:
+      return `${mm}/${dd}`; // MM/DD
   }
 }
 
 interface WorkspaceSummary {
   id: string;
-  name: string;
   logoEmoji: string | null;
+  name: string;
 }
 
 interface ListSummary {
-  id: string;
-  name: string;
   color: string | null;
   description: string | null;
+  id: string;
+  name: string;
 }
 
 interface SprintSummary {
+  endDate: Date | null;
   id: string;
   name: string;
-  status: "PLANNED" | "ACTIVE" | "CLOSED";
   startDate: Date | null;
-  endDate: Date | null;
+  status: "PLANNED" | "ACTIVE" | "CLOSED";
 }
 
 interface SpaceSummary {
-  id: string;
-  name: string;
-  color: string | null;
-  isPrivate: boolean;
-  canManageList: boolean;
-  sprintDateFormat: string;
-  lists: ListSummary[];
   archivedLists: ListSummary[];
+  canManageList: boolean;
+  color: string | null;
+  id: string;
+  isPrivate: boolean;
+  lists: ListSummary[];
+  name: string;
+  sprintDateFormat: string;
   sprints: SprintSummary[];
 }
 
 interface ChannelSummary {
+  createdAt: Date;
   id: string;
   name: string;
-  createdAt: Date;
 }
 
 interface WorkspaceShellProps {
-  children: React.ReactNode;
-  workspace: WorkspaceSummary;
-  workspaces: WorkspaceSummary[];
-  spaces: SpaceSummary[];
   archivedSpaces: SpaceSummary[];
   channels: ChannelSummary[];
-  role: string;
+  children: React.ReactNode;
   /** Platform admin (user.role === "admin") — unlocks the Admin Console link. */
   isPlatformAdmin?: boolean;
+  role: string;
+  spaces: SpaceSummary[];
   user: { name: string | null; email: string; image: string | null };
+  workspace: WorkspaceSummary;
+  workspaces: WorkspaceSummary[];
 }
 
 function workspaceBadge(ws: WorkspaceSummary) {
@@ -151,12 +159,26 @@ export function WorkspaceShell({
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [createSpaceOpen, setCreateSpaceOpen] = React.useState(false);
-  const [spaceAction, setSpaceAction] = React.useState<{ id: string; name: string; variant: "archive" | "delete" } | null>(null);
-  const [createListForSpace, setCreateListForSpace] = React.useState<{ spaceId: string } | null>(null);
-  const [deleteList, setDeleteList] = React.useState<{ spaceId: string; list: ListSummary } | null>(null);
+  const [spaceAction, setSpaceAction] = React.useState<{
+    id: string;
+    name: string;
+    variant: "archive" | "delete";
+  } | null>(null);
+  const [createListForSpace, setCreateListForSpace] = React.useState<{
+    spaceId: string;
+  } | null>(null);
+  const [deleteList, setDeleteList] = React.useState<{
+    spaceId: string;
+    list: ListSummary;
+  } | null>(null);
   const [createChannelOpen, setCreateChannelOpen] = React.useState(false);
-  const [addMemberChannel, setAddMemberChannel] = React.useState<{ id: string; name: string } | null>(null);
-  const [createSprintForSpace, setCreateSprintForSpace] = React.useState<{ spaceId: string } | null>(null);
+  const [addMemberChannel, setAddMemberChannel] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [createSprintForSpace, setCreateSprintForSpace] = React.useState<{
+    spaceId: string;
+  } | null>(null);
   function openSprintSettings(spaceId: string) {
     router.push(`/${workspace.id}/${spaceId}/settings/sprints`);
   }
@@ -173,10 +195,16 @@ export function WorkspaceShell({
   // Auto-subscribe to push notifications if permission was already granted
   usePushSubscription();
 
+  // Remember the workspace being viewed so "Back to app" (and the next sign-in)
+  // returns here instead of always the first-created workspace.
+  React.useEffect(() => {
+    rememberWorkspace(workspace.id);
+  }, [workspace.id]);
+
   const { data: notifData } = useSWR<{ unreadCount: number }>(
     "/api/me/notifications?filter=unread",
     (url: string) => fetch(url).then((r) => r.json()),
-    { refreshInterval: 30000 },
+    { refreshInterval: 30_000 }
   );
   const unreadCount = notifData?.unreadCount ?? 0;
 
@@ -191,8 +219,12 @@ export function WorkspaceShell({
   const displayName = user.name || user.email;
   const avatarUrl = user.image ? `/api/files/${user.image}` : null;
   const isAdmin = role === "OWNER" || role === "ADMIN";
-  const [expandedArchivedLists, setExpandedArchivedLists] = React.useState<Set<string>>(new Set());
-  const [expandedSprintGroups, setExpandedSprintGroups] = React.useState<Set<string>>(new Set());
+  const [expandedArchivedLists, setExpandedArchivedLists] = React.useState<
+    Set<string>
+  >(new Set());
+  const [expandedSprintGroups, setExpandedSprintGroups] = React.useState<
+    Set<string>
+  >(new Set());
   const [showArchivedSpaces, setShowArchivedSpaces] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [showProjectPicker, setShowProjectPicker] = React.useState(false);
@@ -215,7 +247,9 @@ export function WorkspaceShell({
     if (match) {
       const spaceId = match[1];
       setExpandedSprintGroups((prev) => {
-        if (prev.has(spaceId)) return prev;
+        if (prev.has(spaceId)) {
+          return prev;
+        }
         const next = new Set(prev);
         next.add(spaceId);
         return next;
@@ -231,74 +265,77 @@ export function WorkspaceShell({
   return (
     <div className="workspace-shell flex h-screen bg-background overflow-hidden">
       <SearchPalette
-        workspaceId={workspace.id}
-        open={searchOpen}
         onClose={() => setSearchOpen(false)}
+        open={searchOpen}
+        workspaceId={workspace.id}
       />
       <CreateSpaceModal
-        open={createSpaceOpen}
         onOpenChange={setCreateSpaceOpen}
+        open={createSpaceOpen}
         workspaceId={workspace.id}
       />
 
       {createListForSpace && (
         <CreateListModal
-          open
           onOpenChange={(open) => !open && setCreateListForSpace(null)}
-          workspaceId={workspace.id}
+          open
           spaceId={createListForSpace.spaceId}
+          workspaceId={workspace.id}
         />
       )}
 
       {createSprintForSpace && (
         <CreateSprintModal
-          open
-          onOpenChange={(open) => !open && setCreateSprintForSpace(null)}
-          workspaceId={workspace.id}
-          spaceId={createSprintForSpace.spaceId}
           onCreated={() => setCreateSprintForSpace(null)}
-          onOpenSettings={() => { setCreateSprintForSpace(null); openSprintSettings(createSprintForSpace.spaceId); }}
+          onOpenChange={(open) => !open && setCreateSprintForSpace(null)}
+          onOpenSettings={() => {
+            setCreateSprintForSpace(null);
+            openSprintSettings(createSprintForSpace.spaceId);
+          }}
+          open
+          spaceId={createSprintForSpace.spaceId}
+          workspaceId={workspace.id}
         />
       )}
 
       {deleteList && (
         <DeleteListDialog
-          open
-          onOpenChange={(open) => !open && setDeleteList(null)}
-          workspaceId={workspace.id}
-          spaceId={deleteList.spaceId}
           list={deleteList.list}
+          onOpenChange={(open) => !open && setDeleteList(null)}
+          open
+          spaceId={deleteList.spaceId}
+          workspaceId={workspace.id}
         />
       )}
 
       <CreateChannelModal
-        open={createChannelOpen}
         onOpenChange={setCreateChannelOpen}
+        open={createChannelOpen}
         workspaceId={workspace.id}
       />
 
       {addMemberChannel && (
         <AddChannelMemberModal
-          open
-          onOpenChange={(open) => !open && setAddMemberChannel(null)}
-          workspaceId={workspace.id}
           channelId={addMemberChannel.id}
           existingMemberIds={[]}
+          onOpenChange={(open) => !open && setAddMemberChannel(null)}
+          open
+          workspaceId={workspace.id}
         />
       )}
 
       {spaceAction && (
         <SpaceActionDialog
-          open
-          onOpenChange={(open) => !open && setSpaceAction(null)}
-          spaceName={spaceAction.name}
-          variant={spaceAction.variant}
-          workspaceId={workspace.id}
           action={() =>
             spaceAction.variant === "delete"
               ? deleteSpace(workspace.id, spaceAction.id)
               : archiveSpace(workspace.id, spaceAction.id)
           }
+          onOpenChange={(open) => !open && setSpaceAction(null)}
+          open
+          spaceName={spaceAction.name}
+          variant={spaceAction.variant}
+          workspaceId={workspace.id}
         />
       )}
 
@@ -313,7 +350,7 @@ export function WorkspaceShell({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-30 flex w-60 shrink-0 flex-col border-r border-border bg-(--bg-sidebar) transition-transform duration-200 lg:static lg:h-full",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Workspace switcher at top of sidebar */}
@@ -324,7 +361,9 @@ export function WorkspaceShell({
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-xs font-semibold text-(--text-sidebar-active)">
                   {workspaceBadge(workspace)}
                 </span>
-                <span className="flex-1 truncate text-left">{workspace.name}</span>
+                <span className="flex-1 truncate text-left">
+                  {workspace.name}
+                </span>
                 <CaretUpDownIcon className="size-3.5 shrink-0 text-(--text-muted)" />
               </button>
             </PopoverTrigger>
@@ -334,21 +373,23 @@ export function WorkspaceShell({
               </p>
               {workspaces.map((ws) => (
                 <Link
-                  key={ws.id}
-                  href={`/${ws.id}`}
                   className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                  href={`/${ws.id}`}
+                  key={ws.id}
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs">
                     {workspaceBadge(ws)}
                   </span>
                   <span className="flex-1 truncate">{ws.name}</span>
-                  {ws.id === workspace.id && <CheckIcon className="size-4 text-primary" />}
+                  {ws.id === workspace.id && (
+                    <CheckIcon className="size-4 text-primary" />
+                  )}
                 </Link>
               ))}
               <Separator className="my-1" />
               <Link
-                href="/onboarding?new=1"
                 className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                href="/onboarding?new=1"
               >
                 <PlusIcon className="size-4" />
                 Create workspace
@@ -371,22 +412,24 @@ export function WorkspaceShell({
               {
                 href: `/${workspace.id}/my-tasks`,
                 label: "My Tasks",
-                icon: <CheckCircleIcon className="size-4 shrink-0" weight="fill" />,
+                icon: (
+                  <CheckCircleIcon className="size-4 shrink-0" weight="fill" />
+                ),
                 badge: null,
               },
             ].map(({ href, label, icon, badge }) => {
               const active = pathname === href;
               return (
                 <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setSidebarOpen(false)}
                   className={cn(
                     "relative flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] transition-colors select-none",
                     active
                       ? "bg-(--bg-sidebar-item-active) text-(--text-sidebar-active) font-medium overflow-hidden after:absolute after:left-0 after:inset-y-0 after:w-0.75 after:bg-primary"
-                      : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)",
+                      : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
                   )}
+                  href={href}
+                  key={href}
+                  onClick={() => setSidebarOpen(false)}
                 >
                   {icon}
                   <span className="flex-1">{label}</span>
@@ -407,8 +450,8 @@ export function WorkspaceShell({
               </p>
               {isAdmin && (
                 <button
-                  onClick={() => setCreateSpaceOpen(true)}
                   className="flex size-5 items-center justify-center rounded text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                  onClick={() => setCreateSpaceOpen(true)}
                   title="Create Project"
                 >
                   <PlusIcon className="size-3.5" />
@@ -429,62 +472,81 @@ export function WorkspaceShell({
                     )}
                     {s.canManageList && (
                       <button
-                        onClick={() => setCreateListForSpace({ spaceId: s.id })}
                         className="opacity-0 transition-opacity group-hover:opacity-100 flex size-5 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover) text-(--text-muted)"
+                        onClick={() => setCreateListForSpace({ spaceId: s.id })}
                         title="Add list"
                       >
                         <PlusIcon className="size-3.5" />
                       </button>
                     )}
                     <Popover
+                      onOpenChange={(o) =>
+                        setOpenMenu(o ? `space-${s.id}` : null)
+                      }
                       open={openMenu === `space-${s.id}`}
-                      onOpenChange={(o) => setOpenMenu(o ? `space-${s.id}` : null)}
                     >
                       <PopoverTrigger asChild>
                         <button
                           className="opacity-0 transition-opacity group-hover:opacity-100 flex size-5 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover) text-(--text-muted)"
-                          title="Project options"
                           onClick={(e) => e.stopPropagation()}
+                          title="Project options"
                         >
                           <DotsThreeIcon className="size-4.5" weight="bold" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent side="right" align="start" className="w-48 p-1" onClick={() => setOpenMenu(null)}>
+                      <PopoverContent
+                        align="start"
+                        className="w-48 p-1"
+                        onClick={() => setOpenMenu(null)}
+                        side="right"
+                      >
                         <Link
+                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                           href={`/${workspace.id}/${s.id}/settings/general`}
                           onClick={() => setSidebarOpen(false)}
-                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                         >
                           <GearIcon className="size-3.5 shrink-0 text-muted-foreground" />
                           Settings
                         </Link>
                         <Link
+                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                           href={`/${workspace.id}/${s.id}/activity`}
                           onClick={() => setSidebarOpen(false)}
-                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                         >
                           <ClockIcon className="size-3.5 shrink-0 text-muted-foreground" />
                           Activity
                         </Link>
                         <Link
+                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                           href={`/${workspace.id}/${s.id}/settings/members`}
                           onClick={() => setSidebarOpen(false)}
-                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                         >
                           <LockSimpleIcon className="size-3.5 shrink-0 text-muted-foreground" />
                           Members & Permissions
                         </Link>
                         <div className="my-1 h-px bg-border" />
                         <button
-                          onClick={() => setSpaceAction({ id: s.id, name: s.name, variant: "archive" })}
                           className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                          onClick={() =>
+                            setSpaceAction({
+                              id: s.id,
+                              name: s.name,
+                              variant: "archive",
+                            })
+                          }
                         >
                           <ArchiveIcon className="size-3.5 shrink-0" />
                           Archive Project
                         </button>
                         <button
-                          onClick={() => setSpaceAction({ id: s.id, name: s.name, variant: "delete" })}
                           className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                          onClick={() =>
+                            setSpaceAction({
+                              id: s.id,
+                              name: s.name,
+                              variant: "delete",
+                            })
+                          }
                         >
                           <TrashIcon className="size-3.5 shrink-0" />
                           Delete Project
@@ -497,85 +559,119 @@ export function WorkspaceShell({
                       const href = `/${workspace.id}/${s.id}/list/${l.id}`;
                       const active = pathname === href;
                       return (
-                        <div key={l.id} className="group/list relative flex items-center">
+                        <div
+                          className="group/list relative flex items-center"
+                          key={l.id}
+                        >
                           <Link
-                            href={href}
-                            onClick={() => setSidebarOpen(false)}
                             className={cn(
                               "relative flex flex-1 items-center gap-2 rounded-md py-1.5 pr-7 pl-7 text-[13px] transition-colors select-none",
                               active
                                 ? "bg-(--bg-sidebar-item-active) text-(--text-sidebar-active) font-medium overflow-hidden after:absolute after:left-0 after:inset-y-0 after:w-0.75 after:bg-primary"
-                                : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)",
+                                : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
                             )}
+                            href={href}
+                            onClick={() => setSidebarOpen(false)}
                           >
                             <ListIcon
                               className="size-3.5 shrink-0"
-                              weight="bold"
                               style={{ color: l.color ?? "#9CA3AF" }}
+                              weight="bold"
                             />
                             <span className="truncate">{l.name}</span>
                           </Link>
                           {s.canManageList && (
                             <Popover
+                              onOpenChange={(o) =>
+                                setOpenMenu(o ? `list-${l.id}` : null)
+                              }
                               open={openMenu === `list-${l.id}`}
-                              onOpenChange={(o) => setOpenMenu(o ? `list-${l.id}` : null)}
                             >
                               <PopoverTrigger asChild>
                                 <button
                                   className="absolute right-1 opacity-0 transition-opacity group-hover/list:opacity-100 flex size-5 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
-                                  title="List options"
                                   onClick={(e) => e.stopPropagation()}
+                                  title="List options"
                                 >
-                                  <DotsThreeIcon className="size-4.5 text-(--text-muted)" weight="bold" />
+                                  <DotsThreeIcon
+                                    className="size-4.5 text-(--text-muted)"
+                                    weight="bold"
+                                  />
                                 </button>
                               </PopoverTrigger>
-                              <PopoverContent side="right" align="start" className="w-44 p-1" onClick={() => setOpenMenu(null)}>
+                              <PopoverContent
+                                align="start"
+                                className="w-44 p-1"
+                                onClick={() => setOpenMenu(null)}
+                                side="right"
+                              >
                                 <Link
+                                  className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                                   href={`/${workspace.id}/${s.id}/list/${l.id}/settings/general`}
                                   onClick={() => setSidebarOpen(false)}
-                                  className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                                 >
                                   <GearIcon className="size-3.5 shrink-0 text-muted-foreground" />
                                   Settings
                                 </Link>
                                 <Link
+                                  className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                                   href={`/${workspace.id}/${s.id}/list/${l.id}/settings/statuses`}
                                   onClick={() => setSidebarOpen(false)}
-                                  className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                                 >
                                   <PencilSimpleIcon className="size-3.5 shrink-0 text-muted-foreground" />
                                   Manage Statuses
                                 </Link>
                                 <button
-                                  onClick={async () => {
-                                    await duplicateList(workspace.id, s.id, l.id);
-                                  }}
                                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                                  onClick={async () => {
+                                    await duplicateList(
+                                      workspace.id,
+                                      s.id,
+                                      l.id
+                                    );
+                                  }}
                                 >
                                   <CopyIcon className="size-3.5 shrink-0 text-muted-foreground" />
                                   Duplicate
                                 </button>
                                 <div className="my-1 h-px bg-border" />
                                 <button
+                                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                                   onClick={async () => {
-                                    const res = await archiveList(workspace.id, s.id, l.id);
+                                    const res = await archiveList(
+                                      workspace.id,
+                                      s.id,
+                                      l.id
+                                    );
                                     if (!("error" in res)) {
                                       router.push(`/${workspace.id}/${s.id}`);
-                                      toastWithUndo("List archived", async () => {
-                                        const undo = await unarchiveList(workspace.id, s.id, l.id);
-                                        if (!("error" in undo)) router.push(`/${workspace.id}/${s.id}/list/${l.id}`);
-                                      });
+                                      toastWithUndo(
+                                        "List archived",
+                                        async () => {
+                                          const undo = await unarchiveList(
+                                            workspace.id,
+                                            s.id,
+                                            l.id
+                                          );
+                                          if (!("error" in undo)) {
+                                            router.push(
+                                              `/${workspace.id}/${s.id}/list/${l.id}`
+                                            );
+                                          }
+                                        }
+                                      );
                                     }
                                   }}
-                                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                                 >
                                   <ArchiveIcon className="size-3.5 shrink-0" />
                                   Archive
                                 </button>
                                 {isAdmin && (
                                   <button
-                                    onClick={() => setDeleteList({ spaceId: s.id, list: l })}
                                     className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                                    onClick={() =>
+                                      setDeleteList({ spaceId: s.id, list: l })
+                                    }
                                   >
                                     <TrashIcon className="size-3.5 shrink-0" />
                                     Delete
@@ -587,101 +683,143 @@ export function WorkspaceShell({
                         </div>
                       );
                     })}
-                    {s.sprints.length > 0 && (() => {
-                      const sprintsExpanded = expandedSprintGroups.has(s.id);
-                      const activeSprint = s.sprints.find((sp) => sp.status === "ACTIVE");
-                      const isOnSprintRoute = pathname.includes(`/${workspace.id}/${s.id}/sprint/`);
-                      return (
-                        <div>
-                          {/* Sprints folder header */}
-                          <button
-                            onClick={() => setExpandedSprintGroups((prev) => {
-                              const next = new Set(prev);
-                              next.has(s.id) ? next.delete(s.id) : next.add(s.id);
-                              return next;
-                            })}
-                            className={cn(
-                              "group/sprints relative flex w-full items-center gap-2 rounded-md py-1.5 pr-2 pl-7 text-[13px] transition-colors select-none",
-                              isOnSprintRoute
-                                ? "text-(--text-sidebar-active)"
-                                : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)",
-                            )}
-                          >
-                            {sprintsExpanded
-                              ? <CaretDownIcon className="size-3 shrink-0 text-(--text-muted)" />
-                              : <CaretRightIcon className="size-3 shrink-0 text-(--text-muted)" />
-                            }
-                            <LightningIcon className="size-3.5 shrink-0" weight="fill" style={{ color: activeSprint ? "#4ADE80" : undefined }} />
-                            <span className="flex-1 truncate text-left">Sprints</span>
-                            {activeSprint && !sprintsExpanded && (
-                              <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0 animate-pulse" />
-                            )}
-                            {s.canManageList && (
-                              <span className="opacity-0 group-hover/sprints:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
-                                <span
-                                  role="button"
-                                  onClick={(e) => { e.stopPropagation(); openSprintSettings(s.id); }}
-                                  className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
-                                  title="Sprint settings"
-                                >
-                                  <GearIcon className="size-3" />
-                                </span>
-                                <span
-                                  role="button"
-                                  onClick={(e) => { e.stopPropagation(); handleCreateSprintClick(s.id, s.name); }}
-                                  className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
-                                  title="Create sprint"
-                                >
-                                  <PlusIcon className="size-3" />
-                                </span>
+                    {s.sprints.length > 0 &&
+                      (() => {
+                        const sprintsExpanded = expandedSprintGroups.has(s.id);
+                        const activeSprint = s.sprints.find(
+                          (sp) => sp.status === "ACTIVE"
+                        );
+                        const isOnSprintRoute = pathname.includes(
+                          `/${workspace.id}/${s.id}/sprint/`
+                        );
+                        return (
+                          <div>
+                            {/* Sprints folder header */}
+                            <button
+                              className={cn(
+                                "group/sprints relative flex w-full items-center gap-2 rounded-md py-1.5 pr-2 pl-7 text-[13px] transition-colors select-none",
+                                isOnSprintRoute
+                                  ? "text-(--text-sidebar-active)"
+                                  : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                              )}
+                              onClick={() =>
+                                setExpandedSprintGroups((prev) => {
+                                  const next = new Set(prev);
+                                  next.has(s.id)
+                                    ? next.delete(s.id)
+                                    : next.add(s.id);
+                                  return next;
+                                })
+                              }
+                            >
+                              {sprintsExpanded ? (
+                                <CaretDownIcon className="size-3 shrink-0 text-(--text-muted)" />
+                              ) : (
+                                <CaretRightIcon className="size-3 shrink-0 text-(--text-muted)" />
+                              )}
+                              <LightningIcon
+                                className="size-3.5 shrink-0"
+                                style={{
+                                  color: activeSprint ? "#4ADE80" : undefined,
+                                }}
+                                weight="fill"
+                              />
+                              <span className="flex-1 truncate text-left">
+                                Sprints
                               </span>
-                            )}
-                          </button>
-
-                          {/* Sprint items */}
-                          {sprintsExpanded && s.sprints.map((sp) => {
-                            const href = `/${workspace.id}/${s.id}/sprint/${sp.id}`;
-                            const active = pathname === href;
-                            return (
-                              <Link
-                                key={sp.id}
-                                href={href}
-                                onClick={() => setSidebarOpen(false)}
-                                className={cn(
-                                  "relative flex items-center gap-2 rounded-md py-1.5 pr-2 pl-12 text-[13px] transition-colors select-none",
-                                  active
-                                    ? "bg-(--bg-sidebar-item-active) text-(--text-sidebar-active) font-medium overflow-hidden after:absolute after:left-0 after:inset-y-0 after:w-0.75 after:bg-primary"
-                                    : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)",
-                                )}
-                              >
-                                <LightningIcon
-                                  className="size-3.5 shrink-0"
-                                  weight={sp.status === "ACTIVE" ? "fill" : "regular"}
-                                  style={{ color: sp.status === "ACTIVE" ? "#4ADE80" : undefined }}
-                                />
-                                <span className="flex-1 min-w-0">
-                                  <span className="truncate block">{sp.name}</span>
-                                  {(sp.startDate || sp.endDate) && (
-                                    <span className="text-2xs text-(--text-muted) font-normal leading-none">
-                                      {formatSprintDate(sp.startDate, s.sprintDateFormat)}
-                                      {" – "}
-                                      {formatSprintDate(sp.endDate, s.sprintDateFormat)}
-                                    </span>
-                                  )}
+                              {activeSprint && !sprintsExpanded && (
+                                <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0 animate-pulse" />
+                              )}
+                              {s.canManageList && (
+                                <span className="opacity-0 group-hover/sprints:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
+                                  <span
+                                    className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openSprintSettings(s.id);
+                                    }}
+                                    role="button"
+                                    title="Sprint settings"
+                                  >
+                                    <GearIcon className="size-3" />
+                                  </span>
+                                  <span
+                                    className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCreateSprintClick(s.id, s.name);
+                                    }}
+                                    role="button"
+                                    title="Create sprint"
+                                  >
+                                    <PlusIcon className="size-3" />
+                                  </span>
                                 </span>
-                                {sp.status === "ACTIVE" && (
-                                  <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0 animate-pulse" />
-                                )}
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
+                              )}
+                            </button>
+
+                            {/* Sprint items */}
+                            {sprintsExpanded &&
+                              s.sprints.map((sp) => {
+                                const href = `/${workspace.id}/${s.id}/sprint/${sp.id}`;
+                                const active = pathname === href;
+                                return (
+                                  <Link
+                                    className={cn(
+                                      "relative flex items-center gap-2 rounded-md py-1.5 pr-2 pl-12 text-[13px] transition-colors select-none",
+                                      active
+                                        ? "bg-(--bg-sidebar-item-active) text-(--text-sidebar-active) font-medium overflow-hidden after:absolute after:left-0 after:inset-y-0 after:w-0.75 after:bg-primary"
+                                        : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                                    )}
+                                    href={href}
+                                    key={sp.id}
+                                    onClick={() => setSidebarOpen(false)}
+                                  >
+                                    <LightningIcon
+                                      className="size-3.5 shrink-0"
+                                      style={{
+                                        color:
+                                          sp.status === "ACTIVE"
+                                            ? "#4ADE80"
+                                            : undefined,
+                                      }}
+                                      weight={
+                                        sp.status === "ACTIVE"
+                                          ? "fill"
+                                          : "regular"
+                                      }
+                                    />
+                                    <span className="flex-1 min-w-0">
+                                      <span className="truncate block">
+                                        {sp.name}
+                                      </span>
+                                      {(sp.startDate || sp.endDate) && (
+                                        <span className="text-2xs text-(--text-muted) font-normal leading-none">
+                                          {formatSprintDate(
+                                            sp.startDate,
+                                            s.sprintDateFormat
+                                          )}
+                                          {" – "}
+                                          {formatSprintDate(
+                                            sp.endDate,
+                                            s.sprintDateFormat
+                                          )}
+                                        </span>
+                                      )}
+                                    </span>
+                                    {sp.status === "ACTIVE" && (
+                                      <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0 animate-pulse" />
+                                    )}
+                                  </Link>
+                                );
+                              })}
+                          </div>
+                        );
+                      })()}
                     {s.sprints.length === 0 && s.canManageList && (
                       <button
-                        onClick={() => handleCreateSprintClick(s.id, s.name)}
                         className="flex w-full items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-xs text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                        onClick={() => handleCreateSprintClick(s.id, s.name)}
                       >
                         <LightningIcon className="size-3" />
                         Create sprint
@@ -689,8 +827,8 @@ export function WorkspaceShell({
                     )}
                     {s.canManageList && (
                       <button
-                        onClick={() => setCreateListForSpace({ spaceId: s.id })}
                         className="flex w-full items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-xs text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                        onClick={() => setCreateListForSpace({ spaceId: s.id })}
                       >
                         <PlusIcon className="size-3" />
                         Add list
@@ -698,31 +836,52 @@ export function WorkspaceShell({
                     )}
                     {s.archivedLists.length > 0 && (
                       <button
-                        onClick={() => setExpandedArchivedLists(prev => {
-                          const next = new Set(prev);
-                          next.has(s.id) ? next.delete(s.id) : next.add(s.id);
-                          return next;
-                        })}
                         className="flex items-center gap-1.5 pl-7 pr-2 py-1 text-xs text-(--text-muted) hover:text-(--text-sidebar) transition-colors w-full"
+                        onClick={() =>
+                          setExpandedArchivedLists((prev) => {
+                            const next = new Set(prev);
+                            next.has(s.id) ? next.delete(s.id) : next.add(s.id);
+                            return next;
+                          })
+                        }
                       >
                         <ArchiveIcon className="size-3" />
-                        {expandedArchivedLists.has(s.id) ? "Hide" : `${s.archivedLists.length} archived`}
+                        {expandedArchivedLists.has(s.id)
+                          ? "Hide"
+                          : `${s.archivedLists.length} archived`}
                       </button>
                     )}
-                    {expandedArchivedLists.has(s.id) && s.archivedLists.map((l) => (
-                      <div key={l.id} className="group flex items-center gap-2 pl-7 pr-2 py-1 text-xs text-(--text-muted)">
-                        <ArchiveIcon className="size-3 shrink-0" />
-                        <span className="flex-1 truncate italic">{l.name}</span>
-                        {s.canManageList && (
-                          <button
-                            onClick={async () => { const res = await unarchiveList(workspace.id, s.id, l.id); if (!("error" in res)) toastWithUndo("List unarchived", async () => { await archiveList(workspace.id, s.id, l.id); }); }}
-                            className="hidden group-hover:block text-2xs px-1.5 py-0.5 rounded bg-(--bg-sidebar-item-hover) hover:bg-(--bg-sidebar-item-active) text-(--text-sidebar)"
-                          >
-                            Unarchive
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                    {expandedArchivedLists.has(s.id) &&
+                      s.archivedLists.map((l) => (
+                        <div
+                          className="group flex items-center gap-2 pl-7 pr-2 py-1 text-xs text-(--text-muted)"
+                          key={l.id}
+                        >
+                          <ArchiveIcon className="size-3 shrink-0" />
+                          <span className="flex-1 truncate italic">
+                            {l.name}
+                          </span>
+                          {s.canManageList && (
+                            <button
+                              className="hidden group-hover:block text-2xs px-1.5 py-0.5 rounded bg-(--bg-sidebar-item-hover) hover:bg-(--bg-sidebar-item-active) text-(--text-sidebar)"
+                              onClick={async () => {
+                                const res = await unarchiveList(
+                                  workspace.id,
+                                  s.id,
+                                  l.id
+                                );
+                                if (!("error" in res)) {
+                                  toastWithUndo("List unarchived", async () => {
+                                    await archiveList(workspace.id, s.id, l.id);
+                                  });
+                                }
+                              }}
+                            >
+                              Unarchive
+                            </button>
+                          )}
+                        </div>
+                      ))}
                   </div>
                 </div>
               ))}
@@ -732,18 +891,23 @@ export function WorkspaceShell({
           {archivedSpaces.length > 0 && (
             <div>
               <button
-                onClick={() => setShowArchivedSpaces(v => !v)}
                 className="flex items-center gap-1.5 px-3 pb-1 text-xs text-(--text-muted) hover:text-(--text-sidebar) transition-colors w-full"
+                onClick={() => setShowArchivedSpaces((v) => !v)}
               >
                 <ArchiveIcon className="size-3" />
                 <span className="flex-1 text-left uppercase tracking-wide font-medium">
-                  {showArchivedSpaces ? "Hide archived projects" : `Archived projects (${archivedSpaces.length})`}
+                  {showArchivedSpaces
+                    ? "Hide archived projects"
+                    : `Archived projects (${archivedSpaces.length})`}
                 </span>
               </button>
               {showArchivedSpaces && (
                 <div className="space-y-0.5">
                   {archivedSpaces.map((s) => (
-                    <div key={s.id} className="group flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] text-(--text-muted)">
+                    <div
+                      className="group flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] text-(--text-muted)"
+                      key={s.id}
+                    >
                       <span
                         className="size-2 shrink-0 rounded-full opacity-40"
                         style={{ backgroundColor: s.color ?? "#9CA3AF" }}
@@ -751,8 +915,10 @@ export function WorkspaceShell({
                       <span className="flex-1 truncate italic">{s.name}</span>
                       {isAdmin && (
                         <button
-                          onClick={async () => { await unarchiveSpace(workspace.id, s.id); }}
                           className="hidden group-hover:block text-xs px-1.5 py-0.5 rounded bg-(--bg-sidebar-item-hover) text-(--text-sidebar)"
+                          onClick={async () => {
+                            await unarchiveSpace(workspace.id, s.id);
+                          }}
                         >
                           Unarchive
                         </button>
@@ -831,9 +997,9 @@ export function WorkspaceShell({
         {isPlatformAdmin && (
           <div className="border-t border-[rgba(255,255,255,0.08)] px-2 py-2">
             <Link
+              className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] text-(--text-sidebar) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
               href="/orbit"
               onClick={() => setSidebarOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] text-(--text-sidebar) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
             >
               <ShieldCheckIcon className="size-4 shrink-0" weight="fill" />
               <span className="flex-1">Admin Console</span>
@@ -844,29 +1010,37 @@ export function WorkspaceShell({
         {/* Bottom user menu */}
         <div className="border-t border-[rgba(255,255,255,0.08)] p-2">
           <Popover
-            open={profileOpen}
             onOpenChange={(open) => {
               setProfileOpen(open);
-              if (!open) setShowProjectPicker(false);
+              if (!open) {
+                setShowProjectPicker(false);
+              }
             }}
+            open={profileOpen}
           >
             <PopoverTrigger asChild>
               <button className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-[13px] text-(--text-sidebar) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active) cursor-pointer">
                 <Avatar className="size-7 shrink-0">
-                  {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
-                  <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                  {avatarUrl && (
+                    <AvatarImage alt={displayName} src={avatarUrl} />
+                  )}
+                  <AvatarFallback className="text-xs">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
                 <span className="flex-1 truncate text-left">{displayName}</span>
-                <CaretUpIcon className={`size-3.5 shrink-0 opacity-50 transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`} />
+                <CaretUpIcon
+                  className={`size-3.5 shrink-0 opacity-50 transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
+                />
               </button>
             </PopoverTrigger>
-            <PopoverContent align="start" side="top" className="w-56 p-1.5">
+            <PopoverContent align="start" className="w-56 p-1.5" side="top">
               {showProjectPicker && spaces.length > 1 ? (
                 /* Project picker — replaces the menu in-place (single popup, no side panel) */
                 <div>
                   <button
-                    onClick={() => setShowProjectPicker(false)}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors hover:bg-accent"
+                    onClick={() => setShowProjectPicker(false)}
                   >
                     <ArrowLeftIcon className="size-4 shrink-0 text-muted-foreground" />
                     <span className="flex-1 text-left">Project settings</span>
@@ -879,17 +1053,22 @@ export function WorkspaceShell({
                       const isCurrent = pathname.split("/")[2] === s.id;
                       return (
                         <Link
-                          key={s.id}
-                          href={`/${workspace.id}/${s.id}/settings/general`}
-                          onClick={() => { setProfileOpen(false); setShowProjectPicker(false); }}
                           className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent ${isCurrent ? "bg-accent font-medium" : ""}`}
+                          href={`/${workspace.id}/${s.id}/settings/general`}
+                          key={s.id}
+                          onClick={() => {
+                            setProfileOpen(false);
+                            setShowProjectPicker(false);
+                          }}
                         >
                           <span
                             className="size-2.5 shrink-0 rounded-full"
                             style={{ backgroundColor: s.color ?? "#6B7280" }}
                           />
                           <span className="flex-1 truncate">{s.name}</span>
-                          {isCurrent && <CheckIcon className="size-4 shrink-0 text-primary" />}
+                          {isCurrent && (
+                            <CheckIcon className="size-4 shrink-0 text-primary" />
+                          )}
                         </Link>
                       );
                     })}
@@ -899,9 +1078,9 @@ export function WorkspaceShell({
                 /* Account menu */
                 <div>
                   <Link
+                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                     href={`/${workspace.id}/profile`}
                     onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                   >
                     <UserCircleIcon className="size-4 shrink-0 text-muted-foreground" />
                     Edit profile
@@ -909,9 +1088,9 @@ export function WorkspaceShell({
                   <Separator className="my-1.5" />
                   {isAdmin && (
                     <Link
+                      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                       href={`/${workspace.id}/settings/general`}
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                     >
                       <GearIcon className="size-4 shrink-0 text-muted-foreground" />
                       Workspace settings
@@ -923,43 +1102,48 @@ export function WorkspaceShell({
                     (spaces.length === 1 ? (
                       // Single project — go straight to its settings, no picker needed.
                       <Link
+                        className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                         href={`/${workspace.id}/${spaces[0].id}/settings/general`}
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                       >
                         <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
                         Project settings
                       </Link>
                     ) : (
                       <button
-                        onClick={() => setShowProjectPicker(true)}
                         className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                        onClick={() => setShowProjectPicker(true)}
                       >
                         <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="flex-1 text-left">Project settings</span>
+                        <span className="flex-1 text-left">
+                          Project settings
+                        </span>
                         <CaretRightIcon className="size-3.5 text-muted-foreground" />
                       </button>
                     ))}
                   <Link
+                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                     href={`/${workspace.id}/notifications/settings`}
                     onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                   >
                     <BellIcon className="size-4 shrink-0 text-muted-foreground" />
                     Notification settings
                   </Link>
                   <Link
+                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                     href={`/${workspace.id}/support`}
                     onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                   >
                     <HeadsetIcon className="size-4 shrink-0 text-muted-foreground" />
                     Support
                   </Link>
                   <Separator className="my-1.5" />
                   <button
-                    onClick={() => { setProfileOpen(false); handleSignOut(); }}
                     className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                    onClick={() => {
+                      setProfileOpen(false);
+                      handleSignOut();
+                    }}
                   >
                     <SignOutIcon className="size-4 shrink-0" />
                     Sign out
@@ -974,9 +1158,9 @@ export function WorkspaceShell({
       {/* Right column: topbar + main content */}
       <TopbarProvider>
         <TopbarRightColumn
-          workspaceId={workspace.id}
-          onOpenSidebar={() => setSidebarOpen(true)}
           onOpenSearch={() => setSearchOpen(true)}
+          onOpenSidebar={() => setSidebarOpen(true)}
+          workspaceId={workspace.id}
         >
           {children}
         </TopbarRightColumn>
@@ -989,13 +1173,12 @@ export function WorkspaceShell({
 
 interface PinnedItem {
   id: string;
+  listName: string | null;
+  orderIndex: number;
+  spaceName: string | null;
   taskId: string;
   taskTitle: string;
-  listName: string | null;
-  spaceName: string | null;
-  orderIndex: number;
 }
-
 
 function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
@@ -1005,20 +1188,30 @@ function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
   const { data } = useSWR<{ pinnedTasks: PinnedItem[] }>(
     swrKey,
     (url: string) => fetch(url).then((r) => r.json()),
-    { refreshInterval: 60000 },
+    { refreshInterval: 60_000 }
   );
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const pinned = data?.pinnedTasks ?? [];
-  if (pinned.length === 0) return null;
+  if (pinned.length === 0) {
+    return null;
+  }
 
   async function handleUnpin(e: React.MouseEvent, taskId: string) {
     e.stopPropagation();
-    mutate(swrKey, (prev: { pinnedTasks: PinnedItem[] } | undefined) => ({
-      pinnedTasks: (prev?.pinnedTasks ?? []).filter((t) => t.taskId !== taskId),
-    }), { revalidate: false });
-    window.dispatchEvent(new CustomEvent("task-personal-unpin", { detail: { taskId } }));
-    await fetch(`/api/tasks/${taskId}/pin`, { method: 'DELETE' });
+    mutate(
+      swrKey,
+      (prev: { pinnedTasks: PinnedItem[] } | undefined) => ({
+        pinnedTasks: (prev?.pinnedTasks ?? []).filter(
+          (t) => t.taskId !== taskId
+        ),
+      }),
+      { revalidate: false }
+    );
+    window.dispatchEvent(
+      new CustomEvent("task-personal-unpin", { detail: { taskId } })
+    );
+    await fetch(`/api/tasks/${taskId}/pin`, { method: "DELETE" });
     mutate(swrKey);
   }
   function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
@@ -1028,40 +1221,50 @@ function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
     }
   }
 
-
   return (
     <div className="h-9 shrink-0 border-b border-border bg-surface overflow-hidden">
       <div
-        ref={scrollRef}
-        onWheel={handleWheel}
         className="flex h-full items-center gap-1 px-3 overflow-x-auto [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: 'none' } as React.CSSProperties}
+        onWheel={handleWheel}
+        ref={scrollRef}
+        style={{ scrollbarWidth: "none" } as React.CSSProperties}
       >
-        <PushPinIcon className="size-3 shrink-0 text-muted-foreground" weight="fill" />
+        <PushPinIcon
+          className="size-3 shrink-0 text-muted-foreground"
+          weight="fill"
+        />
         {pinned.map((item) => {
           const isActive = pathname === `/${workspaceId}/task/${item.taskId}`;
           return (
             <div
-              key={item.id}
               className={cn(
                 "group/pin relative flex h-5 items-center rounded shrink-0 max-w-40 overflow-hidden border",
-                isActive ? "bg-primary/10 border-primary/30" : "border-border hover:bg-accent",
+                isActive
+                  ? "bg-primary/10 border-primary/30"
+                  : "border-border hover:bg-accent"
               )}
+              key={item.id}
             >
               <button
-                onClick={() => router.push(`/${workspaceId}/task/${item.taskId}`)}
-                title={[item.spaceName, item.listName].filter(Boolean).join(" · ")}
                 className={cn(
                   "min-w-0 flex-1 flex h-full items-center pl-2 pr-1 text-xs font-medium transition-colors cursor-pointer overflow-hidden",
-                  isActive ? "text-primary" : "text-muted-foreground group-hover/pin:text-foreground",
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground group-hover/pin:text-foreground"
                 )}
+                onClick={() =>
+                  router.push(`/${workspaceId}/task/${item.taskId}`)
+                }
+                title={[item.spaceName, item.listName]
+                  .filter(Boolean)
+                  .join(" · ")}
               >
                 <span className="truncate block">{item.taskTitle}</span>
               </button>
               <button
+                className="hidden group-hover/pin:flex shrink-0 h-full items-center px-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 onClick={(e) => handleUnpin(e, item.taskId)}
                 title="Unpin"
-                className="hidden group-hover/pin:flex shrink-0 h-full items-center px-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 <PushPinSlashIcon className="size-3" />
               </button>
@@ -1095,10 +1298,10 @@ function TopbarRightColumn({
       <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center border-b border-border bg-surface px-4 gap-3">
         {/* Mobile sidebar toggle */}
         <Button
-          variant="ghost"
-          size="icon"
           className="size-8 lg:hidden shrink-0"
           onClick={onOpenSidebar}
+          size="icon"
+          variant="ghost"
         >
           <ListIcon className="size-5" />
         </Button>
@@ -1109,26 +1312,37 @@ function TopbarRightColumn({
             <>
               {topbar.breadcrumbs.map((crumb, i) => (
                 <React.Fragment key={i}>
-                  {i > 0 && <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />}
+                  {i > 0 && (
+                    <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+                  )}
                   <span className="flex items-center gap-1.5 text-muted-foreground font-medium shrink-0">
                     {crumb.color && (
-                      <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: crumb.color }} />
+                      <span
+                        className="inline-block h-2 w-2 rounded-full shrink-0"
+                        style={{ backgroundColor: crumb.color }}
+                      />
                     )}
                     {crumb.label}
                   </span>
                 </React.Fragment>
               ))}
-              {topbar.breadcrumbs.length > 0 && <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />}
-              <span className="font-semibold text-foreground truncate">{topbar.title}</span>
-              {topbar.actions && <div className="ml-auto shrink-0">{topbar.actions}</div>}
+              {topbar.breadcrumbs.length > 0 && (
+                <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+              )}
+              <span className="font-semibold text-foreground truncate">
+                {topbar.title}
+              </span>
+              {topbar.actions && (
+                <div className="ml-auto shrink-0">{topbar.actions}</div>
+              )}
             </>
           ) : null}
         </div>
 
         {/* Search — right side */}
         <button
-          onClick={onOpenSearch}
           className="flex items-center gap-2 h-8 w-52 shrink-0 rounded-md border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onOpenSearch}
         >
           <MagnifyingGlassIcon className="size-4 shrink-0" />
           <span className="flex-1 text-left text-sm">Search…</span>
