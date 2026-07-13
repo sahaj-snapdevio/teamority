@@ -9,6 +9,7 @@ import {
   CheckIcon,
   DotsThreeIcon,
   LightningIcon,
+  MinusIcon,
   PencilSimpleIcon,
   PlusIcon,
   PushPinIcon,
@@ -350,6 +351,18 @@ function StatusGroup({
 
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
 
+  // Select-all for this group's tasks (header checkbox → bulk delete/handle).
+  const groupSelectedCount = tasks.reduce(
+    (n, t) => n + (selectedIds.has(t.id) ? 1 : 0),
+    0,
+  );
+  const groupAllSelected = tasks.length > 0 && groupSelectedCount === tasks.length;
+  const groupSomeSelected = groupSelectedCount > 0 && !groupAllSelected;
+  function toggleGroupSelection() {
+    const target = !groupAllSelected;
+    tasks.forEach((t) => onSelect(t.id, target));
+  }
+
   async function handleRename() {
     const trimmed = renameName.trim();
     if (!trimmed || trimmed === status.name) { setRenameOpen(false); return; }
@@ -466,7 +479,26 @@ function StatusGroup({
             {/* Column Header (Desktop Only) */}
             <div className="hidden md:flex items-center border-b border-border text-2xs font-bold text-gray-400 select-none uppercase tracking-wider bg-card">
               <div className="w-0.75 self-stretch shrink-0 bg-transparent" />
-              <div className="flex items-center pl-2 shrink-0 w-14" />
+              <div className="flex items-center pl-2 shrink-0 w-14">
+                <button
+                  type="button"
+                  onClick={toggleGroupSelection}
+                  aria-label={groupAllSelected ? "Deselect all tasks in this group" : "Select all tasks in this group"}
+                  title={groupAllSelected ? "Deselect all" : "Select all"}
+                  className={cn(
+                    "flex size-4 items-center justify-center rounded border transition-colors cursor-pointer",
+                    groupAllSelected || groupSomeSelected
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border hover:border-primary/40 bg-background",
+                  )}
+                >
+                  {groupAllSelected ? (
+                    <CheckIcon className="size-2.5" weight="bold" />
+                  ) : groupSomeSelected ? (
+                    <MinusIcon className="size-2.5" weight="bold" />
+                  ) : null}
+                </button>
+              </div>
               <div className="flex-1 py-2 pr-4 pl-1">Name</div>
               <div className="w-36 shrink-0 py-2 px-4 text-center">Assignee</div>
               <div className="w-28 shrink-0 py-2 px-4">Due Date</div>

@@ -1,11 +1,13 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { list, workspace } from "@/db/schema";
-import { getAccessibleSpaceIds, getWorkspaceMembership } from "@/lib/permissions";
+import { workspace } from "@/db/schema";
+import { getWorkspaceMembership } from "@/lib/permissions";
+import { getWorkspaceLandingState } from "@/lib/workspace-landing";
 import { EmptyWorkspace } from "./_components/empty-workspace";
+import { ArchivedProjectsEmptyState } from "./_components/archived-projects-empty-state";
 
 interface WorkspaceHomeProps {
   params: Promise<{ workspaceId: string }>;
@@ -20,30 +22,40 @@ export default async function WorkspaceHomePage({ params }: WorkspaceHomeProps) 
   const membership = await getWorkspaceMembership(session.user.id, workspaceId);
   if (!membership) notFound();
 
-  const spaceIds = await getAccessibleSpaceIds(session.user.id, workspaceId);
-  if (spaceIds.length > 0) {
-    const [firstList] = await db
-      .select({ id: list.id, spaceId: list.spaceId })
-      .from(list)
-      .where(and(inArray(list.spaceId, spaceIds), eq(list.isArchived, false)))
-      .orderBy(asc(list.createdAt))
-      .limit(1);
+  const landing = await getWorkspaceLandingState(session.user.id, workspaceId);
 
-    if (firstList) redirect(`/${workspaceId}/${firstList.spaceId}/list/${firstList.id}`);
+  switch (landing.kind) {
+    case "ACTIVE_SPACE":
+      // redirect() throws, so no case falls through.
+      redirect(
+        landing.listId
+          ? `/${workspaceId}/${landing.spaceId}/list/${landing.listId}`
+          : `/${workspaceId}/${landing.spaceId}`,
+      );
+    case "EMPTY":
+      // Truly empty workspace — non-guests create their first project.
+      redirect("/onboarding");
+    case "ONLY_ARCHIVED": {
+      // Projects exist but are all archived: stay in the workspace and let the
+      // user restore one (admins) instead of forcing the onboarding wizard.
+      const canManage =
+        membership.role === "OWNER" || membership.role === "ADMIN";
+      return (
+        <ArchivedProjectsEmptyState
+          workspaceId={workspaceId}
+          archived={landing.archived}
+          canManage={canManage}
+        />
+      );
+    }
+    default: {
+      // NO_ACCESS — a guest (or member with no accessible projects).
+      const [ws] = await db
+        .select({ name: workspace.name })
+        .from(workspace)
+        .where(eq(workspace.id, workspaceId))
+        .limit(1);
+      return <EmptyWorkspace workspaceName={ws?.name ?? "this workspace"} />;
+    }
   }
-
-  // A guest is a valid workspace member but cannot create projects. Instead of
-  // bouncing them to the create-project onboarding wizard (which they can't
-  // complete), keep them inside the workspace shell with an empty state. Owners/
-  // admins/members retain the existing "create your first project" onboarding.
-  if (membership.role === "GUEST") {
-    const [ws] = await db
-      .select({ name: workspace.name })
-      .from(workspace)
-      .where(eq(workspace.id, workspaceId))
-      .limit(1);
-    return <EmptyWorkspace workspaceName={ws?.name ?? "this workspace"} />;
-  }
-
-  redirect("/onboarding");
 }
