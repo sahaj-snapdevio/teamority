@@ -15,7 +15,6 @@ import {
   DotsThreeIcon,
   FolderIcon,
   GearIcon,
-  HeadsetIcon,
   LightningIcon,
   ListIcon,
   LockSimpleIcon,
@@ -228,6 +227,21 @@ export function WorkspaceShell({
   const [showArchivedSpaces, setShowArchivedSpaces] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [showProjectPicker, setShowProjectPicker] = React.useState(false);
+
+  // The account menu opens on hover. A short close delay lets the pointer travel
+  // from the trigger into the (portaled) menu without it snapping shut.
+  const profileCloseTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  function openProfileMenu() {
+    if (profileCloseTimer.current) clearTimeout(profileCloseTimer.current);
+    setProfileOpen(true);
+  }
+  function scheduleCloseProfileMenu() {
+    if (profileCloseTimer.current) clearTimeout(profileCloseTimer.current);
+    profileCloseTimer.current = setTimeout(() => {
+      setProfileOpen(false);
+      setShowProjectPicker(false);
+    }, 180);
+  }
 
   // Ctrl+K / Cmd+K shortcut
   React.useEffect(() => {
@@ -1019,7 +1033,11 @@ export function WorkspaceShell({
             open={profileOpen}
           >
             <PopoverTrigger asChild>
-              <button className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-[13px] text-(--text-sidebar) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active) cursor-pointer">
+              <button
+                onMouseEnter={openProfileMenu}
+                onMouseLeave={scheduleCloseProfileMenu}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-[13px] text-(--text-sidebar) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active) cursor-pointer"
+              >
                 <Avatar className="size-7 shrink-0">
                   {avatarUrl && (
                     <AvatarImage alt={displayName} src={avatarUrl} />
@@ -1034,7 +1052,15 @@ export function WorkspaceShell({
                 />
               </button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-56 p-1.5" side="top">
+            <PopoverContent
+              align="start"
+              className="w-56 p-1.5"
+              side="top"
+              sideOffset={4}
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onMouseEnter={openProfileMenu}
+              onMouseLeave={scheduleCloseProfileMenu}
+            >
               {showProjectPicker && spaces.length > 1 ? (
                 /* Project picker — replaces the menu in-place (single popup, no side panel) */
                 <div>
@@ -1128,14 +1154,6 @@ export function WorkspaceShell({
                   >
                     <BellIcon className="size-4 shrink-0 text-muted-foreground" />
                     Notification settings
-                  </Link>
-                  <Link
-                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
-                    href={`/${workspace.id}/support`}
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    <HeadsetIcon className="size-4 shrink-0 text-muted-foreground" />
-                    Support
                   </Link>
                   <Separator className="my-1.5" />
                   <button

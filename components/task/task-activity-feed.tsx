@@ -72,6 +72,12 @@ import {
 } from "@/app/actions/comment";
 import { getTaskActivity } from "@/app/actions/task";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAttachmentPreview } from "@/components/task/attachment-preview-modal";
 import dynamic from "next/dynamic";
 
@@ -731,6 +737,30 @@ function CommentItem({
   const thumbsUpReaction = comment.reactions.find((r) => r.emoji === "👍");
   const hasThumbsUp = thumbsUpReaction?.userIds.includes(currentUserId) ?? false;
 
+  // "You and Jane reacted" — resolve reactor ids to names so a hover reveals who
+  // reacted when several people pile onto the same emoji. The emoji itself is
+  // shown separately in the tooltip, so it's not repeated in this sentence.
+  function reactorSentence(userIds: string[]): string {
+    const names = userIds
+      .map((uid) =>
+        uid === currentUserId
+          ? "You"
+          : members.find((m) => m.id === uid)?.name?.trim() || "Someone",
+      )
+      // Show "You" first.
+      .sort((a, b) => (a === "You" ? -1 : b === "You" ? 1 : 0));
+
+    let who: string;
+    if (names.length === 0) who = "Someone";
+    else if (names.length === 1) who = names[0];
+    else if (names.length === 2) who = `${names[0]} and ${names[1]}`;
+    else if (names.length <= 4)
+      who = `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+    else who = `${names.slice(0, 3).join(", ")} and ${names.length - 3} others`;
+
+    return `${who} reacted`;
+  }
+
   return (
     <div className={cn("group/comment", depth > 0 && "ml-6 mt-2")}>
       {/* Comment card */}
@@ -846,6 +876,7 @@ function CommentItem({
 
         {/* Footer */}
         {!comment.isDeleted && (
+          <TooltipProvider delayDuration={200}>
           <div className="flex items-center gap-1 px-3 pb-2 pt-1 border-t border-border/40">
             {/* Existing emoji reactions (👍 is shown on the dedicated like button) */}
             {comment.reactions
@@ -853,40 +884,61 @@ function CommentItem({
               .map((r) => {
               const reacted = r.userIds.includes(currentUserId);
               return (
-                <button
-                  key={r.emoji}
-                  onClick={() => handleReaction(r.emoji)}
-                  className={cn(
-                    "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors",
-                    reacted
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border hover:bg-accent",
-                  )}
-                >
-                  <span>{r.emoji}</span>
-                  <span className="font-medium">{r.count}</span>
-                </button>
+                <Tooltip key={r.emoji}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleReaction(r.emoji)}
+                      className={cn(
+                        "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors",
+                        reacted
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : "border-border hover:bg-accent",
+                      )}
+                    >
+                      <span>{r.emoji}</span>
+                      <span className="font-medium">{r.count}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px] text-center">
+                    <span className="mb-0.5 block text-base leading-none">{r.emoji}</span>
+                    {reactorSentence(r.userIds)}
+                  </TooltipContent>
+                </Tooltip>
               );
             })}
 
             {/* Thumbs up quick reaction (the only thumbs-up shown) */}
-            <button
-              onClick={() => handleReaction("👍")}
-              className={cn(
-                "h-7 flex items-center justify-center gap-1 rounded-md border px-2 transition-colors",
-                hasThumbsUp
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border hover:bg-accent text-muted-foreground hover:text-foreground",
-              )}
-              title="Like"
-            >
-              <ThumbsUpIcon className="size-3.5" weight={hasThumbsUp ? "fill" : "regular"} />
-              {(thumbsUpReaction?.count ?? 0) > 0 && (
-                <span className="text-xs font-medium">
-                  {thumbsUpReaction?.count}
-                </span>
-              )}
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => handleReaction("👍")}
+                  className={cn(
+                    "h-7 flex items-center justify-center gap-1 rounded-md border px-2 transition-colors",
+                    hasThumbsUp
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border hover:bg-accent text-muted-foreground hover:text-foreground",
+                  )}
+                  aria-label="Like"
+                >
+                  <ThumbsUpIcon className="size-3.5" weight={hasThumbsUp ? "fill" : "regular"} />
+                  {(thumbsUpReaction?.count ?? 0) > 0 && (
+                    <span className="text-xs font-medium">
+                      {thumbsUpReaction?.count}
+                    </span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[220px] text-center">
+                {(thumbsUpReaction?.count ?? 0) > 0 ? (
+                  <>
+                    <span className="mb-0.5 block text-base leading-none">👍</span>
+                    {reactorSentence(thumbsUpReaction?.userIds ?? [])}
+                  </>
+                ) : (
+                  "Like"
+                )}
+              </TooltipContent>
+            </Tooltip>
 
             {/* Emoji picker */}
             <Popover>
@@ -920,6 +972,7 @@ function CommentItem({
               </button>
             )}
           </div>
+          </TooltipProvider>
         )}
       </div>
 

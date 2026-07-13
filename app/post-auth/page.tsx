@@ -2,12 +2,12 @@ import { and, asc, eq } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { activatePendingInvites } from "@/app/actions/workspace";
-import { list, workspace, workspaceMember } from "@/db/schema";
+import { workspace, workspaceMember } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { LAST_WORKSPACE_COOKIE } from "@/lib/last-workspace";
 import { readPendingJoin } from "@/lib/pending-join";
-import { getAccessibleSpaceIds } from "@/lib/permissions";
+import { getWorkspaceLandingState } from "@/lib/workspace-landing";
 import { redirectToSetupIfNeeded } from "@/lib/setup";
 
 export default async function PostAuthPage() {
@@ -85,31 +85,21 @@ export default async function PostAuthPage() {
     redirect("/onboarding");
   }
 
-  const spaceIds = await getAccessibleSpaceIds(
+  const landing = await getWorkspaceLandingState(
     session.user.id,
-    membership.workspaceId
+    membership.workspaceId,
   );
-  if (spaceIds.length > 0) {
-    const [firstList] = await db
-      .select({ id: list.id, spaceId: list.spaceId })
-      .from(list)
-      .where(and(eq(list.spaceId, spaceIds[0]), eq(list.isArchived, false)))
-      .orderBy(asc(list.createdAt))
-      .limit(1);
-
-    if (firstList) {
-      redirect(
-        `/${membership.workspaceId}/${firstList.spaceId}/list/${firstList.id}`
-      );
-    }
+  if (landing.kind === "ACTIVE_SPACE") {
+    redirect(
+      landing.listId
+        ? `/${membership.workspaceId}/${landing.spaceId}/list/${landing.listId}`
+        : `/${membership.workspaceId}/${landing.spaceId}`,
+    );
   }
-
-  // A guest with no accessible projects is still a valid member — land them in
-  // their workspace (which renders an empty state), not the create-project
-  // onboarding wizard they can't complete.
-  if (membership.role === "GUEST") {
-    redirect(`/${membership.workspaceId}`);
+  if (landing.kind === "EMPTY") {
+    redirect("/onboarding");
   }
-
-  redirect("/onboarding");
+  // ONLY_ARCHIVED / NO_ACCESS — land in the workspace, which renders the right
+  // empty state (restore-archived or "ask an admin") instead of onboarding.
+  redirect(`/${membership.workspaceId}`);
 }
