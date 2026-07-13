@@ -917,26 +917,29 @@ export function WorkspaceShell({
                       Workspace settings
                     </Link>
                   )}
-                  {spaces.length === 1 ? (
-                    // Single project — go straight to its settings, no picker needed.
-                    <Link
-                      href={`/${workspace.id}/${spaces[0].id}/settings/general`}
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
-                    >
-                      <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
-                      Project settings
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={() => setShowProjectPicker(true)}
-                      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
-                    >
-                      <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="flex-1 text-left">Project settings</span>
-                      <CaretRightIcon className="size-3.5 text-muted-foreground" />
-                    </button>
-                  )}
+                  {/* Project settings is an owner/admin affordance — members and
+                      guests don't manage projects, so hide it for them. */}
+                  {isAdmin &&
+                    (spaces.length === 1 ? (
+                      // Single project — go straight to its settings, no picker needed.
+                      <Link
+                        href={`/${workspace.id}/${spaces[0].id}/settings/general`}
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                      >
+                        <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
+                        Project settings
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => setShowProjectPicker(true)}
+                        className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                      >
+                        <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="flex-1 text-left">Project settings</span>
+                        <CaretRightIcon className="size-3.5 text-muted-foreground" />
+                      </button>
+                    ))}
                   <Link
                     href={`/${workspace.id}/notifications/settings`}
                     onClick={() => setProfileOpen(false)}

@@ -13,5 +13,12 @@ export const SUPPORT_EMAIL =
 export const MARKETING_DOMAIN =
   process.env.NEXT_PUBLIC_MARKETING_DOMAIN ?? "kanbanica.com";
 
+/**
+ * Cloud/demo instances set NEXT_PUBLIC_SHOW_LANDING_PAGE=true to serve the
+ * marketing landing page at `/`. Unset (self-hosted default) → `/` → /login.
+ */
+export const SHOW_LANDING_PAGE =
+  process.env.NEXT_PUBLIC_SHOW_LANDING_PAGE === "true";
+
 export const ADMIN_ROLE = "admin";
 export const USER_ROLE = "user";

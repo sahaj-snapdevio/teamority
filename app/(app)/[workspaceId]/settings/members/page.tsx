@@ -7,6 +7,8 @@ import { workspace, workspaceMember } from "@/db/schema";
 import { user } from "@/db/schema/auth";
 import { MembersManager } from "@/components/workspace/members-manager";
 import { PRODUCT_NAME } from "@/config/platform";
+import { env } from "@/lib/env";
+import { INVITE_LINK_ROLES, type InviteLinkRole } from "@/db/schema/workspace";
 
 interface MembersPageProps {
   params: Promise<{ workspaceId: string }>;
@@ -21,7 +23,12 @@ export default async function MembersPage({ params }: MembersPageProps) {
   if (!session) redirect("/login");
 
   const [ws] = await db
-    .select({ id: workspace.id, name: workspace.name })
+    .select({
+      id: workspace.id,
+      name: workspace.name,
+      inviteLinkToken: workspace.inviteLinkToken,
+      inviteLinkRole: workspace.inviteLinkRole,
+    })
     .from(workspace)
     .where(eq(workspace.id, workspaceId));
   if (!ws) notFound();
@@ -83,6 +90,13 @@ export default async function MembersPage({ params }: MembersPageProps) {
       pendingInvites={pendingInvites}
       currentUserId={session.user.id}
       actorRole={actor.role}
+      inviteLinkToken={ws.inviteLinkToken ?? null}
+      inviteLinkRole={
+        INVITE_LINK_ROLES.includes(ws.inviteLinkRole as InviteLinkRole)
+          ? (ws.inviteLinkRole as InviteLinkRole)
+          : "MEMBER"
+      }
+      appUrl={env.APP_URL}
     />
   );
 }

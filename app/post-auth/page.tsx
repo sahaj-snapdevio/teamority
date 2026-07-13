@@ -6,6 +6,7 @@ import { workspace, workspaceMember } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getAccessibleSpaceIds } from "@/lib/permissions";
 import { activatePendingInvites } from "@/app/actions/workspace";
+import { readPendingJoin } from "@/lib/pending-join";
 import { list } from "@/db/schema";
 
 export default async function PostAuthPage() {
@@ -18,12 +19,20 @@ export default async function PostAuthPage() {
   // freshly-activated workspace is picked up for the redirect.
   await activatePendingInvites();
 
+  // Continue a shared-invite-link join that started while logged out: the token
+  // was stashed in a cookie at `/join/[token]` and survives the auth round-trip
+  // (incl. Google OAuth). The actual join + cookie-clear happens in a route
+  // handler (cookies can't be mutated during a page render); it redirects to the
+  // workspace on success, or back here (cookie cleared) to fall through on error.
+  if (await readPendingJoin()) redirect("/api/join/consume");
+
   // Platform admins are normal users with extra capabilities — they land in the
   // regular app (their workspaces), and reach the Admin Console via the sidebar.
 
   const [membership] = await db
     .select({
       workspaceId: workspaceMember.workspaceId,
+      role: workspaceMember.role,
     })
     .from(workspaceMember)
     .innerJoin(workspace, eq(workspaceMember.workspaceId, workspace.id))
@@ -51,6 +60,13 @@ export default async function PostAuthPage() {
     if (firstList) {
       redirect(`/${membership.workspaceId}/${firstList.spaceId}/list/${firstList.id}`);
     }
+  }
+
+  // A guest with no accessible projects is still a valid member — land them in
+  // their workspace (which renders an empty state), not the create-project
+  // onboarding wizard they can't complete.
+  if (membership.role === "GUEST") {
+    redirect(`/${membership.workspaceId}`);
   }
 
   redirect("/onboarding");

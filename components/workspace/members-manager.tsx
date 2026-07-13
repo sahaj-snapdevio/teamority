@@ -14,6 +14,8 @@ import {
   transferOwnership,
 } from "@/app/actions/workspace";
 
+import type { InviteLinkRole } from "@/db/schema/workspace";
+import { InviteLinkCard } from "@/components/workspace/invite-link-card";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,6 +76,9 @@ interface MembersManagerProps {
   pendingInvites: PendingInvite[];
   currentUserId: string;
   actorRole: WorkspaceRole;
+  inviteLinkToken: string | null;
+  inviteLinkRole: InviteLinkRole;
+  appUrl: string;
 }
 
 const ROLE_LABELS: Record<WorkspaceRole, string> = {
@@ -91,6 +96,9 @@ export function MembersManager({
   pendingInvites,
   currentUserId,
   actorRole,
+  inviteLinkToken,
+  inviteLinkRole,
+  appUrl,
 }: MembersManagerProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -410,6 +418,15 @@ export function MembersManager({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Invite via link */}
+      <InviteLinkCard
+        workspaceId={workspaceId}
+        inviteLinkToken={inviteLinkToken}
+        inviteLinkRole={inviteLinkRole}
+        appUrl={appUrl}
+        canManage={actorRole === "OWNER" || actorRole === "ADMIN"}
+      />
 
       {/* Pending invites */}
       <Card>

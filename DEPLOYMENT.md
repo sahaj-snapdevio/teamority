@@ -109,6 +109,7 @@ Complete list of variables (validated by `lib/env.ts`). "Client" means it's inli
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` / `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | optional | — | Web Push (`npx web-push generate-vapid-keys`). |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | optional | `support@kanbanica.com` | Override the support email shown in the UI. **Client.** |
 | `NEXT_PUBLIC_MARKETING_DOMAIN` | optional | `kanbanica.com` | Override the marketing domain shown in the UI. **Client.** |
+| `NEXT_PUBLIC_SHOW_LANDING_PAGE` | optional | `false` | Serve the marketing landing page at `/` for logged-out visitors. Unset (default) redirects `/` → `/login` — the usual choice for a self-hosted instance. **Client.** |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Docker only | `kanbanica` | Provision the bundled Postgres; must match `DATABASE_URL`. |
 | `APP_PORT` | Docker only | `3000` | Host port mapped to the app container. |
 

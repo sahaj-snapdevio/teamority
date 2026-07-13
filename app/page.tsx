@@ -6,6 +6,7 @@ import {
   LOGO_PATH,
   PRODUCT_DESCRIPTION,
   PRODUCT_NAME,
+  SHOW_LANDING_PAGE,
 } from "@/config/platform";
 
 const title = `${PRODUCT_NAME} — Project management your team will actually use`;
@@ -40,6 +41,7 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const session = await getCurrentSession();
   if (session) redirect("/post-auth");
+  if (!SHOW_LANDING_PAGE) redirect("/login");
 
   return <LandingPage />;
 }

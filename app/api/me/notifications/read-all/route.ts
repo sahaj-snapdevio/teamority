@@ -10,7 +10,7 @@ export async function PATCH(_req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const now = new Date();
-  await db
+  const updated = await db
     .update(notification)
     .set({ isRead: true, readAt: now })
     .where(
@@ -18,7 +18,8 @@ export async function PATCH(_req: NextRequest) {
         eq(notification.recipientId, session.user.id),
         eq(notification.isRead, false),
       ),
-    );
+    )
+    .returning({ id: notification.id });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, count: updated.length });
 }

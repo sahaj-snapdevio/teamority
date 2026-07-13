@@ -10,9 +10,12 @@ export async function DELETE(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await db.delete(notification).where(eq(notification.recipientId, session.user.id));
+  const deleted = await db
+    .delete(notification)
+    .where(eq(notification.recipientId, session.user.id))
+    .returning({ id: notification.id });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, count: deleted.length });
 }
 
 export async function GET(req: NextRequest) {
