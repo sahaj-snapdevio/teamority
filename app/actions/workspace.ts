@@ -1,7 +1,7 @@
 "use server";
 
 import { createId } from "@paralleldrive/cuid2";
-import { and, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { user, workspace, workspaceMember } from "@/db/schema";
 import { INVITE_LINK_ROLES, type InviteLinkRole } from "@/db/schema/workspace";
@@ -792,7 +792,7 @@ export async function transferOwnership(data: {
 export async function deleteWorkspace(data: {
   workspaceId: string;
   confirmName: string;
-}): Promise<{ ok: true } | { error: string }> {
+}): Promise<{ ok: true; nextWorkspaceId: string | null } | { error: string }> {
   const session = await requireSession();
   if (!session) {
     return { error: "Unauthorized" };
@@ -818,7 +818,25 @@ export async function deleteWorkspace(data: {
     .set({ status: "DELETING", updatedAt: new Date() })
     .where(eq(workspace.id, data.workspaceId));
 
-  return { ok: true };
+  // Where should the owner land now that this workspace is gone? Pick their
+  // next active workspace (if any) so the client can navigate straight there;
+  // otherwise the client sends them to onboarding (create-workspace step).
+  const [next] = await db
+    .select({ id: workspace.id })
+    .from(workspaceMember)
+    .innerJoin(workspace, eq(workspaceMember.workspaceId, workspace.id))
+    .where(
+      and(
+        eq(workspaceMember.userId, session.user.id),
+        eq(workspaceMember.status, "ACTIVE"),
+        eq(workspace.status, "ACTIVE"),
+        ne(workspace.id, data.workspaceId),
+      ),
+    )
+    .orderBy(asc(workspaceMember.createdAt))
+    .limit(1);
+
+  return { ok: true, nextWorkspaceId: next?.id ?? null };
 }
 
 export async function updateWorkspaceTheme(data: {

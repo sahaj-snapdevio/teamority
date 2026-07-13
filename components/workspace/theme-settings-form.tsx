@@ -13,7 +13,7 @@ interface ThemeOption {
   name: string;
 }
 
-const THEME_OPTIONS: ThemeOption[] = [
+export const THEME_OPTIONS: ThemeOption[] = [
   {
     id: "forest",
     name: "Forest",

@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/admin-auth";
+import { redirectToSetupIfNeeded } from "@/lib/setup";
 import { PRODUCT_NAME } from "@/config/platform";
 import { AdminLoginForm } from "./_components/admin-login-form";
 
 export const metadata = { title: `Admin Sign In — ${PRODUCT_NAME}` };
 
 export default async function AdminLoginPage() {
+  await redirectToSetupIfNeeded();
   const session = await getAdminSession();
   if (session) redirect("/admin");
 

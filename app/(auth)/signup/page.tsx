@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/authz";
+import { redirectToSetupIfNeeded } from "@/lib/setup";
 import { getAuthMethods } from "@/lib/auth-config";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -14,6 +15,7 @@ export default async function SignupPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  await redirectToSetupIfNeeded();
   const session = await getCurrentSession();
   if (session) redirect("/post-auth");
 

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import { WarningIcon } from "@phosphor-icons/react";
 import { deleteWorkspace } from "@/app/actions/workspace";
@@ -29,21 +28,24 @@ export function SecuritySettings({
   workspaceId,
   workspaceName,
 }: SecuritySettingsProps) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
-  function run(action: () => Promise<{ ok?: true; error?: string } | { error: string }>, onSuccess?: () => void) {
-    startTransition(async () => {
-      const result = await action();
-      if (result && "error" in result && result.error) {
-        toast.error(result.error);
-        return;
-      }
-      onSuccess?.();
-      router.refresh();
-    });
+  async function confirmDelete() {
+    setPending(true);
+    const result = await deleteWorkspace({ workspaceId, confirmName: deleteConfirm });
+    if ("error" in result) {
+      toast.error(result.error);
+      setPending(false);
+      return;
+    }
+    toast.success("Workspace deleted");
+    // The workspace is now DELETING, so its route 404s — do a hard navigation to
+    // a still-valid destination (another workspace, or the create-workspace step)
+    // rather than a client refresh of the dead route. Keep `pending` true so the
+    // button stays in its loading state until the page unloads.
+    window.location.assign(result.nextWorkspaceId ? `/${result.nextWorkspaceId}` : "/onboarding");
   }
 
   return (
@@ -97,12 +99,7 @@ export function SecuritySettings({
                 <Button
                   variant="destructive"
                   disabled={pending || deleteConfirm.trim() !== workspaceName.trim()}
-                  onClick={() =>
-                    run(
-                      () => deleteWorkspace({ workspaceId, confirmName: deleteConfirm }),
-                      () => { toast.success("Workspace deletion started"); router.push("/onboarding"); },
-                    )
-                  }
+                  onClick={confirmDelete}
                   className="gap-2"
                 >
                   {pending && <Spinner className="size-4" />}

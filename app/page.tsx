@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/authz";
+import { redirectToSetupIfNeeded } from "@/lib/setup";
 import LandingPage from "@/components/landing-page";
 import {
   LOGO_PATH,
@@ -39,6 +40,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
+  await redirectToSetupIfNeeded();
   const session = await getCurrentSession();
   if (session) redirect("/post-auth");
   if (!SHOW_LANDING_PAGE) redirect("/login");

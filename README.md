@@ -67,11 +67,9 @@ pnpm db:migrate   # create the tables (first time only)
 pnpm dev          # start the web app + worker
 ```
 
-Open <http://localhost:3000> and sign in with a magic link — with no SMTP configured, the link is **printed in your terminal**. (Prefer a password? Set `ALLOW_PASSWORD_SIGNUP=true` in `.env` and register at `/signup`; without SMTP you're signed in immediately, no verification step.) Then make yourself an admin:
+Open <http://localhost:3000>. On a fresh database you're taken to the **first-run setup wizard** at `/setup` — enter a name, email, and password to create your administrator account and you're signed straight in. That's the whole bootstrap; no terminal step.
 
-```bash
-pnpm make:admin you@example.com
-```
+> Prefer another way in? Sign in with a **magic link** (printed in your terminal when no SMTP is configured), or set `ALLOW_PASSWORD_SIGNUP=true` and register at `/signup`. To make an existing account an admin, run `pnpm make:admin you@example.com`. See **[SETUP.md](./SETUP.md)** for details.
 
 📖 Full step-by-step walkthrough (with troubleshooting): **[SETUP.md](./SETUP.md)**.
 

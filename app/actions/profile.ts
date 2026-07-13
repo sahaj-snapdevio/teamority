@@ -1,32 +1,13 @@
 "use server";
 
-import { and, count, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import {
-  account,
-  channelMember,
-  commentReaction,
-  mutedEntity,
-  notification,
-  pushSubscription,
-  savedFilter,
-  session as sessionTable,
-  spaceMember,
-  taskAssignee,
-  taskWatcher,
-  timeLog,
-  user,
-  userEmailPreference,
-  userNotificationPreference,
-  userOnboardingProgress,
-  userSearchHistory,
-  workspaceMember,
-} from "@/db/schema";
+import { session as sessionTable, user } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireSession } from "@/lib/authz";
 import { db } from "@/lib/db";
-import { storage } from "@/lib/storage";
+import { purgeUser, soleOwnedWorkspaces } from "@/lib/user-deletion";
 
 export interface ActionState {
   error?: string;
@@ -66,7 +47,6 @@ export async function updateNameAction(
   revalidatePath("/dashboard/profile");
   return { success: "Name updated." };
 }
-
 
 export async function revokeSessionAction(formData: FormData): Promise<void> {
   const current = await requireSession();
@@ -156,50 +136,12 @@ export async function deleteAccountAction(
   }
 
   // Block deletion if this user is the sole owner of any workspace
-  const ownedWorkspaces = await db
-    .select({ workspaceId: workspaceMember.workspaceId })
-    .from(workspaceMember)
-    .where(
-      and(
-        eq(workspaceMember.userId, freshUser.id),
-        eq(workspaceMember.role, "OWNER"),
-        eq(workspaceMember.status, "ACTIVE"),
-      )
-    );
-
-  if (ownedWorkspaces.length > 0) {
-    const ownedIds = ownedWorkspaces.map((r) => r.workspaceId);
-    const ownerCounts = await db
-      .select({
-        workspaceId: workspaceMember.workspaceId,
-        ownerCount: count(),
-      })
-      .from(workspaceMember)
-      .where(
-        and(
-          inArray(workspaceMember.workspaceId, ownedIds),
-          eq(workspaceMember.role, "OWNER"),
-          eq(workspaceMember.status, "ACTIVE"),
-        )
-      )
-      .groupBy(workspaceMember.workspaceId);
-
-    const hasSoleOwnership = ownerCounts.some((r) => r.ownerCount === 1);
-    if (hasSoleOwnership) {
-      return {
-        error:
-          "You are the sole owner of one or more workspaces. Transfer ownership to another member before deleting your account.",
-      };
-    }
-  }
-
-  // Delete avatar from storage before removing DB record
-  if (freshUser.image) {
-    try {
-      await storage.delete(freshUser.image);
-    } catch {
-      // Non-fatal — proceed with deletion even if storage cleanup fails
-    }
+  const soleOwned = await soleOwnedWorkspaces(freshUser.id);
+  if (soleOwned.length > 0) {
+    return {
+      error:
+        "You are the sole owner of one or more workspaces. Transfer ownership to another member before deleting your account.",
+    };
   }
 
   await audit({
@@ -211,31 +153,7 @@ export async function deleteAccountAction(
     entityType: "user",
   });
 
-  await db.transaction(async (tx) => {
-    // Notification & preferences
-    await tx.delete(notification).where(eq(notification.recipientId, freshUser.id));
-    await tx.delete(userNotificationPreference).where(eq(userNotificationPreference.userId, freshUser.id));
-    await tx.delete(userEmailPreference).where(eq(userEmailPreference.userId, freshUser.id));
-    await tx.delete(mutedEntity).where(eq(mutedEntity.userId, freshUser.id));
-    await tx.delete(pushSubscription).where(eq(pushSubscription.userId, freshUser.id));
-    // Search & filters
-    await tx.delete(userSearchHistory).where(eq(userSearchHistory.userId, freshUser.id));
-    await tx.delete(savedFilter).where(eq(savedFilter.userId, freshUser.id));
-    await tx.delete(userOnboardingProgress).where(eq(userOnboardingProgress.userId, freshUser.id));
-    // Task participation
-    await tx.delete(taskAssignee).where(eq(taskAssignee.userId, freshUser.id));
-    await tx.delete(taskWatcher).where(eq(taskWatcher.userId, freshUser.id));
-    await tx.delete(timeLog).where(eq(timeLog.userId, freshUser.id));
-    await tx.delete(commentReaction).where(eq(commentReaction.userId, freshUser.id));
-    // Memberships (comments & activity logs are intentionally left — "Deleted User" fallback handles them)
-    await tx.delete(spaceMember).where(eq(spaceMember.userId, freshUser.id));
-    await tx.delete(workspaceMember).where(eq(workspaceMember.userId, freshUser.id));
-    await tx.delete(channelMember).where(eq(channelMember.userId, freshUser.id));
-    // Auth records last
-    await tx.delete(sessionTable).where(eq(sessionTable.userId, freshUser.id));
-    await tx.delete(account).where(eq(account.userId, freshUser.id));
-    await tx.delete(user).where(eq(user.id, freshUser.id));
-  });
+  await purgeUser(freshUser.id, freshUser.image);
 
   redirect("/login");
 }

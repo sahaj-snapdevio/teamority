@@ -90,6 +90,10 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
+    // Sign the user in the moment they click the verification link — they've
+    // proven ownership of the email, so send them into the app (via the
+    // signup callbackURL → /post-auth) instead of dropping them on /login.
+    autoSignInAfterVerification: true,
     // Serves BOTH new sign-ups and email changes — Better Auth passes an
     // identical payload for each, so the copy is deliberately neutral.
     sendVerificationEmail: async ({ user, url }) => {
