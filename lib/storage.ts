@@ -31,6 +31,23 @@ function createStorage() {
 
   // Default: local filesystem — stores files in ./uploads/, served via /api/files.
   // In containers, mount a persistent volume at ./uploads or uploads are lost on redeploy.
+  //
+  // Loud warning in production: with the local driver, uploads (avatars,
+  // attachments) are written to the local disk of whichever instance handled the
+  // request. On ephemeral or multi-instance hosts — serverless, containers with
+  // no shared persistent volume, or horizontally-scaled deployments — a later
+  // request to serve the file can land on a different filesystem and 404, so an
+  // upload "works" immediately but disappears on refresh. Use S3/R2 in prod.
+  if (process.env.NODE_ENV === "production") {
+    console.warn(
+      "[storage] STORAGE_DRIVER=local in production: uploaded files are stored on " +
+        "the local ./uploads filesystem and are NOT durable on ephemeral or " +
+        "multi-instance hosts (they appear to upload but 404 after refresh/redeploy). " +
+        "Set STORAGE_DRIVER=s3 (or r2) with S3_* credentials, or mount a single " +
+        "shared persistent volume at ./uploads.",
+    );
+  }
+
   return new Files({
     adapter: fsAdapter({
       root: path.join(process.cwd(), "uploads"),

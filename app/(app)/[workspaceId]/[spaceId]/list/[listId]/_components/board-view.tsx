@@ -22,16 +22,49 @@ import {
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ArchiveIcon,
+  ArrowCounterClockwiseIcon,
   ArrowsDownUpIcon,
-  FunnelIcon,
+  ArrowSquareOutIcon,
+  CheckCircleIcon,
+  CopyIcon,
+  DotsThreeIcon,
+  HashIcon,
+  LinkIcon,
+  ListPlusIcon,
   PlusIcon,
+  TextAaIcon,
+  TrashIcon,
 } from "@phosphor-icons/react";
+import { toast } from "sonner";
 import { SearchInput } from "@/components/ui/search-input";
-import { updateTaskStatus, reorderTasksInStatus } from "@/app/actions/task";
+import {
+  archiveTask,
+  createSubtask,
+  deleteTask,
+  duplicateTask,
+  reorderTasksInStatus,
+  unarchiveTask,
+  updateTask,
+  updateTaskStatus,
+} from "@/app/actions/task";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
+import { FacetFilter } from "@/components/filters/facet-filter";
+import { PRIORITY_OPTIONS } from "@/lib/filters/options";
+import { toastWithUndo } from "@/lib/undo-toast";
+import { taskUrl } from "@/lib/app-url";
 import { cn } from "@/lib/utils";
 import { QuickCreateTask } from "./quick-create-task";
 
@@ -100,23 +133,205 @@ function CardContent({
   overlay = false,
   isDragging = false,
   dragListeners,
+  workspaceId,
+  spaceId,
+  listId,
+  statuses,
+  canEdit,
+  isAdmin,
+  onRefresh,
 }: {
   task: Task;
   overlay?: boolean;
   isDragging?: boolean;
   dragListeners?: React.HTMLAttributes<HTMLDivElement>;
+  workspaceId?: string;
+  spaceId?: string;
+  listId?: string;
+  statuses?: Status[];
+  canEdit?: boolean;
+  isAdmin?: boolean;
+  onRefresh?: () => void;
 }) {
+  // The hover quick-actions render only on real (non-overlay) cards that were
+  // handed the workspace/list context. The drag overlay stays purely visual.
+  const interactive =
+    !overlay && !!workspaceId && !!spaceId && !!listId && !!onRefresh;
+
+  // Inline rename — mirrors the list-row flow (updateTask({ title })).
+  const [localTitle, setLocalTitle] = React.useState(task.title);
+  const [renaming, setRenaming] = React.useState(false);
+  const [titleDraft, setTitleDraft] = React.useState(task.title);
+  React.useEffect(() => { setLocalTitle(task.title); }, [task.title]);
+
+  // Show a tooltip with the full title only when it's actually clipped by the
+  // 2-line clamp (vertical) or an unbreakable word (horizontal).
+  const titleRef = React.useRef<HTMLParagraphElement>(null);
+  const [titleTruncated, setTitleTruncated] = React.useState(false);
+  React.useEffect(() => {
+    const el = titleRef.current;
+    setTitleTruncated(
+      el
+        ? el.scrollHeight > el.clientHeight + 1 ||
+            el.scrollWidth > el.clientWidth + 1
+        : false,
+    );
+  }, [localTitle]);
+
+  // Add-subtask mini composer + delete confirm.
+  const [subtaskOpen, setSubtaskOpen] = React.useState(false);
+  const [subtaskTitle, setSubtaskTitle] = React.useState("");
+  const [creatingSubtask, setCreatingSubtask] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+
+  function startRename() {
+    if (!canEdit) return;
+    setTitleDraft(localTitle);
+    setRenaming(true);
+  }
+  function cancelRename() {
+    setRenaming(false);
+  }
+  async function commitRename() {
+    const trimmed = titleDraft.trim();
+    setRenaming(false);
+    // Empty or unchanged after trim → keep the old title, no request.
+    if (!trimmed || trimmed === localTitle) return;
+    setLocalTitle(trimmed); // optimistic
+    const res = await updateTask(workspaceId!, spaceId!, listId ?? null, task.id, { title: trimmed });
+    if (res && "error" in res) {
+      setLocalTitle(task.title); // revert
+      toast.error(res.error);
+      return;
+    }
+    onRefresh?.();
+  }
+
+  // Completion is status-driven: "complete" == current status type CLOSED.
+  const currentStatus = statuses?.find((s) => s.id === task.statusId);
+  const isDone = currentStatus?.type === "CLOSED";
+  const doneStatus = statuses?.find((s) => s.type === "CLOSED");
+  const openStatus =
+    statuses?.find((s) => s.type === "OPEN") ??
+    statuses?.find((s) => s.type === "ACTIVE");
+  const completeTarget = isDone ? openStatus : doneStatus;
+
+  async function toggleComplete() {
+    if (!completeTarget) return;
+    const res = await updateTaskStatus(workspaceId!, spaceId!, listId ?? null, task.id, completeTarget.id);
+    if (res && "error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    onRefresh?.();
+  }
+
+  async function addSubtask() {
+    const trimmed = subtaskTitle.trim();
+    if (!trimmed || creatingSubtask) return;
+    setCreatingSubtask(true);
+    const res = await createSubtask(workspaceId!, spaceId!, task.id, trimmed);
+    setCreatingSubtask(false);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    setSubtaskTitle("");
+    setSubtaskOpen(false);
+    toast.success("Subtask added");
+    onRefresh?.();
+  }
+
+  async function handleDuplicate() {
+    const res = await duplicateTask(workspaceId!, spaceId!, listId ?? null, task.id);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    onRefresh?.();
+  }
+  async function handleArchive() {
+    await archiveTask(workspaceId!, spaceId!, listId ?? null, task.id);
+    onRefresh?.();
+    toastWithUndo("Task archived", async () => {
+      await unarchiveTask(workspaceId!, spaceId!, listId ?? null, task.id);
+      onRefresh?.();
+    });
+  }
+  async function confirmDelete() {
+    setDeleting(true);
+    await deleteTask(workspaceId!, spaceId!, listId ?? null, task.id);
+    setDeleting(false);
+    setDeleteOpen(false);
+    onRefresh?.();
+  }
+  async function copyTaskLink() {
+    try {
+      await navigator.clipboard.writeText(taskUrl(workspaceId!, task.id));
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  }
+  async function copyTaskId() {
+    try {
+      await navigator.clipboard.writeText(task.id);
+      toast.success("Task ID copied");
+    } catch {
+      toast.error("Couldn't copy ID");
+    }
+  }
+
+  const iconBtn =
+    "flex size-6 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  const menuItem =
+    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer";
+
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-3 shadow-sm",
+        "relative rounded-lg border bg-card p-3 shadow-sm group/card",
         isDragging && "opacity-40 shadow-none border-dashed",
         overlay && "shadow-xl rotate-1 cursor-grabbing",
         !isDragging && !overlay && "hover:shadow-md transition-shadow",
       )}
     >
       <div {...dragListeners} className={cn(!overlay && "cursor-grab active:cursor-grabbing")}>
-        <p className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2">{task.title}</p>
+        {renaming ? (
+          <input
+            autoFocus
+            className="w-full rounded-md border border-input bg-background px-1.5 py-0.5 text-[13px] font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void commitRename();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancelRename();
+              }
+            }}
+            onBlur={() => void commitRename()}
+          />
+        ) : titleTruncated && !overlay ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p ref={titleRef} className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2">{localTitle}</p>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              <span className="block min-w-0 whitespace-normal break-words text-center">
+                {localTitle}
+              </span>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <p ref={titleRef} className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2">{localTitle}</p>
+        )}
         {task.tags.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {task.tags.map((tag) => (
@@ -162,13 +377,181 @@ function CardContent({
           </div>
         </div>
       </div>
+
+      {/* Hover quick actions — sibling of the drag/click div above, so it starts
+          neither a drag nor a task-open. Revealed by CSS on card hover, keyboard
+          focus-within, or while one of its menus is open (data-state=open).
+          pointer-events-none while hidden so taps pass through to open the task.
+          Hidden entirely while renaming so it doesn't overlap the title input. */}
+      {interactive && !renaming && (
+        <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5 rounded-md border bg-card/95 p-0.5 opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 has-[[data-state=open]]:pointer-events-auto has-[[data-state=open]]:opacity-100">
+          {canEdit && completeTarget && (
+            <button
+              type="button"
+              title={isDone ? "Reopen" : "Complete"}
+              className={iconBtn}
+              onClick={() => void toggleComplete()}
+            >
+              {isDone ? (
+                <ArrowCounterClockwiseIcon className="size-4" />
+              ) : (
+                <CheckCircleIcon className="size-4" />
+              )}
+            </button>
+          )}
+          {canEdit && (
+            <Popover
+              open={subtaskOpen}
+              onOpenChange={(o) => {
+                setSubtaskOpen(o);
+                if (!o) setSubtaskTitle("");
+              }}
+            >
+              <PopoverTrigger asChild>
+                <button type="button" title="Add subtask" className={iconBtn}>
+                  <ListPlusIcon className="size-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 rounded-xl p-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    autoFocus
+                    placeholder="Subtask name…"
+                    className="h-8 rounded-md text-xs"
+                    value={subtaskTitle}
+                    disabled={creatingSubtask}
+                    onChange={(e) => setSubtaskTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void addSubtask();
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8 shrink-0 rounded-md px-3 text-xs font-semibold"
+                    disabled={creatingSubtask || !subtaskTitle.trim()}
+                    onClick={() => void addSubtask()}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+          {canEdit && (
+            <button type="button" title="Rename" className={iconBtn} onClick={startRename}>
+              <TextAaIcon className="size-4" />
+            </button>
+          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button type="button" title="More" className={iconBtn}>
+                <DotsThreeIcon className="size-4.5" weight="bold" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-52 rounded-xl p-1">
+              <button type="button" className={menuItem} onClick={() => void copyTaskLink()}>
+                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy task link
+              </button>
+              <a
+                href={taskUrl(workspaceId!, task.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={menuItem}
+              >
+                <ArrowSquareOutIcon className="size-3.5 text-muted-foreground" /> Open in new tab
+              </a>
+              <button type="button" className={menuItem} onClick={() => void copyTaskId()}>
+                <HashIcon className="size-3.5 text-muted-foreground" /> Copy task ID
+              </button>
+              {canEdit && (
+                <>
+                  <div className="h-px bg-border my-1" />
+                  <button type="button" className={menuItem} onClick={() => void handleDuplicate()}>
+                    <CopyIcon className="size-3.5 text-muted-foreground" /> Duplicate
+                  </button>
+                  <button type="button" className={menuItem} onClick={() => void handleArchive()}>
+                    <ArchiveIcon className="size-3.5 text-muted-foreground" /> Archive
+                  </button>
+                </>
+              )}
+              {isAdmin && (
+                <button
+                  type="button"
+                  className={cn(menuItem, "text-red-600 hover:bg-red-50 hover:text-red-700")}
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <TrashIcon className="size-3.5" /> Delete
+                </button>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
+
+      {interactive && (
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogContent className="rounded-xl sm:max-w-sm">
+            <DialogTitle className="sr-only">Delete task</DialogTitle>
+            <div className="flex flex-col items-center gap-3 pt-2 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-red-100">
+                <TrashIcon className="size-6 text-red-600" />
+              </div>
+              <div>
+                <p className="text-base font-semibold">Delete task?</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  “{localTitle}” will be permanently deleted. This can’t be undone.
+                </p>
+              </div>
+              <div className="mt-2 flex w-full gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-md"
+                  disabled={deleting}
+                  onClick={() => setDeleteOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1 rounded-md"
+                  disabled={deleting}
+                  onClick={() => void confirmDelete()}
+                >
+                  {deleting ? "Deleting…" : "Delete"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
 
 // ─── Sortable task card ───────────────────────────────────────────────────────
 
-function TaskCard({ task, workspaceId }: { task: Task; workspaceId: string }) {
+function TaskCard({
+  task,
+  workspaceId,
+  spaceId,
+  listId,
+  statuses,
+  canEdit,
+  isAdmin,
+  onRefresh,
+}: {
+  task: Task;
+  workspaceId: string;
+  spaceId: string;
+  listId: string;
+  statuses: Status[];
+  canEdit?: boolean;
+  isAdmin?: boolean;
+  onRefresh: () => void;
+}) {
   const router = useRouter();
   const {
     attributes,
@@ -204,6 +587,13 @@ function TaskCard({ task, workspaceId }: { task: Task; workspaceId: string }) {
         task={task}
         isDragging={isDragging}
         dragListeners={clickableListeners}
+        workspaceId={workspaceId}
+        spaceId={spaceId}
+        listId={listId}
+        statuses={statuses}
+        canEdit={canEdit}
+        isAdmin={isAdmin}
+        onRefresh={onRefresh}
       />
     </div>
   );
@@ -217,12 +607,20 @@ function Column({
   workspaceId,
   space,
   list,
+  statuses,
+  canEdit,
+  isAdmin,
+  onRefresh,
 }: {
   status: Status;
   tasks: Task[];
   workspaceId: string;
   space: BoardViewProps["space"];
   list: BoardViewProps["list"];
+  statuses: Status[];
+  canEdit?: boolean;
+  isAdmin?: boolean;
+  onRefresh: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
 
@@ -254,7 +652,17 @@ function Column({
           style={isOver ? { boxShadow: `inset 0 0 0 2px ${status.color}` } : undefined}
         >
           {tasks.map((t) => (
-            <TaskCard key={t.id} task={t} workspaceId={workspaceId} />
+            <TaskCard
+              key={t.id}
+              task={t}
+              workspaceId={workspaceId}
+              spaceId={space.id}
+              listId={list.id}
+              statuses={statuses}
+              canEdit={canEdit}
+              isAdmin={isAdmin}
+              onRefresh={onRefresh}
+            />
           ))}
         </div>
       </SortableContext>
@@ -273,6 +681,11 @@ function Column({
 // ─── Board ────────────────────────────────────────────────────────────────────
 
 export function BoardView({ workspaceId, space, list, statuses, tasks, members = [], canEdit, isAdmin }: BoardViewProps) {
+  const router = useRouter();
+  // Re-pull the server-rendered board after a card quick-action. The actions
+  // revalidate + broadcast server-side; this refreshes the current view too.
+  const handleRefresh = React.useCallback(() => router.refresh(), [router]);
+
   // Local task state for optimistic drag updates
   const [localTasks, setLocalTasks] = React.useState<Task[]>(tasks);
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
@@ -290,8 +703,6 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
   const [priorityFilter, setPriorityFilter] = React.useState<string[]>([]);
   const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([]);
-
-  const hasActiveFilters = statusFilter.length > 0 || priorityFilter.length > 0 || assigneeFilter.length > 0;
 
   // ── Filtered + sorted tasks (for display) ────────────────────────────────
   const processedTasks = React.useMemo(() => {
@@ -420,7 +831,7 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
   }
 
   return (
-    <>
+    <TooltipProvider delayDuration={300}>
       <CreateTaskModal
         open={createOpen}
         onOpenChange={setCreateOpen}
@@ -443,100 +854,34 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
             className="w-44 focus:w-56"
           />
 
-          {/* Filter Popover */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer select-none">
-                <FunnelIcon className="size-3.5" />
-                Filters
-                {hasActiveFilters && (
-                  <span className="ml-1 size-2 rounded-full bg-primary" />
-                )}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-64 p-3 space-y-4">
-              {/* Status filter */}
-              <div>
-                <p className="mb-1.5 text-2xs font-bold text-muted-foreground uppercase tracking-wide">Status</p>
-                <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
-                  {statuses.map((s) => (
-                    <label key={s.id} className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent rounded">
-                      <input
-                        type="checkbox"
-                        checked={statusFilter.includes(s.id)}
-                        onChange={(e) => {
-                          setStatusFilter((prev) => e.target.checked ? [...prev, s.id] : prev.filter((id) => id !== s.id));
-                        }}
-                        className="rounded border-border text-primary focus:ring-primary size-3.5"
-                      />
-                      <span className="truncate">{s.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Priority filter */}
-              <div>
-                <p className="mb-1.5 text-2xs font-bold text-muted-foreground uppercase tracking-wide">Priority</p>
-                <div className="flex flex-col gap-1">
-                  {["URGENT", "HIGH", "MEDIUM", "LOW", "NONE"].map((p) => (
-                    <label key={p} className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent rounded">
-                      <input
-                        type="checkbox"
-                        checked={priorityFilter.includes(p)}
-                        onChange={(e) => {
-                          setPriorityFilter((prev) => e.target.checked ? [...prev, p] : prev.filter((v) => v !== p));
-                        }}
-                        className="rounded border-border text-primary focus:ring-primary size-3.5"
-                      />
-                      <span>{p === "NONE" ? "No Priority" : p.charAt(0) + p.slice(1).toLowerCase()}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Assignee filter */}
-              {members.length > 0 && (
-                <div>
-                  <p className="mb-1.5 text-2xs font-bold text-muted-foreground uppercase tracking-wide">Assignee</p>
-                  <div className="flex flex-col gap-1 max-h-36 overflow-y-auto">
-                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent rounded">
-                      <input
-                        type="checkbox"
-                        checked={assigneeFilter.includes("unassigned")}
-                        onChange={(e) => {
-                          setAssigneeFilter((prev) => e.target.checked ? [...prev, "unassigned"] : prev.filter((v) => v !== "unassigned"));
-                        }}
-                        className="rounded border-border text-primary focus:ring-primary size-3.5"
-                      />
-                      <span>Unassigned</span>
-                    </label>
-                    {members.map((m) => (
-                      <label key={m.userId} className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent rounded">
-                        <input
-                          type="checkbox"
-                          checked={assigneeFilter.includes(m.userId)}
-                          onChange={(e) => {
-                            setAssigneeFilter((prev) => e.target.checked ? [...prev, m.userId] : prev.filter((id) => id !== m.userId));
-                          }}
-                          className="rounded border-border text-primary focus:ring-primary size-3.5"
-                        />
-                        <span className="truncate">{m.name || m.email}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Clear all */}
-              <button
-                onClick={() => { setPriorityFilter([]); setAssigneeFilter([]); setStatusFilter([]); }}
-                className="w-full py-1 text-center text-destructive hover:bg-destructive/10 rounded text-xs font-semibold transition-colors cursor-pointer"
-              >
-                Clear Filters
-              </button>
-            </PopoverContent>
-          </Popover>
+          {/* Filters — shared facet controls (same state + filter logic) */}
+          <FacetFilter
+            label="Status"
+            options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+            selected={statusFilter}
+            onChange={setStatusFilter}
+          />
+          <FacetFilter
+            label="Priority"
+            options={PRIORITY_OPTIONS}
+            selected={priorityFilter}
+            onChange={setPriorityFilter}
+          />
+          {members.length > 0 && (
+            <FacetFilter
+              label="Assignee"
+              searchable
+              options={[
+                { value: "unassigned", label: "Unassigned" },
+                ...members.map((m) => ({
+                  value: m.userId,
+                  label: m.name || m.email || "Unknown",
+                })),
+              ]}
+              selected={assigneeFilter}
+              onChange={setAssigneeFilter}
+            />
+          )}
 
           {/* Sort */}
           <Popover>
@@ -582,6 +927,10 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
               workspaceId={workspaceId}
               space={space}
               list={list}
+              statuses={statuses}
+              canEdit={canEdit}
+              isAdmin={isAdmin}
+              onRefresh={handleRefresh}
             />
           ))}
         </div>
@@ -591,6 +940,6 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
           {activeTask && <CardContent task={activeTask} overlay />}
         </DragOverlay>
       </DndContext>
-    </>
+    </TooltipProvider>
   );
 }
