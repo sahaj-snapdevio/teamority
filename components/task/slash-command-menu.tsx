@@ -2,6 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 // ─── Shared "/" command menu ──────────────────────────────────────────────────
@@ -277,12 +278,36 @@ export function SlashCommandMenu({ menu }: { menu: SlashMenuController }) {
     setPos({ top, left });
   }, [open, slash, filtered.length, menuRef]);
 
-  if (!(open && slash)) {
+  // Since the menu is portaled to <body> (outside the Dialog/Sheet content), a
+  // native pointerdown listener on the menu stops the event before it reaches
+  // the document — so Radix's DismissableLayer never treats a click on a command
+  // as an "outside" interaction that would close the surrounding dialog/sheet.
+  // A native listener (not React's document-delegated one) is required for this
+  // to reliably beat Radix's own document listener. The item's click still fires.
+  React.useEffect(() => {
+    const el = menuRef.current;
+    if (!open || !el) {
+      return;
+    }
+    // Only pointerdown (Radix's dismiss trigger). NOT mousedown — the grid item's
+    // onMouseDown preventDefault (which keeps editor focus so the "/" text isn't
+    // orphaned) must still reach React's delegated handler.
+    const stop = (e: Event) => e.stopPropagation();
+    el.addEventListener("pointerdown", stop);
+    return () => el.removeEventListener("pointerdown", stop);
+  }, [open, menuRef]);
+
+  if (!(open && slash) || typeof document === "undefined") {
     return null;
   }
-  return (
+  // Portal to <body> so the `position: fixed` menu escapes any transformed /
+  // overflow-clipping ancestor (e.g. the Create Task Dialog or the task Sheet)
+  // and lands at the caret. `pointer-events-auto` re-enables clicks: an open
+  // Radix modal sets `pointer-events: none` on everything outside its content,
+  // which a <body> portal would otherwise inherit (menu shows but isn't clickable).
+  return createPortal(
     <div
-      className="fixed z-50 w-110 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto overscroll-contain rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-lg"
+      className="pointer-events-auto fixed z-50 w-110 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto overscroll-contain rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-lg"
       ref={menuRef}
       style={{
         top: pos?.top ?? slash.top,
@@ -292,11 +317,12 @@ export function SlashCommandMenu({ menu }: { menu: SlashMenuController }) {
     >
       <SlashCommandGrid
         commands={filtered}
-        selectedIndex={selectedIndex}
-        onSelect={selectCommand}
         onHover={setSelectedIndex}
+        onSelect={selectCommand}
+        selectedIndex={selectedIndex}
       />
-    </div>
+    </div>,
+    document.body
   );
 }
 

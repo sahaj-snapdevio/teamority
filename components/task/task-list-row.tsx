@@ -4,15 +4,19 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   ArchiveIcon,
+  ArrowSquareOutIcon,
   ArrowsOutCardinalIcon,
   CalendarBlankIcon,
   CheckIcon,
   CopyIcon,
   DotsThreeIcon,
   DotsSixVerticalIcon,
+  HashIcon,
   LightningIcon,
+  LinkIcon,
   PencilSimpleIcon,
   PushPinIcon,
+  TextAaIcon,
   TrayIcon,
   TrashIcon,
   UserIcon,
@@ -44,6 +48,7 @@ import { InviteMemberModal } from "@/components/workspace/invite-member-modal";
 import { getSprints, bulkMoveTasksToSprint } from "@/app/actions/sprint";
 import { getWorkspaceLists } from "@/app/actions/list";
 import { cn } from "@/lib/utils";
+import { taskUrl } from "@/lib/app-url";
 import { PRIORITY_CONFIG, userInitials, avatarSrc, formatDueDate } from "@/lib/priority-config";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -132,6 +137,70 @@ export function TaskListRow({
   // to the start date for single-date tasks).
   const [localDueDate, setLocalDueDate] = React.useState<Date | null>(task.dueDateEnd ?? task.dueDateStart ?? null);
   const [localPersonalPin, setLocalPersonalPin] = React.useState(isPersonallyPinnedProp ?? false);
+
+  // ── Inline rename ─────────────────────────────────────────────────────────
+  const [localTitle, setLocalTitle] = React.useState(task.title);
+  const [renaming, setRenaming] = React.useState(false);
+  const [titleDraft, setTitleDraft] = React.useState(task.title);
+  // Confined single-vs-double-click disambiguation on the title only, so a
+  // single click still opens the task and a double click renames it.
+  const titleClickTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => { setLocalTitle(task.title); }, [task.title]);
+
+  // Return DOM focus to this row (keyboard-nav position is preserved).
+  function focusRow() {
+    if (typeof document === "undefined") return;
+    document
+      .querySelector<HTMLElement>(`[data-task-row][data-task-id="${task.id}"]`)
+      ?.focus();
+  }
+
+  function startRename() {
+    if (!canEdit) return;
+    if (titleClickTimer.current) clearTimeout(titleClickTimer.current);
+    setTitleDraft(localTitle);
+    setRenaming(true);
+  }
+
+  function cancelRename() {
+    setRenaming(false);
+    requestAnimationFrame(focusRow);
+  }
+
+  async function commitRename() {
+    const trimmed = titleDraft.trim();
+    setRenaming(false);
+    requestAnimationFrame(focusRow);
+    // Empty after trim → keep the previous title, no request.
+    if (!trimmed) return;
+    // Unchanged → exit without a network request.
+    if (trimmed === localTitle) return;
+    setLocalTitle(trimmed); // optimistic
+    const res = await updateTask(workspaceId, spaceId, effectiveListId, task.id, { title: trimmed });
+    if (res && "error" in res) {
+      setLocalTitle(task.title); // revert
+      toast.error(res.error);
+      return;
+    }
+    onRefresh();
+  }
+
+  async function copyTaskLink() {
+    try {
+      await navigator.clipboard.writeText(taskUrl(workspaceId, task.id));
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  }
+  async function copyTaskId() {
+    try {
+      await navigator.clipboard.writeText(task.id);
+      toast.success("Task ID copied");
+    } catch {
+      toast.error("Couldn't copy ID");
+    }
+  }
 
   React.useEffect(() => { setLocalPriority(task.priority ?? "NONE"); }, [task.priority]);
   React.useEffect(() => { setLocalDueDate(task.dueDateEnd ?? task.dueDateStart ?? null); }, [task.dueDateEnd, task.dueDateStart]);
@@ -506,6 +575,19 @@ export function TaskListRow({
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56 p-1 max-h-80 overflow-y-auto">
+              <button onClick={startRename} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
+                <TextAaIcon className="size-3.5 text-muted-foreground" /> Rename
+              </button>
+              <button onClick={copyTaskLink} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
+                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy task link
+              </button>
+              <a href={taskUrl(workspaceId, task.id)} target="_blank" rel="noopener noreferrer" className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
+                <ArrowSquareOutIcon className="size-3.5 text-muted-foreground" /> Open in new tab
+              </a>
+              <button onClick={copyTaskId} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
+                <HashIcon className="size-3.5 text-muted-foreground" /> Copy task ID
+              </button>
+              <div className="h-px bg-border my-1" />
               <p className="px-2 py-1 text-2xs font-bold text-muted-foreground uppercase tracking-wide">Move to Sprint</p>
               {moveSprints === null ? (
                 <p className="px-2 py-1.5 text-xs text-muted-foreground">Loading…</p>
@@ -564,6 +646,27 @@ export function TaskListRow({
             </PopoverContent>
           </Popover>
         )}
+        {/* Viewers get a minimal menu with just the share actions. */}
+        {!canEdit && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex size-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                <DotsThreeIcon className="size-4.5" weight="bold" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-48 p-1">
+              <button onClick={copyTaskLink} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
+                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy task link
+              </button>
+              <a href={taskUrl(workspaceId, task.id)} target="_blank" rel="noopener noreferrer" className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
+                <ArrowSquareOutIcon className="size-3.5 text-muted-foreground" /> Open in new tab
+              </a>
+              <button onClick={copyTaskId} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
+                <HashIcon className="size-3.5 text-muted-foreground" /> Copy task ID
+              </button>
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
     </div>
   );
@@ -604,8 +707,12 @@ export function TaskListRow({
         ref={dragRef}
         style={dragStyle}
         {...dragProps}
+        data-task-row
+        data-task-id={task.id}
+        tabIndex={-1}
         className={cn(
           "group/row hidden md:flex items-center border-b border-border cursor-pointer text-foreground bg-card min-h-10 text-sm",
+          "outline-none focus:ring-2 focus:ring-inset focus:ring-primary/50 focus:relative focus:z-10",
           isDragging ? "opacity-40 shadow-none border-dashed" : "transition-colors duration-150",
           selected ? "bg-primary/5" : "hover:bg-accent/30",
         )}
@@ -638,7 +745,41 @@ export function TaskListRow({
             <PushPinIcon className={cn("size-2.5 shrink-0", localPersonalPin ? "text-primary" : "invisible")} weight="fill" />
             #{task.seqNumber}
           </span>
-          <span className="text-[13px] font-medium text-foreground truncate group-hover/row:text-primary transition-colors">{task.title}</span>
+          {renaming ? (
+            <input
+              autoFocus
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter") { e.preventDefault(); void commitRename(); }
+                else if (e.key === "Escape") { e.preventDefault(); cancelRename(); }
+              }}
+              onBlur={() => void commitRename()}
+              className="flex-1 min-w-0 bg-transparent text-[13px] font-medium text-foreground outline-none border-b border-primary/50"
+            />
+          ) : (
+            <span
+              className={cn(
+                "text-[13px] font-medium text-foreground truncate group-hover/row:text-primary transition-colors",
+                canEdit && "cursor-text",
+              )}
+              onClick={canEdit ? (e) => {
+                // Single click still opens; double click renames. Timer confined
+                // to the title so the rest of the row opens instantly.
+                e.stopPropagation();
+                if (titleClickTimer.current) clearTimeout(titleClickTimer.current);
+                titleClickTimer.current = setTimeout(() => onOpen(), 180);
+              } : undefined}
+              onDoubleClick={canEdit ? (e) => {
+                e.stopPropagation();
+                startRename();
+              } : undefined}
+            >
+              {localTitle}
+            </span>
+          )}
           {task.tags.slice(0, 2).map((tag) => (
             <span key={tag.id} className="hidden lg:inline-flex shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold tracking-wide border" style={{ backgroundColor: `${tag.color}10`, color: tag.color, borderColor: `${tag.color}30` }}>
               {tag.name}
@@ -676,7 +817,7 @@ export function TaskListRow({
                 </span>
               )}
             </div>
-            <p className="text-[13px] font-medium text-foreground line-clamp-2">{task.title}</p>
+            <p className="text-[13px] font-medium text-foreground line-clamp-2">{localTitle}</p>
           </div>
           <div onClick={(e) => e.stopPropagation()} className="shrink-0">
             <Popover>
@@ -688,6 +829,12 @@ export function TaskListRow({
               <PopoverContent align="end" className="w-44 p-1">
                 <button onClick={onOpen} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
                   <PencilSimpleIcon className="size-3.5 text-muted-foreground" /> Edit
+                </button>
+                <button onClick={copyTaskLink} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
+                  <LinkIcon className="size-3.5 text-muted-foreground" /> Copy link
+                </button>
+                <button onClick={copyTaskId} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
+                  <HashIcon className="size-3.5 text-muted-foreground" /> Copy ID
                 </button>
                 <button onClick={handleDuplicate} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer">
                   <CopyIcon className="size-3.5 text-muted-foreground" /> Duplicate

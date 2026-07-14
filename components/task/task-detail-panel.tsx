@@ -160,8 +160,13 @@ export function TaskDetailPanel({
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
 
+  // Note: `load()` intentionally does NOT flip `loading` to true — it refetches
+  // in the background so the panel stays mounted. Blanking the panel to a
+  // skeleton on every post-edit / realtime refetch would unmount the
+  // AttachmentPreviewProvider below and close an open image preview (the modal's
+  // open state lives in that provider). The skeleton is shown only on the
+  // initial open / task switch, via the effect below.
   async function load() {
-    setLoading(true);
     const [detail, mem, tags] = await Promise.all([
       getTaskDetail(workspaceId, spaceId, taskId),
       getWorkspaceMembers(workspaceId),
@@ -174,7 +179,11 @@ export function TaskDetailPanel({
   }
 
   React.useEffect(() => {
-    if (open && taskId) load();
+    if (open && taskId) {
+      // Show the skeleton only for a genuine open / switch to another task.
+      setLoading(true);
+      load();
+    }
   }, [open, taskId]);
 
   React.useEffect(() => {
@@ -223,6 +232,15 @@ export function TaskDetailPanel({
   }
 
   async function saveDescription() {
+    // Blur fires this even with no edit — skip the write (and its spurious
+    // "updated the description" activity) when the draft matches the server value.
+    const serverDesc =
+      typeof t.description === "string"
+        ? t.description
+        : t.description
+          ? JSON.stringify(t.description)
+          : "";
+    if (descDraft === serverDesc) return;
     await updateTask(workspaceId, spaceId, listId, taskId, { description: descDraft });
     load();
   }
