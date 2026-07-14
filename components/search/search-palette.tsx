@@ -98,9 +98,10 @@ export function SearchPalette({ workspaceId, open, onClose }: SearchPaletteProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
-      {/* Backdrop */}
+      {/* Backdrop — light blur + a semi-transparent dark overlay to keep focus
+          on the palette without heavily obscuring the page behind it. */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
         onClick={onClose}
       />
 

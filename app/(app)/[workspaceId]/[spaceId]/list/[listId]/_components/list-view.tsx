@@ -18,8 +18,10 @@ import {
   ArrowsDownUpIcon,
   GearIcon,
   FunnelIcon,
+  KeyboardIcon,
 } from "@phosphor-icons/react";
 import { SearchInput } from "@/components/ui/search-input";
+import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import {
@@ -225,20 +227,30 @@ const STATUS_PRESET_COLORS = [
   "#F97316", "#84CC16",
 ];
 
+// Fields a quick-created task should inherit from its group. Under Group By =
+// Status this is just the status; under Priority / Assignee it carries the
+// group's priority/assignee plus a sensible default OPEN status (never a
+// closed/done status).
+type QuickCreateDefaults = {
+  statusId?: string;
+  priority?: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  assigneeIds?: string[];
+};
+
 function QuickCreateRow({
   open,
   onOpenChange,
   workspaceId,
   spaceId,
   listId,
-  statusId,
+  createDefaults,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   workspaceId: string;
   spaceId: string;
   listId: string;
-  statusId: string;
+  createDefaults: QuickCreateDefaults;
 }) {
   const router = useRouter();
   const [title, setTitle] = React.useState("");
@@ -254,7 +266,7 @@ function QuickCreateRow({
     if (!trimmed) { onOpenChange(false); return; }
     setSaving(true);
     try {
-      const res = await createTask(workspaceId, spaceId, listId, { title: trimmed, statusId });
+      const res = await createTask(workspaceId, spaceId, listId, { title: trimmed, ...createDefaults });
       if ("error" in res) return;
       setTitle("");
       router.refresh();
@@ -323,6 +335,7 @@ function StatusGroup({
   statuses,
   addOpen,
   onAddOpenChange,
+  createDefaults,
 }: {
   status: Status;
   tasks: Task[];
@@ -338,6 +351,7 @@ function StatusGroup({
   statuses: Status[];
   addOpen: boolean;
   onAddOpenChange: (v: boolean) => void;
+  createDefaults: QuickCreateDefaults;
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
@@ -544,7 +558,7 @@ function StatusGroup({
                 workspaceId={workspaceId}
                 spaceId={spaceId}
                 listId={listId}
-                statusId={status.id}
+                createDefaults={createDefaults}
               />
             </div>
           </SortableContext>
@@ -643,6 +657,33 @@ function BulkActionBar({
   const [loadingSprints, setLoadingSprints] = React.useState(false);
   const [listSpaces, setListSpaces] = React.useState<{ id: string; name: string; color: string | null; lists: { id: string; name: string; color: string | null }[] }[] | null>(null);
   const [loadingLists, setLoadingLists] = React.useState(false);
+
+  // Pressing Delete / Backspace with tasks selected opens the delete confirm —
+  // same as the "Delete" button (admin-only). Ignored while typing in a field or
+  // an editable element so it can't fire mid-edit. This bar only mounts when
+  // there is a selection, so the listener is naturally scoped to that.
+  React.useEffect(() => {
+    if (!isAdmin) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.isContentEditable ||
+          t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT")
+      ) {
+        return;
+      }
+      if (busy || deleteOpen) return;
+      e.preventDefault();
+      setDeleteOpen(true);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isAdmin, busy, deleteOpen]);
 
   async function loadSprints() {
     if (sprints !== null) return;
@@ -862,6 +903,32 @@ function BulkActionBar({
   );
 }
 
+// ─── View persistence ────────────────────────────────────────────────────────
+// Remember Group By / Sort / Filters per list across reloads (per-browser). Not
+// URL/backend — a full named-views system is out of scope.
+type ListViewPrefs = {
+  sortBy: "name" | "due" | "priority" | null;
+  sortOrder: "asc" | "desc";
+  groupBy: "status" | "priority" | "assignee";
+  priorityFilter: string[];
+  assigneeFilter: string[];
+  statusFilter: string[];
+};
+
+function listViewPrefsKey(listId: string) {
+  return `kanbanica:list-view:${listId}`;
+}
+
+function loadListViewPrefs(listId: string): Partial<ListViewPrefs> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(listViewPrefsKey(listId));
+    return raw ? (JSON.parse(raw) as Partial<ListViewPrefs>) : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Main ListView Component ──────────────────────────────────────────────────
 
 export function ListView({
@@ -888,17 +955,50 @@ export function ListView({
   const [createForStatusId, setCreateForStatusId] = React.useState<string | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
 
-  // Local state for Search, Sort, Filter, and Group By inside the Workspace Container
+  // Local state for Search, Sort, Filter, and Group By inside the Workspace Container.
+  // Start from defaults so the server and first client render match (localStorage
+  // isn't available on the server); persisted prefs are applied after mount below.
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortBy, setSortBy] = React.useState<"name" | "due" | "priority" | null>(null);
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc");
   const [groupBy, setGroupBy] = React.useState<"status" | "priority" | "assignee">("status");
   // Only one group's inline "Add Task" row may be open at a time.
   const [openAddGroupId, setOpenAddGroupId] = React.useState<string | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
 
   const [priorityFilter, setPriorityFilter] = React.useState<string[]>([]);
   const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([]);
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
+
+  // Apply persisted view prefs after mount (avoids SSR/client hydration mismatch).
+  // `prefsHydrated` gates the persist effect so we never overwrite saved prefs
+  // with the defaults before they're loaded.
+  const [prefsHydrated, setPrefsHydrated] = React.useState(false);
+  React.useEffect(() => {
+    const p = loadListViewPrefs(listId);
+    if (p) {
+      if (p.sortBy !== undefined) setSortBy(p.sortBy);
+      if (p.sortOrder) setSortOrder(p.sortOrder);
+      if (p.groupBy) setGroupBy(p.groupBy);
+      if (p.priorityFilter) setPriorityFilter(p.priorityFilter);
+      if (p.assigneeFilter) setAssigneeFilter(p.assigneeFilter);
+      if (p.statusFilter) setStatusFilter(p.statusFilter);
+    }
+    setPrefsHydrated(true);
+  }, [listId]);
+
+  // Persist view prefs whenever they change (only after hydration).
+  React.useEffect(() => {
+    if (!prefsHydrated) return;
+    try {
+      window.localStorage.setItem(
+        listViewPrefsKey(listId),
+        JSON.stringify({ sortBy, sortOrder, groupBy, priorityFilter, assigneeFilter, statusFilter }),
+      );
+    } catch {
+      // ignore quota / disabled storage
+    }
+  }, [prefsHydrated, listId, sortBy, sortOrder, groupBy, priorityFilter, assigneeFilter, statusFilter]);
 
   // Optimistic DND tasks
   const [localTasks, setLocalTasks] = React.useState<Task[]>(tasks);
@@ -1019,6 +1119,30 @@ export function ListView({
     return [];
   }, [processedTasks, groupBy, statuses, members, tasks]);
 
+  // First OPEN workflow status — the sensible default for tasks created outside
+  // a status group (e.g. quick-add under a Priority / Assignee group). Never a
+  // closed/done status just because it happens to be first in the array.
+  const defaultOpenStatusId =
+    statuses.find((s) => s.type === "OPEN")?.id ??
+    statuses.find((s) => s.type !== "CLOSED")?.id ??
+    statuses[0]?.id;
+
+  // Correct create-payload for a group's "Add Task", based on the active Group By.
+  function quickCreateDefaultsFor(groupId: string): QuickCreateDefaults {
+    if (groupBy === "status") return { statusId: groupId };
+    if (groupBy === "priority") {
+      return {
+        priority: groupId as QuickCreateDefaults["priority"],
+        statusId: defaultOpenStatusId,
+      };
+    }
+    // assignee
+    return {
+      assigneeIds: groupId === "unassigned" ? [] : [groupId],
+      statusId: defaultOpenStatusId,
+    };
+  }
+
   // Global Checkbox toggles
   const allSelected = processedTasks.length > 0 && processedTasks.every((t) => selectedIds.has(t.id));
   const someSelected = processedTasks.some((t) => selectedIds.has(t.id));
@@ -1030,6 +1154,105 @@ export function ListView({
       processedTasks.forEach((t) => handleSelect(t.id, true));
     }
   }
+
+  // ─── Keyboard navigation ───────────────────────────────────────────────────
+  // Focus lives in the DOM (rows carry `data-task-row`/`data-task-id` + tabIndex)
+  // so arrow/j-k navigation never re-renders rows. Document order already
+  // reflects grouping/sort/filter/collapse. Existing shortcuts are untouched.
+  React.useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const t = e.target as HTMLElement | null;
+      const typing =
+        !!t &&
+        (t.isContentEditable ||
+          t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT");
+
+      // Ctrl/Cmd/Alt combos are never ours (Shift is allowed — it forms "?").
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // Don't hijack keys while an overlay (dialog / popover / dropdown / select)
+      // is open — let it own the keyboard.
+      if (document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]')) {
+        return;
+      }
+
+      // "/" focuses the search box (suppress the browser Quick Find).
+      if (e.key === "/") {
+        const el = document.getElementById("list-view-search") as HTMLInputElement | null;
+        if (el) {
+          e.preventDefault();
+          el.focus();
+          el.select();
+        }
+        return;
+      }
+
+      const rows = Array.from(document.querySelectorAll<HTMLElement>("[data-task-row]"));
+      const active = document.activeElement as HTMLElement | null;
+      const idx = active?.matches?.("[data-task-row]") ? rows.indexOf(active) : -1;
+      const focusAt = (i: number) => {
+        const el = rows[Math.max(0, Math.min(rows.length - 1, i))];
+        if (el) {
+          el.focus();
+          el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+        }
+      };
+
+      switch (e.key) {
+        case "ArrowDown":
+        case "j": {
+          if (rows.length === 0) return;
+          e.preventDefault();
+          focusAt(idx < 0 ? 0 : idx + 1);
+          break;
+        }
+        case "ArrowUp":
+        case "k": {
+          if (rows.length === 0) return;
+          e.preventDefault();
+          focusAt(idx < 0 ? 0 : idx - 1);
+          break;
+        }
+        case "Enter": {
+          if (idx < 0) return;
+          const id = rows[idx].getAttribute("data-task-id");
+          if (id) {
+            e.preventDefault();
+            router.push(`/${workspaceId}/task/${id}`);
+          }
+          break;
+        }
+        case "x": {
+          if (idx < 0) return;
+          const id = rows[idx].getAttribute("data-task-id");
+          if (id) {
+            e.preventDefault();
+            handleSelect(id, !selectedIds.has(id));
+          }
+          break;
+        }
+        case "c": {
+          e.preventDefault();
+          const id = idx >= 0 ? rows[idx].getAttribute("data-task-id") : null;
+          const groupId = (id && findGroupForTask(id)) || groupedGroups[0]?.id || null;
+          setOpenAddGroupId(groupId);
+          break;
+        }
+        case "Escape": {
+          if (selectedIds.size > 0) {
+            e.preventDefault();
+            setSelectedIds(new Set());
+          }
+          active?.blur?.();
+          break;
+        }
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [router, workspaceId, selectedIds, groupedGroups, groupBy]);
 
   // ─── Drag & Drop Event Handlers ────────────────────────────────────────────
   function findGroupForTask(taskId: string) {
@@ -1197,6 +1420,7 @@ export function ListView({
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Search */}
                 <SearchInput
+                  id="list-view-search"
                   placeholder="Search tasks…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -1344,6 +1568,17 @@ export function ListView({
                     <button onClick={() => setGroupBy("assignee")} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer", groupBy === "assignee" && "bg-accent text-foreground")}>Assignee</button>
                   </PopoverContent>
                 </Popover>
+
+                {/* Keyboard shortcuts */}
+                <button
+                  type="button"
+                  onClick={() => setShortcutsOpen(true)}
+                  title="Keyboard Shortcuts (?)"
+                  aria-label="Keyboard shortcuts"
+                  className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
+                >
+                  <KeyboardIcon className="size-4" />
+                </button>
               </div>
 
               {/* Right actions: Create Task button */}
@@ -1385,6 +1620,7 @@ export function ListView({
                   type: "OPEN",
                   orderIndex: 0
                 }}
+                createDefaults={quickCreateDefaultsFor(group.id)}
                 tasks={group.tasks}
                 workspaceId={workspaceId}
                 spaceId={spaceId}
@@ -1468,6 +1704,8 @@ export function ListView({
           onClear={() => setSelectedIds(new Set())}
         />
       )}
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </>
   );
 }

@@ -459,6 +459,11 @@ export function TaskDetailPage({
   }
 
   async function saveDescription() {
+    // Blur fires this even when nothing was edited. Skip the write (and its
+    // "updated the description" activity entry) when the draft still matches the
+    // server value. Reliable because loading the value uses setContent with
+    // emitUpdate:false, so it never mutates descDraft on its own.
+    if (descDraft === serverDescRef.current) return;
     await updateTask(workspaceId, spaceId, listId, taskId, {
       description: descDraft,
     });

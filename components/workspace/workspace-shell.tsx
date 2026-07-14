@@ -15,6 +15,7 @@ import {
   DotsThreeIcon,
   FolderIcon,
   GearIcon,
+  KeyboardIcon,
   LightningIcon,
   ListIcon,
   LockSimpleIcon,
@@ -53,6 +54,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { CreateSpaceModal } from "@/components/workspace/create-space-modal";
 import { SpaceActionDialog } from "@/components/workspace/space-action-dialog";
+import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { authClient } from "@/lib/auth-client";
 import { rememberWorkspace } from "@/lib/last-workspace";
@@ -227,6 +229,7 @@ export function WorkspaceShell({
   const [showArchivedSpaces, setShowArchivedSpaces] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [showProjectPicker, setShowProjectPicker] = React.useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
 
   // The account menu opens on hover. A short close delay lets the pointer travel
   // from the trigger into the (portaled) menu without it snapping shut.
@@ -243,12 +246,30 @@ export function WorkspaceShell({
     }, 180);
   }
 
-  // Ctrl+K / Cmd+K shortcut
+  // Ctrl+K / Cmd+K (command palette) and "?" (keyboard shortcuts) — global.
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         setSearchOpen((o) => !o);
+        return;
+      }
+      // "?" opens the keyboard-shortcuts panel anywhere in the app — unless the
+      // user is typing (editor / input) or an overlay already owns the keyboard.
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const t = e.target as HTMLElement | null;
+        const typing =
+          !!t &&
+          (t.isContentEditable ||
+            t.tagName === "INPUT" ||
+            t.tagName === "TEXTAREA" ||
+            t.tagName === "SELECT");
+        if (typing) return;
+        if (document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]')) {
+          return;
+        }
+        e.preventDefault();
+        setShortcutsOpen(true);
       }
     };
     document.addEventListener("keydown", handler);
@@ -283,6 +304,7 @@ export function WorkspaceShell({
         open={searchOpen}
         workspaceId={workspace.id}
       />
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <CreateSpaceModal
         onOpenChange={setCreateSpaceOpen}
         open={createSpaceOpen}
@@ -1155,6 +1177,20 @@ export function WorkspaceShell({
                     <BellIcon className="size-4 shrink-0 text-muted-foreground" />
                     Notification settings
                   </Link>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setShortcutsOpen(true);
+                    }}
+                  >
+                    <KeyboardIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 text-left">Keyboard shortcuts</span>
+                    <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-2xs font-medium text-muted-foreground">
+                      ?
+                    </kbd>
+                  </button>
                   <Separator className="my-1.5" />
                   <button
                     className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"

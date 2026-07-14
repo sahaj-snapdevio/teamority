@@ -263,7 +263,7 @@ export function CreateTaskModal({
             imageUpload={descImages}
             workspaceId={workspaceId}
             spaceId={spaceId}
-            placeholder="Add a description… paste an image to attach"
+            placeholder="Add a description… Type '/' for commands or paste an image"
           />
 
           {error && <p className="text-sm text-destructive">{error}</p>}
