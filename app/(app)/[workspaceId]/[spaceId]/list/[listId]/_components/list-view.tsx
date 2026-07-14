@@ -17,7 +17,6 @@ import {
   XIcon,
   ArrowsDownUpIcon,
   GearIcon,
-  FunnelIcon,
   KeyboardIcon,
 } from "@phosphor-icons/react";
 import { SearchInput } from "@/components/ui/search-input";
@@ -51,6 +50,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
+import { FacetFilter } from "@/components/filters/facet-filter";
+import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { cn } from "@/lib/utils";
 
 // drag and drop
@@ -1428,115 +1429,48 @@ export function ListView({
                   className="w-44 focus:w-56"
                 />
 
-                {/* Filter Popover */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
-                      <FunnelIcon className="size-3.5 text-gray-500" />
-                      Filters
-                      {(priorityFilter.length > 0 || assigneeFilter.length > 0 || statusFilter.length > 0) && (
-                        <span className="ml-1 size-2 rounded-full bg-primary" />
-                      )}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-64 p-3 space-y-4">
-                    {/* Status filter */}
-                    <div>
-                      <p className="mb-1.5 text-2xs font-bold text-gray-400 uppercase tracking-wide">Status</p>
-                      <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
-                        {statuses.map(s => (
-                          <label key={s.id} className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent/30 rounded">
-                            <input
-                              type="checkbox"
-                              checked={statusFilter.includes(s.id)}
-                              onChange={(e) => {
-                                setStatusFilter(prev => e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id));
-                              }}
-                              className="rounded border-gray-300 text-primary focus:ring-primary size-3.5"
-                            />
-                            <span className="truncate">{s.name}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Priority filter */}
-                    <div>
-                      <p className="mb-1.5 text-2xs font-bold text-gray-400 uppercase tracking-wide">Priority</p>
-                      <div className="flex flex-col gap-1">
-                        {["URGENT", "HIGH", "MEDIUM", "LOW", "NONE"].map(p => (
-                          <label key={p} className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent/30 rounded">
-                            <input
-                              type="checkbox"
-                              checked={priorityFilter.includes(p)}
-                              onChange={(e) => {
-                                setPriorityFilter(prev => e.target.checked ? [...prev, p] : prev.filter(v => v !== p));
-                              }}
-                              className="rounded border-gray-300 text-primary focus:ring-primary size-3.5"
-                            />
-                            <span>{p === "NONE" ? "No Priority" : p.charAt(0) + p.slice(1).toLowerCase()}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Assignee filter */}
-                    {members.length > 0 && (
-                      <div>
-                        <p className="mb-1.5 text-2xs font-bold text-gray-400 uppercase tracking-wide">Assignee</p>
-                        <div className="flex flex-col gap-1 max-h-36 overflow-y-auto">
-                          <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent/30 rounded">
-                            <input
-                              type="checkbox"
-                              checked={assigneeFilter.includes("unassigned")}
-                              onChange={(e) => {
-                                setAssigneeFilter(prev => e.target.checked ? [...prev, "unassigned"] : prev.filter(v => v !== "unassigned"));
-                              }}
-                              className="rounded border-gray-300 text-primary focus:ring-primary size-3.5"
-                            />
-                            <span>Unassigned</span>
-                          </label>
-                          {members.map(m => (
-                            <label key={m.userId} className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent/30 rounded">
-                              <input
-                                type="checkbox"
-                                checked={assigneeFilter.includes(m.userId)}
-                                onChange={(e) => {
-                                  setAssigneeFilter(prev => e.target.checked ? [...prev, m.userId] : prev.filter(id => id !== m.userId));
-                                }}
-                                className="rounded border-gray-300 text-primary focus:ring-primary size-3.5"
-                              />
-                              <span className="truncate">{m.name || m.email}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
+                {/* Filters — shared facet controls (same state + filter logic) */}
+                <FacetFilter
+                  label="Status"
+                  options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+                  selected={statusFilter}
+                  onChange={setStatusFilter}
+                />
+                <FacetFilter
+                  label="Priority"
+                  options={PRIORITY_OPTIONS}
+                  selected={priorityFilter}
+                  onChange={setPriorityFilter}
+                />
+                {members.length > 0 && (
+                  <FacetFilter
+                    label="Assignee"
+                    searchable
+                    options={[
+                      { value: "unassigned", label: "Unassigned" },
+                      ...members.map((m) => ({
+                        value: m.userId,
+                        label: m.name || m.email || "Unknown",
+                      })),
+                    ]}
+                    selected={assigneeFilter}
+                    onChange={setAssigneeFilter}
+                  />
+                )}
+                {onToggleArchived && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleArchived()}
+                    className={cn(
+                      "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
+                      showArchived
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
                     )}
-
-                    {/* Archived tasks */}
-                    {onToggleArchived && (
-                      <div className="border-t border-border pt-3">
-                        <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent/30 rounded">
-                          <input
-                            type="checkbox"
-                            checked={!!showArchived}
-                            onChange={() => onToggleArchived()}
-                            className="rounded border-gray-300 text-primary focus:ring-primary size-3.5"
-                          />
-                          <span>Show archived tasks</span>
-                        </label>
-                      </div>
-                    )}
-
-                    {/* Clear all */}
-                    <button
-                      onClick={() => { setPriorityFilter([]); setAssigneeFilter([]); setStatusFilter([]); }}
-                      className="w-full py-1 text-center text-red-500 hover:bg-red-50 rounded text-xs font-semibold transition-colors cursor-pointer"
-                    >
-                      Clear Filters
-                    </button>
-                  </PopoverContent>
-                </Popover>
+                  >
+                    <ArchiveIcon className="size-3.5" /> Show archived
+                  </button>
+                )}
 
                 {/* Sort */}
                 <Popover>

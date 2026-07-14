@@ -1,9 +1,7 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import {
-  FunnelIcon,
-  XIcon,
   FloppyDiskIcon,
   TrashIcon,
   PencilSimpleIcon,
@@ -14,7 +12,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { FacetFilter } from "@/components/filters/facet-filter";
+import { FilterChip } from "@/components/filters/filter-chip";
+import {
+  DUE_OPTIONS,
+  PRIORITY_OPTIONS,
+  type DueValue,
+} from "@/lib/filters/options";
 import type { FilterState, SavedFilterRow } from "@/app/actions/search";
 import {
   getSavedFilters,
@@ -51,25 +55,6 @@ interface ListFilterToolbarProps {
   onChange: (f: FilterState) => void;
 }
 
-const PRIORITY_OPTIONS = [
-  { value: "NONE", label: "No Priority" },
-  { value: "LOW", label: "Low" },
-  { value: "MEDIUM", label: "Medium" },
-  { value: "HIGH", label: "High" },
-  { value: "URGENT", label: "Urgent" },
-];
-
-const DUE_OPTIONS = [
-  { value: "overdue", label: "Overdue" },
-  { value: "today", label: "Today" },
-  { value: "this_week", label: "This Week" },
-  { value: "no_due_date", label: "No Due Date" },
-] as const;
-
-function toggle<T>(arr: T[], val: T): T[] {
-  return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
-}
-
 function activeCount(filters: FilterState): number {
   let n = 0;
   if (filters.status?.length) n++;
@@ -90,7 +75,6 @@ export function ListFilterToolbar({
   filters,
   onChange,
 }: ListFilterToolbarProps) {
-  const [panelOpen, setPanelOpen] = React.useState(false);
   const [savedFilters, setSavedFilters] = React.useState<SavedFilterRow[]>([]);
   const [saveName, setSaveName] = React.useState("");
   const [savingOpen, setSavingOpen] = React.useState(false);
@@ -131,237 +115,127 @@ export function ListFilterToolbar({
     setRenameName("");
   }
 
+  const assigneeOptions = [
+    { value: "unassigned", label: "Unassigned" },
+    ...members.map((m) => ({
+      value: m.userId,
+      label: m.name ?? m.email ?? "Unknown",
+    })),
+  ];
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {/* Filter button */}
-      <Popover open={panelOpen} onOpenChange={setPanelOpen}>
+      {/* Shared faceted filters */}
+      <FacetFilter
+        label="Status"
+        options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+        selected={filters.status ?? []}
+        onChange={(next) => onChange({ ...filters, status: next })}
+      />
+      <FacetFilter
+        label="Priority"
+        options={PRIORITY_OPTIONS}
+        selected={filters.priority ?? []}
+        onChange={(next) => onChange({ ...filters, priority: next })}
+      />
+      <FacetFilter
+        label="Due"
+        single
+        options={DUE_OPTIONS}
+        selected={filters.due ? [filters.due] : []}
+        onChange={(next) => onChange({ ...filters, due: (next[0] as DueValue) ?? "" })}
+      />
+      {members.length > 0 && (
+        <FacetFilter
+          label="Assignee"
+          searchable
+          options={assigneeOptions}
+          selected={filters.assignee ?? []}
+          onChange={(next) => onChange({ ...filters, assignee: next })}
+        />
+      )}
+      {tags.length > 0 && (
+        <FacetFilter
+          label="Tags"
+          searchable
+          options={tags.map((t) => ({ value: t.id, label: t.name, color: t.color }))}
+          selected={filters.tags ?? []}
+          onChange={(next) => onChange({ ...filters, tags: next })}
+        />
+      )}
+
+      {/* Saved filters */}
+      <Popover>
         <PopoverTrigger asChild>
           <button
-            className={cn(
-              "flex items-center gap-1.5 h-8 rounded-md border px-3 text-xs font-medium transition-colors",
-              count > 0
-                ? "border-primary bg-primary/10 text-primary"
-                : "hover:bg-accent text-muted-foreground",
-            )}
+            type="button"
+            className="flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            <FunnelIcon className="size-3.5" weight={count > 0 ? "fill" : "regular"} />
-            Filters
-            {count > 0 && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-2xs text-primary-foreground font-bold">
-                {count}
-              </span>
-            )}
+            <FloppyDiskIcon className="size-3.5" /> Saved
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-72 p-3 space-y-4">
-          {/* Status */}
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Status
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {statuses.map((s) => {
-                const active = filters.status?.includes(s.id);
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() =>
-                      onChange({ ...filters, status: toggle(filters.status ?? [], s.id) })
-                    }
-                    className={cn(
-                      "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs border transition-colors",
-                      active ? "border-transparent text-white" : "hover:border-foreground/30",
-                    )}
-                    style={active ? { backgroundColor: s.color } : { borderColor: s.color + "60", color: s.color }}
-                  >
-                    {s.name}
-                  </button>
-                );
-              })}
+        <PopoverContent align="start" className="w-64 space-y-3 rounded-xl p-3">
+          {savedFilters.length > 0 ? (
+            <div className="space-y-1">
+              {savedFilters.map((sf) => (
+                <div key={sf.id} className="flex items-center gap-1">
+                  {renameId === sf.id ? (
+                    <>
+                      <input
+                        autoFocus
+                        value={renameName}
+                        onChange={(e) => setRenameName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void handleRename(sf.id);
+                          if (e.key === "Escape") setRenameId(null);
+                        }}
+                        className="flex-1 rounded border px-1.5 py-0.5 text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleRename(sf.id)}
+                        className="text-primary hover:opacity-70"
+                      >
+                        <CheckIcon className="size-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onChange(sf.filters as FilterState)}
+                        className="flex-1 rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-accent"
+                      >
+                        {sf.name}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRenameId(sf.id);
+                          setRenameName(sf.name);
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <PencilSimpleIcon className="size-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(sf.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <TrashIcon className="size-3" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
-          </div>
-
-          {/* Priority */}
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Priority
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {PRIORITY_OPTIONS.map((p) => {
-                const active = filters.priority?.includes(p.value);
-                return (
-                  <button
-                    key={p.value}
-                    onClick={() =>
-                      onChange({ ...filters, priority: toggle(filters.priority ?? [], p.value) })
-                    }
-                    className={cn(
-                      "rounded-full border px-2.5 py-0.5 text-xs transition-colors",
-                      active
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "hover:bg-accent text-muted-foreground",
-                    )}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Due Date */}
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Due Date
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {DUE_OPTIONS.map((d) => {
-                const active = filters.due === d.value;
-                return (
-                  <button
-                    key={d.value}
-                    onClick={() =>
-                      onChange({ ...filters, due: active ? "" : d.value })
-                    }
-                    className={cn(
-                      "rounded-full border px-2.5 py-0.5 text-xs transition-colors",
-                      active
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "hover:bg-accent text-muted-foreground",
-                    )}
-                  >
-                    {d.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Assignee */}
-          {members.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Assignee
-              </p>
-              <div className="space-y-1 max-h-32 overflow-y-auto">
-                <label className="flex items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-accent cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="accent-primary"
-                    checked={filters.assignee?.includes("unassigned") ?? false}
-                    onChange={() =>
-                      onChange({ ...filters, assignee: toggle(filters.assignee ?? [], "unassigned") })
-                    }
-                  />
-                  Unassigned
-                </label>
-                {members.map((m) => (
-                  <label
-                    key={m.userId}
-                    className="flex items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-accent cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      className="accent-primary"
-                      checked={filters.assignee?.includes(m.userId) ?? false}
-                      onChange={() =>
-                        onChange({ ...filters, assignee: toggle(filters.assignee ?? [], m.userId) })
-                      }
-                    />
-                    {m.name ?? m.email}
-                  </label>
-                ))}
-              </div>
-            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No saved filters yet.</p>
           )}
 
-          {/* Tags */}
-          {tags.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Tags
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {tags.map((t) => {
-                  const active = filters.tags?.includes(t.id);
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() =>
-                        onChange({ ...filters, tags: toggle(filters.tags ?? [], t.id) })
-                      }
-                      className={cn(
-                        "rounded-full border px-2.5 py-0.5 text-xs transition-colors",
-                        active ? "border-transparent text-white" : "hover:border-foreground/20",
-                      )}
-                      style={active ? { backgroundColor: t.color } : { borderColor: t.color + "60", color: t.color }}
-                    >
-                      {t.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="h-px bg-border" />
-
-          {/* Saved filters */}
-          {savedFilters.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Saved Filters
-              </p>
-              <div className="space-y-1">
-                {savedFilters.map((sf) => (
-                  <div key={sf.id} className="flex items-center gap-1">
-                    {renameId === sf.id ? (
-                      <>
-                        <input
-                          autoFocus
-                          value={renameName}
-                          onChange={(e) => setRenameName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") void handleRename(sf.id);
-                            if (e.key === "Escape") setRenameId(null);
-                          }}
-                          className="flex-1 rounded border px-1.5 py-0.5 text-xs"
-                        />
-                        <button onClick={() => void handleRename(sf.id)} className="text-primary hover:opacity-70">
-                          <CheckIcon className="size-3.5" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => onChange(sf.filters as FilterState)}
-                          className="flex-1 rounded px-1.5 py-0.5 text-left text-xs hover:bg-accent transition-colors"
-                        >
-                          {sf.name}
-                        </button>
-                        <button
-                          onClick={() => { setRenameId(sf.id); setRenameName(sf.name); }}
-                          className="text-muted-foreground hover:text-foreground"
-                        >
-                          <PencilSimpleIcon className="size-3" />
-                        </button>
-                        <button
-                          onClick={() => void handleDelete(sf.id)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <TrashIcon className="size-3" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Save current filters */}
-          {count > 0 && (
-            savingOpen ? (
+          {count > 0 &&
+            (savingOpen ? (
               <div className="flex items-center gap-1.5">
                 <input
                   autoFocus
@@ -375,6 +249,7 @@ export function ListFilterToolbar({
                   className="flex-1 rounded border px-2 py-1 text-xs"
                 />
                 <button
+                  type="button"
                   onClick={() => void handleSave()}
                   disabled={!saveName.trim()}
                   className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-40"
@@ -384,22 +259,13 @@ export function ListFilterToolbar({
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => setSavingOpen(true)}
-                className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent transition-colors"
+                className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
               >
                 <FloppyDiskIcon className="size-3.5" /> Save these filters
               </button>
-            )
-          )}
-
-          {count > 0 && (
-            <button
-              onClick={() => { onChange(EMPTY_FILTERS); setPanelOpen(false); }}
-              className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <XIcon className="size-3.5" /> Clear all filters
-            </button>
-          )}
+            ))}
         </PopoverContent>
       </Popover>
 
@@ -412,7 +278,7 @@ export function ListFilterToolbar({
             key={sId}
             label={`Status: ${s.name}`}
             onRemove={() =>
-              onChange({ ...filters, status: filters.status!.filter((id) => id !== sId) })
+              onChange({ ...filters, status: filters.status?.filter((id) => id !== sId) })
             }
           />
         );
@@ -423,7 +289,7 @@ export function ListFilterToolbar({
           key={p}
           label={`Priority: ${p.charAt(0) + p.slice(1).toLowerCase()}`}
           onRemove={() =>
-            onChange({ ...filters, priority: filters.priority!.filter((v) => v !== p) })
+            onChange({ ...filters, priority: filters.priority?.filter((v) => v !== p) })
           }
         />
       ))}
@@ -443,7 +309,7 @@ export function ListFilterToolbar({
             key={aId}
             label={`Assignee: ${label}`}
             onRemove={() =>
-              onChange({ ...filters, assignee: filters.assignee!.filter((id) => id !== aId) })
+              onChange({ ...filters, assignee: filters.assignee?.filter((id) => id !== aId) })
             }
           />
         );
@@ -457,7 +323,7 @@ export function ListFilterToolbar({
             key={tId}
             label={`Tag: ${t.name}`}
             onRemove={() =>
-              onChange({ ...filters, tags: filters.tags!.filter((id) => id !== tId) })
+              onChange({ ...filters, tags: filters.tags?.filter((id) => id !== tId) })
             }
           />
         );
@@ -465,23 +331,13 @@ export function ListFilterToolbar({
 
       {count > 1 && (
         <button
+          type="button"
           onClick={() => onChange(EMPTY_FILTERS)}
-          className="h-7 rounded-full border border-destructive/30 px-2.5 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+          className="h-7 rounded-full border border-destructive/30 px-2.5 text-xs text-destructive transition-colors hover:bg-destructive/10"
         >
           Clear All
         </button>
       )}
     </div>
-  );
-}
-
-function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
-  return (
-    <span className="flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 pl-2.5 pr-1.5 py-0.5 text-xs text-primary">
-      {label}
-      <button onClick={onRemove} className="hover:text-primary/60 transition-colors">
-        <XIcon className="size-3" />
-      </button>
-    </span>
   );
 }

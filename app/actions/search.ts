@@ -13,23 +13,17 @@ import {
   workspaceMember,
   userSearchHistory,
   savedFilter,
+  sprint,
   tag,
   taskTag,
   user,
 } from "@/db/schema";
+import { eq, and, ilike, or, inArray, desc, isNull, type SQL } from "drizzle-orm";
+import { buildTaskFilterConditions } from "@/lib/filters/task-conditions";
 import {
-  eq,
-  and,
-  ilike,
-  or,
-  inArray,
-  desc,
-  isNull,
-  lt,
-  gte,
-  lte,
-} from "drizzle-orm";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
+  hasActiveFilters,
+  type GlobalSearchFilters,
+} from "@/lib/filters/options";
 
 // ─── Global Search ──────────────────────────────────────────────────────────
 
@@ -81,134 +75,160 @@ export type GlobalSearchResults = {
 export async function globalSearch(
   workspaceId: string,
   query: string,
+  filters?: GlobalSearchFilters,
 ): Promise<GlobalSearchResults | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return { error: "Unauthorized" };
 
-  if (query.trim().length < 2) {
-    return { tasks: [], lists: [], spaces: [], members: [] };
-  }
+  const trimmed = query.trim();
+  const hasText = trimmed.length >= 2;
+  const filtersActive = hasActiveFilters(filters);
+
+  const empty: GlobalSearchResults = { tasks: [], lists: [], spaces: [], members: [] };
+
+  // Run when there's a text query OR at least one active filter (filter-only
+  // search, e.g. "assigned to John" with no text). Otherwise nothing to do.
+  if (!hasText && !filtersActive) return empty;
 
   const accessibleSpaceIds = await getAccessibleSpaceIds(
     session.user.id,
     workspaceId,
   );
+  if (accessibleSpaceIds.length === 0) return empty;
 
-  if (accessibleSpaceIds.length === 0) {
-    return { tasks: [], lists: [], spaces: [], members: [] };
-  }
+  const q = `%${trimmed}%`;
+  const type = filters?.type ?? "all";
+  const wantTasks = type === "all" || type === "tasks";
+  // Lists / spaces / members have no structured filters, so a filter-only search
+  // (no text) returns tasks only — they require a text query.
+  const wantLists = hasText && (type === "all" || type === "lists");
+  const wantSpaces = hasText && (type === "all" || type === "spaces");
+  const wantMembers = hasText && (type === "all" || type === "members");
 
-  const q = `%${query.trim()}%`;
+  // ── Tasks ──────────────────────────────────────────────────────────────
+  let tasks: SearchTaskResult[] = [];
+  if (wantTasks) {
+    const conditions: SQL[] = [
+      eq(task.workspaceId, workspaceId),
+      eq(task.isArchived, false),
+      isNull(task.parentTaskId),
+      eq(list.isArchived, false),
+      inArray(space.id, accessibleSpaceIds),
+    ];
+    if (hasText) conditions.push(ilike(task.title, q));
+    if (filters?.space?.length) conditions.push(inArray(space.id, filters.space));
+    // status(type)/priority/due/assignee/tags/sprint via the shared builder.
+    conditions.push(...buildTaskFilterConditions(filters ?? {}));
 
-  // Tasks
-  const taskRows = await db
-    .select({
-      id: task.id,
-      title: task.title,
-      seqNumber: task.seqNumber,
-      priority: task.priority,
-      statusId: task.statusId,
-      statusName: listStatus.name,
-      statusColor: listStatus.color,
-      statusType: listStatus.type,
-      listId: list.id,
-      listName: list.name,
-      spaceId: space.id,
-      spaceName: space.name,
-      dueDateEnd: task.dueDateEnd,
-    })
-    .from(task)
-    .innerJoin(list, eq(task.listId, list.id))
-    .innerJoin(space, eq(list.spaceId, space.id))
-    .innerJoin(listStatus, eq(task.statusId, listStatus.id))
-    .where(
-      and(
-        eq(task.workspaceId, workspaceId),
-        eq(task.isArchived, false),
-        isNull(task.parentTaskId),
-        eq(list.isArchived, false),
-        inArray(space.id, accessibleSpaceIds),
-        ilike(task.title, q),
-      ),
-    )
-    .orderBy(desc(task.updatedAt))
-    .limit(10);
-
-  // Fetch assignees for found tasks
-  const taskIds = taskRows.map((t) => t.id);
-  let assigneeMap: Record<string, { userId: string; name: string | null; email: string | null }[]> = {};
-  if (taskIds.length > 0) {
-    const assigneeRows = await db
+    const taskRows = await db
       .select({
-        taskId: taskAssignee.taskId,
-        userId: taskAssignee.userId,
-        name: user.name,
-        email: user.email,
+        id: task.id,
+        title: task.title,
+        seqNumber: task.seqNumber,
+        priority: task.priority,
+        statusId: task.statusId,
+        statusName: listStatus.name,
+        statusColor: listStatus.color,
+        statusType: listStatus.type,
+        listId: list.id,
+        listName: list.name,
+        spaceId: space.id,
+        spaceName: space.name,
+        dueDateEnd: task.dueDateEnd,
       })
-      .from(taskAssignee)
-      .innerJoin(user, eq(taskAssignee.userId, user.id))
-      .where(inArray(taskAssignee.taskId, taskIds));
+      .from(task)
+      .innerJoin(list, eq(task.listId, list.id))
+      .innerJoin(space, eq(list.spaceId, space.id))
+      .innerJoin(listStatus, eq(task.statusId, listStatus.id))
+      .where(and(...conditions))
+      .orderBy(desc(task.updatedAt))
+      .limit(25);
 
-    for (const row of assigneeRows) {
-      if (!assigneeMap[row.taskId]) assigneeMap[row.taskId] = [];
-      assigneeMap[row.taskId].push({ userId: row.userId, name: row.name, email: row.email });
+    // Fetch assignees for found tasks (batched — no N+1).
+    const taskIds = taskRows.map((t) => t.id);
+    const assigneeMap: Record<string, { userId: string; name: string | null; email: string | null }[]> = {};
+    if (taskIds.length > 0) {
+      const assigneeRows = await db
+        .select({
+          taskId: taskAssignee.taskId,
+          userId: taskAssignee.userId,
+          name: user.name,
+          email: user.email,
+        })
+        .from(taskAssignee)
+        .innerJoin(user, eq(taskAssignee.userId, user.id))
+        .where(inArray(taskAssignee.taskId, taskIds));
+
+      for (const row of assigneeRows) {
+        if (!assigneeMap[row.taskId]) assigneeMap[row.taskId] = [];
+        assigneeMap[row.taskId].push({ userId: row.userId, name: row.name, email: row.email });
+      }
     }
+
+    tasks = taskRows.map((t) => ({
+      ...t,
+      assignees: assigneeMap[t.id] ?? [],
+    }));
   }
 
-  const tasks: SearchTaskResult[] = taskRows.map((t) => ({
-    ...t,
-    assignees: assigneeMap[t.id] ?? [],
-  }));
+  // ── Lists ──────────────────────────────────────────────────────────────
+  let listRows: SearchListResult[] = [];
+  if (wantLists) {
+    listRows = await db
+      .select({
+        id: list.id,
+        name: list.name,
+        spaceId: space.id,
+        spaceName: space.name,
+      })
+      .from(list)
+      .innerJoin(space, eq(list.spaceId, space.id))
+      .where(
+        and(
+          inArray(list.spaceId, accessibleSpaceIds),
+          eq(list.isArchived, false),
+          ilike(list.name, q),
+        ),
+      )
+      .limit(10);
+  }
 
-  // Lists
-  const listRows = await db
-    .select({
-      id: list.id,
-      name: list.name,
-      spaceId: space.id,
-      spaceName: space.name,
-    })
-    .from(list)
-    .innerJoin(space, eq(list.spaceId, space.id))
-    .where(
-      and(
-        inArray(list.spaceId, accessibleSpaceIds),
-        eq(list.isArchived, false),
-        ilike(list.name, q),
-      ),
-    )
-    .limit(10);
+  // ── Spaces (Projects) ──────────────────────────────────────────────────
+  let spaceRows: { id: string; name: string; color: string | null }[] = [];
+  if (wantSpaces) {
+    spaceRows = await db
+      .select({ id: space.id, name: space.name, color: space.color })
+      .from(space)
+      .where(
+        and(
+          eq(space.workspaceId, workspaceId),
+          inArray(space.id, accessibleSpaceIds),
+          ilike(space.name, q),
+        ),
+      )
+      .limit(10);
+  }
 
-  // Spaces
-  const spaceRows = await db
-    .select({ id: space.id, name: space.name, color: space.color })
-    .from(space)
-    .where(
-      and(
-        eq(space.workspaceId, workspaceId),
-        inArray(space.id, accessibleSpaceIds),
-        ilike(space.name, q),
-      ),
-    )
-    .limit(10);
-
-  // Member count per space (quick approximation via workspaceMember)
-  const memberRows = await db
-    .select({
-      userId: workspaceMember.userId,
-      name: user.name,
-      email: workspaceMember.email,
-      role: workspaceMember.role,
-    })
-    .from(workspaceMember)
-    .leftJoin(user, eq(workspaceMember.userId, user.id))
-    .where(
-      and(
-        eq(workspaceMember.workspaceId, workspaceId),
-        or(ilike(user.name, q), ilike(workspaceMember.email, q)),
-      ),
-    )
-    .limit(10);
+  // ── Members ────────────────────────────────────────────────────────────
+  let memberRows: { userId: string | null; name: string | null; email: string | null; role: string }[] = [];
+  if (wantMembers) {
+    memberRows = await db
+      .select({
+        userId: workspaceMember.userId,
+        name: user.name,
+        email: workspaceMember.email,
+        role: workspaceMember.role,
+      })
+      .from(workspaceMember)
+      .leftJoin(user, eq(workspaceMember.userId, user.id))
+      .where(
+        and(
+          eq(workspaceMember.workspaceId, workspaceId),
+          or(ilike(user.name, q), ilike(workspaceMember.email, q)),
+        ),
+      )
+      .limit(10);
+  }
 
   return {
     tasks,
@@ -431,35 +451,14 @@ export async function getFilteredTasks(
   const accessible = await canAccessSpace(session.user.id, workspaceId, spaceId);
   if (!accessible) return { error: "Forbidden" };
 
-  // Build where conditions manually
-  const conditions: Parameters<typeof and> = [
+  // Base list scope + the shared filter conditions (status/priority/due, plus
+  // assignee/tags now applied in SQL via the same builder the omnibox uses).
+  const conditions: SQL[] = [
     eq(task.listId, listId),
     eq(task.isArchived, false),
     isNull(task.parentTaskId),
+    ...buildTaskFilterConditions(filters),
   ];
-
-  if (filters.status?.length) {
-    conditions.push(inArray(task.statusId, filters.status));
-  }
-
-  if (filters.priority?.length) {
-    conditions.push(inArray(task.priority, filters.priority as ("NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT")[]));
-  }
-
-  if (filters.due) {
-    const now = new Date();
-    if (filters.due === "overdue") {
-      conditions.push(lt(task.dueDateEnd, now));
-    } else if (filters.due === "today") {
-      conditions.push(gte(task.dueDateEnd, startOfDay(now)));
-      conditions.push(lte(task.dueDateEnd, endOfDay(now)));
-    } else if (filters.due === "this_week") {
-      conditions.push(gte(task.dueDateEnd, startOfWeek(now)));
-      conditions.push(lte(task.dueDateEnd, endOfWeek(now)));
-    } else if (filters.due === "no_due_date") {
-      conditions.push(isNull(task.dueDateEnd));
-    }
-  }
 
   const taskRows = await db
     .select({
@@ -506,29 +505,101 @@ export async function getFilteredTasks(
     assigneeMap[r.taskId].push({ userId: r.userId, name: r.name, image: r.image ?? null });
   }
 
-  // Filter by assignee in JS (to handle "unassigned" sentinel and OR logic)
-  let results = taskRows.map((t) => ({
+  // Assignee/tags are already applied in SQL (see buildTaskFilterConditions);
+  // here we only attach the fetched tags/assignees for display.
+  const results = taskRows.map((t) => ({
     ...t,
     tags: tagMap[t.id] ?? [],
     assignees: assigneeMap[t.id] ?? [],
   }));
 
-  if (filters.assignee?.length) {
-    const hasUnassigned = filters.assignee.includes("unassigned");
-    const userIds = filters.assignee.filter((a) => a !== "unassigned");
-    results = results.filter((t) => {
-      if (hasUnassigned && t.assignees.length === 0) return true;
-      if (userIds.length && t.assignees.some((a) => userIds.includes(a.userId))) return true;
-      return false;
-    });
-  }
-
-  // Filter by tags in JS
-  if (filters.tags?.length) {
-    results = results.filter((t) =>
-      t.tags.some((tg) => filters.tags!.includes(tg.id)),
-    );
-  }
-
   return results;
+}
+
+// ─── Search Filter Options ───────────────────────────────────────────────────
+
+export type SearchFilterOptions = {
+  spaces: { id: string; name: string; color: string | null }[];
+  members: { userId: string; name: string | null; email: string | null; image: string | null }[];
+  tags: { id: string; name: string; color: string }[];
+  sprints: { id: string; name: string; spaceId: string; status: string }[];
+};
+
+/**
+ * Option lists for the global-search filter pickers, scoped to the spaces the
+ * user can access. Priority / status-bucket / type options are static constants
+ * on the client (see lib/filters/options.ts) — only the data-driven lists live
+ * here. Reuses the same `getAccessibleSpaceIds` scoping as globalSearch.
+ */
+export async function getSearchFilterOptions(
+  workspaceId: string,
+): Promise<SearchFilterOptions | { error: string }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return { error: "Unauthorized" };
+
+  const accessibleSpaceIds = await getAccessibleSpaceIds(
+    session.user.id,
+    workspaceId,
+  );
+  if (accessibleSpaceIds.length === 0) {
+    return { spaces: [], members: [], tags: [], sprints: [] };
+  }
+
+  const [spaces, memberRows, tags, sprints] = await Promise.all([
+    db
+      .select({ id: space.id, name: space.name, color: space.color })
+      .from(space)
+      .where(
+        and(
+          eq(space.workspaceId, workspaceId),
+          inArray(space.id, accessibleSpaceIds),
+          eq(space.isArchived, false),
+        ),
+      )
+      .orderBy(space.orderIndex),
+    db
+      .select({
+        userId: workspaceMember.userId,
+        name: user.name,
+        email: workspaceMember.email,
+        image: user.image,
+      })
+      .from(workspaceMember)
+      .leftJoin(user, eq(workspaceMember.userId, user.id))
+      .where(
+        and(
+          eq(workspaceMember.workspaceId, workspaceId),
+          eq(workspaceMember.status, "ACTIVE"),
+        ),
+      ),
+    db
+      .select({ id: tag.id, name: tag.name, color: tag.color })
+      .from(tag)
+      .where(eq(tag.workspaceId, workspaceId))
+      .orderBy(tag.name),
+    db
+      .select({
+        id: sprint.id,
+        name: sprint.name,
+        spaceId: sprint.spaceId,
+        status: sprint.status,
+      })
+      .from(sprint)
+      .where(inArray(sprint.spaceId, accessibleSpaceIds))
+      .orderBy(desc(sprint.createdAt)),
+  ]);
+
+  return {
+    spaces,
+    members: memberRows
+      .filter((m) => m.userId)
+      .map((m) => ({
+        userId: m.userId as string,
+        name: m.name,
+        email: m.email,
+        image: m.image ?? null,
+      })),
+    tags,
+    sprints,
+  };
 }
