@@ -527,31 +527,25 @@ function StatusGroup({
                 isOver && "bg-accent/20 border-y border-dashed border-border"
               )}
             >
-              {tasks.length === 0 ? (
-                <div className="py-3 pl-16 text-xs text-muted-foreground italic bg-card border-b border-border/50 select-none">
-                  No tasks in status
-                </div>
-              ) : (
-                tasks.map((task) => (
-                  <SortableTaskRow
-                    key={task.id}
-                    task={task}
-                    statusColor={status.color}
-                    workspaceId={workspaceId}
-                    spaceId={spaceId}
-                    listId={listId}
-                    isAdmin={isAdmin}
-                    canEdit={canEdit}
-                    canPinToList={canPinToList}
-                    isPersonallyPinned={personallyPinnedIds?.has(task.id)}
-                    selected={selectedIds.has(task.id)}
-                    onSelect={onSelect}
-                    onOpen={() => router.push(`/${workspaceId}/task/${task.id}`)}
-                    onRefresh={() => router.refresh()}
-                    statuses={statuses}
-                  />
-                ))
-              )}
+              {tasks.map((task) => (
+                <SortableTaskRow
+                  key={task.id}
+                  task={task}
+                  statusColor={status.color}
+                  workspaceId={workspaceId}
+                  spaceId={spaceId}
+                  listId={listId}
+                  isAdmin={isAdmin}
+                  canEdit={canEdit}
+                  canPinToList={canPinToList}
+                  isPersonallyPinned={personallyPinnedIds?.has(task.id)}
+                  selected={selectedIds.has(task.id)}
+                  onSelect={onSelect}
+                  onOpen={() => router.push(`/${workspaceId}/task/${task.id}`)}
+                  onRefresh={() => router.refresh()}
+                  statuses={statuses}
+                />
+              ))}
 
               <QuickCreateRow
                 open={addOpen}

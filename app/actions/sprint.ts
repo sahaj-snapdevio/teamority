@@ -513,7 +513,7 @@ export async function markAllSprintTasksDone(
   }
 
   const [closedStatus] = await db
-    .select({ id: listStatus.id })
+    .select({ id: listStatus.id, name: listStatus.name })
     .from(listStatus)
     .where(and(eq(listStatus.listId, listId), eq(listStatus.type, "CLOSED")))
     .orderBy(asc(listStatus.orderIndex))
@@ -548,6 +548,7 @@ export async function markAllSprintTasksDone(
     incompleteTaskIds.map((taskId) =>
       writeActivityLog(taskId, session.user.id, "status_changed", {
         to: closedStatus.id,
+        to_status_name: closedStatus.name,
         reason: "mark_all_done_sprint",
       })
     )

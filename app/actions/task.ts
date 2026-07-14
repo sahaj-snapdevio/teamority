@@ -660,9 +660,27 @@ export async function updateTaskStatus(
   // doesn't spam the activity feed or watchers.
   const statusChanged = statusId !== existing.statusId;
   if (statusChanged) {
+    // Resolve the old + new status names once. They're stored as a snapshot in
+    // the activity log (a status can later be renamed or deleted) and reused for
+    // the watcher notification. The activity feed reads `from_status_name` /
+    // `to_status_name` — without them it renders "—".
+    const statusIds = [existing.statusId, statusId].filter(
+      (v): v is string => Boolean(v),
+    );
+    const statusRows = statusIds.length
+      ? await db
+          .select({ id: listStatus.id, name: listStatus.name, type: listStatus.type })
+          .from(listStatus)
+          .where(inArray(listStatus.id, statusIds))
+      : [];
+    const fromStatus = statusRows.find((s) => s.id === existing.statusId) ?? null;
+    const newStatus = statusRows.find((s) => s.id === statusId) ?? null;
+
     await writeActivityLog(taskId, session.user.id, "status_changed", {
       from: existing.statusId,
       to: statusId,
+      from_status_name: fromStatus?.name ?? null,
+      to_status_name: newStatus?.name ?? null,
     });
 
     // Notify watchers of status change
@@ -670,13 +688,6 @@ export async function updateTaskStatus(
       .select({ userId: taskWatcher.userId })
       .from(taskWatcher)
       .where(eq(taskWatcher.taskId, taskId));
-
-    const newStatus = await db
-      .select({ name: listStatus.name, type: listStatus.type })
-      .from(listStatus)
-      .where(eq(listStatus.id, statusId))
-      .limit(1)
-      .then((r) => r[0] ?? null);
 
     const watcherIds = taskWatchers.map((w) => w.userId);
     if (watcherIds.length > 0) {
