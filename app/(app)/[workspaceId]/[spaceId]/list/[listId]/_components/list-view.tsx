@@ -52,6 +52,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CreateTaskModal } from "@/components/task/create-task-modal";
 import { FacetFilter } from "@/components/filters/facet-filter";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
+import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
 import { cn } from "@/lib/utils";
 
 // drag and drop
@@ -221,12 +222,6 @@ function PinnedSection({
 }
 
 // ─── Status group ─────────────────────────────────────────────────────────────
-
-const STATUS_PRESET_COLORS = [
-  "#6B7280", "#3B82F6", "#10B981", "#F59E0B",
-  "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4",
-  "#F97316", "#84CC16",
-];
 
 // Fields a quick-created task should inherit from its group. Under Group By =
 // Status this is just the status; under Priority / Assignee it carries the

@@ -80,13 +80,8 @@ import {
 import { toastWithUndo } from "@/lib/undo-toast";
 import { createListStatus, getWorkspaceLists, updateListStatus } from "@/app/actions/list";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
+import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
 import { cn } from "@/lib/utils";
-
-const STATUS_PRESET_COLORS = [
-  "#6B7280", "#3B82F6", "#10B981", "#F59E0B",
-  "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4",
-  "#F97316", "#84CC16",
-];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -30,6 +30,10 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # Required gate: unit tests (mocked DB, no service container needed).
+      - name: Test
+        run: pnpm test
+
       # Required gate: the app must build. Placeholder env satisfies build-time
       # validation (lib/env.ts); real values are provided at runtime. The
       # production auth guard is skipped during `next build` (NEXT_PHASE).
