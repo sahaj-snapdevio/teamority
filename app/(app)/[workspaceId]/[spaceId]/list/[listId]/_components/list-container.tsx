@@ -234,6 +234,7 @@ export function ListContainer({
           tasks={tasks}
           headerless
           canEdit={canEdit}
+          canManage={canManage}
           isAdmin={isAdmin}
           members={members}
           tags={tags}

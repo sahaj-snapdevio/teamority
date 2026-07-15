@@ -479,7 +479,7 @@ export function TaskListRow({
       {canEdit ? (
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger asChild>
-            <button className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-transparent hover:bg-accent/60 transition-colors text-xs font-semibold cursor-pointer select-none", dueDate?.overdue ? "text-red-500" : "text-gray-600")}>
+            <button className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-transparent hover:bg-accent/60 transition-all text-xs font-semibold cursor-pointer select-none", dueDate?.overdue ? "text-red-500" : "text-gray-600", !dueDate && "opacity-0 group-hover/row:opacity-100")}>
               <CalendarBlankIcon className="size-3.5 shrink-0" />
               {dueDate ? <span>{dueDate.label}</span> : <span className="text-gray-400">Set date</span>}
             </button>
@@ -502,7 +502,7 @@ export function TaskListRow({
       {canEdit ? (
         <Popover open={priorityOpen} onOpenChange={setPriorityOpen}>
           <PopoverTrigger asChild>
-            <button className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-transparent hover:bg-accent/60 transition-colors cursor-pointer select-none">
+            <button className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-transparent hover:bg-accent/60 transition-all cursor-pointer select-none", localPriority === "NONE" && "opacity-0 group-hover/row:opacity-100")}>
               <span className={cn("flex items-center gap-1.5 text-xs font-bold", priority.color)}>
                 <span>{priority.icon}</span>{priority.label}
               </span>

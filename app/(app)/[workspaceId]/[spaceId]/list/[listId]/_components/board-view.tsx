@@ -63,6 +63,8 @@ import { CreateTaskModal } from "@/components/task/create-task-modal";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { FacetFilter } from "@/components/filters/facet-filter";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
+import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
+import { createListStatus } from "@/app/actions/list";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { taskUrl } from "@/lib/app-url";
 import { cn } from "@/lib/utils";
@@ -105,6 +107,7 @@ interface BoardViewProps {
   tasks: Task[];
   headerless?: boolean;
   canEdit?: boolean;
+  canManage?: boolean;
   isAdmin?: boolean;
   members?: { userId: string; name: string | null; email: string | null }[];
   tags?: { id: string; name: string; color: string }[];
@@ -680,11 +683,37 @@ function Column({
 
 // ─── Board ────────────────────────────────────────────────────────────────────
 
-export function BoardView({ workspaceId, space, list, statuses, tasks, members = [], canEdit, isAdmin }: BoardViewProps) {
+export function BoardView({ workspaceId, space, list, statuses, tasks, members = [], canEdit, canManage, isAdmin }: BoardViewProps) {
   const router = useRouter();
   // Re-pull the server-rendered board after a card quick-action. The actions
   // revalidate + broadcast server-side; this refreshes the current view too.
   const handleRefresh = React.useCallback(() => router.refresh(), [router]);
+
+  // ── "Add group" — create a new status column (reuses createListStatus). ────
+  const [newGroupOpen, setNewGroupOpen] = React.useState(false);
+  const [newGroupName, setNewGroupName] = React.useState("");
+  const [newGroupColor, setNewGroupColor] = React.useState("#6B7280");
+  const [creatingGroup, setCreatingGroup] = React.useState(false);
+
+  async function handleCreateGroup() {
+    const name = newGroupName.trim();
+    if (!name || creatingGroup) return;
+    setCreatingGroup(true);
+    const res = await createListStatus(workspaceId, space.id, list.id, {
+      name,
+      color: newGroupColor,
+      type: "OPEN",
+    });
+    setCreatingGroup(false);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    setNewGroupName("");
+    setNewGroupColor("#6B7280");
+    setNewGroupOpen(false);
+    handleRefresh();
+  }
 
   // Local task state for optimistic drag updates
   const [localTasks, setLocalTasks] = React.useState<Task[]>(tasks);
@@ -933,6 +962,17 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
               onRefresh={handleRefresh}
             />
           ))}
+
+          {/* Add group — creates a new status column (Full Access only). */}
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setNewGroupOpen(true)}
+              className="flex h-9 shrink-0 select-none items-center gap-1.5 rounded-lg border border-dashed border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground"
+            >
+              <PlusIcon className="size-4" weight="bold" /> Add group
+            </button>
+          )}
         </div>
 
         {/* Drag overlay — shown while dragging */}
@@ -940,6 +980,58 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
           {activeTask && <CardContent task={activeTask} overlay />}
         </DragOverlay>
       </DndContext>
+
+      {/* New group (status) dialog — mirrors the List view's New Status dialog. */}
+      {canManage && (
+        <Dialog open={newGroupOpen} onOpenChange={setNewGroupOpen}>
+          <DialogContent className="rounded-xl sm:max-w-xs">
+            <DialogTitle className="text-sm font-bold">New Group</DialogTitle>
+            <div className="space-y-3">
+              <Input
+                autoFocus
+                placeholder="Group name"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleCreateGroup();
+                }}
+                className="h-9 text-xs"
+              />
+              <div className="flex flex-wrap gap-2">
+                {STATUS_PRESET_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setNewGroupColor(color)}
+                    className={cn(
+                      "size-6 cursor-pointer rounded-full transition-transform",
+                      newGroupColor === color &&
+                        "scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-popover",
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                className="h-8 text-xs font-semibold"
+                onClick={() => setNewGroupOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="h-8 text-xs font-bold"
+                disabled={creatingGroup || !newGroupName.trim()}
+                onClick={() => void handleCreateGroup()}
+              >
+                {creatingGroup ? "Creating…" : "Create"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </TooltipProvider>
   );
 }
