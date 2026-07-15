@@ -1,13 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { CaretDownIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { toggle } from "@/lib/filters/options";
 
@@ -65,7 +64,12 @@ export function FacetOptionList({
           className="mb-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
         />
       )}
-      <div className="max-h-56 space-y-0.5 overflow-y-auto">
+      <div
+        className={cn(
+          "space-y-0.5",
+          filtered.length > 8 && "max-h-56 overflow-y-auto",
+        )}
+      >
         {filtered.length === 0 ? (
           <p className="px-2 py-1.5 text-xs text-muted-foreground">{emptyText}</p>
         ) : (
@@ -78,11 +82,17 @@ export function FacetOptionList({
                 onClick={() => handleToggle(o.value)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent"
               >
-                <Checkbox
-                  checked={active}
-                  tabIndex={-1}
-                  className="pointer-events-none size-4"
-                />
+                {/* Visual checkbox only — the row itself is the button, so a
+                    real (button-based) Checkbox here would nest buttons. */}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "flex size-4 shrink-0 items-center justify-center rounded-none border border-input transition-colors",
+                    active && "border-primary bg-primary text-primary-foreground",
+                  )}
+                >
+                  {active && <CheckIcon className="size-3" weight="bold" />}
+                </span>
                 {o.icon}
                 {o.color && (
                   <span
