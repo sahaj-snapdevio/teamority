@@ -2,6 +2,26 @@ self.addEventListener("push", (event) => {
   const data = event.data?.json() ?? {};
   event.waitUntil(
     (async () => {
+      // Drop stale popups. If a device is offline for a while, the push service
+      // queues undelivered pushes and dumps them all on reconnect — we don't want
+      // a burst of old notifications popping up. `ttlMs` mirrors the server's
+      // PUSH_TTL_SECONDS, so the cutoff here always matches the send-side TTL.
+      // The notification is still saved server-side (Inbox + badge); only the
+      // popup is suppressed.
+      const staleMs = data.ttlMs ?? 10 * 60 * 1000; // fallback for old payloads
+      if (data.sentAt && Date.now() - data.sentAt > staleMs) {
+        const isDev =
+          self.location.hostname === "localhost" ||
+          self.location.hostname === "127.0.0.1";
+        if (isDev) {
+          console.debug("[sw] dropped stale push", {
+            ageMs: Date.now() - data.sentAt,
+            staleMs,
+          });
+        }
+        return;
+      }
+
       // Avoid double popups: if a Kanbanica window is focused, the app shows an
       // in-app toast instead, so suppress the browser/desktop notification here.
       // When no window is focused (hidden tab, minimized, unfocused, or app
