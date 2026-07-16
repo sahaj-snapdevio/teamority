@@ -106,7 +106,7 @@ describe("sendPushToUser", () => {
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
-  it("sends a push notification to each subscription for the user", async () => {
+  it("sends a push notification to each subscription for the user, with a 10-minute TTL", async () => {
     queueSubscriptions([sub1, sub2]);
     sendNotificationMock.mockResolvedValue(undefined);
     await sendPushToUser("u1", { title: "Hi", body: "There" });
@@ -116,14 +116,16 @@ describe("sendPushToUser", () => {
         endpoint: sub1.endpoint,
         keys: { p256dh: sub1.p256dh, auth: sub1.auth },
       },
-      expect.any(String)
+      expect.any(String),
+      { TTL: 600 }
     );
     expect(sendNotificationMock).toHaveBeenCalledWith(
       {
         endpoint: sub2.endpoint,
         keys: { p256dh: sub2.p256dh, auth: sub2.auth },
       },
-      expect.any(String)
+      expect.any(String),
+      { TTL: 600 }
     );
   });
 
@@ -139,11 +141,30 @@ describe("sendPushToUser", () => {
       unknown,
       string,
     ];
-    expect(JSON.parse(payloadJson)).toEqual({
+    expect(JSON.parse(payloadJson)).toMatchObject({
       title: "Hi",
       body: "There",
       url: "/w1/task/t1",
     });
+  });
+
+  it("stamps the payload with sentAt and a ttlMs matching the TTL header, so the service worker applies the same cutoff", async () => {
+    queueSubscriptions([sub1]);
+    sendNotificationMock.mockResolvedValue(undefined);
+    const before = Date.now();
+    await sendPushToUser("u1", { title: "Hi", body: "There" });
+    const after = Date.now();
+    const [, payloadJson] = sendNotificationMock.mock.calls[0] as [
+      unknown,
+      string,
+    ];
+    const payload = JSON.parse(payloadJson) as {
+      sentAt: number;
+      ttlMs: number;
+    };
+    expect(payload.sentAt).toBeGreaterThanOrEqual(before);
+    expect(payload.sentAt).toBeLessThanOrEqual(after);
+    expect(payload.ttlMs).toBe(600_000);
   });
 
   it("deletes the subscription when the push service returns 410 Gone", async () => {
