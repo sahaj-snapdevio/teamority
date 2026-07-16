@@ -40,6 +40,7 @@ vi.mock("@/lib/smtp/client", () => ({
 interface QueryChain extends PromiseLike<unknown[]> {
   from: () => QueryChain;
   leftJoin: () => QueryChain;
+  limit: () => QueryChain;
   where: () => QueryChain;
 }
 
@@ -48,6 +49,7 @@ function createChain(result: unknown[]): QueryChain {
     from: () => chain,
     where: () => chain,
     leftJoin: () => chain,
+    limit: () => chain,
     // biome-ignore lint/suspicious/noThenProperty: mirrors Drizzle's own thenable query builder
     then: (onfulfilled, onrejected) =>
       Promise.resolve(result).then(onfulfilled, onrejected),
@@ -56,9 +58,12 @@ function createChain(result: unknown[]): QueryChain {
 }
 
 function queueSelectResults(...batches: unknown[][]) {
+  // `_create()`'s first select is the workspace-name lookup — give it a stub row
+  // so the caller's batches still line up in order with muted / prefs / email.
+  const queue: unknown[][] = [[{ name: "Workspace" }], ...batches];
   let index = 0;
   selectMock.mockImplementation(() => {
-    const result = batches[index] ?? [];
+    const result = queue[index] ?? [];
     index += 1;
     return createChain(result);
   });
@@ -147,7 +152,8 @@ describe("createNotifications", () => {
     queueSelectResults([{ userId: "u1" }]);
     createNotifications(baseParams({ recipientIds: ["u1"] }));
     await flush();
-    expect(selectMock).toHaveBeenCalledTimes(1);
+    // workspace-name lookup + muted check; prefs query is skipped (all muted).
+    expect(selectMock).toHaveBeenCalledTimes(2);
     expect(insertMock).not.toHaveBeenCalled();
   });
 
@@ -233,7 +239,8 @@ describe("createNotifications", () => {
     queueSelectResults([], []);
     createNotifications(baseParams({ triggerType: "task_created" }));
     await flush();
-    expect(selectMock).toHaveBeenCalledTimes(2);
+    // workspace-name + muted + prefs; no email-recipients query (default off).
+    expect(selectMock).toHaveBeenCalledTimes(3);
     expect(enqueueEmailMock).not.toHaveBeenCalled();
   });
 
@@ -252,7 +259,8 @@ describe("createNotifications", () => {
     );
     createNotifications(baseParams({ triggerType: "task_assigned" }));
     await flush();
-    expect(selectMock).toHaveBeenCalledTimes(2);
+    // workspace-name + muted + prefs; email suppressed by explicit preference.
+    expect(selectMock).toHaveBeenCalledTimes(3);
     expect(enqueueEmailMock).not.toHaveBeenCalled();
   });
 

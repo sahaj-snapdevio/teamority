@@ -320,6 +320,11 @@ export function SearchPalette({
   const recentProjects = recentOpened.filter((o) => o.kind === "space");
   const recentLists = recentOpened.filter((o) => o.kind === "list");
 
+  function handleClearRecentlyOpened() {
+    clearRecentlyOpened(workspaceId);
+    setRecentOpened([]);
+  }
+
   const hasResults =
     results &&
     (results.tasks.length > 0 ||
@@ -718,6 +723,7 @@ export function SearchPalette({
                   <CheckSquareIcon className="size-4 shrink-0 text-muted-foreground" />
                 }
                 items={recentTasks}
+                onClear={recentTasks.length > 0 ? handleClearRecentlyOpened : undefined}
                 onSelect={navigateOpened}
                 title="Recently viewed tasks"
               />
@@ -726,6 +732,11 @@ export function SearchPalette({
                   <SquaresFourIcon className="size-4 shrink-0 text-muted-foreground" />
                 }
                 items={recentProjects}
+                onClear={
+                  recentTasks.length === 0 && recentProjects.length > 0
+                    ? handleClearRecentlyOpened
+                    : undefined
+                }
                 onSelect={navigateOpened}
                 title="Recent projects"
               />
@@ -734,23 +745,16 @@ export function SearchPalette({
                   <ListIcon className="size-4 shrink-0 text-muted-foreground" />
                 }
                 items={recentLists}
+                onClear={
+                  recentTasks.length === 0 &&
+                  recentProjects.length === 0 &&
+                  recentLists.length > 0
+                    ? handleClearRecentlyOpened
+                    : undefined
+                }
                 onSelect={navigateOpened}
                 title="Recent lists"
               />
-              {recentOpened.length > 0 && (
-                <div className="px-3 pb-1">
-                  <button
-                    className="text-2xs text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      clearRecentlyOpened(workspaceId);
-                      setRecentOpened([]);
-                    }}
-                    type="button"
-                  >
-                    Clear recently viewed
-                  </button>
-                </div>
-              )}
 
               {/* First-run fallback — only when there's truly no recent
                   activity yet. Keyboard shortcuts live in the footer below,
@@ -995,20 +999,33 @@ function RecentOpenedSection({
   icon,
   items,
   onSelect,
+  onClear,
 }: {
   title: string;
   icon: React.ReactNode;
   items: OpenedItem[];
   onSelect: (item: OpenedItem) => void;
+  onClear?: () => void;
 }) {
   if (items.length === 0) {
     return null;
   }
   return (
     <section className="pb-3">
-      <p className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </p>
+      <div className="flex items-center justify-between px-3 pb-1.5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </p>
+        {onClear && (
+          <button
+            className="text-2xs text-muted-foreground hover:text-foreground"
+            onClick={onClear}
+            type="button"
+          >
+            Clear recently viewed
+          </button>
+        )}
+      </div>
       {items.map((o) => (
         <button
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent"

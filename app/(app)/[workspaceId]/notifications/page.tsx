@@ -1,30 +1,59 @@
 "use client";
 
+import {
+  ArrowSquareOutIcon,
+  EnvelopeIcon,
+  EnvelopeOpenIcon,
+  FunnelIcon,
+  XIcon,
+} from "@phosphor-icons/react";
+import {
+  formatDistanceToNow,
+  isToday,
+  isYesterday,
+  startOfDay,
+  startOfMonth,
+  subDays,
+} from "date-fns";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
-import { formatDistanceToNow } from "date-fns";
-import useSWR, { mutate as globalMutate } from "swr";
-import { ArrowSquareOutIcon, EnvelopeIcon, EnvelopeOpenIcon, XIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { TaskDetailPanel } from "@/components/task/task-detail-panel";
+import useSWR, { mutate as globalMutate } from "swr";
+import useSWRInfinite from "swr/infinite";
 import { getTaskLocation } from "@/app/actions/task";
+import {
+  FacetFilter,
+  type FacetOption,
+} from "@/components/filters/facet-filter";
+import { TaskDetailPanel } from "@/components/task/task-detail-panel";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { SearchInput } from "@/components/ui/search-input";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { EVENT_FILTERS } from "@/lib/notifications/filters";
+import { getNotificationTarget } from "@/lib/notifications/target";
 import { cn } from "@/lib/utils";
 
 interface Notification {
-  id: string;
-  workspaceId: string;
   actorId: string | null;
-  triggerType: string;
-  entityType: string;
-  entityId: string;
-  title: string;
+  actorImage: string | null;
+  actorName: string | null;
   body: string | null;
+  createdAt: string;
+  entityId: string;
+  entityType: string;
+  id: string;
   isRead: boolean;
   readAt: string | null;
-  createdAt: string;
-  actorName: string | null;
-  actorImage: string | null;
+  title: string;
+  triggerType: string;
+  workspaceIcon: string | null;
+  workspaceId: string;
+  workspaceName: string | null;
 }
 
 interface NotificationsResponse {
@@ -33,14 +62,56 @@ interface NotificationsResponse {
 }
 
 interface TaskLocation {
+  listId: string | null;
   notifId: string;
+  spaceId: string;
   taskId: string;
   workspaceId: string;
-  spaceId: string;
-  listId: string | null;
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+// Page size for cursor pagination — mirrors the API's `.limit(20)`.
+const PAGE_SIZE = 20;
+
+// Stable keys for the loading skeleton rows (avoids array-index keys).
+const SKELETON_KEYS = ["k0", "k1", "k2", "k3", "k4", "k5"];
+
+// Date filter options. Bounds are computed in the viewer's local timezone and
+// snapped to startOfDay/startOfMonth so the SWR key stays stable across renders
+// (and consistent with the client-side date grouping).
+const DATE_FILTERS: { value: string; label: string }[] = [
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "last_7_days", label: "Last 7 Days" },
+  { value: "last_30_days", label: "Last 30 Days" },
+  { value: "this_month", label: "This Month" },
+  { value: "older", label: "Older" },
+];
+
+function dateRange(key: string): { after?: string; before?: string } {
+  const now = new Date();
+  const startToday = startOfDay(now);
+  switch (key) {
+    case "today":
+      return { after: startToday.toISOString() };
+    case "yesterday":
+      return {
+        after: startOfDay(subDays(now, 1)).toISOString(),
+        before: startToday.toISOString(),
+      };
+    case "last_7_days":
+      return { after: startOfDay(subDays(now, 6)).toISOString() };
+    case "last_30_days":
+      return { after: startOfDay(subDays(now, 29)).toISOString() };
+    case "this_month":
+      return { after: startOfMonth(now).toISOString() };
+    case "older":
+      return { before: startOfDay(subDays(now, 7)).toISOString() };
+    default:
+      return {};
+  }
+}
 
 type Tab = "all" | "unread" | "mentions";
 
@@ -51,100 +122,312 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 function getInitials(name: string | null) {
-  if (!name) return "?";
-  return name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
-}
-
-// Historical events with no valid destination — clicking informs instead of navigating.
-const INFO_MESSAGES: Record<string, string> = {
-  space_archived: "This project has been archived.",
-  space_removed: "You no longer have access to this project.",
-  workspace_removed: "You no longer have access to this workspace.",
-  task_deleted: "This task no longer exists.",
-};
-
-type NotifTarget =
-  | { type: "task" }
-  | { type: "route"; href: string }
-  | { type: "info"; message: string };
-
-/**
- * Where a notification should take the user. `task` opens the inline task panel
- * (verified at click time — may become `info` if the task was deleted); `route`
- * navigates to a page; `info` shows a toast explaining why there's nowhere to go.
- */
-function getNotificationTarget(n: Notification): NotifTarget {
-  const info = INFO_MESSAGES[n.triggerType];
-  if (info) return { type: "info", message: info };
-
-  // Membership events point at workspace pages regardless of entity mapping.
-  if (n.triggerType === "invite_accepted" || n.triggerType === "role_changed") {
-    return { type: "route", href: `/${n.entityId}/settings/members` };
+  if (!name) {
+    return "?";
   }
-  if (n.triggerType === "workspace_invited") {
-    // entityId is the invite token — open the accept/decline page (not the
-    // workspace home, which 404s until the invite is accepted).
-    return { type: "route", href: `/invite/${n.entityId}` };
-  }
-
-  switch (n.entityType) {
-    case "TASK":
-      return { type: "task" };
-    case "SPACE":
-      return { type: "route", href: `/${n.workspaceId}/${n.entityId}` };
-    case "WORKSPACE":
-      return { type: "route", href: `/${n.entityId}` };
-    case "COMMENT":
-      // Channel messages aren't linkable from here.
-      return { type: "info", message: "Open the channel to view this mention." };
-    default:
-      return { type: "info", message: "This notification has no linked page." };
-  }
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 export default function InboxPage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const router = useRouter();
-  const [activeTab, setActiveTab] = React.useState<Tab>("all");
-  const [selectedTask, setSelectedTask] = React.useState<TaskLocation | null>(null);
+  const searchParams = useSearchParams();
+  const [selectedTask, setSelectedTask] = React.useState<TaskLocation | null>(
+    null
+  );
+  const [mobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
 
-  const { data, isLoading, mutate: revalidate } = useSWR<NotificationsResponse>(
-    `/api/me/notifications?filter=${activeTab}`,
-    fetcher,
-    { refreshInterval: 15000 },
+  // Filters live in the URL so they survive refresh and are shareable.
+  const activeTab = (searchParams.get("filter") as Tab | null) ?? "all";
+  const dateFilter = searchParams.get("date") ?? "";
+  const workspaceFilter = searchParams.get("workspace") ?? "";
+  const eventFilter = searchParams.get("event") ?? "";
+  const q = searchParams.get("q") ?? "";
+
+  // Live ref to the current params so debounced/updater callbacks never merge
+  // into a stale query string.
+  const paramsRef = React.useRef(searchParams);
+  paramsRef.current = searchParams;
+  const updateParams = React.useCallback(
+    (patch: Record<string, string | null>) => {
+      const params = new URLSearchParams(paramsRef.current.toString());
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === null || value === "") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      }
+      const qs = params.toString();
+      router.replace(qs ? `?${qs}` : "?", { scroll: false });
+    },
+    [router]
   );
 
-  const notifications = data?.notifications ?? [];
-  const unreadCount = data?.unreadCount ?? 0;
+  // The search field is debounced into the URL to avoid a request per keystroke.
+  const [searchDraft, setSearchDraft] = React.useState(q);
+  React.useEffect(() => {
+    setSearchDraft(q); // keep in sync with back/forward or a Clear action
+  }, [q]);
+  React.useEffect(() => {
+    if (searchDraft === q) {
+      return;
+    }
+    const timer = setTimeout(
+      () => updateParams({ q: searchDraft || null }),
+      300
+    );
+    return () => clearTimeout(timer);
+  }, [searchDraft, q, updateParams]);
 
-  async function sync() {
-    await revalidate();
-    await globalMutate("/api/me/notifications?filter=unread");
+  // Workspaces the user has notifications from — powers the Workspace dropdown.
+  const { data: wsData } = useSWR<{
+    workspaces: { id: string; name: string; icon: string | null }[];
+  }>("/api/me/notification-workspaces", fetcher);
+  const workspaceOptions: FacetOption[] = React.useMemo(
+    () =>
+      (wsData?.workspaces ?? []).map((w) => ({
+        value: w.id,
+        label: w.name,
+        icon: <span aria-hidden>{w.icon ?? "📁"}</span>,
+      })),
+    [wsData]
+  );
+
+  // Build a filtered notifications URL. All active filters combine (AND); date
+  // bounds are resolved client-side and passed as ISO instants.
+  const buildUrl = React.useCallback(
+    (cursor?: string) => {
+      const p = new URLSearchParams();
+      p.set("filter", activeTab);
+      if (q) {
+        p.set("q", q);
+      }
+      if (workspaceFilter) {
+        p.set("workspace", workspaceFilter);
+      }
+      if (eventFilter) {
+        p.set("event", eventFilter);
+      }
+      if (dateFilter) {
+        const { after, before } = dateRange(dateFilter);
+        if (after) {
+          p.set("after", after);
+        }
+        if (before) {
+          p.set("before", before);
+        }
+      }
+      if (cursor) {
+        p.set("cursor", cursor);
+      }
+      return `/api/me/notifications?${p.toString()}`;
+    },
+    [activeTab, q, workspaceFilter, eventFilter, dateFilter]
+  );
+
+  // Cursor pagination: page 0 is the newest 20; each further page uses the
+  // previous page's last `createdAt` as the cursor. Changing any filter changes
+  // this key, which resets pagination to page 1.
+  const getKey = React.useCallback(
+    (pageIndex: number, prev: NotificationsResponse | null) => {
+      if (prev && prev.notifications.length < PAGE_SIZE) {
+        return null; // previous page was short — no more to load
+      }
+      if (pageIndex === 0) {
+        return buildUrl();
+      }
+      const items = prev?.notifications ?? [];
+      const cursor = items[items.length - 1]?.createdAt;
+      if (!cursor) {
+        return null;
+      }
+      return buildUrl(cursor);
+    },
+    [buildUrl]
+  );
+
+  const { data, size, setSize, isLoading, mutate } =
+    useSWRInfinite<NotificationsResponse>(getKey, fetcher, {
+      refreshInterval: 15_000,
+    });
+
+  // Flatten pages, de-duplicating by id — a safety net against transient
+  // overlap at a page boundary when SSE prepends a new notification.
+  const notifications = React.useMemo(() => {
+    const seen = new Set<string>();
+    const out: Notification[] = [];
+    for (const page of data ?? []) {
+      for (const n of page?.notifications ?? []) {
+        if (!seen.has(n.id)) {
+          seen.add(n.id);
+          out.push(n);
+        }
+      }
+    }
+    return out;
+  }, [data]);
+
+  // Every page carries the same total unread count — take page 0's.
+  const unreadCount = data?.[0]?.unreadCount ?? 0;
+
+  const isLoadingInitial = isLoading;
+  const isLoadingMore =
+    !isLoadingInitial &&
+    size > 0 &&
+    !!data &&
+    typeof data[size - 1] === "undefined";
+  const lastPage = data?.[data.length - 1];
+  const isReachingEnd =
+    !!data &&
+    (data.length === 0 ||
+      (!!lastPage && lastPage.notifications.length < PAGE_SIZE));
+  const isEmpty = !isLoadingInitial && notifications.length === 0;
+
+  // Bucket into Today / Yesterday / Last 7 Days / Older. Ordering is preserved
+  // (newest first); a header is emitted wherever the bucket changes.
+  const groups = React.useMemo(() => {
+    const weekAgo = subDays(new Date(), 7);
+    const out: { label: string; items: Notification[] }[] = [];
+    for (const n of notifications) {
+      const d = new Date(n.createdAt);
+      const label = isToday(d)
+        ? "Today"
+        : isYesterday(d)
+          ? "Yesterday"
+          : d >= weekAgo
+            ? "Last 7 Days"
+            : "Older";
+      const last = out.at(-1);
+      if (last && last.label === label) {
+        last.items.push(n);
+      } else {
+        out.push({ label, items: [n] });
+      }
+    }
+    return out;
+  }, [notifications]);
+
+  // Infinite scroll: fetch the next page when the sentinel nears the viewport.
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const sentinelRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || isReachingEnd) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isLoadingMore) {
+          void setSize((s) => s + 1);
+        }
+      },
+      { root: scrollRef.current, rootMargin: "300px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isReachingEnd, isLoadingMore, setSize]);
+
+  // Optimistic cache patch — updates only the affected notification(s) without
+  // refetching the whole list (Goals 4 & 5). `transform` returns the updated
+  // notification, or null to remove it; the displayed unread total is adjusted
+  // by how many unread items were read/removed (or made unread again).
+  function patchNotifications(
+    transform: (n: Notification) => Notification | null
+  ) {
+    return mutate(
+      (pages) => {
+        if (!pages) {
+          return pages;
+        }
+        let delta = 0;
+        const mapped = pages.map((page) => {
+          const next: Notification[] = [];
+          for (const n of page.notifications) {
+            const wasUnread = !n.isRead;
+            const u = transform(n);
+            if (u === null) {
+              if (wasUnread) {
+                delta += 1;
+              }
+              continue;
+            }
+            const nowUnread = !u.isRead;
+            if (wasUnread && !nowUnread) {
+              delta += 1;
+            } else if (!wasUnread && nowUnread) {
+              delta -= 1;
+            }
+            next.push(u);
+          }
+          return { ...page, notifications: next };
+        });
+        const total = Math.max(0, (pages[0]?.unreadCount ?? 0) - delta);
+        return mapped.map((page) => ({ ...page, unreadCount: total }));
+      },
+      { revalidate: false }
+    );
   }
 
   async function markRead(id: string, e?: React.MouseEvent) {
     e?.stopPropagation();
+    // On the Unread tab a read notification no longer belongs — drop it;
+    // elsewhere flip its state in place.
+    await patchNotifications((n) =>
+      n.id === id
+        ? activeTab === "unread"
+          ? null
+          : { ...n, isRead: true, readAt: new Date().toISOString() }
+        : n
+    );
     await fetch(`/api/me/notifications/${id}/read`, { method: "PATCH" });
-    await sync();
+    await globalMutate("/api/me/notifications?filter=unread");
   }
 
   async function markUnread(id: string, e: React.MouseEvent) {
     e.stopPropagation();
+    await patchNotifications((n) =>
+      n.id === id ? { ...n, isRead: false, readAt: null } : n
+    );
     await fetch(`/api/me/notifications/${id}/unread`, { method: "PATCH" });
-    await sync();
+    await globalMutate("/api/me/notifications?filter=unread");
   }
 
   async function dismiss(id: string, e: React.MouseEvent) {
     e.stopPropagation();
+    await patchNotifications((n) => (n.id === id ? null : n));
     await fetch(`/api/me/notifications/${id}`, { method: "DELETE" });
-    await sync();
+    await globalMutate("/api/me/notifications?filter=unread");
     // Close panel if the dismissed notification's task is open
     setSelectedTask(null);
   }
 
   async function markAllRead() {
-    const res = await fetch("/api/me/notifications/read-all", { method: "PATCH" });
-    await sync();
+    await mutate(
+      (pages) =>
+        pages?.map((page) => ({
+          ...page,
+          unreadCount: 0,
+          notifications:
+            activeTab === "unread"
+              ? []
+              : page.notifications.map((n) =>
+                  n.isRead
+                    ? n
+                    : { ...n, isRead: true, readAt: new Date().toISOString() }
+                ),
+        })),
+      { revalidate: false }
+    );
+    const res = await fetch("/api/me/notifications/read-all", {
+      method: "PATCH",
+    });
+    await globalMutate("/api/me/notifications?filter=unread");
     if (!res.ok) {
       toast.error("Couldn't mark notifications as read");
       return;
@@ -153,14 +436,15 @@ export default function InboxPage() {
     toast.success(
       count > 0
         ? `${count} notification${count === 1 ? "" : "s"} marked as read`
-        : "You're all caught up",
+        : "You're all caught up"
     );
   }
 
   async function clearAll() {
-    const res = await fetch("/api/me/notifications", { method: "DELETE" });
-    await sync();
+    await mutate([], { revalidate: false });
     setSelectedTask(null);
+    const res = await fetch("/api/me/notifications", { method: "DELETE" });
+    await globalMutate("/api/me/notifications?filter=unread");
     if (!res.ok) {
       toast.error("Couldn't clear notifications");
       return;
@@ -169,14 +453,16 @@ export default function InboxPage() {
     toast.success(
       count > 0
         ? `${count} notification${count === 1 ? "" : "s"} cleared`
-        : "No notifications to clear",
+        : "No notifications to clear"
     );
   }
 
   // Clicking marks read (notification stays in the Inbox) and then opens the
   // destination when there is one, or explains why there isn't.
   async function handleRowClick(n: Notification) {
-    if (!n.isRead) void markRead(n.id);
+    if (!n.isRead) {
+      void markRead(n.id);
+    }
 
     const target = getNotificationTarget(n);
 
@@ -190,8 +476,15 @@ export default function InboxPage() {
       return;
     }
 
-    // target.type === "task" — open inline, using the notification's OWN workspace
-    // (the Inbox is cross-workspace, so it may differ from the page's workspace).
+    // target.type === "task". When the task lives in ANOTHER workspace, navigate
+    // to it so the app switches into that workspace (the inline panel can't
+    // switch the surrounding shell). Same-workspace tasks keep the lightweight
+    // inline panel.
+    if (n.workspaceId !== workspaceId) {
+      router.push(`/${n.workspaceId}/task/${n.entityId}`);
+      return;
+    }
+
     // Toggle-close only when re-clicking the SAME notification row — multiple
     // notifications can point at the same task, so we key off the notification id,
     // not the task id (otherwise clicking a sibling notification would just close it).
@@ -213,13 +506,54 @@ export default function InboxPage() {
     });
   }
 
+  const activeFilterCount =
+    (dateFilter ? 1 : 0) + (workspaceFilter ? 1 : 0) + (eventFilter ? 1 : 0);
+  const hasActiveFilters = activeFilterCount > 0 || q.length > 0;
+
+  function clearFilters() {
+    setSearchDraft("");
+    updateParams({ q: null, date: null, workspace: null, event: null });
+  }
+
+  // Date / Workspace / Event dropdowns — shared by the desktop bar and the
+  // mobile filter sheet. Reuses the app-wide FacetFilter (single-select).
+  const renderFilters = () => (
+    <>
+      <FacetFilter
+        label="Date"
+        onChange={(next) => updateParams({ date: next[0] ?? null })}
+        options={DATE_FILTERS.map((d) => ({ value: d.value, label: d.label }))}
+        selected={dateFilter ? [dateFilter] : []}
+        single
+      />
+      <FacetFilter
+        label="Workspace"
+        onChange={(next) => updateParams({ workspace: next[0] ?? null })}
+        options={workspaceOptions}
+        searchable
+        selected={workspaceFilter ? [workspaceFilter] : []}
+        single
+      />
+      <FacetFilter
+        label="Event"
+        onChange={(next) => updateParams({ event: next[0] ?? null })}
+        options={EVENT_FILTERS.map((e) => ({ value: e.value, label: e.label }))}
+        searchable
+        selected={eventFilter ? [eventFilter] : []}
+        single
+      />
+    </>
+  );
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* Notification list */}
-      <div className={cn(
-        "flex flex-col h-full transition-all duration-200",
-        selectedTask ? "w-105 shrink-0 border-r" : "flex-1",
-      )}>
+      <div
+        className={cn(
+          "flex flex-col h-full transition-all duration-200",
+          selectedTask ? "w-105 shrink-0 border-r" : "flex-1"
+        )}
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4 shrink-0">
           <div className="flex items-center gap-3">
@@ -232,15 +566,15 @@ export default function InboxPage() {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={markAllRead}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              onClick={markAllRead}
             >
               Mark all as read
             </button>
             <span className="text-muted-foreground/30 select-none">|</span>
             <button
-              onClick={clearAll}
               className="text-sm text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+              onClick={clearAll}
             >
               Clear all
             </button>
@@ -253,21 +587,27 @@ export default function InboxPage() {
             const active = activeTab === t.key;
             return (
               <button
-                key={t.key}
-                onClick={() => setActiveTab(t.key)}
                 className={cn(
                   "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
                   active
                     ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                 )}
+                key={t.key}
+                onClick={() =>
+                  updateParams({ filter: t.key === "all" ? null : t.key })
+                }
               >
                 {t.label}
                 {t.key === "unread" && unreadCount > 0 && (
-                  <span className={cn(
-                    "flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-2xs font-semibold leading-none",
-                    active ? "bg-foreground text-background" : "bg-blue-500 text-white",
-                  )}>
+                  <span
+                    className={cn(
+                      "flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-2xs font-semibold leading-none",
+                      active
+                        ? "bg-foreground text-background"
+                        : "bg-blue-500 text-white"
+                    )}
+                  >
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -276,98 +616,219 @@ export default function InboxPage() {
           })}
         </div>
 
-        {/* List */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading && (
-            <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
-              Loading…
-            </div>
-          )}
-          {!isLoading && notifications.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-24 gap-2">
-              <p className="text-sm font-medium text-muted-foreground">You&apos;re all caught up</p>
-              <p className="text-xs text-muted-foreground">No notifications here</p>
-            </div>
-          )}
-          {notifications.map((n) => {
-            const isSelected = selectedTask?.notifId === n.id;
-            return (
-              <div
-                key={n.id}
-                onClick={() => void handleRowClick(n)}
-                className={cn(
-                  "group relative flex cursor-pointer items-center gap-3 border-b px-4 py-3.5 transition-colors hover:bg-accent/40",
-                  !n.isRead && "bg-blue-50/60 dark:bg-blue-950/20",
-                  isSelected && "bg-accent",
-                )}
+        {/* Search + filters */}
+        <div className="flex items-center gap-2 border-b px-4 py-2 shrink-0">
+          <SearchInput
+            className="h-8 flex-1"
+            onChange={(e) => setSearchDraft(e.target.value)}
+            onClear={() => setSearchDraft("")}
+            placeholder="Search notifications..."
+            value={searchDraft}
+          />
+          {/* Desktop: inline dropdowns */}
+          <div className="hidden items-center gap-2 md:flex">
+            {renderFilters()}
+            {hasActiveFilters && (
+              <button
+                className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-foreground"
+                onClick={clearFilters}
+                type="button"
               >
-                {/* Unread dot */}
-                <div className="w-2 shrink-0 flex justify-center">
-                  {!n.isRead && <span className="h-2 w-2 rounded-full bg-blue-500 block" />}
+                Clear
+              </button>
+            )}
+          </div>
+          {/* Mobile: single Filters button → sheet */}
+          <button
+            className={cn(
+              "flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors md:hidden",
+              activeFilterCount > 0
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+            onClick={() => setMobileFiltersOpen(true)}
+            type="button"
+          >
+            <FunnelIcon className="size-3.5" />
+            Filters
+            {activeFilterCount > 0 && <span>({activeFilterCount})</span>}
+          </button>
+        </div>
+
+        <Sheet onOpenChange={setMobileFiltersOpen} open={mobileFiltersOpen}>
+          <SheetContent className="gap-0" side="bottom">
+            <SheetHeader>
+              <SheetTitle>Filters</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-wrap gap-2 p-4">{renderFilters()}</div>
+            {hasActiveFilters && (
+              <div className="border-t p-4">
+                <button
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => {
+                    clearFilters();
+                    setMobileFiltersOpen(false);
+                  }}
+                  type="button"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto" ref={scrollRef}>
+          {isLoadingInitial && <NotificationSkeletons count={6} />}
+          {isEmpty && (
+            <div className="flex flex-col items-center justify-center py-24 gap-2">
+              <p className="text-sm font-medium text-muted-foreground">
+                {hasActiveFilters
+                  ? "No matching notifications"
+                  : "No notifications yet."}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {hasActiveFilters
+                  ? "Try adjusting your filters."
+                  : "You're all caught up."}
+              </p>
+            </div>
+          )}
+          {!isEmpty &&
+            groups.map((group) => (
+              <section key={group.label}>
+                <div className="sticky top-0 z-10 border-b bg-background/95 px-4 py-1.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
+                  {group.label}
                 </div>
+                {group.items.map((n) => {
+                  const isSelected = selectedTask?.notifId === n.id;
+                  return (
+                    <div
+                      className={cn(
+                        "group relative flex cursor-pointer items-center gap-3 border-b px-4 py-3.5 transition-colors hover:bg-accent/40",
+                        !n.isRead && "bg-blue-50/60 dark:bg-blue-950/20",
+                        isSelected && "bg-accent"
+                      )}
+                      key={n.id}
+                      onClick={() => void handleRowClick(n)}
+                    >
+                      {/* Unread dot */}
+                      <div className="w-2 shrink-0 flex justify-center">
+                        {!n.isRead && (
+                          <span className="h-2 w-2 rounded-full bg-blue-500 block" />
+                        )}
+                      </div>
 
-                {/* Avatar */}
-                <Avatar className="size-8 shrink-0">
-                  <AvatarFallback className="text-xs bg-muted">
-                    {getInitials(n.actorName)}
-                  </AvatarFallback>
-                </Avatar>
+                      {/* Avatar */}
+                      <Avatar className="size-8 shrink-0">
+                        <AvatarFallback className="text-xs bg-muted">
+                          {getInitials(n.actorName)}
+                        </AvatarFallback>
+                      </Avatar>
 
-                {/* Text */}
-                <div className="flex-1 min-w-0">
-                  <p className={cn("text-sm leading-snug", !n.isRead ? "font-medium" : "text-muted-foreground")}>
-                    {n.title}
-                  </p>
-                  {n.body && (
-                    <p className="mt-0.5 text-xs text-muted-foreground truncate italic">
-                      {n.body}
-                    </p>
-                  )}
-                  <p className="mt-0.5 text-xs text-muted-foreground/70">
-                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                  </p>
-                </div>
+                      {/* Text */}
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={cn(
+                            "text-sm leading-snug",
+                            n.isRead ? "text-muted-foreground" : "font-medium"
+                          )}
+                        >
+                          {n.title}
+                        </p>
+                        {n.body && (
+                          <p className="mt-0.5 text-xs text-muted-foreground truncate italic">
+                            {n.body}
+                          </p>
+                        )}
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground/70">
+                          {n.workspaceName && (
+                            <>
+                              <span className="flex min-w-0 items-center gap-1 font-medium">
+                                <span aria-hidden className="shrink-0">
+                                  {n.workspaceIcon ?? "📁"}
+                                </span>
+                                <span className="truncate">
+                                  {n.workspaceName}
+                                </span>
+                              </span>
+                              <span aria-hidden>·</span>
+                            </>
+                          )}
+                          <span className="shrink-0">
+                            {formatDistanceToNow(new Date(n.createdAt), {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </p>
+                      </div>
 
-                {/* Actions on hover. Overlaid instead of laid out in flow — if they
+                      {/* Actions on hover. Overlaid instead of laid out in flow — if they
                     took up space, the text column would shrink on hover and the title
                     would reflow onto extra lines. Icon-only and translucent so the
                     tray stays narrow and reads as floating above the row rather than
                     punching a hole in it. */}
-                <div
-                  className={cn(
-                    "absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5",
-                    "rounded-lg border border-border/60 bg-background/90 p-1 shadow-sm backdrop-blur-sm",
-                    "pointer-events-none translate-x-1 opacity-0",
-                    "transition-[opacity,transform] duration-150 ease-out",
-                    "group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100",
-                    "group-focus-within:pointer-events-auto group-focus-within:translate-x-0 group-focus-within:opacity-100",
-                  )}
-                >
-                  {getNotificationTarget(n).type !== "info" && (
-                    <ActionBtn onClick={(e) => { e.stopPropagation(); void handleRowClick(n); }} title="Open">
-                      <ArrowSquareOutIcon className="size-4" />
-                    </ActionBtn>
-                  )}
-                  {n.isRead ? (
-                    <ActionBtn onClick={(e) => void markUnread(n.id, e)} title="Mark as unread">
-                      <EnvelopeIcon className="size-4" />
-                    </ActionBtn>
-                  ) : (
-                    <ActionBtn onClick={(e) => void markRead(n.id, e)} title="Mark as read">
-                      <EnvelopeOpenIcon className="size-4" />
-                    </ActionBtn>
-                  )}
-                  <ActionBtn
-                    onClick={(e) => void dismiss(n.id, e)}
-                    title="Dismiss"
-                    destructive
-                  >
-                    <XIcon className="size-4" />
-                  </ActionBtn>
-                </div>
-              </div>
-            );
-          })}
+                      <div
+                        className={cn(
+                          "absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5",
+                          "rounded-lg border border-border/60 bg-background/90 p-1 shadow-sm backdrop-blur-sm",
+                          "pointer-events-none translate-x-1 opacity-0",
+                          "transition-[opacity,transform] duration-150 ease-out",
+                          "group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100",
+                          "group-focus-within:pointer-events-auto group-focus-within:translate-x-0 group-focus-within:opacity-100"
+                        )}
+                      >
+                        {getNotificationTarget(n).type !== "info" && (
+                          <ActionBtn
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleRowClick(n);
+                            }}
+                            title="Open"
+                          >
+                            <ArrowSquareOutIcon className="size-4" />
+                          </ActionBtn>
+                        )}
+                        {n.isRead ? (
+                          <ActionBtn
+                            onClick={(e) => void markUnread(n.id, e)}
+                            title="Mark as unread"
+                          >
+                            <EnvelopeIcon className="size-4" />
+                          </ActionBtn>
+                        ) : (
+                          <ActionBtn
+                            onClick={(e) => void markRead(n.id, e)}
+                            title="Mark as read"
+                          >
+                            <EnvelopeOpenIcon className="size-4" />
+                          </ActionBtn>
+                        )}
+                        <ActionBtn
+                          destructive
+                          onClick={(e) => void dismiss(n.id, e)}
+                          title="Dismiss"
+                        >
+                          <XIcon className="size-4" />
+                        </ActionBtn>
+                      </div>
+                    </div>
+                  );
+                })}
+              </section>
+            ))}
+
+          {/* Sentinel triggers the next page; skeletons show while it loads. */}
+          {!isReachingEnd && (
+            <div aria-hidden className="h-px" ref={sentinelRef} />
+          )}
+          {isLoadingMore && <NotificationSkeletons count={4} />}
+          {isReachingEnd && notifications.length > 0 && (
+            <p className="py-6 text-center text-xs text-muted-foreground">
+              You&apos;ve reached the end.
+            </p>
+          )}
         </div>
       </div>
 
@@ -376,8 +837,8 @@ export default function InboxPage() {
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="flex items-center justify-end border-b px-3 py-2 shrink-0">
             <button
-              onClick={() => setSelectedTask(null)}
               className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+              onClick={() => setSelectedTask(null)}
               title="Close"
             >
               <XIcon className="size-4" />
@@ -386,12 +847,16 @@ export default function InboxPage() {
           <div className="flex-1 overflow-hidden">
             <TaskDetailPanel
               inline
+              listId={selectedTask.listId ?? ""}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setSelectedTask(null);
+                }
+              }}
               open
-              onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+              spaceId={selectedTask.spaceId}
               taskId={selectedTask.taskId}
               workspaceId={selectedTask.workspaceId}
-              spaceId={selectedTask.spaceId}
-              listId={selectedTask.listId ?? ""}
             />
           </div>
         </div>
@@ -406,7 +871,10 @@ export default function InboxPage() {
  * tooltip and `aria-label` keeps it accessible.
  */
 function ActionBtn({
-  onClick, title, destructive, children,
+  onClick,
+  title,
+  destructive,
+  children,
 }: {
   onClick: (e: React.MouseEvent) => void;
   title: string;
@@ -415,19 +883,37 @@ function ActionBtn({
 }) {
   return (
     <button
-      type="button"
-      onClick={onClick}
-      title={title}
       aria-label={title}
       className={cn(
         "flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground",
         "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         destructive
           ? "hover:bg-destructive/10 hover:text-destructive"
-          : "hover:bg-accent hover:text-foreground",
+          : "hover:bg-accent hover:text-foreground"
       )}
+      onClick={onClick}
+      title={title}
+      type="button"
     >
       {children}
     </button>
+  );
+}
+
+/** Lightweight placeholder rows shown while a page is loading. */
+function NotificationSkeletons({ count }: { count: number }) {
+  return (
+    <div aria-hidden>
+      {SKELETON_KEYS.slice(0, count).map((k) => (
+        <div className="flex items-center gap-3 border-b px-4 py-3.5" key={k}>
+          <div className="w-2 shrink-0" />
+          <div className="size-8 shrink-0 animate-pulse rounded-full bg-muted" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-3/5 animate-pulse rounded bg-muted" />
+            <div className="h-2.5 w-2/5 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

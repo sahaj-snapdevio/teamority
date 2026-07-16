@@ -1,24 +1,55 @@
-import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
+import {
+  list,
+  listStatus,
+  pinnedTask,
+  space,
+  tag,
+  task,
+  taskAssignee,
+  taskDependency,
+  taskTag,
+  user,
+  workspaceMember,
+} from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { list, listStatus, task, taskTag, tag, space, spaceMember, taskAssignee, user, workspaceMember, pinnedTask } from "@/db/schema";
-import { canAccessSpace, getWorkspaceMembership, getSpacePermission, hasPermissionLevel } from "@/lib/permissions";
+import {
+  canAccessSpace,
+  getSpacePermission,
+  getWorkspaceMembership,
+  hasPermissionLevel,
+} from "@/lib/permissions";
 import { ListContainer } from "./_components/list-container";
 
 interface ListPageProps {
   params: Promise<{ workspaceId: string; spaceId: string; listId: string }>;
 }
 
-export async function generateMetadata({ params }: ListPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: ListPageProps): Promise<Metadata> {
   const { spaceId, listId } = await params;
   const [listRow, spaceRow] = await Promise.all([
-    db.select({ name: list.name }).from(list).where(eq(list.id, listId)).limit(1).then((r) => r[0]),
-    db.select({ name: space.name }).from(space).where(eq(space.id, spaceId)).limit(1).then((r) => r[0]),
+    db
+      .select({ name: list.name })
+      .from(list)
+      .where(eq(list.id, listId))
+      .limit(1)
+      .then((r) => r[0]),
+    db
+      .select({ name: space.name })
+      .from(space)
+      .where(eq(space.id, spaceId))
+      .limit(1)
+      .then((r) => r[0]),
   ]);
-  if (!listRow || !spaceRow) return { title: "List" };
+  if (!listRow || !spaceRow) {
+    return { title: "List" };
+  }
   return { title: `${listRow.name} · ${spaceRow.name}` };
 }
 
@@ -26,23 +57,29 @@ export default async function ListPage({ params }: ListPageProps) {
   const { workspaceId, spaceId, listId } = await params;
 
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/login");
+  if (!session) {
+    redirect("/login");
+  }
 
   const [membership, accessible] = await Promise.all([
     getWorkspaceMembership(session.user.id, workspaceId),
     canAccessSpace(session.user.id, workspaceId, spaceId),
   ]);
-  if (!membership || !accessible) notFound();
+  if (!membership || !accessible) {
+    notFound();
+  }
 
-  const isAdminOrOwner = membership.role === "OWNER" || membership.role === "ADMIN";
+  const isAdminOrOwner =
+    membership.role === "OWNER" || membership.role === "ADMIN";
 
   // Determine canManage (FULL_ACCESS) and canEdit (EDIT or above)
   const spacePermission = isAdminOrOwner
-    ? "full_access" as const
+    ? ("full_access" as const)
     : await getSpacePermission(session.user.id, workspaceId, spaceId);
 
   const canManage = spacePermission === "full_access";
-  const canEdit = spacePermission !== null && hasPermissionLevel(spacePermission, "edit");
+  const canEdit =
+    spacePermission !== null && hasPermissionLevel(spacePermission, "edit");
 
   const [currentSpace, currentList] = await Promise.all([
     db
@@ -52,14 +89,27 @@ export default async function ListPage({ params }: ListPageProps) {
       .limit(1)
       .then((r) => r[0] ?? null),
     db
-      .select({ id: list.id, name: list.name, color: list.color, description: list.description })
+      .select({
+        id: list.id,
+        name: list.name,
+        color: list.color,
+        description: list.description,
+      })
       .from(list)
-      .where(and(eq(list.id, listId), eq(list.spaceId, spaceId), eq(list.isArchived, false)))
+      .where(
+        and(
+          eq(list.id, listId),
+          eq(list.spaceId, spaceId),
+          eq(list.isArchived, false)
+        )
+      )
       .limit(1)
       .then((r) => r[0] ?? null),
   ]);
 
-  if (!currentList || !currentSpace) notFound();
+  if (!currentList || !currentSpace) {
+    notFound();
+  }
 
   const [statuses, tasks, memberRows, allTags] = await Promise.all([
     db
@@ -81,10 +131,20 @@ export default async function ListPage({ params }: ListPageProps) {
         pinnedToListOrder: task.pinnedToListOrder,
       })
       .from(task)
-      .where(and(eq(task.listId, listId), eq(task.isArchived, false), isNull(task.parentTaskId)))
+      .where(
+        and(
+          eq(task.listId, listId),
+          eq(task.isArchived, false),
+          isNull(task.parentTaskId)
+        )
+      )
       .orderBy(asc(task.orderIndex)),
     db
-      .select({ userId: workspaceMember.userId, name: user.name, email: user.email })
+      .select({
+        userId: workspaceMember.userId,
+        name: user.name,
+        email: user.email,
+      })
       .from(workspaceMember)
       .leftJoin(user, eq(workspaceMember.userId, user.id))
       .where(eq(workspaceMember.workspaceId, workspaceId)),
@@ -97,10 +157,15 @@ export default async function ListPage({ params }: ListPageProps) {
   // Fetch tags, assignees, and personal pins in parallel
   const taskIds = tasks.map((t) => t.id);
 
-  const [tagRows, assigneeRows, personalPinRows] = await Promise.all([
+  const [tagRows, assigneeRows, personalPinRows, depRows] = await Promise.all([
     taskIds.length > 0
       ? db
-          .select({ taskId: taskTag.taskId, id: tag.id, name: tag.name, color: tag.color })
+          .select({
+            taskId: taskTag.taskId,
+            id: tag.id,
+            name: tag.name,
+            color: tag.color,
+          })
           .from(taskTag)
           .innerJoin(tag, eq(taskTag.tagId, tag.id))
           .where(inArray(taskTag.taskId, taskIds))
@@ -124,30 +189,82 @@ export default async function ListPage({ params }: ListPageProps) {
       ? db
           .select({ taskId: pinnedTask.taskId })
           .from(pinnedTask)
-          .where(and(eq(pinnedTask.userId, session.user.id), inArray(pinnedTask.taskId, taskIds)))
+          .where(
+            and(
+              eq(pinnedTask.userId, session.user.id),
+              inArray(pinnedTask.taskId, taskIds)
+            )
+          )
+      : Promise.resolve([]),
+
+    // "Blocked by" edges for the visible tasks — one row per blocker, carrying
+    // its status so the list/board indicator can show dependency state (all
+    // completed vs still blocked) without an N+1 query.
+    taskIds.length > 0
+      ? db
+          .select({
+            taskId: taskDependency.taskId,
+            blockerStatusType: listStatus.type,
+          })
+          .from(taskDependency)
+          .innerJoin(task, eq(taskDependency.dependsOnTaskId, task.id))
+          .leftJoin(listStatus, eq(listStatus.id, task.statusId))
+          .where(inArray(taskDependency.taskId, taskIds))
       : Promise.resolve([]),
   ]);
 
-  const tagsByTaskId = new Map<string, { id: string; name: string; color: string }[]>();
+  const tagsByTaskId = new Map<
+    string,
+    { id: string; name: string; color: string }[]
+  >();
   for (const row of tagRows) {
     const existing = tagsByTaskId.get(row.taskId) ?? [];
-    existing.push({ id: row.id, name: row.name, color: row.color ?? "#9CA3AF" });
+    existing.push({
+      id: row.id,
+      name: row.name,
+      color: row.color ?? "#9CA3AF",
+    });
     tagsByTaskId.set(row.taskId, existing);
   }
 
-  const assigneesByTaskId = new Map<string, { userId: string; name: string; image: string | null }[]>();
+  const assigneesByTaskId = new Map<
+    string,
+    { userId: string; name: string; image: string | null }[]
+  >();
   for (const row of assigneeRows) {
     const existing = assigneesByTaskId.get(row.taskId) ?? [];
-    existing.push({ userId: row.userId, name: row.name || row.email, image: row.image });
+    existing.push({
+      userId: row.userId,
+      name: row.name || row.email,
+      image: row.image,
+    });
     assigneesByTaskId.set(row.taskId, existing);
   }
 
   const personallyPinnedIds = new Set(personalPinRows.map((r) => r.taskId));
 
+  const depInfoByTaskId = new Map<
+    string,
+    { total: number; incomplete: number }
+  >();
+  for (const row of depRows) {
+    const existing = depInfoByTaskId.get(row.taskId) ?? {
+      total: 0,
+      incomplete: 0,
+    };
+    existing.total += 1;
+    // Any blocker that isn't CLOSED means this task is still waiting on it.
+    if (row.blockerStatusType !== "CLOSED") {
+      existing.incomplete += 1;
+    }
+    depInfoByTaskId.set(row.taskId, existing);
+  }
+
   const tasksWithTags = tasks.map((t) => ({
     ...t,
     tags: tagsByTaskId.get(t.id) ?? [],
     assignees: assigneesByTaskId.get(t.id) ?? [],
+    dependencyInfo: depInfoByTaskId.get(t.id),
   }));
 
   const pinnedListTasks = tasksWithTags
@@ -162,20 +279,20 @@ export default async function ListPage({ params }: ListPageProps) {
 
   return (
     <ListContainer
-      workspaceId={workspaceId}
-      space={currentSpace}
-      list={currentList}
-      statuses={statuses}
-      tasks={normalTasks}
-      pinnedTasks={pinnedListTasks}
-      members={members}
-      tags={allTags}
-      canManage={canManage}
       canEdit={canEdit}
-      isAdmin={isAdminOrOwner}
+      canManage={canManage}
       canPinToList={canManage}
       currentUserId={session.user.id}
+      isAdmin={isAdminOrOwner}
+      list={currentList}
+      members={members}
       personallyPinnedIds={personallyPinnedIds}
+      pinnedTasks={pinnedListTasks}
+      space={currentSpace}
+      statuses={statuses}
+      tags={allTags}
+      tasks={normalTasks}
+      workspaceId={workspaceId}
     />
   );
 }

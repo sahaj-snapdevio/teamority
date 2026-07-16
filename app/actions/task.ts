@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import {
   list,
   listStatus,
+  space,
   task,
   taskAssignee,
   taskWatcher,
@@ -284,6 +285,11 @@ export async function getTaskDetail(
   const permErr = await requireViewAccess(session.user.id, workspaceId, spaceId);
   if (permErr) return permErr;
 
+  // Whether the viewer can edit (add/remove dependencies). View-only users see
+  // dependencies but no add/remove controls; the server still enforces this.
+  const permission = await getSpacePermission(session.user.id, workspaceId, spaceId);
+  const canEdit = permission !== null && hasPermissionLevel(permission, "edit");
+
   const [t] = await db
     .select()
     .from(task)
@@ -291,7 +297,7 @@ export async function getTaskDetail(
     .limit(1);
   if (!t) return { error: "Task not found" };
 
-  const [assignees, watchers, tags, checklists, dependencies, timeLogs, statuses, snapshot, subtasks, parentTaskInfo] =
+  const [assignees, watchers, tags, checklists, blockedBy, blocks, timeLogs, statuses, snapshot, subtasks, parentTaskInfo] =
     await Promise.all([
       db
         .select({ userId: taskAssignee.userId, name: user.name, email: user.email, image: user.image })
@@ -329,17 +335,49 @@ export async function getTaskDetail(
           }));
         }),
 
+      // "Blocked by" — tasks this task depends on (stored: this → dependsOn)
       db
         .select({
           id: taskDependency.id,
-          type: taskDependency.type,
-          dependsOnTaskId: taskDependency.dependsOnTaskId,
-          dependsOnTitle: task.title,
-          dependsOnSeq: task.seqNumber,
+          taskId: task.id,
+          seqNumber: task.seqNumber,
+          title: task.title,
+          statusName: listStatus.name,
+          statusColor: listStatus.color,
+          statusType: listStatus.type,
+          spaceId: task.spaceId,
+          spaceName: space.name,
+          listId: task.listId,
+          listName: list.name,
         })
         .from(taskDependency)
         .innerJoin(task, eq(taskDependency.dependsOnTaskId, task.id))
+        .leftJoin(listStatus, eq(listStatus.id, task.statusId))
+        .leftJoin(space, eq(space.id, task.spaceId))
+        .leftJoin(list, eq(list.id, task.listId))
         .where(eq(taskDependency.taskId, taskId)),
+
+      // "Blocks" — tasks that depend on this task (reverse edge, generated in UI)
+      db
+        .select({
+          id: taskDependency.id,
+          taskId: task.id,
+          seqNumber: task.seqNumber,
+          title: task.title,
+          statusName: listStatus.name,
+          statusColor: listStatus.color,
+          statusType: listStatus.type,
+          spaceId: task.spaceId,
+          spaceName: space.name,
+          listId: task.listId,
+          listName: list.name,
+        })
+        .from(taskDependency)
+        .innerJoin(task, eq(taskDependency.taskId, task.id))
+        .leftJoin(listStatus, eq(listStatus.id, task.statusId))
+        .leftJoin(space, eq(space.id, task.spaceId))
+        .leftJoin(list, eq(list.id, task.listId))
+        .where(eq(taskDependency.dependsOnTaskId, taskId)),
 
       db
         .select()
@@ -391,12 +429,14 @@ export async function getTaskDetail(
     watchers,
     tags,
     checklists,
-    dependencies,
+    blockedBy,
+    blocks,
     timeLogs,
     statuses,
     snapshot,
     subtasks,
     parentTask: parentTaskInfo,
+    canEdit,
     currentUserId: session.user.id,
   };
 }

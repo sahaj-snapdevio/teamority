@@ -73,6 +73,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { TaskDependencyIndicator } from "@/components/task/task-dependency-badge";
 import { TaskListRow, type TaskListRowProps } from "@/components/task/task-list-row";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 
@@ -97,6 +98,7 @@ interface Task {
   pinnedToListOrder: number | null;
   tags: { id: string; name: string; color: string }[];
   assignees: { userId: string; name: string; image: string | null }[];
+  dependencyInfo?: TaskDependencyIndicator;
 }
 
 interface ListViewProps {

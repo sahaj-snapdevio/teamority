@@ -32,7 +32,9 @@ self.addEventListener("push", (event) => {
         includeUncontrolled: true,
       });
       const focused = clients.some((c) => c.focused);
-      if (focused) return;
+      if (focused) {
+        return;
+      }
 
       await self.registration.showNotification(data.title ?? "Kanbanica", {
         body: data.body ?? "",
@@ -41,7 +43,7 @@ self.addEventListener("push", (event) => {
         data: { url: data.url ?? "/" },
         requireInteraction: false,
       });
-    })(),
+    })()
   );
 });
 
@@ -49,17 +51,34 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url ?? "/";
   event.waitUntil(
-    clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
-        for (const client of clientList) {
-          if ("focus" in client) {
-            return client.focus();
+    (async () => {
+      const clientList = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      // Prefer an existing tab: focus it AND navigate it to the notification's
+      // target. The URL already includes /[workspaceId]/..., so navigating also
+      // switches the app into the correct workspace. Focusing alone would leave
+      // the tab on whatever page it was already showing.
+      for (const client of clientList) {
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client) {
+            try {
+              await client.navigate(url);
+            } catch {
+              // Detached/uncontrolled client — fall through to a new window.
+              if (self.clients.openWindow) {
+                await self.clients.openWindow(url);
+              }
+            }
           }
+          return;
         }
-        if (clients.openWindow) {
-          return clients.openWindow(url);
-        }
-      }),
+      }
+      if (self.clients.openWindow) {
+        await self.clients.openWindow(url);
+      }
+    })()
   );
 });

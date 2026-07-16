@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import * as React from "react";
 import { BellIcon } from "@phosphor-icons/react";
+import * as React from "react";
 import useSWR, { mutate } from "swr";
 import { Button } from "@/components/ui/button";
 import { NotificationPanel } from "./notification-panel";
@@ -17,7 +17,7 @@ export function NotificationBell() {
   const [open, setOpen] = React.useState(false);
   const { data } = useSWR<NotificationsResponse>(
     "/api/me/notifications?filter=unread",
-    fetcher,
+    fetcher
   );
 
   // SSE — open one persistent connection; revalidate all notification SWR
@@ -25,7 +25,11 @@ export function NotificationBell() {
   React.useEffect(() => {
     const es = new EventSource("/api/me/notifications/stream");
     es.addEventListener("message", () => {
-      void mutate((key) => typeof key === "string" && key.startsWith("/api/me/notifications"));
+      // `includes` also matches the Inbox's `$inf$`-prefixed useSWRInfinite key.
+      void mutate(
+        (key) =>
+          typeof key === "string" && key.includes("/api/me/notifications")
+      );
     });
     return () => es.close();
   }, []);
@@ -35,11 +39,11 @@ export function NotificationBell() {
   return (
     <>
       <Button
-        variant="ghost"
-        size="icon"
         className="relative size-8 shrink-0"
         onClick={() => setOpen((o) => !o)}
+        size="icon"
         title="Notifications"
+        variant="ghost"
       >
         <BellIcon className="size-4" />
         {unreadCount > 0 && (
@@ -48,7 +52,7 @@ export function NotificationBell() {
           </span>
         )}
       </Button>
-      <NotificationPanel open={open} onClose={() => setOpen(false)} />
+      <NotificationPanel onClose={() => setOpen(false)} open={open} />
     </>
   );
 }

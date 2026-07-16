@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
 import { useRouter } from "next/navigation";
-import useSWR, { mutate } from "swr";
+import * as React from "react";
 import { toast } from "sonner";
+import useSWR, { mutate } from "swr";
 import { playNotificationSound } from "@/lib/notifications/sound";
 
 const soundPrefFetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -21,11 +21,11 @@ const soundPrefFetcher = (url: string) => fetch(url).then((r) => r.json());
  */
 
 const DEBOUNCE_MS = 600;
-const RECONNECT_MIN_MS = 1_000;
+const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30_000;
 
 /** Scope hint carried by a `data_changed` event (see lib/realtime/broadcast.ts). */
-export interface RefetchMeta {  
+export interface RefetchMeta {
   /** Present when the change was task-scoped. Absent = "might affect anyone". */
   taskId?: string;
 }
@@ -33,10 +33,10 @@ export interface RefetchMeta {
 type RefetchHandler = (meta?: RefetchMeta) => void;
 
 interface RealtimeContextValue {
-  /** Subscribe a client-fetched view's re-fetch. Returns an unsubscribe fn. */
-  subscribe: (handler: RefetchHandler) => () => void;
   /** Pause auto-refresh (e.g. during a drag). Returns a `resume` fn. */
   pause: () => () => void;
+  /** Subscribe a client-fetched view's re-fetch. Returns an unsubscribe fn. */
+  subscribe: (handler: RefetchHandler) => () => void;
 }
 
 const RealtimeContext = React.createContext<RealtimeContextValue | null>(null);
@@ -53,7 +53,10 @@ export function RealtimeProvider({
   // Same SWR cache key the notification settings page uses — toggling the
   // "In-App Notification Sound" setting there calls `mutate()` on this exact
   // key, so this copy updates immediately with no extra plumbing.
-  const { data: soundPrefData } = useSWR("/api/me/email-preferences", soundPrefFetcher);
+  const { data: soundPrefData } = useSWR(
+    "/api/me/email-preferences",
+    soundPrefFetcher
+  );
   const soundEnabledRef = React.useRef(true);
   soundEnabledRef.current = soundPrefData?.preference?.soundEnabled ?? true;
 
@@ -72,23 +75,36 @@ export function RealtimeProvider({
   // Scope hint of the coalesced burst. Cleared to `undefined` (= generic) as
   // soon as a burst mixes different tasks, so no subscriber wrongly skips.
   const pendingMetaRef = React.useRef<RefetchMeta | undefined>(undefined);
-  const flushTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   // True while a refresh must wait: inactive tab, active editing, an open
   // overlay we control, or an explicit drag pause.
   const shouldDefer = React.useCallback(() => {
-    if (typeof document === "undefined") return false;
-    if (document.hidden || !document.hasFocus()) return true;
-    if (interactionCountRef.current > 0) return true;
+    if (typeof document === "undefined") {
+      return false;
+    }
+    if (document.hidden || !document.hasFocus()) {
+      return true;
+    }
+    if (interactionCountRef.current > 0) {
+      return true;
+    }
     const el = document.activeElement as HTMLElement | null;
-    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
+    if (
+      el &&
+      (el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.isContentEditable)
+    ) {
       return true;
     }
     // Specific shadcn/Radix overlays only (not a blanket [data-state="open"]):
     // Dialog, Dropdown Menu, Select/Command/slash menu, Popover/Date-picker.
     if (
       document.querySelector(
-        '[role="dialog"],[role="menu"],[role="listbox"],[data-radix-popper-content-wrapper]',
+        '[role="dialog"],[role="menu"],[role="listbox"],[data-radix-popper-content-wrapper]'
       )
     ) {
       return true;
@@ -112,8 +128,12 @@ export function RealtimeProvider({
       clearTimeout(flushTimerRef.current);
       flushTimerRef.current = null;
     }
-    if (!pendingRef.current) return;
-    if (shouldDefer()) return; // stay pending; a clearing event will retry
+    if (!pendingRef.current) {
+      return;
+    }
+    if (shouldDefer()) {
+      return; // stay pending; a clearing event will retry
+    }
     if (pendingForRef.current !== workspaceIdRef.current) {
       // User navigated to a different workspace since the event — drop it.
       pendingRef.current = false;
@@ -146,7 +166,7 @@ export function RealtimeProvider({
         flushTimerRef.current = setTimeout(attemptFlush, DEBOUNCE_MS);
       }
     },
-    [attemptFlush],
+    [attemptFlush]
   );
 
   // SSE connection with exponential-backoff reconnect (survives laptop sleep).
@@ -172,6 +192,8 @@ export function RealtimeProvider({
           title?: string;
           body?: string | null;
           url?: string;
+          workspaceName?: string | null;
+          workspaceIcon?: string | null;
         };
         try {
           data = JSON.parse(event.data);
@@ -184,9 +206,13 @@ export function RealtimeProvider({
         // Notifications are cross-workspace, so this is NOT gated on workspaceId.
         if (data.type === "new_notification") {
           void mutate(
-            (key) => typeof key === "string" && key.startsWith("/api/me/notifications"),
+            // `includes` (not `startsWith`) so the Inbox's useSWRInfinite key —
+            // which SWR prefixes with `$inf$` — is matched alongside the plain
+            // bell/sidebar keys, keeping the open Inbox live over SSE.
+            (key) =>
+              typeof key === "string" && key.includes("/api/me/notifications"),
             undefined,
-            { revalidate: true },
+            { revalidate: true }
           );
           // Show an in-app toast ONLY when this window is focused + visible.
           // When it isn't (hidden tab, minimized, unfocused, or app closed), the
@@ -199,12 +225,30 @@ export function RealtimeProvider({
             document.hasFocus();
           if (data.title && appFocused) {
             const url = data.url;
-            toast(data.title, {
-              description: data.body ?? undefined,
-              action: url
-                ? { label: "View", onClick: () => routerRef.current.push(url) }
-                : undefined,
-            });
+            const workspaceName = data.workspaceName;
+            const workspaceIcon = data.workspaceIcon;
+            toast(
+              workspaceName ? (
+                <span className="flex flex-col gap-0.5">
+                  <span className="flex items-center gap-1 text-2xs font-medium text-muted-foreground">
+                    <span aria-hidden>{workspaceIcon ?? "📁"}</span>
+                    {workspaceName}
+                  </span>
+                  <span>{data.title}</span>
+                </span>
+              ) : (
+                data.title
+              ),
+              {
+                description: data.body ?? undefined,
+                action: url
+                  ? {
+                      label: "View",
+                      onClick: () => routerRef.current.push(url),
+                    }
+                  : undefined,
+              }
+            );
           }
           // Sound is independent of the toast above and of tab focus/
           // visibility (Slack-style — plays even when this tab is
@@ -218,15 +262,24 @@ export function RealtimeProvider({
           }
           return;
         }
-        if (data.type !== "data_changed" || data.v !== 1) return;
-        if (!data.workspaceId || data.workspaceId !== workspaceIdRef.current) return;
+        if (data.type !== "data_changed" || data.v !== 1) {
+          return;
+        }
+        if (!data.workspaceId || data.workspaceId !== workspaceIdRef.current) {
+          return;
+        }
         // `taskId` is optional — when absent, subscribers do a generic refetch.
-        requestRefresh(data.workspaceId, data.taskId ? { taskId: data.taskId } : undefined);
+        requestRefresh(
+          data.workspaceId,
+          data.taskId ? { taskId: data.taskId } : undefined
+        );
       };
       es.onerror = () => {
         es?.close();
         es = null;
-        if (closed) return;
+        if (closed) {
+          return;
+        }
         reconnectTimer = setTimeout(connect, delay);
         delay = Math.min(delay * 2, RECONNECT_MAX_MS);
       };
@@ -235,7 +288,9 @@ export function RealtimeProvider({
 
     return () => {
       closed = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
       es?.close();
     };
   }, [requestRefresh]);
@@ -265,17 +320,26 @@ export function RealtimeProvider({
         interactionCountRef.current += 1;
         let released = false;
         return () => {
-          if (released) return;
+          if (released) {
+            return;
+          }
           released = true;
-          interactionCountRef.current = Math.max(0, interactionCountRef.current - 1);
+          interactionCountRef.current = Math.max(
+            0,
+            interactionCountRef.current - 1
+          );
           attemptFlush();
         };
       },
     }),
-    [attemptFlush],
+    [attemptFlush]
   );
 
-  return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;
+  return (
+    <RealtimeContext.Provider value={value}>
+      {children}
+    </RealtimeContext.Provider>
+  );
 }
 
 /**
@@ -288,7 +352,9 @@ export function useRealtimeRefetch(handler: (meta?: RefetchMeta) => void) {
   const handlerRef = React.useRef(handler);
   handlerRef.current = handler;
   React.useEffect(() => {
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
     return ctx.subscribe((meta) => handlerRef.current(meta));
   }, [ctx]);
 }
