@@ -2,8 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { mutate } from "swr";
+import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
+import { playNotificationSound } from "@/lib/notifications/sound";
+
+const soundPrefFetcher = (url: string) => fetch(url).then((r) => r.json());
 
 /**
  * Realtime collaboration client.
@@ -46,6 +49,13 @@ export function RealtimeProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+
+  // Same SWR cache key the notification settings page uses — toggling the
+  // "In-App Notification Sound" setting there calls `mutate()` on this exact
+  // key, so this copy updates immediately with no extra plumbing.
+  const { data: soundPrefData } = useSWR("/api/me/email-preferences", soundPrefFetcher);
+  const soundEnabledRef = React.useRef(true);
+  soundEnabledRef.current = soundPrefData?.preference?.soundEnabled ?? true;
 
   const workspaceIdRef = React.useRef(workspaceId);
   workspaceIdRef.current = workspaceId;
@@ -157,6 +167,8 @@ export function RealtimeProvider({
           v?: number;
           workspaceId?: string;
           taskId?: string;
+          triggerType?: string;
+          soundEligible?: boolean;
           title?: string;
           body?: string | null;
           url?: string;
@@ -193,6 +205,15 @@ export function RealtimeProvider({
                 ? { label: "View", onClick: () => routerRef.current.push(url) }
                 : undefined,
             });
+          }
+          // Sound is independent of the toast above: only the currently
+          // focused/visible tab plays it (so with several tabs open, only the
+          // active one makes noise), only when the user's global sound toggle
+          // is on, and only when the server says this trigger is sound-
+          // eligible for this user (the per-event "Sound" column in settings,
+          // computed server-side from userNotificationPreference.soundEnabled).
+          if (appFocused && soundEnabledRef.current && data.soundEligible) {
+            playNotificationSound();
           }
           return;
         }

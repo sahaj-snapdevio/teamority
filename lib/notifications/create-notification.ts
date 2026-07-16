@@ -10,7 +10,7 @@ import {
 } from "@/db/schema";
 import { and, eq, inArray, or, isNull } from "drizzle-orm";
 import type { NotificationTriggerType } from "./types";
-import { emailDefaultFor } from "./types";
+import { emailDefaultFor, soundDefaultFor } from "./types";
 import { notificationSettingsUrl, notificationUrl } from "./links";
 import { sendPushToUser } from "./push";
 import { pushToUser } from "@/lib/sse-clients";
@@ -83,6 +83,7 @@ async function _create(params: CreateNotificationParams) {
       inAppEnabled: userNotificationPreference.inAppEnabled,
       emailEnabled: userNotificationPreference.emailEnabled,
       pushEnabled: userNotificationPreference.pushEnabled,
+      soundEnabled: userNotificationPreference.soundEnabled,
     })
     .from(userNotificationPreference)
     .where(
@@ -141,8 +142,15 @@ async function _create(params: CreateNotificationParams) {
     // refresh the badge.
     const toastUrl = pushUrl ?? `/${workspaceId}/notifications`;
     for (const recipientId of notifRecipients) {
+      const pref = prefMap.get(recipientId);
+      // Per-event sound preference — defaults per soundDefaultFor() when the
+      // user has no stored row. The client separately gates this on its own
+      // global "In-App Notification Sound" master switch.
+      const soundEligible = pref ? pref.soundEnabled : soundDefaultFor(triggerType);
       pushToUser(recipientId, {
         type: "new_notification",
+        triggerType,
+        soundEligible,
         title,
         body: body ?? null,
         url: toastUrl,

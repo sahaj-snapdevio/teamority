@@ -21,6 +21,9 @@ export async function GET(_req: NextRequest) {
       deliveryMode: "instant",
       digestTime: "08:00",
       digestTimezone: "UTC",
+      soundEnabled: true,
+      soundVolume: 70,
+      soundType: "default",
     },
   });
 }
@@ -30,7 +33,7 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { deliveryMode, digestTime, digestTimezone } = body;
+  const { deliveryMode, digestTime, digestTimezone, soundEnabled, soundVolume, soundType } = body;
 
   const [existing] = await db
     .select({ id: userEmailPreference.id })
@@ -47,6 +50,9 @@ export async function PATCH(req: NextRequest) {
         ...(deliveryMode !== undefined && { deliveryMode }),
         ...(digestTime !== undefined && { digestTime }),
         ...(digestTimezone !== undefined && { digestTimezone }),
+        ...(soundEnabled !== undefined && { soundEnabled }),
+        ...(soundVolume !== undefined && { soundVolume }),
+        ...(soundType !== undefined && { soundType }),
         updatedAt: now,
       })
       .where(eq(userEmailPreference.id, existing.id));
@@ -57,6 +63,9 @@ export async function PATCH(req: NextRequest) {
       deliveryMode: deliveryMode ?? "instant",
       digestTime: digestTime ?? "08:00",
       digestTimezone: digestTimezone ?? "UTC",
+      soundEnabled: soundEnabled ?? true,
+      soundVolume: soundVolume ?? 70,
+      soundType: soundType ?? "default",
       updatedAt: now,
     });
   }

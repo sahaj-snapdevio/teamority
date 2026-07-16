@@ -1,0 +1,1 @@
+ALTER TABLE "user_notification_preference" ADD COLUMN "sound_enabled" boolean DEFAULT true NOT NULL;

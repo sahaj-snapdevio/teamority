@@ -61,3 +61,30 @@ const EMAIL_DEFAULT_ENABLED = new Set<string>(EMAIL_DEFAULT_ENABLED_TRIGGERS);
 export function emailDefaultFor(triggerType: string): boolean {
   return EMAIL_DEFAULT_ENABLED.has(triggerType);
 }
+
+/**
+ * Events whose per-trigger "Sound" toggle defaults ON: the ones that are
+ * about you (assignment, mention, reply, invite). Everything else defaults
+ * to sound OFF, same rationale as `EMAIL_DEFAULT_ENABLED_TRIGGERS`. Users can
+ * still switch any trigger's sound on/off from notification settings, and the
+ * global "In-App Notification Sound" toggle (`userEmailPreference.soundEnabled`)
+ * is a separate master switch checked in addition to this.
+ *
+ * SINGLE SOURCE OF TRUTH. Every place that needs a sound default calls
+ * `soundDefaultFor()` — the API fallback and the notification fan-out.
+ */
+export const SOUND_DEFAULT_ENABLED_TRIGGERS = [
+  "task_assigned",
+  "mention_comment",
+  "mention_description",
+  "comment_reply",
+  "workspace_invited",
+  "invite_accepted",
+] as const satisfies readonly NotificationTriggerType[];
+
+const SOUND_DEFAULT_ENABLED = new Set<string>(SOUND_DEFAULT_ENABLED_TRIGGERS);
+
+/** Whether `triggerType` should play a sound when the user has no stored preference. */
+export function soundDefaultFor(triggerType: string): boolean {
+  return SOUND_DEFAULT_ENABLED.has(triggerType);
+}
