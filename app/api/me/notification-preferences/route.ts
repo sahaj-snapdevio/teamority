@@ -5,7 +5,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { userNotificationPreference } from "@/db/schema";
-import { NOTIFICATION_TRIGGERS, emailDefaultFor } from "@/lib/notifications/types";
+import { NOTIFICATION_TRIGGERS, emailDefaultFor, soundDefaultFor } from "@/lib/notifications/types";
 import { isSmtpConfigured } from "@/lib/smtp/client";
 
 const ALL_TRIGGERS = Object.values(NOTIFICATION_TRIGGERS);
@@ -34,6 +34,8 @@ export async function GET(_req: NextRequest) {
       // Email is the one channel whose default is per-trigger, not `true`.
       emailEnabled: pref?.emailEnabled ?? emailDefaultFor(triggerType),
       pushEnabled: pref?.pushEnabled ?? true,
+      // Sound is also per-trigger — same "about you" defaults as email.
+      soundEnabled: pref?.soundEnabled ?? soundDefaultFor(triggerType),
     };
   });
 
@@ -52,6 +54,7 @@ export async function PATCH(req: NextRequest) {
     inAppEnabled: boolean;
     emailEnabled: boolean;
     pushEnabled: boolean;
+    soundEnabled: boolean;
   }>;
 
   if (!Array.isArray(updates)) {
@@ -80,6 +83,7 @@ export async function PATCH(req: NextRequest) {
           inAppEnabled: update.inAppEnabled,
           emailEnabled: update.emailEnabled,
           pushEnabled: update.pushEnabled,
+          soundEnabled: update.soundEnabled,
           updatedAt: now,
         })
         .where(eq(userNotificationPreference.id, existing[0].id));
@@ -92,6 +96,7 @@ export async function PATCH(req: NextRequest) {
         inAppEnabled: update.inAppEnabled,
         emailEnabled: update.emailEnabled,
         pushEnabled: update.pushEnabled,
+        soundEnabled: update.soundEnabled,
         updatedAt: now,
       });
     }

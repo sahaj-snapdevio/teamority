@@ -113,6 +113,20 @@
       "when": 1783919139922,
       "tag": "0015_special_photon",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1784182021007,
+      "tag": "0016_nappy_glorian",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1784184341314,
+      "tag": "0017_cuddly_medusa",
+      "breakpoints": true
     }
   ]
 }

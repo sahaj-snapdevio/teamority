@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, boolean, index, unique } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, timestamp, boolean, integer, index, unique } from "drizzle-orm/pg-core";
 
 export const notificationEntityTypeEnum = pgEnum("notification_entity_type", [
   "TASK",
@@ -46,6 +46,12 @@ export const userNotificationPreference = pgTable(
     // without the user opting in — see `emailDefaultFor()`.
     emailEnabled: boolean("email_enabled").notNull().default(false),
     pushEnabled: boolean("push_enabled").notNull().default(true),
+    // Per-event override for the in-app notification sound. Same shape as
+    // `emailEnabled`: the column default is a harmless fallback — the real
+    // per-trigger default (only high-signal triggers) comes from
+    // `soundDefaultFor()` (lib/notifications/types.ts) whenever no row exists
+    // yet. The global on/off switch lives separately on `userEmailPreference`.
+    soundEnabled: boolean("sound_enabled").notNull().default(true),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("user_notif_pref_unique").on(t.userId, t.workspaceId, t.triggerType)],
@@ -57,6 +63,12 @@ export const userEmailPreference = pgTable("user_email_preference", {
   deliveryMode: text("delivery_mode").notNull().default("instant"),
   digestTime: text("digest_time").notNull().default("08:00"),
   digestTimezone: text("digest_timezone").notNull().default("UTC"),
+  // In-app notification sound. `soundVolume`/`soundType` are stored now (with
+  // fixed defaults) so a future volume slider or sound-pack picker needs no
+  // further migration — only `soundEnabled` has a UI control today.
+  soundEnabled: boolean("sound_enabled").notNull().default(true),
+  soundVolume: integer("sound_volume").notNull().default(70),
+  soundType: text("sound_type").notNull().default("default"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -64,6 +64,7 @@ interface NotifPref {
   inAppEnabled: boolean;
   emailEnabled: boolean;
   pushEnabled: boolean;
+  soundEnabled: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -79,15 +80,18 @@ export default function NotificationSettingsPage() {
   // SMTP is configured.
   const emailAvailable: boolean = notifPrefData?.smtpConfigured ?? false;
 
-  // Conditional key: don't request email preferences we could never render.
+  // This row also holds the in-app notification sound toggle, which has no
+  // dependency on SMTP, so — unlike the email-specific fields below — it's
+  // fetched unconditionally.
   const { data: emailPrefData, mutate: mutateEmail } = useSWR(
-    emailAvailable ? "/api/me/email-preferences" : null,
+    "/api/me/email-preferences",
     fetcher,
   );
 
   const [prefs, setPrefs] = React.useState<NotifPref[]>([]);
   const [deliveryMode, setDeliveryMode] = React.useState<string>("instant");
   const [digestTime, setDigestTime] = React.useState<string>("08:00");
+  const [soundEnabled, setSoundEnabled] = React.useState<boolean>(true);
   const [saving, setSaving] = React.useState(false);
   const [pushEnabling, setPushEnabling] = React.useState(false);
   const { supported: pushSupported, permission, subscribed, enable: enablePush, disable: disablePush } = usePushSubscription();
@@ -102,6 +106,7 @@ export default function NotificationSettingsPage() {
     if (emailPrefData?.preference) {
       setDeliveryMode(emailPrefData.preference.deliveryMode ?? "instant");
       setDigestTime(emailPrefData.preference.digestTime ?? "08:00");
+      setSoundEnabled(emailPrefData.preference.soundEnabled ?? true);
     }
   }, [emailPrefData]);
 
@@ -117,6 +122,16 @@ export default function NotificationSettingsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveSoundPref(value: boolean) {
+    setSoundEnabled(value);
+    await fetch("/api/me/email-preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ soundEnabled: value }),
+    });
+    await mutateEmail();
   }
 
   // `prefs` keeps every trigger (and its emailEnabled value) so PATCH payloads
@@ -239,6 +254,21 @@ export default function NotificationSettingsPage() {
         </div>
       )}
 
+      {/* In-app notification sound */}
+      <div className="space-y-3 rounded-lg border p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-medium">In-App Notification Sound</h3>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Master switch for notification sounds. When on, the Sound
+              column below controls which event types actually play one
+              while you're actively using Kanbanica.
+            </p>
+          </div>
+          <Switch checked={soundEnabled} onCheckedChange={(v) => void saveSoundPref(v)} />
+        </div>
+      </div>
+
       {/* Per-trigger toggles */}
       <div className="space-y-4">
         <h3 className="font-medium">Notification Preferences</h3>
@@ -252,6 +282,7 @@ export default function NotificationSettingsPage() {
                   <th className="px-4 py-2 text-center font-medium">Email</th>
                 )}
                 <th className="px-4 py-2 text-center font-medium">Push</th>
+                <th className="px-4 py-2 text-center font-medium">Sound</th>
               </tr>
             </thead>
             <tbody>
@@ -286,12 +317,20 @@ export default function NotificationSettingsPage() {
                       }
                     />
                   </td>
+                  <td className="px-4 py-2.5 text-center">
+                    <Switch
+                      checked={pref.soundEnabled}
+                      onCheckedChange={(v) =>
+                        void saveNotifPref(pref.triggerType, "soundEnabled", v)
+                      }
+                    />
+                  </td>
                 </tr>
               ))}
               {prefs.length === 0 && (
                 <tr>
                   <td
-                    colSpan={emailAvailable ? 4 : 3}
+                    colSpan={emailAvailable ? 5 : 4}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
                     Loading preferences...
