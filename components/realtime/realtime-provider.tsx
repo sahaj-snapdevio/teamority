@@ -206,13 +206,14 @@ export function RealtimeProvider({
                 : undefined,
             });
           }
-          // Sound is independent of the toast above: only the currently
-          // focused/visible tab plays it (so with several tabs open, only the
-          // active one makes noise), only when the user's global sound toggle
-          // is on, and only when the server says this trigger is sound-
-          // eligible for this user (the per-event "Sound" column in settings,
-          // computed server-side from userNotificationPreference.soundEnabled).
-          if (appFocused && soundEnabledRef.current && data.soundEligible) {
+          // Sound is independent of the toast above and of tab focus/
+          // visibility (Slack-style — plays even when this tab is
+          // backgrounded or minimized), gated only by the user's global sound
+          // toggle and by the server-computed per-event "Sound" eligibility
+          // (userNotificationPreference.soundEnabled). With several Kanbanica
+          // tabs open, every tab reaches this call, but only the single
+          // elected leader tab actually plays — see lib/notifications/sound.ts.
+          if (soundEnabledRef.current && data.soundEligible) {
             playNotificationSound();
           }
           return;
