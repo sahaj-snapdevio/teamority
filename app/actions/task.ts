@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { createId } from "@paralleldrive/cuid2";
-import { and, asc, desc, eq, inArray, notInArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, notInArray, isNull, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -901,61 +901,211 @@ export async function duplicateTask(
     .limit(1);
   if (!original) return { error: "Task not found" };
 
-  const [{ taskSeq }] = await db
-    .update(workspace)
-    .set({ taskSeq: sql`${workspace.taskSeq} + 1` })
-    .where(eq(workspace.id, workspaceId))
-    .returning({ taskSeq: workspace.taskSeq });
+  // The copy lives in the same list as the original (explicit override wins).
+  const targetListId = listId ?? original.listId;
+
+  // Subtasks (one level deep — nesting beyond that is disallowed) come along as
+  // fresh tasks. Archived subtasks are left behind (the copy starts clean).
+  const subtasks = await db
+    .select()
+    .from(task)
+    .where(and(eq(task.parentTaskId, taskId), eq(task.isArchived, false)))
+    .orderBy(asc(task.orderIndex));
+
+  const sources = [original, ...subtasks];
+  const oldIds = sources.map((t) => t.id);
+
+  // Place the copy immediately below the original within its status group: the
+  // midpoint between the original and the next top-level sibling (or a full step
+  // past the original when it's last).
+  const [nextSibling] = await db
+    .select({ orderIndex: task.orderIndex })
+    .from(task)
+    .where(
+      and(
+        targetListId ? eq(task.listId, targetListId) : isNull(task.listId),
+        isNull(task.parentTaskId),
+        eq(task.isArchived, false),
+        original.statusId ? eq(task.statusId, original.statusId) : isNull(task.statusId),
+        gt(task.orderIndex, original.orderIndex),
+      ),
+    )
+    .orderBy(asc(task.orderIndex))
+    .limit(1);
+  const parentOrderIndex = nextSibling
+    ? Math.floor((original.orderIndex + nextSibling.orderIndex) / 2)
+    : original.orderIndex + 1000;
 
   const newTaskId = createId();
-  await db.insert(task).values({
-    id: newTaskId,
-    seqNumber: taskSeq,
-    workspaceId,
-    listId,
-    statusId: original.statusId,
-    title: `Copy of ${original.title}`,
-    description: original.description,
-    priority: original.priority,
-    reporterId: session.user.id,
-    orderIndex: taskSeq * 1000,
+
+  await db.transaction(async (tx) => {
+    // Reserve a contiguous block of seq numbers in one atomic bump.
+    const [{ taskSeq }] = await tx
+      .update(workspace)
+      .set({ taskSeq: sql`${workspace.taskSeq} + ${sources.length}` })
+      .where(eq(workspace.id, workspaceId))
+      .returning({ taskSeq: workspace.taskSeq });
+    const seqBase = taskSeq - sources.length;
+
+    const taskMap = new Map<string, string>();
+    taskMap.set(original.id, newTaskId);
+    for (const st of subtasks) {
+      taskMap.set(st.id, createId());
+    }
+
+    await tx.insert(task).values(
+      sources.map((t, i) => {
+        const isParent = t.id === original.id;
+        return {
+          id: taskMap.get(t.id)!,
+          seqNumber: seqBase + i + 1,
+          workspaceId,
+          spaceId: t.spaceId,
+          listId: targetListId,
+          parentTaskId: isParent ? null : newTaskId,
+          statusId: t.statusId,
+          title: isParent ? `${t.title} (Copy)` : t.title,
+          description: t.description,
+          priority: t.priority,
+          reporterId: isParent ? session.user.id : t.reporterId,
+          dueDateStart: t.dueDateStart,
+          dueDateEnd: t.dueDateEnd,
+          orderIndex: isParent ? parentOrderIndex : t.orderIndex,
+        };
+      }),
+    );
+
+    // Assignees
+    const assignees = await tx
+      .select()
+      .from(taskAssignee)
+      .where(inArray(taskAssignee.taskId, oldIds));
+    if (assignees.length > 0) {
+      await tx.insert(taskAssignee).values(
+        assignees.map((a) => ({ taskId: taskMap.get(a.taskId)!, userId: a.userId })),
+      );
+    }
+
+    // Watchers (preserve watch state)
+    const watchers = await tx
+      .select()
+      .from(taskWatcher)
+      .where(inArray(taskWatcher.taskId, oldIds));
+    if (watchers.length > 0) {
+      await tx.insert(taskWatcher).values(
+        watchers.map((w) => ({ taskId: taskMap.get(w.taskId)!, userId: w.userId })),
+      );
+    }
+
+    // Tags (workspace-scoped — reuse the same tagId)
+    const tags = await tx
+      .select()
+      .from(taskTag)
+      .where(inArray(taskTag.taskId, oldIds));
+    if (tags.length > 0) {
+      await tx.insert(taskTag).values(
+        tags.map((tg) => ({ taskId: taskMap.get(tg.taskId)!, tagId: tg.tagId })),
+      );
+    }
+
+    // Checklists + items (preserve checked state)
+    const checklists = await tx
+      .select()
+      .from(checklist)
+      .where(inArray(checklist.taskId, oldIds))
+      .orderBy(asc(checklist.orderIndex));
+    if (checklists.length > 0) {
+      const checklistMap = new Map<string, string>();
+      await tx.insert(checklist).values(
+        checklists.map((cl) => {
+          const id = createId();
+          checklistMap.set(cl.id, id);
+          return {
+            id,
+            taskId: taskMap.get(cl.taskId)!,
+            name: cl.name,
+            orderIndex: cl.orderIndex,
+          };
+        }),
+      );
+
+      const items = await tx
+        .select()
+        .from(checklistItem)
+        .where(inArray(checklistItem.checklistId, checklists.map((cl) => cl.id)))
+        .orderBy(asc(checklistItem.orderIndex));
+      if (items.length > 0) {
+        await tx.insert(checklistItem).values(
+          items.map((item) => ({
+            id: createId(),
+            checklistId: checklistMap.get(item.checklistId)!,
+            title: item.title,
+            isChecked: item.isChecked,
+            checkedBy: item.checkedBy,
+            checkedAt: item.checkedAt,
+            orderIndex: item.orderIndex,
+          })),
+        );
+      }
+    }
+
+    // Dependencies — outgoing edges of the duplicated tasks. Internal edges (both
+    // endpoints duplicated) are remapped to the new tasks; edges to outside tasks
+    // are kept only when that task still exists.
+    const deps = await tx
+      .select()
+      .from(taskDependency)
+      .where(inArray(taskDependency.taskId, oldIds));
+    if (deps.length > 0) {
+      const externalTargets = [
+        ...new Set(deps.map((d) => d.dependsOnTaskId).filter((id) => !taskMap.has(id))),
+      ];
+      const existing =
+        externalTargets.length > 0
+          ? new Set(
+              (
+                await tx
+                  .select({ id: task.id })
+                  .from(task)
+                  .where(
+                    and(inArray(task.id, externalTargets), eq(task.workspaceId, workspaceId)),
+                  )
+              ).map((r) => r.id),
+            )
+          : new Set<string>();
+
+      const depRows = deps
+        .map((d) => {
+          const dependsOnTaskId = taskMap.has(d.dependsOnTaskId)
+            ? taskMap.get(d.dependsOnTaskId)!
+            : existing.has(d.dependsOnTaskId)
+              ? d.dependsOnTaskId
+              : null;
+          if (!dependsOnTaskId) {
+            return null;
+          }
+          return {
+            id: createId(),
+            taskId: taskMap.get(d.taskId)!,
+            dependsOnTaskId,
+            type: d.type,
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null);
+      if (depRows.length > 0) {
+        await tx.insert(taskDependency).values(depRows);
+      }
+    }
   });
 
-  // Duplicate checklists + items
-  const originalChecklists = await db
-    .select()
-    .from(checklist)
-    .where(eq(checklist.taskId, taskId))
-    .orderBy(asc(checklist.orderIndex));
+  // Fresh, clean history — a single "duplicated from #<seq>" entry, no replay.
+  await writeActivityLog(newTaskId, session.user.id, "task_duplicated", {
+    from_task_id: original.id,
+    from_seq: original.seqNumber,
+  });
 
-  for (const cl of originalChecklists) {
-    const newChecklistId = createId();
-    await db.insert(checklist).values({
-      id: newChecklistId,
-      taskId: newTaskId,
-      name: cl.name,
-      orderIndex: cl.orderIndex,
-    });
-
-    const items = await db
-      .select()
-      .from(checklistItem)
-      .where(eq(checklistItem.checklistId, cl.id))
-      .orderBy(asc(checklistItem.orderIndex));
-
-    for (const item of items) {
-      await db.insert(checklistItem).values({
-        id: createId(),
-        checklistId: newChecklistId,
-        title: item.title,
-        isChecked: false,
-        orderIndex: item.orderIndex,
-      });
-    }
-  }
-
-  await writeActivityLog(newTaskId, session.user.id, "task_created", { duplicatedFrom: taskId });
-  if (listId) revalidateList(workspaceId, spaceId, listId, taskId); else revalidateSpace(workspaceId, spaceId, taskId);
+  if (targetListId) revalidateList(workspaceId, spaceId, targetListId, taskId);
+  else revalidateSpace(workspaceId, spaceId, taskId);
   return { taskId: newTaskId };
 }
 

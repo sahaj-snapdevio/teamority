@@ -61,6 +61,10 @@ import {
 import { InviteMemberModal } from "@/components/workspace/invite-member-modal";
 import { taskUrl } from "@/lib/app-url";
 import {
+  flashDuplicatedTask,
+  useIsDuplicateHighlighted,
+} from "@/lib/duplicate-highlight";
+import {
   avatarSrc,
   formatDueDate,
   PRIORITY_CONFIG,
@@ -163,6 +167,7 @@ export function TaskListRow({
   const { mutate } = useSWRConfig();
 
   const effectiveListId = listIdProp || task.listId || null;
+  const highlighted = useIsDuplicateHighlighted(task.id);
 
   // ── Optimistic state ──────────────────────────────────────────────────────
   const [localPriority, setLocalPriority] = React.useState<string>(
@@ -476,6 +481,7 @@ export function TaskListRow({
     if (onAfterDuplicate) {
       await onAfterDuplicate(res.taskId);
     }
+    flashDuplicatedTask(res.taskId);
     onRefresh();
   }
 
@@ -1170,7 +1176,11 @@ export function TaskListRow({
           isDragging
             ? "opacity-40 shadow-none border-dashed"
             : "transition-colors duration-150",
-          selected ? "bg-primary/5" : "hover:bg-accent/30"
+          highlighted
+            ? "bg-primary/10 ring-1 ring-inset ring-primary/30 relative z-10"
+            : selected
+              ? "bg-primary/5"
+              : "hover:bg-accent/30"
         )}
         data-task-id={task.id}
         data-task-row
@@ -1281,7 +1291,10 @@ export function TaskListRow({
 
       {/* Mobile card */}
       <div
-        className="md:hidden flex flex-col p-4 border-b border-border gap-3 hover:bg-accent/30 bg-card transition-all cursor-pointer relative"
+        className={cn(
+          "md:hidden flex flex-col p-4 border-b border-border gap-3 hover:bg-accent/30 bg-card transition-all cursor-pointer relative",
+          highlighted && "bg-primary/10 ring-1 ring-inset ring-primary/30"
+        )}
         onClick={onOpen}
       >
         <div

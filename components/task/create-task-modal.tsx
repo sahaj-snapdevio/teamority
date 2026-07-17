@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import * as React from "react";
 import {
   CalendarBlankIcon,
   CheckIcon,
@@ -12,57 +11,77 @@ import {
   UserIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import { format } from "date-fns";
+import * as React from "react";
 import { toast } from "sonner";
-import { createTask, updateTask } from "@/app/actions/task";
-import { getWorkspaceMembers } from "@/app/actions/task";
-import { getWorkspaceTags, createTag } from "@/app/actions/task-tag";
+import {
+  createTask,
+  getWorkspaceMembers,
+  updateTask,
+} from "@/app/actions/task";
+import { createTag, getWorkspaceTags } from "@/app/actions/task-tag";
+import { ManageStatusesDialog } from "@/components/list/manage-statuses-dialog";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
-import { useNoteImageUpload } from "@/hooks/use-note-image-upload";
-import { tiptapHasContent } from "@/lib/notes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useNoteImageUpload } from "@/hooks/use-note-image-upload";
+import { tiptapHasContent } from "@/lib/notes";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { ManageStatusesDialog } from "@/components/list/manage-statuses-dialog";
 
 type Priority = "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
 interface Status {
+  color: string;
   id: string;
   name: string;
-  color: string;
   type: "OPEN" | "ACTIVE" | "CLOSED";
 }
 
 interface CreateTaskModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  workspaceId: string;
-  spaceId: string;
-  listId: string;
-  statuses: Status[];
-  defaultStatusId?: string;
-  onCreated?: (taskId: string) => void | Promise<void>;
   canManage?: boolean;
+  /** Preselect a due date when opening (e.g. the day clicked in Calendar view). */
+  defaultDueDate?: Date | null;
+  defaultStatusId?: string;
+  listId: string;
+  onCreated?: (taskId: string) => void | Promise<void>;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  spaceId: string;
+  statuses: Status[];
+  workspaceId: string;
 }
 
-const PRIORITY_OPTIONS: { value: Priority; label: string; color: string; icon: string }[] = [
-  { value: "NONE", label: "No Priority", color: "text-muted-foreground", icon: "😴" },
+const PRIORITY_OPTIONS: {
+  value: Priority;
+  label: string;
+  color: string;
+  icon: string;
+}[] = [
+  {
+    value: "NONE",
+    label: "No Priority",
+    color: "text-muted-foreground",
+    icon: "😴",
+  },
   { value: "LOW", label: "Low", color: "text-blue-500", icon: "🦥" },
   { value: "MEDIUM", label: "Medium", color: "text-yellow-500", icon: "🚶" },
   { value: "HIGH", label: "High", color: "text-orange-500", icon: "🏃" },
@@ -70,7 +89,12 @@ const PRIORITY_OPTIONS: { value: Priority; label: string; color: string; icon: s
 ];
 
 function userInitials(name: string) {
-  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 export function CreateTaskModal({
@@ -81,6 +105,7 @@ export function CreateTaskModal({
   listId,
   statuses: initialStatuses,
   defaultStatusId,
+  defaultDueDate,
   onCreated,
   canManage,
 }: CreateTaskModalProps) {
@@ -89,7 +114,9 @@ export function CreateTaskModal({
   const [title, setTitle] = React.useState("");
   const [descriptionJson, setDescriptionJson] = React.useState("");
   const descImages = useNoteImageUpload({ deferred: true });
-  const [statusId, setStatusId] = React.useState(defaultStatusId ?? initialStatuses[0]?.id ?? "");
+  const [statusId, setStatusId] = React.useState(
+    defaultStatusId ?? initialStatuses[0]?.id ?? ""
+  );
 
   React.useEffect(() => {
     setLocalStatuses(initialStatuses);
@@ -106,8 +133,12 @@ export function CreateTaskModal({
   const [priorityPopoverOpen, setPriorityPopoverOpen] = React.useState(false);
   const [tagPopoverOpen, setTagPopoverOpen] = React.useState(false);
 
-  const [members, setMembers] = React.useState<{ userId: string; name: string; image: string | null }[]>([]);
-  const [allTags, setAllTags] = React.useState<{ id: string; name: string; color: string }[]>([]);
+  const [members, setMembers] = React.useState<
+    { userId: string; name: string; image: string | null }[]
+  >([]);
+  const [allTags, setAllTags] = React.useState<
+    { id: string; name: string; color: string }[]
+  >([]);
   const [tagSearch, setTagSearch] = React.useState("");
 
   React.useEffect(() => {
@@ -117,25 +148,30 @@ export function CreateTaskModal({
       setDescriptionJson("");
       descImages.reset();
       setPriority("NONE");
-      setDueDate(null);
+      setDueDate(defaultDueDate ?? null);
       setAssigneeIds([]);
       setTagIds([]);
       setError("");
 
-      Promise.all([getWorkspaceMembers(workspaceId), getWorkspaceTags(workspaceId)]).then(
-        ([mem, tags]) => {
-          if (mem && !("error" in mem)) {
-            setMembers(
-              mem.members
-                .filter((m): m is typeof m & { userId: string } => m.userId !== null)
-                .map((m) => ({ userId: m.userId!, name: m.name, image: m.image })),
-            );
-          }
-          if (tags && !("error" in tags)) setAllTags(tags.tags);
-        },
-      );
+      Promise.all([
+        getWorkspaceMembers(workspaceId),
+        getWorkspaceTags(workspaceId),
+      ]).then(([mem, tags]) => {
+        if (mem && !("error" in mem)) {
+          setMembers(
+            mem.members
+              .filter(
+                (m): m is typeof m & { userId: string } => m.userId !== null
+              )
+              .map((m) => ({ userId: m.userId!, name: m.name, image: m.image }))
+          );
+        }
+        if (tags && !("error" in tags)) {
+          setAllTags(tags.tags);
+        }
+      });
     }
-  }, [open, defaultStatusId]);
+  }, [open, defaultStatusId, defaultDueDate]);
 
   // Statuses may load asynchronously after the modal opens. Once they're
   // available, make sure a valid status is selected so the task is never
@@ -147,12 +183,15 @@ export function CreateTaskModal({
     setStatusId((prev) =>
       prev && localStatuses.some((s) => s.id === prev)
         ? prev
-        : (defaultStatusId ?? localStatuses[0].id),
+        : (defaultStatusId ?? localStatuses[0].id)
     );
   }, [open, localStatuses, defaultStatusId]);
 
   async function handleSubmit() {
-    if (!title.trim()) { setError("Task name is required"); return; }
+    if (!title.trim()) {
+      setError("Task name is required");
+      return;
+    }
     setLoading(true);
     setError("");
 
@@ -160,7 +199,9 @@ export function CreateTaskModal({
     if (descriptionJson) {
       try {
         const parsed = JSON.parse(descriptionJson);
-        if (tiptapHasContent(parsed)) doc = parsed;
+        if (tiptapHasContent(parsed)) {
+          doc = parsed;
+        }
       } catch {
         doc = undefined;
       }
@@ -179,19 +220,32 @@ export function CreateTaskModal({
       assigneeIds,
       tagIds,
     });
-    if ("error" in res) { setLoading(false); setError(res.error); return; }
+    if ("error" in res) {
+      setLoading(false);
+      setError(res.error);
+      return;
+    }
 
     if (hasImages) {
-      const { total, uploaded, failed, doc: finalDoc } = await descImages.flushPending(res.taskId);
+      const {
+        total,
+        uploaded,
+        failed,
+        doc: finalDoc,
+      } = await descImages.flushPending(res.taskId);
       // Deep-clone to strip ProseMirror null-prototype attrs (React Flight drops them).
       const finalDescription = finalDoc
         ? (JSON.parse(JSON.stringify(finalDoc)) as unknown)
         : undefined;
       if (finalDescription && tiptapHasContent(finalDescription)) {
-        await updateTask(workspaceId, spaceId, listId, res.taskId, { description: finalDescription });
+        await updateTask(workspaceId, spaceId, listId, res.taskId, {
+          description: finalDescription,
+        });
       }
       if (failed > 0) {
-        toast.error(`${uploaded} of ${total} images uploaded. You can retry from the task description.`);
+        toast.error(
+          `${uploaded} of ${total} images uploaded. You can retry from the task description.`
+        );
       }
     }
 
@@ -204,314 +258,453 @@ export function CreateTaskModal({
   const currentPriority = PRIORITY_OPTIONS.find((p) => p.value === priority)!;
   const selectedMembers = members.filter((m) => assigneeIds.includes(m.userId));
   const selectedTags = allTags.filter((t) => tagIds.includes(t.id));
-  const filteredTags = allTags.filter((t) => t.name.toLowerCase().includes(tagSearch.toLowerCase()));
-  const exactTagMatch = allTags.some((t) => t.name.toLowerCase() === tagSearch.toLowerCase());
+  const filteredTags = allTags.filter((t) =>
+    t.name.toLowerCase().includes(tagSearch.toLowerCase())
+  );
+  const exactTagMatch = allTags.some(
+    (t) => t.name.toLowerCase() === tagSearch.toLowerCase()
+  );
 
   return (
     <>
-    <Dialog open={open} onOpenChange={(o) => { if (!o && loading) return; onOpenChange(o); }}>
-      <DialogContent
-        showCloseButton={false}
-        className="sm:max-w-2xl p-0 gap-0 overflow-hidden max-h-[85vh] flex flex-col"
-        aria-describedby={undefined}
-        // Don't let Esc / outside-click abandon the modal while the task is
-        // being created and its images uploaded.
-        onEscapeKeyDown={(e) => { if (loading) e.preventDefault(); }}
-        onPointerDownOutside={(e) => { if (loading) e.preventDefault(); }}
-        onInteractOutside={(e) => { if (loading) e.preventDefault(); }}
+      <Dialog
+        onOpenChange={(o) => {
+          if (!o && loading) {
+            return;
+          }
+          onOpenChange(o);
+        }}
+        open={open}
       >
-        <DialogHeader className="sr-only">
-          <DialogTitle>Create Task</DialogTitle>
-        </DialogHeader>
+        <DialogContent
+          aria-describedby={undefined}
+          className="sm:max-w-2xl p-0 gap-0 overflow-hidden max-h-[85vh] flex flex-col"
+          // Don't let Esc / outside-click abandon the modal while the task is
+          // being created and its images uploaded.
+          onEscapeKeyDown={(e) => {
+            if (loading) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            if (loading) {
+              e.preventDefault();
+            }
+          }}
+          onPointerDownOutside={(e) => {
+            if (loading) {
+              e.preventDefault();
+            }
+          }}
+          showCloseButton={false}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>Create Task</DialogTitle>
+          </DialogHeader>
 
-        {/* Top bar: tab + close button */}
-        <div className="flex items-center border-b px-5 shrink-0">
-          <button className="border-b-2 border-primary py-3 px-1 text-sm font-medium text-foreground">
-            Task
-          </button>
-          <div className="flex-1" />
-          <button
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <XIcon className="size-4" />
-          </button>
-        </div>
+          {/* Top bar: tab + close button */}
+          <div className="flex items-center border-b px-5 shrink-0">
+            <button className="border-b-2 border-primary py-3 px-1 text-sm font-medium text-foreground">
+              Task
+            </button>
+            <div className="flex-1" />
+            <button
+              className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
+              onClick={() => onOpenChange(false)}
+            >
+              <XIcon className="size-4" />
+            </button>
+          </div>
 
-        {/* Body — scrolls so the footer (Create button) stays visible even
+          {/* Body — scrolls so the footer (Create button) stays visible even
             with a long description or images. */}
-        <div className="px-6 py-4 space-y-3 flex-1 overflow-y-auto min-h-0">
-          {/* Title */}
-          <input
-            autoFocus
-            placeholder="Task Name"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
-            className="w-full text-xl font-semibold bg-transparent outline-none placeholder:text-muted-foreground/40"
-          />
+          <div className="px-6 py-4 space-y-3 flex-1 overflow-y-auto min-h-0">
+            {/* Title */}
+            <input
+              autoFocus
+              className="w-full text-xl font-semibold bg-transparent outline-none placeholder:text-muted-foreground/40"
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+              placeholder="Task Name"
+              value={title}
+            />
 
-          {/* Description — rich text with inline image paste/drop (deferred
+            {/* Description — rich text with inline image paste/drop (deferred
               upload: images upload after the task is created). Keyed on `open`
               so it remounts empty each time the modal is reopened (the modal
               stays mounted; its editor content would otherwise persist). */}
-          <TaskDescriptionEditor
-            key={open ? "open" : "closed"}
-            value={descriptionJson}
-            onChange={setDescriptionJson}
-            imageUpload={descImages}
-            workspaceId={workspaceId}
-            spaceId={spaceId}
-            placeholder="Add a description… Type '/' for commands or paste an image"
-          />
+            <TaskDescriptionEditor
+              imageUpload={descImages}
+              key={open ? "open" : "closed"}
+              onChange={setDescriptionJson}
+              placeholder="Add a description… Type '/' for commands or paste an image"
+              spaceId={spaceId}
+              value={descriptionJson}
+              workspaceId={workspaceId}
+            />
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-          {/* Quick fields row */}
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            {/* Status */}
-            <Popover open={statusPopoverOpen} onOpenChange={setStatusPopoverOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors hover:bg-accent"
-                  style={{ borderColor: currentStatus?.color, color: currentStatus?.color }}
-                >
-                  {currentStatus?.name ?? "Status"}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-0" align="start">
-                <div className="max-h-60 overflow-y-auto p-1" onWheel={(e) => e.stopPropagation()}>
-                  {(["OPEN", "ACTIVE", "CLOSED"] as const).map((type) => {
-                    const group = localStatuses.filter((s) => s.type === type);
-                    if (group.length === 0) return null;
-                    const label = type === "OPEN" ? "Not started" : type === "ACTIVE" ? "Active" : "Closed";
-                    return (
-                      <div key={type}>
-                        <div className="flex items-center px-2 pt-2 pb-0.5">
-                          <span className="flex-1 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            {label}
-                          </span>
-                          {canManage && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="flex size-4 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                                >
-                                  <DotsThreeIcon className="size-3.5" weight="bold" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent side="right" align="start" className="w-36">
-                                <DropdownMenuItem
-                                  onClick={() => { setStatusPopoverOpen(false); setManageStatusesOpen(true); }}
-                                >
-                                  <GearIcon className="size-3.5" />
-                                  Edit statuses
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
-                        {group.map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => { setStatusId(s.id); setStatusPopoverOpen(false); }}
-                            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                          >
-                            <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                            <span className="flex-1 text-left">{s.name}</span>
-                            {s.id === statusId && <CheckIcon className="size-3.5 text-primary" />}
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Assignee */}
-            <Popover open={assigneePopoverOpen} onOpenChange={setAssigneePopoverOpen}>
-              <PopoverTrigger asChild>
-                <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-                  {selectedMembers.length > 0 ? (
-                    <>
-                      <div className="flex -space-x-1">
-                        {selectedMembers.slice(0, 2).map((m) => (
-                          <Avatar key={m.userId} className="size-4 border border-background">
-                            <AvatarFallback className="text-[8px]">{userInitials(m.name)}</AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                      <span>{selectedMembers.length === 1 ? selectedMembers[0].name.split(" ")[0] : `${selectedMembers.length} assignees`}</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserIcon className="size-3.5" />
-                      Assignee
-                    </>
-                  )}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2" align="start">
-                <p className="text-xs text-muted-foreground px-1 mb-1.5">Select members</p>
-                <div className="space-y-0.5 max-h-48 overflow-y-auto">
-                  {members.map((m) => {
-                    const selected = assigneeIds.includes(m.userId);
-                    return (
-                      <button
-                        key={m.userId}
-                        onClick={() => setAssigneeIds((prev) => selected ? prev.filter((id) => id !== m.userId) : [...prev, m.userId])}
-                        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                      >
-                        <Avatar className="size-6 shrink-0">
-                          <AvatarFallback className="text-2xs">{userInitials(m.name)}</AvatarFallback>
-                        </Avatar>
-                        <span className="flex-1 truncate text-left">{m.name}</span>
-                        {selected && <CheckIcon className="size-3.5 text-primary shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Due date */}
-            <Popover open={dueDatePopoverOpen} onOpenChange={setDueDatePopoverOpen}>
-              <PopoverTrigger asChild>
-                <button className={cn("flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs hover:bg-accent transition-colors", dueDate ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>
-                  <CalendarBlankIcon className="size-3.5" />
-                  {dueDate ? format(dueDate, "MMM d") : "Due date"}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dueDate ?? undefined}
-                  disabled={{ before: new Date() }}
-                  onSelect={(date) => { setDueDate(date ?? null); setDueDatePopoverOpen(false); }}
-
-                />
-              </PopoverContent>
-            </Popover>
-
-            {/* Priority */}
-            <Popover open={priorityPopoverOpen} onOpenChange={setPriorityPopoverOpen}>
-              <PopoverTrigger asChild>
-                <button className={cn("flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors hover:bg-accent", currentPriority.color)}>
-                  {priority !== "NONE" ? (
-                    <>
-                      <span>{currentPriority.icon}</span>
-                      {currentPriority.label}
-                    </>
-                  ) : (
-                    <>
-                      <FlagIcon className="size-3.5" weight="regular" />
-                      Priority
-                    </>
-                  )}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-40 p-1" align="start">
-                {PRIORITY_OPTIONS.map((p) => (
+            {/* Quick fields row */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {/* Status */}
+              <Popover
+                onOpenChange={setStatusPopoverOpen}
+                open={statusPopoverOpen}
+              >
+                <PopoverTrigger asChild>
                   <button
-                    key={p.value}
-                    onClick={() => { setPriority(p.value); setPriorityPopoverOpen(false); }}
-                    className={cn("flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent", p.color)}
+                    className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors hover:bg-accent"
+                    style={{
+                      borderColor: currentStatus?.color,
+                      color: currentStatus?.color,
+                    }}
                   >
-                    <span>{p.icon}</span>
-                    <span className="flex-1 text-left">{p.label}</span>
-                    {p.value === priority && <CheckIcon className="size-3.5 shrink-0" />}
+                    {currentStatus?.name ?? "Status"}
                   </button>
-                ))}
-              </PopoverContent>
-            </Popover>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-52 p-0">
+                  <div
+                    className="max-h-60 overflow-y-auto p-1"
+                    onWheel={(e) => e.stopPropagation()}
+                  >
+                    {(["OPEN", "ACTIVE", "CLOSED"] as const).map((type) => {
+                      const group = localStatuses.filter(
+                        (s) => s.type === type
+                      );
+                      if (group.length === 0) {
+                        return null;
+                      }
+                      const label =
+                        type === "OPEN"
+                          ? "Not started"
+                          : type === "ACTIVE"
+                            ? "Active"
+                            : "Closed";
+                      return (
+                        <div key={type}>
+                          <div className="flex items-center px-2 pt-2 pb-0.5">
+                            <span className="flex-1 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                              {label}
+                            </span>
+                            {canManage && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    className="flex size-4 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <DotsThreeIcon
+                                      className="size-3.5"
+                                      weight="bold"
+                                    />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="start"
+                                  className="w-36"
+                                  side="right"
+                                >
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setStatusPopoverOpen(false);
+                                      setManageStatusesOpen(true);
+                                    }}
+                                  >
+                                    <GearIcon className="size-3.5" />
+                                    Edit statuses
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                          {group.map((s) => (
+                            <button
+                              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                              key={s.id}
+                              onClick={() => {
+                                setStatusId(s.id);
+                                setStatusPopoverOpen(false);
+                              }}
+                            >
+                              <span
+                                className="size-2.5 rounded-full shrink-0"
+                                style={{ backgroundColor: s.color }}
+                              />
+                              <span className="flex-1 text-left">{s.name}</span>
+                              {s.id === statusId && (
+                                <CheckIcon className="size-3.5 text-primary" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-            {/* Tags */}
-            <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
-              <PopoverTrigger asChild>
-                <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-                  <TagIcon className="size-3.5" />
-                  {selectedTags.length > 0 ? (
-                    <span>{selectedTags.map((t) => t.name).join(", ")}</span>
-                  ) : (
-                    "Tags"
-                  )}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2" align="start">
-                <Input
-                  autoFocus
-                  placeholder="Search or create tag…"
-                  value={tagSearch}
-                  onChange={(e) => setTagSearch(e.target.value)}
-                  className="h-7 text-xs mb-2"
-                />
-                <div className="space-y-0.5 max-h-40 overflow-y-auto">
-                  {filteredTags.map((t) => {
-                    const selected = tagIds.includes(t.id);
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => setTagIds((prev) => selected ? prev.filter((id) => id !== t.id) : [...prev, t.id])}
-                        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                      >
-                        <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
-                        <span className="flex-1 truncate text-left text-xs">{t.name}</span>
-                        {selected && <CheckIcon className="size-3.5 text-primary shrink-0" />}
-                      </button>
-                    );
-                  })}
-                  {tagSearch && !exactTagMatch && (
+              {/* Assignee */}
+              <Popover
+                onOpenChange={setAssigneePopoverOpen}
+                open={assigneePopoverOpen}
+              >
+                <PopoverTrigger asChild>
+                  <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                    {selectedMembers.length > 0 ? (
+                      <>
+                        <div className="flex -space-x-1">
+                          {selectedMembers.slice(0, 2).map((m) => (
+                            <Avatar
+                              className="size-4 border border-background"
+                              key={m.userId}
+                            >
+                              <AvatarFallback className="text-[8px]">
+                                {userInitials(m.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                        </div>
+                        <span>
+                          {selectedMembers.length === 1
+                            ? selectedMembers[0].name.split(" ")[0]
+                            : `${selectedMembers.length} assignees`}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <UserIcon className="size-3.5" />
+                        Assignee
+                      </>
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-52 p-2">
+                  <p className="text-xs text-muted-foreground px-1 mb-1.5">
+                    Select members
+                  </p>
+                  <div className="space-y-0.5 max-h-48 overflow-y-auto">
+                    {members.map((m) => {
+                      const selected = assigneeIds.includes(m.userId);
+                      return (
+                        <button
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                          key={m.userId}
+                          onClick={() =>
+                            setAssigneeIds((prev) =>
+                              selected
+                                ? prev.filter((id) => id !== m.userId)
+                                : [...prev, m.userId]
+                            )
+                          }
+                        >
+                          <Avatar className="size-6 shrink-0">
+                            <AvatarFallback className="text-2xs">
+                              {userInitials(m.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="flex-1 truncate text-left">
+                            {m.name}
+                          </span>
+                          {selected && (
+                            <CheckIcon className="size-3.5 text-primary shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Due date */}
+              <Popover
+                onOpenChange={setDueDatePopoverOpen}
+                open={dueDatePopoverOpen}
+              >
+                <PopoverTrigger asChild>
+                  <button
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs hover:bg-accent transition-colors",
+                      dueDate
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <CalendarBlankIcon className="size-3.5" />
+                    {dueDate ? format(dueDate, "MMM d") : "Due date"}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-auto p-0">
+                  <Calendar
+                    // When opened from a Calendar day, allow any date (incl. past);
+                    // otherwise keep the default "no past dates" restriction.
+                    disabled={
+                      defaultDueDate ? undefined : { before: new Date() }
+                    }
+                    mode="single"
+                    onSelect={(date) => {
+                      setDueDate(date ?? null);
+                      setDueDatePopoverOpen(false);
+                    }}
+                    selected={dueDate ?? undefined}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Priority */}
+              <Popover
+                onOpenChange={setPriorityPopoverOpen}
+                open={priorityPopoverOpen}
+              >
+                <PopoverTrigger asChild>
+                  <button
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors hover:bg-accent",
+                      currentPriority.color
+                    )}
+                  >
+                    {priority === "NONE" ? (
+                      <>
+                        <FlagIcon className="size-3.5" weight="regular" />
+                        Priority
+                      </>
+                    ) : (
+                      <>
+                        <span>{currentPriority.icon}</span>
+                        {currentPriority.label}
+                      </>
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-40 p-1">
+                  {PRIORITY_OPTIONS.map((p) => (
                     <button
-                      onClick={async () => {
-                        const res = await createTag(workspaceId, tagSearch.trim());
-                        if ("tag" in res) {
-                          setAllTags((prev) => [...prev, res.tag]);
-                          setTagIds((prev) => [...prev, res.tag.id]);
-                          setTagSearch("");
-                        }
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent",
+                        p.color
+                      )}
+                      key={p.value}
+                      onClick={() => {
+                        setPriority(p.value);
+                        setPriorityPopoverOpen(false);
                       }}
-                      className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-accent"
                     >
-                      <PlusIcon className="size-3.5" />
-                      Create &ldquo;{tagSearch}&rdquo;
+                      <span>{p.icon}</span>
+                      <span className="flex-1 text-left">{p.label}</span>
+                      {p.value === priority && (
+                        <CheckIcon className="size-3.5 shrink-0" />
+                      )}
                     </button>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
+                  ))}
+                </PopoverContent>
+              </Popover>
+
+              {/* Tags */}
+              <Popover onOpenChange={setTagPopoverOpen} open={tagPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                    <TagIcon className="size-3.5" />
+                    {selectedTags.length > 0 ? (
+                      <span>{selectedTags.map((t) => t.name).join(", ")}</span>
+                    ) : (
+                      "Tags"
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-52 p-2">
+                  <Input
+                    autoFocus
+                    className="h-7 text-xs mb-2"
+                    onChange={(e) => setTagSearch(e.target.value)}
+                    placeholder="Search or create tag…"
+                    value={tagSearch}
+                  />
+                  <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                    {filteredTags.map((t) => {
+                      const selected = tagIds.includes(t.id);
+                      return (
+                        <button
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                          key={t.id}
+                          onClick={() =>
+                            setTagIds((prev) =>
+                              selected
+                                ? prev.filter((id) => id !== t.id)
+                                : [...prev, t.id]
+                            )
+                          }
+                        >
+                          <span
+                            className="size-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: t.color }}
+                          />
+                          <span className="flex-1 truncate text-left text-xs">
+                            {t.name}
+                          </span>
+                          {selected && (
+                            <CheckIcon className="size-3.5 text-primary shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                    {tagSearch && !exactTagMatch && (
+                      <button
+                        className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-accent"
+                        onClick={async () => {
+                          const res = await createTag(
+                            workspaceId,
+                            tagSearch.trim()
+                          );
+                          if ("tag" in res) {
+                            setAllTags((prev) => [...prev, res.tag]);
+                            setTagIds((prev) => [...prev, res.tag.id]);
+                            setTagSearch("");
+                          }
+                        }}
+                      >
+                        <PlusIcon className="size-3.5" />
+                        Create &ldquo;{tagSearch}&rdquo;
+                      </button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end border-t px-6 py-3 bg-muted/30 shrink-0">
-          <Button
-            variant="default"
-            onClick={handleSubmit}
-            disabled={loading || !title.trim()}
-            className="h-8 text-sm"
-          >
-            {loading ? "Creating…" : "Create Task"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+          {/* Footer */}
+          <div className="flex items-center justify-end border-t px-6 py-3 bg-muted/30 shrink-0">
+            <Button
+              className="h-8 text-sm"
+              disabled={loading || !title.trim()}
+              onClick={handleSubmit}
+              variant="default"
+            >
+              {loading ? "Creating…" : "Create Task"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-    <ManageStatusesDialog
-      open={manageStatusesOpen}
-      onOpenChange={setManageStatusesOpen}
-      workspaceId={workspaceId}
-      spaceId={spaceId}
-      listId={listId}
-      onSaved={(updated) => {
-        setLocalStatuses(updated);
-        if (!updated.find((s) => s.id === statusId)) {
-          setStatusId(updated[0]?.id ?? "");
-        }
-      }}
-    />
+      <ManageStatusesDialog
+        listId={listId}
+        onOpenChange={setManageStatusesOpen}
+        onSaved={(updated) => {
+          setLocalStatuses(updated);
+          if (!updated.find((s) => s.id === statusId)) {
+            setStatusId(updated[0]?.id ?? "");
+          }
+        }}
+        open={manageStatusesOpen}
+        spaceId={spaceId}
+        workspaceId={workspaceId}
+      />
     </>
   );
 }

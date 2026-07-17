@@ -92,6 +92,7 @@ import {
 } from "@/components/ui/popover";
 import { SearchInput } from "@/components/ui/search-input";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
+import { filterTasks } from "@/lib/filters/task-filter";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
@@ -1359,37 +1360,12 @@ export function ListView({
 
   // ─── Local Filtering & Sorting ─────────────────────────────────────────────
   const processedTasks = React.useMemo(() => {
-    let list = [...localTasks];
-
-    // Search query
-    if (searchQuery.trim()) {
-      list = list.filter((t) =>
-        t.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Priority filter
-    if (priorityFilter.length > 0) {
-      list = list.filter((t) => priorityFilter.includes(t.priority));
-    }
-
-    // Assignee filter
-    if (assigneeFilter.length > 0) {
-      list = list.filter((t) => {
-        const hasUnassigned = assigneeFilter.includes("unassigned");
-        const userIds = assigneeFilter.filter((id) => id !== "unassigned");
-        const hasNoAssignees = t.assignees.length === 0;
-        if (hasUnassigned && hasNoAssignees) {
-          return true;
-        }
-        return t.assignees.some((a) => userIds.includes(a.userId));
-      });
-    }
-
-    // Status filter
-    if (statusFilter.length > 0) {
-      list = list.filter((t) => statusFilter.includes(t.statusId ?? ""));
-    }
+    const list = filterTasks(localTasks, {
+      searchQuery,
+      statusFilter,
+      priorityFilter,
+      assigneeFilter,
+    });
 
     // Sort
     if (sortBy) {

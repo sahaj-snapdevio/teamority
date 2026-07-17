@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CheckIcon, PlusIcon } from "@phosphor-icons/react";
 import {
   Popover,
   PopoverContent,
@@ -32,6 +32,7 @@ export function FacetOptionList({
   searchable = false,
   emptyText = "No options",
   onAfterToggle,
+  onCreate,
 }: {
   options: FacetOption[];
   selected: string[];
@@ -40,6 +41,8 @@ export function FacetOptionList({
   searchable?: boolean;
   emptyText?: string;
   onAfterToggle?: () => void;
+  /** When set, an unmatched search query offers a "Create <query>" action. */
+  onCreate?: (label: string) => void;
 }) {
   const [query, setQuery] = React.useState("");
 
@@ -49,9 +52,23 @@ export function FacetOptionList({
     return options.filter((o) => o.label.toLowerCase().includes(q));
   }, [options, query, searchable]);
 
+  const trimmedQuery = query.trim();
+  const hasExactMatch = options.some(
+    (o) => o.label.toLowerCase() === trimmedQuery.toLowerCase(),
+  );
+  const canCreate = !!onCreate && trimmedQuery.length > 0 && !hasExactMatch;
+
   function handleToggle(value: string) {
     onChange(single ? (selected.includes(value) ? [] : [value]) : toggle(selected, value));
     onAfterToggle?.();
+  }
+
+  function handleCreate() {
+    if (!onCreate || !trimmedQuery) {
+      return;
+    }
+    onCreate(trimmedQuery);
+    setQuery("");
   }
 
   return (
@@ -71,7 +88,11 @@ export function FacetOptionList({
         )}
       >
         {filtered.length === 0 ? (
-          <p className="px-2 py-1.5 text-xs text-muted-foreground">{emptyText}</p>
+          canCreate ? null : (
+            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              {emptyText}
+            </p>
+          )
         ) : (
           filtered.map((o) => {
             const active = selected.includes(o.value);
@@ -104,6 +125,16 @@ export function FacetOptionList({
               </button>
             );
           })
+        )}
+        {canCreate && (
+          <button
+            type="button"
+            onClick={handleCreate}
+            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs text-primary hover:bg-accent"
+          >
+            <PlusIcon className="size-3.5 shrink-0" />
+            <span className="truncate">Create “{trimmedQuery}”</span>
+          </button>
         )}
       </div>
       {selected.length > 0 && !single && (
