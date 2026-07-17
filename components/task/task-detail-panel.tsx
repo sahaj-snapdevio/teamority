@@ -542,19 +542,33 @@ export function TaskDetailPanel({
             </button>
           </div>
           {titleEditing ? (
-            <Input
+            // Textarea so a long title keeps the same size and wraps while
+            // editing (see task-detail-page). Auto-grows; Enter still saves.
+            <textarea
               autoFocus
-              className="text-base font-semibold h-auto py-1 border-none shadow-none focus-visible:ring-0 px-0"
+              className="-mx-1 block w-full resize-none overflow-hidden rounded bg-transparent px-1 py-0.5 text-base font-semibold leading-snug outline-none"
               onBlur={saveTitle}
-              onChange={(e) => setTitleDraft(e.target.value)}
+              onChange={(e) => {
+                setTitleDraft(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
+                  e.preventDefault();
                   saveTitle();
                 }
                 if (e.key === "Escape") {
                   setTitleEditing(false);
                 }
               }}
+              ref={(el) => {
+                if (el) {
+                  el.style.height = "auto";
+                  el.style.height = `${el.scrollHeight}px`;
+                }
+              }}
+              rows={1}
               value={titleDraft}
             />
           ) : (
