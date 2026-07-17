@@ -807,6 +807,7 @@ function Column({
         listId={list.id}
         placeholder="Add task"
         spaceId={space.id}
+        statuses={statuses}
         statusId={status.id}
         workspaceId={workspaceId}
       />

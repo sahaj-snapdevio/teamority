@@ -977,19 +977,34 @@ export function TaskDetailPage({
           <div className="flex-1 min-w-0 overflow-y-auto px-8 py-6">
             {/* Title */}
             {titleEditing ? (
-              <Input
+              // Textarea (not a single-line input) so a long title keeps the
+              // same big font AND wraps across lines while editing, matching the
+              // rendered heading. It auto-grows to fit; Enter still saves.
+              <textarea
                 autoFocus
-                className="text-2xl font-bold h-auto py-1 border-none shadow-none focus-visible:ring-0 px-0 mb-5"
+                className="mb-5 -mx-1 block w-full resize-none overflow-hidden rounded bg-transparent px-1 py-1 text-2xl font-bold leading-tight outline-none"
                 onBlur={saveTitle}
-                onChange={(e) => setTitleDraft(e.target.value)}
+                onChange={(e) => {
+                  setTitleDraft(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
+                    e.preventDefault();
                     saveTitle();
                   }
                   if (e.key === "Escape") {
                     setTitleEditing(false);
                   }
                 }}
+                ref={(el) => {
+                  if (el) {
+                    el.style.height = "auto";
+                    el.style.height = `${el.scrollHeight}px`;
+                  }
+                }}
+                rows={1}
                 value={titleDraft}
               />
             ) : (

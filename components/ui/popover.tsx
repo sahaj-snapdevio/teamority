@@ -21,6 +21,7 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
+  onWheel,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
@@ -29,8 +30,17 @@ function PopoverContent({
         data-slot="popover-content"
         align={align}
         sideOffset={sideOffset}
+        // Keep mouse-wheel / trackpad / touch scrolling working inside the
+        // dropdown. Popover content is portaled out of any scroll-locked
+        // Dialog/Sheet and an ancestor can otherwise swallow the wheel event,
+        // leaving only the scrollbar draggable. The inner list still scrolls
+        // natively — we just stop the event from being intercepted upstream.
+        onWheel={(e) => {
+          e.stopPropagation();
+          onWheel?.(e);
+        }}
         className={cn(
-          "z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-md bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "z-50 w-72 origin-(--radix-popover-content-transform-origin) overscroll-contain rounded-md bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className,
         )}
         {...props}

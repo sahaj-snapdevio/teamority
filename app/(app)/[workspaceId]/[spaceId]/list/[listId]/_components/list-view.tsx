@@ -1,13 +1,32 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
+// drag and drop
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  type DragOverEvent,
+  PointerSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   ArchiveIcon,
+  ArrowsDownUpIcon,
   CaretDownIcon,
   CaretRightIcon,
   CheckIcon,
   DotsThreeIcon,
+  GearIcon,
+  KeyboardIcon,
   LightningIcon,
   MinusIcon,
   PencilSimpleIcon,
@@ -15,19 +34,25 @@ import {
   PushPinIcon,
   TrashIcon,
   XIcon,
-  ArrowsDownUpIcon,
-  GearIcon,
-  KeyboardIcon,
 } from "@phosphor-icons/react";
-import { SearchInput } from "@/components/ui/search-input";
-import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { toast } from "sonner";
-import { useSWRConfig } from "swr";
 import {
+  createListStatus,
+  getWorkspaceLists,
+  updateListStatus,
+} from "@/app/actions/list";
+import {
+  addTaskToSprint,
+  bulkMoveTasksToSprint,
+  getSprints,
+} from "@/app/actions/sprint";
+import {
+  archiveTask,
   bulkArchiveTasks,
   bulkDeleteTasks,
   bulkMoveTasks,
-  archiveTask,
   bulkUpdateStatus,
   createTask,
   reorderTasksInStatus,
@@ -35,10 +60,22 @@ import {
   updateTask,
   updateTaskStatus,
 } from "@/app/actions/task";
-import { toastWithUndo } from "@/lib/undo-toast";
 import { addAssignee, removeAssignee } from "@/app/actions/task-assignee";
-import { getSprints, bulkMoveTasksToSprint } from "@/app/actions/sprint";
-import { createListStatus, getWorkspaceLists, updateListStatus } from "@/app/actions/list";
+import { FacetFilter } from "@/components/filters/facet-filter";
+import { useRealtimePause } from "@/components/realtime/realtime-provider";
+import { CreateTaskModal } from "@/components/task/create-task-modal";
+import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
+import {
+  EMPTY_QUICK_META,
+  QuickTaskMeta,
+  type QuickTaskMetaValue,
+  quickMetaCreateFields,
+} from "@/components/task/quick-task-meta";
+import type { TaskDependencyIndicator } from "@/components/task/task-dependency-badge";
+import {
+  TaskListRow,
+  type TaskListRowProps,
+} from "@/components/task/task-list-row";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,95 +85,98 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CreateTaskModal } from "@/components/task/create-task-modal";
-import { FacetFilter } from "@/components/filters/facet-filter";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { SearchInput } from "@/components/ui/search-input";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
+import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
 
-// drag and drop
-import {
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-  type DragOverEvent,
-  type DragEndEvent,
-  useDroppable,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import type { TaskDependencyIndicator } from "@/components/task/task-dependency-badge";
-import { TaskListRow, type TaskListRowProps } from "@/components/task/task-list-row";
-import { useRealtimePause } from "@/components/realtime/realtime-provider";
-
 interface Status {
+  color: string;
   id: string;
   name: string;
-  color: string;
-  type: "OPEN" | "ACTIVE" | "CLOSED";
   orderIndex: number;
+  type: "OPEN" | "ACTIVE" | "CLOSED";
 }
 
 interface Task {
-  id: string;
-  title: string;
-  priority: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  statusId: string | null;
-  seqNumber: number;
-  orderIndex: number;
-  dueDateStart: Date | null;
-  dueDateEnd: Date | null;
-  isPinnedToList: boolean;
-  pinnedToListOrder: number | null;
-  tags: { id: string; name: string; color: string }[];
   assignees: { userId: string; name: string; image: string | null }[];
   dependencyInfo?: TaskDependencyIndicator;
+  dueDateEnd: Date | null;
+  dueDateStart: Date | null;
+  id: string;
+  isPinnedToList: boolean;
+  orderIndex: number;
+  pinnedToListOrder: number | null;
+  priority: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  seqNumber: number;
+  statusId: string | null;
+  tags: { id: string; name: string; color: string }[];
+  title: string;
 }
 
 interface ListViewProps {
-  workspaceId: string;
-  spaceId: string;
-  listId: string;
-  statuses: Status[];
-  tasks: Task[];
-  pinnedTasks?: Task[];
-  isAdmin?: boolean;
+  archivedLoading?: boolean;
+  archivedTasks?: { id: string; title: string; seqNumber: number }[];
   canEdit?: boolean;
   canPinToList?: boolean;
   currentUserId?: string;
-  personallyPinnedIds?: Set<string>;
-  members?: { userId: string; name: string | null; email: string | null; image?: string | null }[];
-  tags?: { id: string; name: string; color: string }[];
-  archivedTasks?: { id: string; title: string; seqNumber: number }[];
+  isAdmin?: boolean;
+  listId: string;
+  members?: {
+    userId: string;
+    name: string | null;
+    email: string | null;
+    image?: string | null;
+  }[];
   onArchivedChanged?: () => Promise<void>;
-  showArchived?: boolean;
   onToggleArchived?: () => void;
-  archivedLoading?: boolean;
+  personallyPinnedIds?: Set<string>;
+  pinnedTasks?: Task[];
+  showArchived?: boolean;
+  spaceId: string;
+  statuses: Status[];
+  tags?: { id: string; name: string; color: string }[];
+  tasks: Task[];
+  workspaceId: string;
 }
 
-type SprintOption = { id: string; name: string; status: "PLANNED" | "ACTIVE" | "CLOSED" };
+type SprintOption = {
+  id: string;
+  name: string;
+  status: "PLANNED" | "ACTIVE" | "CLOSED";
+};
 
 // --- Sortable wrapper (DnD) -------------------------------------------------
 
-function SortableTaskRow(props: Omit<TaskListRowProps, "dragRef" | "dragStyle" | "dragProps" | "isDragging">) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+function SortableTaskRow(
+  props: Omit<
+    TaskListRowProps,
+    "dragRef" | "dragStyle" | "dragProps" | "isDragging"
+  >
+) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: props.task.id,
     data: { type: "task", statusId: props.task.statusId },
   });
   return (
     <TaskListRow
       {...props}
+      dragProps={{ ...attributes, ...listeners }}
       dragRef={setNodeRef}
       dragStyle={{ transform: CSS.Transform.toString(transform), transition }}
-      dragProps={{ ...attributes, ...listeners }}
       isDragging={isDragging}
     />
   );
@@ -168,7 +208,9 @@ function PinnedSection({
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
 
-  if (tasks.length === 0) return null;
+  if (tasks.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col border border-primary/20 rounded-xl overflow-hidden bg-primary/2 mb-2">
@@ -179,9 +221,9 @@ function PinnedSection({
       >
         <div className="flex size-5 items-center justify-center rounded text-primary/70">
           {collapsed ? (
-            <CaretRightIcon weight="fill" className="size-3" />
+            <CaretRightIcon className="size-3" weight="fill" />
           ) : (
-            <CaretDownIcon weight="fill" className="size-3" />
+            <CaretDownIcon className="size-3" weight="fill" />
           )}
         </div>
         <PushPinIcon className="size-3.5 text-primary" weight="fill" />
@@ -196,24 +238,25 @@ function PinnedSection({
       {!collapsed && (
         <div className="flex flex-col border-t border-primary/15">
           {tasks.map((t) => {
-            const statusColor = statuses.find((s) => s.id === t.statusId)?.color ?? "#6B7280";
+            const statusColor =
+              statuses.find((s) => s.id === t.statusId)?.color ?? "#6B7280";
             return (
               <TaskListRow
-                key={t.id}
-                task={t}
-                statusColor={statusColor}
-                workspaceId={workspaceId}
-                spaceId={spaceId}
-                listId={listId}
-                isAdmin={isAdmin}
                 canEdit={canEdit}
                 canPinToList={canPinToList}
+                isAdmin={isAdmin}
                 isPersonallyPinned={personallyPinnedIds?.has(t.id)}
-                selected={false}
-                onSelect={() => {}}
+                key={t.id}
+                listId={listId}
                 onOpen={() => router.push(`/${workspaceId}/task/${t.id}`)}
                 onRefresh={() => router.refresh()}
+                onSelect={() => {}}
+                selected={false}
+                spaceId={spaceId}
+                statusColor={statusColor}
                 statuses={statuses}
+                task={t}
+                workspaceId={workspaceId}
               />
             );
           })}
@@ -242,6 +285,7 @@ function QuickCreateRow({
   spaceId,
   listId,
   createDefaults,
+  statuses,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -249,24 +293,48 @@ function QuickCreateRow({
   spaceId: string;
   listId: string;
   createDefaults: QuickCreateDefaults;
+  statuses: Status[];
 }) {
   const router = useRouter();
   const [title, setTitle] = React.useState("");
+  const [meta, setMeta] = React.useState<QuickTaskMetaValue>(EMPTY_QUICK_META);
   const [saving, setSaving] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 0);
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
   }, [open]);
+
+  function cancel() {
+    onOpenChange(false);
+    setTitle("");
+    setMeta(EMPTY_QUICK_META);
+  }
 
   async function submit() {
     const trimmed = title.trim();
-    if (!trimmed) { onOpenChange(false); return; }
+    if (!trimmed) {
+      cancel();
+      return;
+    }
     setSaving(true);
     try {
-      const res = await createTask(workspaceId, spaceId, listId, { title: trimmed, ...createDefaults });
-      if ("error" in res) return;
+      const res = await createTask(workspaceId, spaceId, listId, {
+        title: trimmed,
+        ...createDefaults,
+        ...quickMetaCreateFields(meta),
+      });
+      if ("error" in res) {
+        return;
+      }
+      // Sprint isn't a createTask field — assign it right after.
+      if (meta.sprintId) {
+        await addTaskToSprint(workspaceId, spaceId, meta.sprintId, res.taskId);
+      }
       setTitle("");
+      setMeta(EMPTY_QUICK_META);
       router.refresh();
     } finally {
       setSaving(false);
@@ -276,8 +344,8 @@ function QuickCreateRow({
   if (!open) {
     return (
       <button
-        onClick={() => onOpenChange(true)}
         className="flex w-full items-center gap-1.5 pl-16 pr-4 py-2 text-xs font-semibold text-muted-foreground hover:text-primary hover:bg-accent/30 transition-colors border-b border-border bg-card cursor-pointer select-none text-left"
+        onClick={() => onOpenChange(true)}
       >
         <PlusIcon className="size-3.5 shrink-0" />
         Add Task
@@ -286,34 +354,49 @@ function QuickCreateRow({
   }
 
   return (
-    <div className="flex items-center gap-2 pl-16 pr-4 py-2 border-b border-border bg-card">
-      <input
-        ref={inputRef}
-        type="text"
-        placeholder="Task name"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); void submit(); }
-          if (e.key === "Escape") { onOpenChange(false); setTitle(""); }
-        }}
-        onBlur={() => { if (!title.trim()) { onOpenChange(false); setTitle(""); } }}
-        disabled={saving}
-        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+    <div className="flex flex-col gap-2 pl-16 pr-4 py-2 border-b border-border bg-card">
+      <div className="flex items-center gap-2">
+        <input
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+          disabled={saving}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void submit();
+            }
+            if (e.key === "Escape") {
+              cancel();
+            }
+          }}
+          placeholder="Task name"
+          ref={inputRef}
+          type="text"
+          value={title}
+        />
+        <button
+          className="text-xs font-semibold text-primary hover:text-primary/80 disabled:opacity-40 shrink-0"
+          disabled={saving || !title.trim()}
+          onClick={() => void submit()}
+          type="button"
+        >
+          {saving ? "…" : "Save"}
+        </button>
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+          onClick={cancel}
+          type="button"
+        >
+          Cancel
+        </button>
+      </div>
+      <QuickTaskMeta
+        onChange={setMeta}
+        spaceId={spaceId}
+        statuses={statuses}
+        value={meta}
+        workspaceId={workspaceId}
       />
-      <button
-        onClick={() => void submit()}
-        disabled={saving || !title.trim()}
-        className="text-xs font-semibold text-primary hover:text-primary/80 disabled:opacity-40 shrink-0"
-      >
-        {saving ? "…" : "Add"}
-      </button>
-      <button
-        onClick={() => { onOpenChange(false); setTitle(""); }}
-        className="text-xs text-muted-foreground hover:text-foreground shrink-0"
-      >
-        Esc
-      </button>
     </div>
   );
 }
@@ -366,9 +449,10 @@ function StatusGroup({
   // Select-all for this group's tasks (header checkbox → bulk delete/handle).
   const groupSelectedCount = tasks.reduce(
     (n, t) => n + (selectedIds.has(t.id) ? 1 : 0),
-    0,
+    0
   );
-  const groupAllSelected = tasks.length > 0 && groupSelectedCount === tasks.length;
+  const groupAllSelected =
+    tasks.length > 0 && groupSelectedCount === tasks.length;
   const groupSomeSelected = groupSelectedCount > 0 && !groupAllSelected;
   function toggleGroupSelection() {
     const target = !groupAllSelected;
@@ -377,17 +461,31 @@ function StatusGroup({
 
   async function handleRename() {
     const trimmed = renameName.trim();
-    if (!trimmed || trimmed === status.name) { setRenameOpen(false); return; }
+    if (!trimmed || trimmed === status.name) {
+      setRenameOpen(false);
+      return;
+    }
     setSaving(true);
-    const res = await updateListStatus(workspaceId, spaceId, listId, status.id, { name: trimmed });
+    const res = await updateListStatus(
+      workspaceId,
+      spaceId,
+      listId,
+      status.id,
+      { name: trimmed }
+    );
     setSaving(false);
-    if ("error" in res) { toast.error(res.error); return; }
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
     setRenameOpen(false);
     router.refresh();
   }
 
   async function handleCreateStatus() {
-    if (!newStatusName.trim()) return;
+    if (!newStatusName.trim()) {
+      return;
+    }
     setSaving(true);
     const res = await createListStatus(workspaceId, spaceId, listId, {
       name: newStatusName.trim(),
@@ -395,7 +493,10 @@ function StatusGroup({
       type: "OPEN",
     });
     setSaving(false);
-    if ("error" in res) { toast.error(res.error); return; }
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
     setNewStatusName("");
     setNewStatusColor("#6B7280");
     setNewStatusOpen(false);
@@ -407,15 +508,15 @@ function StatusGroup({
       <div className="flex flex-col">
         {/* Status Group Header */}
         <div
-          onClick={() => setCollapsed(!collapsed)}
           className="group/header flex items-center gap-2.5 py-1.5 px-3 hover:bg-accent/30 transition-colors cursor-pointer select-none border-b border-border"
+          onClick={() => setCollapsed(!collapsed)}
         >
           {/* Arrow */}
           <div className="flex size-5 items-center justify-center rounded hover:bg-accent transition-colors shrink-0 text-muted-foreground group-hover/header:text-foreground">
             {collapsed ? (
-              <CaretRightIcon weight="fill" className="size-3" />
+              <CaretRightIcon className="size-3" weight="fill" />
             ) : (
-              <CaretDownIcon weight="fill" className="size-3" />
+              <CaretDownIcon className="size-3" weight="fill" />
             )}
           </div>
 
@@ -425,10 +526,13 @@ function StatusGroup({
             style={{
               backgroundColor: `${status.color}12`,
               color: status.color,
-              borderColor: `${status.color}25`
+              borderColor: `${status.color}25`,
             }}
           >
-            <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: status.color }} />
+            <span
+              className="size-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: status.color }}
+            />
             {status.name}
           </span>
 
@@ -438,33 +542,55 @@ function StatusGroup({
           </span>
 
           {/* Settings Menu Icon */}
-          <div className="ml-2 flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-            <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+          <div
+            className="ml-2 flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Popover onOpenChange={setMenuOpen} open={menuOpen}>
               <PopoverTrigger asChild>
                 <button className="flex size-6 items-center justify-center rounded hover:bg-accent transition-colors cursor-pointer">
-                  <DotsThreeIcon className="size-4.5 text-muted-foreground" weight="bold" />
+                  <DotsThreeIcon
+                    className="size-4.5 text-muted-foreground"
+                    weight="bold"
+                  />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="start" side="bottom" className="w-48 p-1 mt-1">
-                <p className="px-2 py-1 text-2xs font-bold text-muted-foreground uppercase tracking-wide">Group Options</p>
+              <PopoverContent
+                align="start"
+                className="w-48 p-1 mt-1"
+                side="bottom"
+              >
+                <p className="px-2 py-1 text-2xs font-bold text-muted-foreground uppercase tracking-wide">
+                  Group Options
+                </p>
                 <button
-                  onClick={() => { setMenuOpen(false); setRenameName(status.name); setRenameOpen(true); }}
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent cursor-pointer text-left"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setRenameName(status.name);
+                    setRenameOpen(true);
+                  }}
                 >
                   <PencilSimpleIcon className="size-3.5 text-muted-foreground shrink-0" />
                   Rename Status
                 </button>
                 <button
-                  onClick={() => { setMenuOpen(false); setNewStatusOpen(true); }}
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent cursor-pointer text-left"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setNewStatusOpen(true);
+                  }}
                 >
                   <PlusIcon className="size-3.5 text-muted-foreground shrink-0" />
                   New Status
                 </button>
                 <div className="h-px bg-border my-1" />
                 <button
-                  onClick={() => { setCollapsed((v) => !v); setMenuOpen(false); }}
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent cursor-pointer text-left"
+                  onClick={() => {
+                    setCollapsed((v) => !v);
+                    setMenuOpen(false);
+                  }}
                 >
                   {collapsed ? (
                     <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
@@ -487,22 +613,29 @@ function StatusGroup({
 
         {/* Tasks Container */}
         {!collapsed && (
-          <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext
+            items={tasks.map((t) => t.id)}
+            strategy={verticalListSortingStrategy}
+          >
             {/* Column Header (Desktop Only) */}
             <div className="hidden md:flex items-center border-b border-border text-2xs font-bold text-gray-400 select-none uppercase tracking-wider bg-card">
               <div className="w-0.75 self-stretch shrink-0 bg-transparent" />
               <div className="flex items-center pl-2 shrink-0 w-14">
                 <button
-                  type="button"
-                  onClick={toggleGroupSelection}
-                  aria-label={groupAllSelected ? "Deselect all tasks in this group" : "Select all tasks in this group"}
-                  title={groupAllSelected ? "Deselect all" : "Select all"}
+                  aria-label={
+                    groupAllSelected
+                      ? "Deselect all tasks in this group"
+                      : "Select all tasks in this group"
+                  }
                   className={cn(
                     "flex size-4 items-center justify-center rounded border transition-colors cursor-pointer",
                     groupAllSelected || groupSomeSelected
                       ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border hover:border-primary/40 bg-background",
+                      : "border-border hover:border-primary/40 bg-background"
                   )}
+                  onClick={toggleGroupSelection}
+                  title={groupAllSelected ? "Deselect all" : "Select all"}
+                  type="button"
                 >
                   {groupAllSelected ? (
                     <CheckIcon className="size-2.5" weight="bold" />
@@ -512,45 +645,48 @@ function StatusGroup({
                 </button>
               </div>
               <div className="flex-1 py-2 pr-4 pl-1">Name</div>
-              <div className="w-36 shrink-0 py-2 px-4 text-center">Assignee</div>
+              <div className="w-36 shrink-0 py-2 px-4 text-center">
+                Assignee
+              </div>
               <div className="w-28 shrink-0 py-2 px-4">Due Date</div>
               <div className="w-32 shrink-0 py-2 px-4">Priority</div>
               <div className="w-48 shrink-0 text-right pr-4">Actions</div>
             </div>
             <div
-              ref={setNodeRef}
               className={cn(
                 "flex flex-col transition-all min-h-1",
                 isOver && "bg-accent/20 border-y border-dashed border-border"
               )}
+              ref={setNodeRef}
             >
               {tasks.map((task) => (
                 <SortableTaskRow
-                  key={task.id}
-                  task={task}
-                  statusColor={status.color}
-                  workspaceId={workspaceId}
-                  spaceId={spaceId}
-                  listId={listId}
-                  isAdmin={isAdmin}
                   canEdit={canEdit}
                   canPinToList={canPinToList}
+                  isAdmin={isAdmin}
                   isPersonallyPinned={personallyPinnedIds?.has(task.id)}
-                  selected={selectedIds.has(task.id)}
-                  onSelect={onSelect}
+                  key={task.id}
+                  listId={listId}
                   onOpen={() => router.push(`/${workspaceId}/task/${task.id}`)}
                   onRefresh={() => router.refresh()}
+                  onSelect={onSelect}
+                  selected={selectedIds.has(task.id)}
+                  spaceId={spaceId}
+                  statusColor={status.color}
                   statuses={statuses}
+                  task={task}
+                  workspaceId={workspaceId}
                 />
               ))}
 
               <QuickCreateRow
-                open={addOpen}
-                onOpenChange={onAddOpenChange}
-                workspaceId={workspaceId}
-                spaceId={spaceId}
-                listId={listId}
                 createDefaults={createDefaults}
+                listId={listId}
+                onOpenChange={onAddOpenChange}
+                open={addOpen}
+                spaceId={spaceId}
+                statuses={statuses}
+                workspaceId={workspaceId}
               />
             </div>
           </SortableContext>
@@ -558,59 +694,93 @@ function StatusGroup({
       </div>
 
       {/* Rename dialog */}
-      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+      <Dialog onOpenChange={setRenameOpen} open={renameOpen}>
         <DialogContent className="sm:max-w-xs">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-foreground">Rename Status</DialogTitle>
+            <DialogTitle className="text-sm font-bold text-foreground">
+              Rename Status
+            </DialogTitle>
           </DialogHeader>
           <Input
-            value={renameName}
-            onChange={(e) => setRenameName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") void handleRename(); }}
             autoFocus
             className="h-9 text-xs"
+            onChange={(e) => setRenameName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                void handleRename();
+              }
+            }}
+            value={renameName}
           />
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setRenameOpen(false)} className="h-8 text-xs font-semibold">Cancel</Button>
-            <Button onClick={() => void handleRename()} disabled={saving || !renameName.trim()} className="h-8 text-xs font-bold">Save</Button>
+            <Button
+              className="h-8 text-xs font-semibold"
+              onClick={() => setRenameOpen(false)}
+              variant="ghost"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="h-8 text-xs font-bold"
+              disabled={saving || !renameName.trim()}
+              onClick={() => void handleRename()}
+            >
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* New status dialog */}
-      <Dialog open={newStatusOpen} onOpenChange={setNewStatusOpen}>
+      <Dialog onOpenChange={setNewStatusOpen} open={newStatusOpen}>
         <DialogContent className="sm:max-w-xs">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-foreground">New Status</DialogTitle>
+            <DialogTitle className="text-sm font-bold text-foreground">
+              New Status
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Input
-              placeholder="Status name"
-              value={newStatusName}
-              onChange={(e) => setNewStatusName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") void handleCreateStatus(); }}
               autoFocus
               className="h-9 text-xs"
+              onChange={(e) => setNewStatusName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  void handleCreateStatus();
+                }
+              }}
+              placeholder="Status name"
+              value={newStatusName}
             />
             <div className="flex flex-wrap gap-2">
               {STATUS_PRESET_COLORS.map((color) => (
                 <button
-                  key={color}
-                  onClick={() => setNewStatusColor(color)}
                   className={cn(
                     "size-6 rounded-full transition-transform cursor-pointer",
                     newStatusColor === color
                       ? "scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-popover"
-                      : "",
+                      : ""
                   )}
+                  key={color}
+                  onClick={() => setNewStatusColor(color)}
                   style={{ backgroundColor: color }}
                 />
               ))}
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setNewStatusOpen(false)} className="h-8 text-xs font-semibold">Cancel</Button>
-            <Button onClick={() => void handleCreateStatus()} disabled={saving || !newStatusName.trim()} className="h-8 text-xs font-bold">
+            <Button
+              className="h-8 text-xs font-semibold"
+              onClick={() => setNewStatusOpen(false)}
+              variant="ghost"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="h-8 text-xs font-bold"
+              disabled={saving || !newStatusName.trim()}
+              onClick={() => void handleCreateStatus()}
+            >
               Create
             </Button>
           </DialogFooter>
@@ -647,7 +817,15 @@ function BulkActionBar({
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [sprints, setSprints] = React.useState<SprintOption[] | null>(null);
   const [loadingSprints, setLoadingSprints] = React.useState(false);
-  const [listSpaces, setListSpaces] = React.useState<{ id: string; name: string; color: string | null; lists: { id: string; name: string; color: string | null }[] }[] | null>(null);
+  const [listSpaces, setListSpaces] = React.useState<
+    | {
+        id: string;
+        name: string;
+        color: string | null;
+        lists: { id: string; name: string; color: string | null }[];
+      }[]
+    | null
+  >(null);
   const [loadingLists, setLoadingLists] = React.useState(false);
 
   // Pressing Delete / Backspace with tasks selected opens the delete confirm —
@@ -655,10 +833,16 @@ function BulkActionBar({
   // an editable element so it can't fire mid-edit. This bar only mounts when
   // there is a selection, so the listener is naturally scoped to that.
   React.useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      return;
+    }
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key !== "Delete" && e.key !== "Backspace") return;
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key !== "Delete" && e.key !== "Backspace") {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
       const t = e.target as HTMLElement | null;
       if (
         t &&
@@ -669,7 +853,9 @@ function BulkActionBar({
       ) {
         return;
       }
-      if (busy || deleteOpen) return;
+      if (busy || deleteOpen) {
+        return;
+      }
       e.preventDefault();
       setDeleteOpen(true);
     }
@@ -678,55 +864,101 @@ function BulkActionBar({
   }, [isAdmin, busy, deleteOpen]);
 
   async function loadSprints() {
-    if (sprints !== null) return;
+    if (sprints !== null) {
+      return;
+    }
     setLoadingSprints(true);
     const res = await getSprints(workspaceId, spaceId);
     setLoadingSprints(false);
-    if ("error" in res) return;
+    if ("error" in res) {
+      return;
+    }
     setSprints(res.sprints.filter((s) => s.status !== "CLOSED"));
   }
 
   async function loadLists() {
-    if (listSpaces !== null) return;
+    if (listSpaces !== null) {
+      return;
+    }
     setLoadingLists(true);
     const res = await getWorkspaceLists(workspaceId, listId);
     setLoadingLists(false);
-    if ("error" in res) return;
+    if ("error" in res) {
+      return;
+    }
     setListSpaces(res.spaces);
   }
 
-  async function handleMoveToList(targetListId: string, targetListName: string) {
+  async function handleMoveToList(
+    targetListId: string,
+    targetListName: string
+  ) {
     setBusy(true);
-    const res = await bulkMoveTasks(workspaceId, spaceId, [...selectedIds], targetListId);
+    const res = await bulkMoveTasks(
+      workspaceId,
+      spaceId,
+      [...selectedIds],
+      targetListId
+    );
     setBusy(false);
-    if ("error" in res) { toast.error(res.error); return; }
-    toast.success(`Moved ${res.moved} task${res.moved !== 1 ? "s" : ""} to ${targetListName}`);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(
+      `Moved ${res.moved} task${res.moved === 1 ? "" : "s"} to ${targetListName}`
+    );
     onClear();
   }
 
   async function handleBulkStatus(statusId: string) {
     setBusy(true);
-    const res = await bulkUpdateStatus(workspaceId, spaceId, listId, [...selectedIds], statusId);
+    const res = await bulkUpdateStatus(
+      workspaceId,
+      spaceId,
+      listId,
+      [...selectedIds],
+      statusId
+    );
     setBusy(false);
-    if ("error" in res) { toast.error(res.error); return; }
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
     toast.success(`Updated ${count} task${count > 1 ? "s" : ""}`);
     onClear();
   }
 
   async function handleMoveToSprint(sprintId: string, sprintName: string) {
     setBusy(true);
-    const res = await bulkMoveTasksToSprint(workspaceId, spaceId, listId, [...selectedIds], sprintId);
+    const res = await bulkMoveTasksToSprint(
+      workspaceId,
+      spaceId,
+      listId,
+      [...selectedIds],
+      sprintId
+    );
     setBusy(false);
-    if ("error" in res) { toast.error(res.error); return; }
-    toast.success(`Moved ${res.moved} task${res.moved !== 1 ? "s" : ""} to ${sprintName}`);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(
+      `Moved ${res.moved} task${res.moved === 1 ? "" : "s"} to ${sprintName}`
+    );
     onClear();
   }
 
   async function handleBulkArchive() {
     setBusy(true);
-    const res = await bulkArchiveTasks(workspaceId, spaceId, listId, [...selectedIds]);
+    const res = await bulkArchiveTasks(workspaceId, spaceId, listId, [
+      ...selectedIds,
+    ]);
     setBusy(false);
-    if ("error" in res) { toast.error(res.error); return; }
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
     toast.success(`Archived ${count} task${count > 1 ? "s" : ""}`);
     onClear();
   }
@@ -734,163 +966,233 @@ function BulkActionBar({
   async function confirmBulkDelete() {
     setDeleteOpen(false);
     setBusy(true);
-    const res = await bulkDeleteTasks(workspaceId, spaceId, listId, [...selectedIds]);
+    const res = await bulkDeleteTasks(workspaceId, spaceId, listId, [
+      ...selectedIds,
+    ]);
     setBusy(false);
-    if ("error" in res) { toast.error(res.error); return; }
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
     toast.success(`Deleted ${count} task${count > 1 ? "s" : ""}`);
     onClear();
   }
 
   return (
     <>
-    <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-      <DialogContent className="sm:max-w-xs text-center">
-        <div className="flex flex-col items-center gap-3 pt-2">
-          <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
-            <TrashIcon className="size-6 text-destructive" weight="fill" />
-          </div>
-          <div>
-            <DialogTitle className="text-base font-bold">Delete {count} Task{count > 1 ? "s" : ""}</DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">This action cannot be undone.</p>
-          </div>
-        </div>
-        <div className="flex gap-2 mt-2">
-          <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)} disabled={busy}>Cancel</Button>
-          <Button variant="destructive" className="flex-1" onClick={confirmBulkDelete} disabled={busy}>Delete</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-xl border border-white/10 bg-neutral-900 px-3 py-2 shadow-2xl text-white text-sm">
-      {/* Count + clear */}
-      <span className="font-semibold text-white pr-2 border-r border-white/20 mr-2 select-none">
-        {count} task{count > 1 ? "s" : ""} selected
-      </span>
-      <button
-        onClick={onClear}
-        className="flex size-6 items-center justify-center rounded hover:bg-white/10 transition-colors mr-2 cursor-pointer"
-      >
-        <XIcon className="size-3.5 text-white/70" />
-      </button>
-
-      {/* Status */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            disabled={busy}
-            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            <span className="size-2 rounded-full bg-white/60" />
-            Status
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="center" side="top" className="w-48 p-1 mb-1 bg-neutral-800 border border-neutral-700 text-white">
-          {statuses.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => handleBulkStatus(s.id)}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-white/10 text-white text-left cursor-pointer"
-            >
-              <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-              <span className="truncate">{s.name}</span>
-            </button>
-          ))}
-        </PopoverContent>
-      </Popover>
-
-      {/* Move (Sprint + List) */}
-      <Popover onOpenChange={(open) => { if (open) { void loadSprints(); void loadLists(); } }}>
-        <PopoverTrigger asChild>
-          <button
-            disabled={busy}
-            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            <CaretDownIcon className="size-3.5" />
-            Move
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="center" side="top" className="w-56 p-1 mb-1 max-h-72 overflow-y-auto bg-neutral-800 border border-neutral-700 text-white">
-          {/* Sprint section */}
-          <p className="px-2 py-1 text-2xs font-bold text-gray-400 uppercase tracking-wide">Sprint</p>
-          {loadingSprints && <p className="px-2 py-1.5 text-xs text-gray-400">Loading…</p>}
-          {!loadingSprints && sprints?.length === 0 && (
-            <p className="px-2 py-1.5 text-xs text-gray-400">No active sprints</p>
-          )}
-          {!loadingSprints && sprints?.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => handleMoveToSprint(s.id, s.name)}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-white/10 text-white text-left cursor-pointer"
-            >
-              <LightningIcon
-                className={cn("size-3.5 shrink-0", s.status === "ACTIVE" ? "text-primary" : "text-gray-400")}
-                weight="fill"
-              />
-              <span className="flex-1 text-left truncate">{s.name}</span>
-              <span className={cn(
-                "text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0",
-                s.status === "ACTIVE" ? "bg-primary/20 text-primary-foreground" : "bg-neutral-700 text-gray-300",
-              )}>
-                {s.status === "ACTIVE" ? "Active" : "Planned"}
-              </span>
-            </button>
-          ))}
-
-          {/* Divider */}
-          <div className="h-px bg-neutral-700 my-1" />
-
-          {/* List section */}
-          <p className="px-2 py-1 text-2xs font-bold text-gray-400 uppercase tracking-wide">List</p>
-          {loadingLists && <p className="px-2 py-1.5 text-xs text-gray-400">Loading…</p>}
-          {!loadingLists && listSpaces?.length === 0 && (
-            <p className="px-2 py-1.5 text-xs text-gray-400">No other lists available</p>
-          )}
-          {!loadingLists && listSpaces?.map((sp) => (
-            <div key={sp.id}>
-              <p className="flex items-center gap-1.5 px-2 py-1 text-2xs font-bold text-gray-400 uppercase">
-                <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: sp.color ?? "#6B7280" }} />
-                {sp.name}
+      <Dialog onOpenChange={setDeleteOpen} open={deleteOpen}>
+        <DialogContent className="sm:max-w-xs text-center">
+          <div className="flex flex-col items-center gap-3 pt-2">
+            <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
+              <TrashIcon className="size-6 text-destructive" weight="fill" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold">
+                Delete {count} Task{count > 1 ? "s" : ""}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                This action cannot be undone.
               </p>
-              {sp.lists.map((l) => (
+            </div>
+          </div>
+          <div className="flex gap-2 mt-2">
+            <Button
+              className="flex-1"
+              disabled={busy}
+              onClick={() => setDeleteOpen(false)}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1"
+              disabled={busy}
+              onClick={confirmBulkDelete}
+              variant="destructive"
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-xl border border-white/10 bg-neutral-900 px-3 py-2 shadow-2xl text-white text-sm">
+        {/* Count + clear */}
+        <span className="font-semibold text-white pr-2 border-r border-white/20 mr-2 select-none">
+          {count} task{count > 1 ? "s" : ""} selected
+        </span>
+        <button
+          className="flex size-6 items-center justify-center rounded hover:bg-white/10 transition-colors mr-2 cursor-pointer"
+          onClick={onClear}
+        >
+          <XIcon className="size-3.5 text-white/70" />
+        </button>
+
+        {/* Status */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+              disabled={busy}
+            >
+              <span className="size-2 rounded-full bg-white/60" />
+              Status
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="center"
+            className="w-48 p-1 mb-1 bg-neutral-800 border border-neutral-700 text-white"
+            side="top"
+          >
+            {statuses.map((s) => (
+              <button
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-white/10 text-white text-left cursor-pointer"
+                key={s.id}
+                onClick={() => handleBulkStatus(s.id)}
+              >
+                <span
+                  className="size-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: s.color }}
+                />
+                <span className="truncate">{s.name}</span>
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+
+        {/* Move (Sprint + List) */}
+        <Popover
+          onOpenChange={(open) => {
+            if (open) {
+              void loadSprints();
+              void loadLists();
+            }
+          }}
+        >
+          <PopoverTrigger asChild>
+            <button
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+              disabled={busy}
+            >
+              <CaretDownIcon className="size-3.5" />
+              Move
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="center"
+            className="w-56 p-1 mb-1 max-h-72 overflow-y-auto bg-neutral-800 border border-neutral-700 text-white"
+            side="top"
+          >
+            {/* Sprint section */}
+            <p className="px-2 py-1 text-2xs font-bold text-gray-400 uppercase tracking-wide">
+              Sprint
+            </p>
+            {loadingSprints && (
+              <p className="px-2 py-1.5 text-xs text-gray-400">Loading…</p>
+            )}
+            {!loadingSprints && sprints?.length === 0 && (
+              <p className="px-2 py-1.5 text-xs text-gray-400">
+                No active sprints
+              </p>
+            )}
+            {!loadingSprints &&
+              sprints?.map((s) => (
                 <button
-                  key={l.id}
-                  onClick={() => handleMoveToList(l.id, l.name)}
-                  className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-xs font-semibold hover:bg-white/10 text-white text-left cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-white/10 text-white text-left cursor-pointer"
+                  key={s.id}
+                  onClick={() => handleMoveToSprint(s.id, s.name)}
                 >
-                  <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: l.color ?? "#6B7280" }} />
-                  <span className="flex-1 text-left truncate">{l.name}</span>
+                  <LightningIcon
+                    className={cn(
+                      "size-3.5 shrink-0",
+                      s.status === "ACTIVE" ? "text-primary" : "text-gray-400"
+                    )}
+                    weight="fill"
+                  />
+                  <span className="flex-1 text-left truncate">{s.name}</span>
+                  <span
+                    className={cn(
+                      "text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0",
+                      s.status === "ACTIVE"
+                        ? "bg-primary/20 text-primary-foreground"
+                        : "bg-neutral-700 text-gray-300"
+                    )}
+                  >
+                    {s.status === "ACTIVE" ? "Active" : "Planned"}
+                  </span>
                 </button>
               ))}
-            </div>
-          ))}
-        </PopoverContent>
-      </Popover>
 
-      <div className="h-4 w-px bg-white/20 mx-1" />
+            {/* Divider */}
+            <div className="h-px bg-neutral-700 my-1" />
 
-      {/* Archive — requires edit permission */}
-      {canEdit && (
-        <button
-          disabled={busy}
-          onClick={handleBulkArchive}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
-        >
-          <ArchiveIcon className="size-3.5" />
-          Archive
-        </button>
-      )}
+            {/* List section */}
+            <p className="px-2 py-1 text-2xs font-bold text-gray-400 uppercase tracking-wide">
+              List
+            </p>
+            {loadingLists && (
+              <p className="px-2 py-1.5 text-xs text-gray-400">Loading…</p>
+            )}
+            {!loadingLists && listSpaces?.length === 0 && (
+              <p className="px-2 py-1.5 text-xs text-gray-400">
+                No other lists available
+              </p>
+            )}
+            {!loadingLists &&
+              listSpaces?.map((sp) => (
+                <div key={sp.id}>
+                  <p className="flex items-center gap-1.5 px-2 py-1 text-2xs font-bold text-gray-400 uppercase">
+                    <span
+                      className="size-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: sp.color ?? "#6B7280" }}
+                    />
+                    {sp.name}
+                  </p>
+                  {sp.lists.map((l) => (
+                    <button
+                      className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-xs font-semibold hover:bg-white/10 text-white text-left cursor-pointer"
+                      key={l.id}
+                      onClick={() => handleMoveToList(l.id, l.name)}
+                    >
+                      <span
+                        className="size-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: l.color ?? "#6B7280" }}
+                      />
+                      <span className="flex-1 text-left truncate">
+                        {l.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+          </PopoverContent>
+        </Popover>
 
-      {/* Delete — admin only */}
-      {isAdmin && (
-        <button
-          disabled={busy}
-          onClick={() => setDeleteOpen(true)}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-50 cursor-pointer"
-        >
-          <TrashIcon className="size-3.5" />
-          Delete
-        </button>
-      )}
-    </div>
+        <div className="h-4 w-px bg-white/20 mx-1" />
+
+        {/* Archive — requires edit permission */}
+        {canEdit && (
+          <button
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+            disabled={busy}
+            onClick={handleBulkArchive}
+          >
+            <ArchiveIcon className="size-3.5" />
+            Archive
+          </button>
+        )}
+
+        {/* Delete — admin only */}
+        {isAdmin && (
+          <button
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-50 cursor-pointer"
+            disabled={busy}
+            onClick={() => setDeleteOpen(true)}
+          >
+            <TrashIcon className="size-3.5" />
+            Delete
+          </button>
+        )}
+      </div>
     </>
   );
 }
@@ -912,7 +1214,9 @@ function listViewPrefsKey(listId: string) {
 }
 
 function loadListViewPrefs(listId: string): Partial<ListViewPrefs> | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined") {
+    return null;
+  }
   try {
     const raw = window.localStorage.getItem(listViewPrefsKey(listId));
     return raw ? (JSON.parse(raw) as Partial<ListViewPrefs>) : null;
@@ -944,18 +1248,26 @@ export function ListView({
   archivedLoading,
 }: ListViewProps) {
   const router = useRouter();
-  const [createForStatusId, setCreateForStatusId] = React.useState<string | null>(null);
+  const [createForStatusId, setCreateForStatusId] = React.useState<
+    string | null
+  >(null);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
 
   // Local state for Search, Sort, Filter, and Group By inside the Workspace Container.
   // Start from defaults so the server and first client render match (localStorage
   // isn't available on the server); persisted prefs are applied after mount below.
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [sortBy, setSortBy] = React.useState<"name" | "due" | "priority" | null>(null);
+  const [sortBy, setSortBy] = React.useState<
+    "name" | "due" | "priority" | null
+  >(null);
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc");
-  const [groupBy, setGroupBy] = React.useState<"status" | "priority" | "assignee">("status");
+  const [groupBy, setGroupBy] = React.useState<
+    "status" | "priority" | "assignee"
+  >("status");
   // Only one group's inline "Add Task" row may be open at a time.
-  const [openAddGroupId, setOpenAddGroupId] = React.useState<string | null>(null);
+  const [openAddGroupId, setOpenAddGroupId] = React.useState<string | null>(
+    null
+  );
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
 
   const [priorityFilter, setPriorityFilter] = React.useState<string[]>([]);
@@ -969,28 +1281,58 @@ export function ListView({
   React.useEffect(() => {
     const p = loadListViewPrefs(listId);
     if (p) {
-      if (p.sortBy !== undefined) setSortBy(p.sortBy);
-      if (p.sortOrder) setSortOrder(p.sortOrder);
-      if (p.groupBy) setGroupBy(p.groupBy);
-      if (p.priorityFilter) setPriorityFilter(p.priorityFilter);
-      if (p.assigneeFilter) setAssigneeFilter(p.assigneeFilter);
-      if (p.statusFilter) setStatusFilter(p.statusFilter);
+      if (p.sortBy !== undefined) {
+        setSortBy(p.sortBy);
+      }
+      if (p.sortOrder) {
+        setSortOrder(p.sortOrder);
+      }
+      if (p.groupBy) {
+        setGroupBy(p.groupBy);
+      }
+      if (p.priorityFilter) {
+        setPriorityFilter(p.priorityFilter);
+      }
+      if (p.assigneeFilter) {
+        setAssigneeFilter(p.assigneeFilter);
+      }
+      if (p.statusFilter) {
+        setStatusFilter(p.statusFilter);
+      }
     }
     setPrefsHydrated(true);
   }, [listId]);
 
   // Persist view prefs whenever they change (only after hydration).
   React.useEffect(() => {
-    if (!prefsHydrated) return;
+    if (!prefsHydrated) {
+      return;
+    }
     try {
       window.localStorage.setItem(
         listViewPrefsKey(listId),
-        JSON.stringify({ sortBy, sortOrder, groupBy, priorityFilter, assigneeFilter, statusFilter }),
+        JSON.stringify({
+          sortBy,
+          sortOrder,
+          groupBy,
+          priorityFilter,
+          assigneeFilter,
+          statusFilter,
+        })
       );
     } catch {
       // ignore quota / disabled storage
     }
-  }, [prefsHydrated, listId, sortBy, sortOrder, groupBy, priorityFilter, assigneeFilter, statusFilter]);
+  }, [
+    prefsHydrated,
+    listId,
+    sortBy,
+    sortOrder,
+    groupBy,
+    priorityFilter,
+    assigneeFilter,
+    statusFilter,
+  ]);
 
   // Optimistic DND tasks
   const [localTasks, setLocalTasks] = React.useState<Task[]>(tasks);
@@ -1000,13 +1342,17 @@ export function ListView({
   }, [tasks]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
   function handleSelect(id: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(id); else next.delete(id);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
       return next;
     });
   }
@@ -1017,7 +1363,9 @@ export function ListView({
 
     // Search query
     if (searchQuery.trim()) {
-      list = list.filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+      list = list.filter((t) =>
+        t.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
 
     // Priority filter
@@ -1031,7 +1379,9 @@ export function ListView({
         const hasUnassigned = assigneeFilter.includes("unassigned");
         const userIds = assigneeFilter.filter((id) => id !== "unassigned");
         const hasNoAssignees = t.assignees.length === 0;
-        if (hasUnassigned && hasNoAssignees) return true;
+        if (hasUnassigned && hasNoAssignees) {
+          return true;
+        }
         return t.assignees.some((a) => userIds.includes(a.userId));
       });
     }
@@ -1060,7 +1410,15 @@ export function ListView({
     }
 
     return list;
-  }, [localTasks, searchQuery, priorityFilter, assigneeFilter, statusFilter, sortBy, sortOrder]);
+  }, [
+    localTasks,
+    searchQuery,
+    priorityFilter,
+    assigneeFilter,
+    statusFilter,
+    sortBy,
+    sortOrder,
+  ]);
 
   // ─── Group By logic ────────────────────────────────────────────────────────
   const groupedGroups = React.useMemo(() => {
@@ -1071,31 +1429,57 @@ export function ListView({
         color: s.color,
         tasks: processedTasks.filter((t) => t.statusId === s.id),
       }));
-    } else if (groupBy === "priority") {
-      const priorities: Task["priority"][] = ["URGENT", "HIGH", "MEDIUM", "LOW", "NONE"];
-      const priorityColors = { URGENT: "#EF4444", HIGH: "#F97316", MEDIUM: "#F59E0B", LOW: "#9CA3AF", NONE: "#6B7280" };
+    }
+    if (groupBy === "priority") {
+      const priorities: Task["priority"][] = [
+        "URGENT",
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "NONE",
+      ];
+      const priorityColors = {
+        URGENT: "#EF4444",
+        HIGH: "#F97316",
+        MEDIUM: "#F59E0B",
+        LOW: "#9CA3AF",
+        NONE: "#6B7280",
+      };
       return priorities.map((p) => ({
         id: p,
         name: p === "NONE" ? "NO PRIORITY" : p,
         color: priorityColors[p],
         tasks: processedTasks.filter((t) => t.priority === p),
       }));
-    } else if (groupBy === "assignee") {
-      const resolvedMembers = members.length > 0 ? members : (() => {
-        const unique = new Map<string, { userId: string; name: string; image: string | null }>();
-        for (const t of tasks) {
-          for (const a of t.assignees) {
-            unique.set(a.userId, a);
-          }
-        }
-        return Array.from(unique.values()).map(a => ({ userId: a.userId, name: a.name, email: null }));
-      })();
+    }
+    if (groupBy === "assignee") {
+      const resolvedMembers =
+        members.length > 0
+          ? members
+          : (() => {
+              const unique = new Map<
+                string,
+                { userId: string; name: string; image: string | null }
+              >();
+              for (const t of tasks) {
+                for (const a of t.assignees) {
+                  unique.set(a.userId, a);
+                }
+              }
+              return Array.from(unique.values()).map((a) => ({
+                userId: a.userId,
+                name: a.name,
+                email: null,
+              }));
+            })();
 
       const groups = resolvedMembers.map((m) => ({
         id: m.userId,
         name: m.name || m.email || "Unknown Member",
         color: "#8B5CF6",
-        tasks: processedTasks.filter((t) => t.assignees.some((a) => a.userId === m.userId)),
+        tasks: processedTasks.filter((t) =>
+          t.assignees.some((a) => a.userId === m.userId)
+        ),
       }));
 
       // Add unassigned group
@@ -1121,7 +1505,9 @@ export function ListView({
 
   // Correct create-payload for a group's "Add Task", based on the active Group By.
   function quickCreateDefaultsFor(groupId: string): QuickCreateDefaults {
-    if (groupBy === "status") return { statusId: groupId };
+    if (groupBy === "status") {
+      return { statusId: groupId };
+    }
     if (groupBy === "priority") {
       return {
         priority: groupId as QuickCreateDefaults["priority"],
@@ -1136,7 +1522,9 @@ export function ListView({
   }
 
   // Global Checkbox toggles
-  const allSelected = processedTasks.length > 0 && processedTasks.every((t) => selectedIds.has(t.id));
+  const allSelected =
+    processedTasks.length > 0 &&
+    processedTasks.every((t) => selectedIds.has(t.id));
   const someSelected = processedTasks.some((t) => selectedIds.has(t.id));
 
   function toggleAll() {
@@ -1162,17 +1550,25 @@ export function ListView({
           t.tagName === "SELECT");
 
       // Ctrl/Cmd/Alt combos are never ours (Shift is allowed — it forms "?").
-      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
 
       // Don't hijack keys while an overlay (dialog / popover / dropdown / select)
       // is open — let it own the keyboard.
-      if (document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]')) {
+      if (
+        document.querySelector(
+          '[role="dialog"], [data-radix-popper-content-wrapper]'
+        )
+      ) {
         return;
       }
 
       // "/" focuses the search box (suppress the browser Quick Find).
       if (e.key === "/") {
-        const el = document.getElementById("list-view-search") as HTMLInputElement | null;
+        const el = document.getElementById(
+          "list-view-search"
+        ) as HTMLInputElement | null;
         if (el) {
           e.preventDefault();
           el.focus();
@@ -1181,34 +1577,48 @@ export function ListView({
         return;
       }
 
-      const rows = Array.from(document.querySelectorAll<HTMLElement>("[data-task-row]"));
+      const rows = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-task-row]")
+      );
       const active = document.activeElement as HTMLElement | null;
-      const idx = active?.matches?.("[data-task-row]") ? rows.indexOf(active) : -1;
+      const idx = active?.matches?.("[data-task-row]")
+        ? rows.indexOf(active)
+        : -1;
       const focusAt = (i: number) => {
         const el = rows[Math.max(0, Math.min(rows.length - 1, i))];
         if (el) {
           el.focus();
-          el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+          el.scrollIntoView({
+            block: "nearest",
+            inline: "nearest",
+            behavior: "smooth",
+          });
         }
       };
 
       switch (e.key) {
         case "ArrowDown":
         case "j": {
-          if (rows.length === 0) return;
+          if (rows.length === 0) {
+            return;
+          }
           e.preventDefault();
           focusAt(idx < 0 ? 0 : idx + 1);
           break;
         }
         case "ArrowUp":
         case "k": {
-          if (rows.length === 0) return;
+          if (rows.length === 0) {
+            return;
+          }
           e.preventDefault();
           focusAt(idx < 0 ? 0 : idx - 1);
           break;
         }
         case "Enter": {
-          if (idx < 0) return;
+          if (idx < 0) {
+            return;
+          }
           const id = rows[idx].getAttribute("data-task-id");
           if (id) {
             e.preventDefault();
@@ -1217,7 +1627,9 @@ export function ListView({
           break;
         }
         case "x": {
-          if (idx < 0) return;
+          if (idx < 0) {
+            return;
+          }
           const id = rows[idx].getAttribute("data-task-id");
           if (id) {
             e.preventDefault();
@@ -1228,7 +1640,8 @@ export function ListView({
         case "c": {
           e.preventDefault();
           const id = idx >= 0 ? rows[idx].getAttribute("data-task-id") : null;
-          const groupId = (id && findGroupForTask(id)) || groupedGroups[0]?.id || null;
+          const groupId =
+            (id && findGroupForTask(id)) || groupedGroups[0]?.id || null;
           setOpenAddGroupId(groupId);
           break;
         }
@@ -1249,13 +1662,20 @@ export function ListView({
   // ─── Drag & Drop Event Handlers ────────────────────────────────────────────
   function findGroupForTask(taskId: string) {
     const t = localTasks.find((tk) => tk.id === taskId);
-    if (!t) return null;
-    if (groupBy === "status") return t.statusId;
-    if (groupBy === "priority") return t.priority;
-    if (groupBy === "assignee") return t.assignees[0]?.userId || "unassigned";
+    if (!t) {
+      return null;
+    }
+    if (groupBy === "status") {
+      return t.statusId;
+    }
+    if (groupBy === "priority") {
+      return t.priority;
+    }
+    if (groupBy === "assignee") {
+      return t.assignees[0]?.userId || "unassigned";
+    }
     return null;
   }
-
 
   // Pause live auto-refresh while dragging so it can't clobber the drag.
   const pauseRealtime = useRealtimePause();
@@ -1273,7 +1693,9 @@ export function ListView({
   }
 
   function onDragOver({ active, over }: DragOverEvent) {
-    if (!over) return;
+    if (!over) {
+      return;
+    }
 
     const activeId = active.id as string;
     const overId = over.id as string;
@@ -1282,16 +1704,21 @@ export function ListView({
 
     // over could be a status/group ID or a task ID
     let overGroup = overId;
-    const isGroup = statuses.some(s => s.id === overId) ||
-                    ["URGENT", "HIGH", "MEDIUM", "LOW", "NONE", "NO PRIORITY"].includes(overId) ||
-                    members.some(m => m.userId === overId) ||
-                    overId === "unassigned";
+    const isGroup =
+      statuses.some((s) => s.id === overId) ||
+      ["URGENT", "HIGH", "MEDIUM", "LOW", "NONE", "NO PRIORITY"].includes(
+        overId
+      ) ||
+      members.some((m) => m.userId === overId) ||
+      overId === "unassigned";
 
     if (!isGroup) {
       overGroup = findGroupForTask(overId) || "";
     }
 
-    if (!activeGroup || !overGroup || activeGroup === overGroup) return;
+    if (!activeGroup || !overGroup || activeGroup === overGroup) {
+      return;
+    }
 
     // Optimistically update
     setLocalTasks((prev) =>
@@ -1301,16 +1728,28 @@ export function ListView({
             return { ...t, statusId: overGroup };
           }
           if (groupBy === "priority") {
-            const cleanPriority = overGroup === "NO PRIORITY" ? "NONE" : overGroup as Task["priority"];
+            const cleanPriority =
+              overGroup === "NO PRIORITY"
+                ? "NONE"
+                : (overGroup as Task["priority"]);
             return { ...t, priority: cleanPriority };
           }
           if (groupBy === "assignee") {
             if (overGroup === "unassigned") {
               return { ...t, assignees: [] };
             }
-            const matchingMember = members.find(m => m.userId === overGroup);
+            const matchingMember = members.find((m) => m.userId === overGroup);
             if (matchingMember) {
-              return { ...t, assignees: [{ userId: matchingMember.userId, name: matchingMember.name || "Member", image: null }] };
+              return {
+                ...t,
+                assignees: [
+                  {
+                    userId: matchingMember.userId,
+                    name: matchingMember.name || "Member",
+                    image: null,
+                  },
+                ],
+              };
             }
           }
         }
@@ -1321,52 +1760,92 @@ export function ListView({
 
   async function onDragEnd({ active, over }: DragEndEvent) {
     endDrag();
-    if (!over) return;
+    if (!over) {
+      return;
+    }
 
     const activeId = active.id as string;
     const overId = over.id as string;
 
     let newGroup = overId;
-    const isGroup = statuses.some(s => s.id === overId) ||
-                    ["URGENT", "HIGH", "MEDIUM", "LOW", "NONE", "NO PRIORITY"].includes(overId) ||
-                    members.some(m => m.userId === overId) ||
-                    overId === "unassigned";
+    const isGroup =
+      statuses.some((s) => s.id === overId) ||
+      ["URGENT", "HIGH", "MEDIUM", "LOW", "NONE", "NO PRIORITY"].includes(
+        overId
+      ) ||
+      members.some((m) => m.userId === overId) ||
+      overId === "unassigned";
 
     if (!isGroup) {
       newGroup = findGroupForTask(overId) || "";
     }
 
-    const origTask = tasks.find(t => t.id === activeId);
-    if (!origTask) return;
+    const origTask = tasks.find((t) => t.id === activeId);
+    if (!origTask) {
+      return;
+    }
 
     if (groupBy === "status") {
       if (newGroup === origTask.statusId) {
         // Within-group reorder
-        const groupTasks = localTasks.filter((t) => t.statusId === origTask.statusId);
+        const groupTasks = localTasks.filter(
+          (t) => t.statusId === origTask.statusId
+        );
         const oldIndex = groupTasks.findIndex((t) => t.id === activeId);
         const newIndex = groupTasks.findIndex((t) => t.id === overId);
-        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+          return;
+        }
         const reordered = arrayMove(groupTasks, oldIndex, newIndex);
         setLocalTasks((prev) => [
           ...prev.filter((t) => t.statusId !== origTask.statusId),
           ...reordered,
         ]);
-        const res = await reorderTasksInStatus(workspaceId, spaceId, listId, reordered.map((t) => t.id));
-        if ("error" in res) { setLocalTasks(tasks); toast.error(res.error); }
+        const res = await reorderTasksInStatus(
+          workspaceId,
+          spaceId,
+          listId,
+          reordered.map((t) => t.id)
+        );
+        if ("error" in res) {
+          setLocalTasks(tasks);
+          toast.error(res.error);
+        }
         return;
       }
-      const res = await updateTaskStatus(workspaceId, spaceId, listId, activeId, newGroup);
-      if ("error" in res) setLocalTasks(tasks);
+      const res = await updateTaskStatus(
+        workspaceId,
+        spaceId,
+        listId,
+        activeId,
+        newGroup
+      );
+      if ("error" in res) {
+        setLocalTasks(tasks);
+      }
     } else if (groupBy === "priority") {
-      const cleanPriority = newGroup === "NO PRIORITY" ? "NONE" : newGroup as Task["priority"];
-      if (cleanPriority === origTask.priority) return;
-      const res = await updateTask(workspaceId, spaceId, listId, activeId, { priority: cleanPriority });
-      if ("error" in res) setLocalTasks(tasks);
+      const cleanPriority =
+        newGroup === "NO PRIORITY" ? "NONE" : (newGroup as Task["priority"]);
+      if (cleanPriority === origTask.priority) {
+        return;
+      }
+      const res = await updateTask(workspaceId, spaceId, listId, activeId, {
+        priority: cleanPriority,
+      });
+      if ("error" in res) {
+        setLocalTasks(tasks);
+      }
     } else if (groupBy === "assignee") {
-      const prevAssigneeIds = origTask.assignees.map(a => a.userId);
+      const prevAssigneeIds = origTask.assignees.map((a) => a.userId);
       const isUnassigned = newGroup === "unassigned";
-      
-      if (!isUnassigned && prevAssigneeIds.length === 1 && prevAssigneeIds[0] === newGroup) return;
+
+      if (
+        !isUnassigned &&
+        prevAssigneeIds.length === 1 &&
+        prevAssigneeIds[0] === newGroup
+      ) {
+        return;
+      }
 
       for (const oldId of prevAssigneeIds) {
         await removeAssignee(workspaceId, spaceId, listId, activeId, oldId);
@@ -1381,28 +1860,31 @@ export function ListView({
   return (
     <>
       <CreateTaskModal
-        open={createForStatusId !== null}
-        onOpenChange={(open) => { if (!open) setCreateForStatusId(null); }}
-        workspaceId={workspaceId}
-        spaceId={spaceId}
-        listId={listId}
-        statuses={statuses}
-        defaultStatusId={createForStatusId ?? undefined}
         canManage={canEdit || isAdmin}
+        defaultStatusId={createForStatusId ?? undefined}
+        listId={listId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreateForStatusId(null);
+          }
+        }}
+        open={createForStatusId !== null}
+        spaceId={spaceId}
+        statuses={statuses}
+        workspaceId={workspaceId}
       />
 
       <DndContext
-        id="list-dnd"
-        sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={onDragStart}
-        onDragOver={onDragOver}
-        onDragEnd={onDragEnd}
+        id="list-dnd"
         onDragCancel={onDragCancel}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
+        onDragStart={onDragStart}
+        sensors={sensors}
       >
         {/* ClickUp-style unified workspace container */}
         <div className="w-full bg-card border border-border rounded-2xl p-5 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)] overflow-hidden flex flex-col gap-4">
-
           {/* Sticky Toolbar + Table Header Section. z-10 keeps it above the
               scrolling rows but BELOW the mobile sidebar drawer + backdrop
               (z-20/z-30) — otherwise it floats over the open sidebar. */}
@@ -1412,31 +1894,35 @@ export function ListView({
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Search */}
                 <SearchInput
+                  className="w-44 focus:w-56"
                   id="list-view-search"
-                  placeholder="Search tasks…"
-                  value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onClear={() => setSearchQuery("")}
-                  className="w-44 focus:w-56"
+                  placeholder="Search tasks…"
+                  value={searchQuery}
                 />
 
                 {/* Filters — shared facet controls (same state + filter logic) */}
                 <FacetFilter
                   label="Status"
-                  options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
-                  selected={statusFilter}
                   onChange={setStatusFilter}
+                  options={statuses.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                    color: s.color,
+                  }))}
+                  selected={statusFilter}
                 />
                 <FacetFilter
                   label="Priority"
+                  onChange={setPriorityFilter}
                   options={PRIORITY_OPTIONS}
                   selected={priorityFilter}
-                  onChange={setPriorityFilter}
                 />
                 {members.length > 0 && (
                   <FacetFilter
                     label="Assignee"
-                    searchable
+                    onChange={setAssigneeFilter}
                     options={[
                       { value: "unassigned", label: "Unassigned" },
                       ...members.map((m) => ({
@@ -1444,20 +1930,20 @@ export function ListView({
                         label: m.name || m.email || "Unknown",
                       })),
                     ]}
+                    searchable
                     selected={assigneeFilter}
-                    onChange={setAssigneeFilter}
                   />
                 )}
                 {onToggleArchived && (
                   <button
-                    type="button"
-                    onClick={() => onToggleArchived()}
                     className={cn(
                       "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
                       showArchived
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                     )}
+                    onClick={() => onToggleArchived()}
+                    type="button"
                   >
                     <ArchiveIcon className="size-3.5" /> Show archived
                   </button>
@@ -1468,14 +1954,61 @@ export function ListView({
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
                       <ArrowsDownUpIcon className="size-3.5 text-gray-500" />
-                      Sort: {sortBy ? (sortBy.charAt(0).toUpperCase() + sortBy.slice(1)) : "None"}
+                      Sort:{" "}
+                      {sortBy
+                        ? sortBy.charAt(0).toUpperCase() + sortBy.slice(1)
+                        : "None"}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="w-44 p-1 flex flex-col gap-0.5">
-                    <button onClick={() => setSortBy(null)} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer", !sortBy && "bg-accent text-foreground")}>None</button>
-                    <button onClick={() => { setSortBy("name"); setSortOrder(o => o === "asc" ? "desc" : "asc"); }} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer", sortBy === "name" && "bg-accent text-foreground")}>Task Name</button>
-                    <button onClick={() => { setSortBy("due"); setSortOrder(o => o === "asc" ? "desc" : "asc"); }} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer", sortBy === "due" && "bg-accent text-foreground")}>Due Date</button>
-                    <button onClick={() => { setSortBy("priority"); setSortOrder(o => o === "asc" ? "desc" : "asc"); }} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer", sortBy === "priority" && "bg-accent text-foreground")}>Priority</button>
+                  <PopoverContent
+                    align="start"
+                    className="w-44 p-1 flex flex-col gap-0.5"
+                  >
+                    <button
+                      className={cn(
+                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                        !sortBy && "bg-accent text-foreground"
+                      )}
+                      onClick={() => setSortBy(null)}
+                    >
+                      None
+                    </button>
+                    <button
+                      className={cn(
+                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                        sortBy === "name" && "bg-accent text-foreground"
+                      )}
+                      onClick={() => {
+                        setSortBy("name");
+                        setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                      }}
+                    >
+                      Task Name
+                    </button>
+                    <button
+                      className={cn(
+                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                        sortBy === "due" && "bg-accent text-foreground"
+                      )}
+                      onClick={() => {
+                        setSortBy("due");
+                        setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                      }}
+                    >
+                      Due Date
+                    </button>
+                    <button
+                      className={cn(
+                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                        sortBy === "priority" && "bg-accent text-foreground"
+                      )}
+                      onClick={() => {
+                        setSortBy("priority");
+                        setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                      }}
+                    >
+                      Priority
+                    </button>
                   </PopoverContent>
                 </Popover>
 
@@ -1484,23 +2017,51 @@ export function ListView({
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
                       <GearIcon className="size-3.5 text-gray-500" />
-                      Group By: {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                      Group By:{" "}
+                      {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="w-44 p-1 flex flex-col gap-0.5">
-                    <button onClick={() => setGroupBy("status")} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer", groupBy === "status" && "bg-accent text-foreground")}>Status</button>
-                    <button onClick={() => setGroupBy("priority")} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer", groupBy === "priority" && "bg-accent text-foreground")}>Priority</button>
-                    <button onClick={() => setGroupBy("assignee")} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer", groupBy === "assignee" && "bg-accent text-foreground")}>Assignee</button>
+                  <PopoverContent
+                    align="start"
+                    className="w-44 p-1 flex flex-col gap-0.5"
+                  >
+                    <button
+                      className={cn(
+                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                        groupBy === "status" && "bg-accent text-foreground"
+                      )}
+                      onClick={() => setGroupBy("status")}
+                    >
+                      Status
+                    </button>
+                    <button
+                      className={cn(
+                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                        groupBy === "priority" && "bg-accent text-foreground"
+                      )}
+                      onClick={() => setGroupBy("priority")}
+                    >
+                      Priority
+                    </button>
+                    <button
+                      className={cn(
+                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                        groupBy === "assignee" && "bg-accent text-foreground"
+                      )}
+                      onClick={() => setGroupBy("assignee")}
+                    >
+                      Assignee
+                    </button>
                   </PopoverContent>
                 </Popover>
 
                 {/* Keyboard shortcuts */}
                 <button
-                  type="button"
-                  onClick={() => setShortcutsOpen(true)}
-                  title="Keyboard Shortcuts (?)"
                   aria-label="Keyboard shortcuts"
                   className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
+                  onClick={() => setShortcutsOpen(true)}
+                  title="Keyboard Shortcuts (?)"
+                  type="button"
                 >
                   <KeyboardIcon className="size-4" />
                 </button>
@@ -1508,28 +2069,27 @@ export function ListView({
 
               {/* Right actions: Create Task button */}
               <button
-                onClick={() => setCreateForStatusId(statuses[0]?.id || "")}
                 className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
+                onClick={() => setCreateForStatusId(statuses[0]?.id || "")}
               >
                 <PlusIcon className="size-3.5" weight="bold" />
                 Create Task
               </button>
             </div>
-
           </div>
 
           {/* Pinned tasks sticky section */}
           {pinnedTasks.length > 0 && (
             <PinnedSection
-              tasks={pinnedTasks}
-              workspaceId={workspaceId}
-              spaceId={spaceId}
-              listId={listId}
-              statuses={statuses}
+              canEdit={canEdit}
               canPinToList={canPinToList}
               isAdmin={isAdmin}
-              canEdit={canEdit}
+              listId={listId}
               personallyPinnedIds={personallyPinnedIds}
+              spaceId={spaceId}
+              statuses={statuses}
+              tasks={pinnedTasks}
+              workspaceId={workspaceId}
             />
           )}
 
@@ -1537,28 +2097,28 @@ export function ListView({
           <div className="flex flex-col gap-6">
             {groupedGroups.map((group) => (
               <StatusGroup
+                addOpen={openAddGroupId === group.id}
+                canEdit={canEdit}
+                canPinToList={canPinToList}
+                createDefaults={quickCreateDefaultsFor(group.id)}
+                isAdmin={isAdmin}
                 key={group.id}
+                listId={listId}
+                onAddOpenChange={(v) => setOpenAddGroupId(v ? group.id : null)}
+                onSelect={handleSelect}
+                personallyPinnedIds={personallyPinnedIds}
+                selectedIds={selectedIds}
+                spaceId={spaceId}
                 status={{
                   id: group.id,
                   name: group.name,
                   color: group.color,
                   type: "OPEN",
-                  orderIndex: 0
+                  orderIndex: 0,
                 }}
-                createDefaults={quickCreateDefaultsFor(group.id)}
+                statuses={statuses}
                 tasks={group.tasks}
                 workspaceId={workspaceId}
-                spaceId={spaceId}
-                listId={listId}
-                isAdmin={isAdmin}
-                canEdit={canEdit}
-                canPinToList={canPinToList}
-                personallyPinnedIds={personallyPinnedIds}
-                selectedIds={selectedIds}
-                onSelect={handleSelect}
-                statuses={statuses}
-                addOpen={openAddGroupId === group.id}
-                onAddOpenChange={(v) => setOpenAddGroupId(v ? group.id : null)}
               />
             ))}
           </div>
@@ -1572,18 +2132,25 @@ export function ListView({
               </div>
               {(!archivedTasks || archivedTasks.length === 0) && (
                 <div className="px-4 py-6 text-center text-xs text-muted-foreground italic">
-                  {archivedLoading ? "Loading archived tasks…" : "No archived tasks"}
+                  {archivedLoading
+                    ? "Loading archived tasks…"
+                    : "No archived tasks"}
                 </div>
               )}
               <div className="divide-y divide-border">
                 {archivedTasks?.map((t) => (
                   <div
-                    key={t.id}
                     className="group flex items-center gap-3 px-4 py-2 hover:bg-accent/30 transition-colors"
+                    key={t.id}
                   >
-                    <span className="text-2xs text-muted-foreground font-mono shrink-0 select-none">#{t.seqNumber}</span>
-                    <span className="flex-1 text-[13px] text-muted-foreground font-medium line-through truncate">{t.title}</span>
+                    <span className="text-2xs text-muted-foreground font-mono shrink-0 select-none">
+                      #{t.seqNumber}
+                    </span>
+                    <span className="flex-1 text-[13px] text-muted-foreground font-medium line-through truncate">
+                      {t.title}
+                    </span>
                     <button
+                      className="hidden group-hover:flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
                       onClick={async () => {
                         await unarchiveTask(workspaceId, spaceId, listId, t.id);
                         await onArchivedChanged?.();
@@ -1592,7 +2159,6 @@ export function ListView({
                           await onArchivedChanged?.();
                         });
                       }}
-                      className="hidden group-hover:flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
                     >
                       <ArchiveIcon className="size-3.5 text-muted-foreground" />
                       Unarchive
@@ -1603,13 +2169,12 @@ export function ListView({
             </div>
           )}
         </div>
-
       </DndContext>
 
       {/* Floating Action Button (FAB) for mobile task creation */}
       <button
-        onClick={() => setCreateForStatusId(statuses[0]?.id || "")}
         className="md:hidden fixed bottom-6 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
+        onClick={() => setCreateForStatusId(statuses[0]?.id || "")}
         title="Create Task"
       >
         <PlusIcon className="size-6 font-bold" />
@@ -1618,19 +2183,22 @@ export function ListView({
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
         <BulkActionBar
+          canEdit={canEdit}
           count={selectedIds.size}
+          isAdmin={isAdmin}
+          listId={listId}
+          onClear={() => setSelectedIds(new Set())}
           selectedIds={selectedIds}
+          spaceId={spaceId}
           statuses={statuses}
           workspaceId={workspaceId}
-          spaceId={spaceId}
-          listId={listId}
-          isAdmin={isAdmin}
-          canEdit={canEdit}
-          onClear={() => setSelectedIds(new Set())}
         />
       )}
 
-      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <KeyboardShortcutsDialog
+        onOpenChange={setShortcutsOpen}
+        open={shortcutsOpen}
+      />
     </>
   );
 }

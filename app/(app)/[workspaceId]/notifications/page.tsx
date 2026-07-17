@@ -27,13 +27,12 @@ import {
 } from "@/components/filters/facet-filter";
 import { TaskDetailPanel } from "@/components/task/task-detail-panel";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { SearchInput } from "@/components/ui/search-input";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { SearchInput } from "@/components/ui/search-input";
 import { EVENT_FILTERS } from "@/lib/notifications/filters";
 import { getNotificationTarget } from "@/lib/notifications/target";
 import { cn } from "@/lib/utils";
@@ -547,10 +546,12 @@ export default function InboxPage() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Notification list */}
+      {/* Notification list. `@container` lets the filter bar respond to THIS
+          column's width, so it collapses to the compact Filters button when the
+          column is narrow — whether from a small viewport or an open task. */}
       <div
         className={cn(
-          "flex flex-col h-full transition-all duration-200",
+          "@container flex flex-col h-full transition-all duration-200 min-w-0",
           selectedTask ? "w-105 shrink-0 border-r" : "flex-1"
         )}
       >
@@ -625,8 +626,8 @@ export default function InboxPage() {
             placeholder="Search notifications..."
             value={searchDraft}
           />
-          {/* Desktop: inline dropdowns */}
-          <div className="hidden items-center gap-2 md:flex">
+          {/* Wide column: inline dropdowns */}
+          <div className="hidden items-center gap-2 @xl:flex">
             {renderFilters()}
             {hasActiveFilters && (
               <button
@@ -638,45 +639,43 @@ export default function InboxPage() {
               </button>
             )}
           </div>
-          {/* Mobile: single Filters button → sheet */}
-          <button
-            className={cn(
-              "flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors md:hidden",
-              activeFilterCount > 0
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-            )}
-            onClick={() => setMobileFiltersOpen(true)}
-            type="button"
-          >
-            <FunnelIcon className="size-3.5" />
-            Filters
-            {activeFilterCount > 0 && <span>({activeFilterCount})</span>}
-          </button>
-        </div>
-
-        <Sheet onOpenChange={setMobileFiltersOpen} open={mobileFiltersOpen}>
-          <SheetContent className="gap-0" side="bottom">
-            <SheetHeader>
-              <SheetTitle>Filters</SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-wrap gap-2 p-4">{renderFilters()}</div>
-            {hasActiveFilters && (
-              <div className="border-t p-4">
+          {/* Narrow column (small viewport or open task): a compact Filters
+              popover anchored to this button, holding the same dropdowns. */}
+          <Popover onOpenChange={setMobileFiltersOpen} open={mobileFiltersOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  "flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors @xl:hidden",
+                  activeFilterCount > 0
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+                type="button"
+              >
+                <FunnelIcon className="size-3.5" />
+                Filters
+                {activeFilterCount > 0 && <span>({activeFilterCount})</span>}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-2">
+              <p className="px-1 pb-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Filters
+              </p>
+              <div className="flex flex-col items-stretch gap-2">
+                {renderFilters()}
+              </div>
+              {hasActiveFilters && (
                 <button
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  onClick={() => {
-                    clearFilters();
-                    setMobileFiltersOpen(false);
-                  }}
+                  className="mt-2 w-full border-t pt-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={clearFilters}
                   type="button"
                 >
                   Clear all filters
                 </button>
-              </div>
-            )}
-          </SheetContent>
-        </Sheet>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
 
         {/* List */}
         <div className="flex-1 overflow-y-auto" ref={scrollRef}>
