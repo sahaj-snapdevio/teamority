@@ -72,7 +72,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { taskUrl } from "@/lib/app-url";
+import {
+  flashDuplicatedTask,
+  useIsDuplicateHighlighted,
+} from "@/lib/duplicate-highlight";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
+import { filterTasks } from "@/lib/filters/task-filter";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
@@ -187,6 +192,7 @@ function CardContent({
   // handed the workspace/list context. The drag overlay stays purely visual.
   const interactive =
     !overlay && !!workspaceId && !!spaceId && !!listId && !!onRefresh;
+  const highlighted = useIsDuplicateHighlighted(task.id);
 
   // Inline rename — mirrors the list-row flow (updateTask({ title })).
   const [localTitle, setLocalTitle] = React.useState(task.title);
@@ -306,6 +312,7 @@ function CardContent({
       toast.error(res.error);
       return;
     }
+    flashDuplicatedTask(res.taskId);
     onRefresh?.();
   }
   async function handleArchive() {
@@ -351,7 +358,8 @@ function CardContent({
         "relative rounded-lg border bg-card p-3 shadow-sm group/card",
         isDragging && "opacity-40 shadow-none border-dashed",
         overlay && "shadow-xl rotate-1 cursor-grabbing",
-        !isDragging && !overlay && "hover:shadow-md transition-shadow"
+        !isDragging && !overlay && "hover:shadow-md transition-shadow",
+        highlighted && "ring-2 ring-primary/40 border-primary/40 bg-primary/5"
       )}
     >
       <div
@@ -506,7 +514,12 @@ function CardContent({
                   <ListPlusIcon className="size-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-64 rounded-xl p-2">
+              <PopoverContent
+                align="start"
+                className="w-64 rounded-xl p-2"
+                collisionPadding={8}
+                side="bottom"
+              >
                 <div className="flex items-center gap-2">
                   <Input
                     autoFocus
@@ -883,31 +896,11 @@ export function BoardView({
 
   // ── Filtered + sorted tasks (for display) ────────────────────────────────
   const processedTasks = React.useMemo(() => {
-    let result = localTasks.filter((t) => {
-      if (
-        searchQuery.trim() &&
-        !t.title.toLowerCase().includes(searchQuery.toLowerCase())
-      ) {
-        return false;
-      }
-      if (statusFilter.length && !statusFilter.includes(t.statusId ?? "")) {
-        return false;
-      }
-      if (priorityFilter.length && !priorityFilter.includes(t.priority)) {
-        return false;
-      }
-      if (assigneeFilter.length) {
-        const hasUnassigned = assigneeFilter.includes("unassigned");
-        const userIds = assigneeFilter.filter((a) => a !== "unassigned");
-        const assigneeIds = t.assignees.map((a) => a.userId);
-        const matchUnassigned = hasUnassigned && assigneeIds.length === 0;
-        const matchUser =
-          userIds.length > 0 && assigneeIds.some((id) => userIds.includes(id));
-        if (!matchUnassigned && !matchUser) {
-          return false;
-        }
-      }
-      return true;
+    let result = filterTasks(localTasks, {
+      searchQuery,
+      statusFilter,
+      priorityFilter,
+      assigneeFilter,
     });
 
     if (sortBy === "name") {

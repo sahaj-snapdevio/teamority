@@ -108,6 +108,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { InviteMemberModal } from "@/components/workspace/invite-member-modal";
+import { flashDuplicatedTask } from "@/lib/duplicate-highlight";
 import { useSetTopbar } from "@/lib/topbar-context";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
@@ -713,8 +714,11 @@ export function TaskDetailPage({
 
   async function handleDuplicate() {
     setSaving(true);
-    await duplicateTask(workspaceId, spaceId, listId, taskId);
+    const res = await duplicateTask(workspaceId, spaceId, listId, taskId);
     setSaving(false);
+    if ("taskId" in res) {
+      flashDuplicatedTask(res.taskId);
+    }
     router.push(backUrl);
   }
 

@@ -20,6 +20,7 @@ function initials(name: string | null, email: string | null) {
 function describeEvent(eventType: string, meta: Record<string, unknown>): string {
   switch (eventType) {
     case "task_created": return "created this task";
+    case "task_duplicated": return meta.from_seq ? `duplicated this task from #${meta.from_seq}` : "duplicated this task";
     case "title_changed": return `renamed to "${meta.to}"`;
     case "status_changed": return `changed status → ${meta.to_status_name ?? meta.to}`;
     case "priority_changed": return `changed priority to ${meta.to}`;

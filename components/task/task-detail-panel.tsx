@@ -98,6 +98,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { InviteMemberModal } from "@/components/workspace/invite-member-modal";
+import { flashDuplicatedTask } from "@/lib/duplicate-highlight";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
 
@@ -490,6 +491,7 @@ export function TaskDetailPanel({
     const res = await duplicateTask(workspaceId, spaceId, listId, taskId);
     setSaving(false);
     if ("taskId" in res) {
+      flashDuplicatedTask(res.taskId);
       onOpenChange(false);
       router.refresh();
     }

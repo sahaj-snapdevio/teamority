@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import * as React from "react";
 import { getSprints } from "@/app/actions/sprint";
 import { getWorkspaceMembers } from "@/app/actions/task";
-import { getWorkspaceTags } from "@/app/actions/task-tag";
+import { createTag, getWorkspaceTags } from "@/app/actions/task-tag";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { FacetOptionList } from "@/components/filters/facet-filter";
 import { Button } from "@/components/ui/button";
@@ -252,6 +252,13 @@ export function QuickTaskMeta({
             <FacetOptionList
               emptyText="No tags"
               onChange={(next) => onChange({ ...value, tagIds: next })}
+              onCreate={async (label) => {
+                const res = await createTag(workspaceId, label);
+                if ("tag" in res) {
+                  setTags((prev) => [...prev, res.tag]);
+                  onChange({ ...value, tagIds: [...value.tagIds, res.tag.id] });
+                }
+              }}
               options={tags.map((t) => ({
                 value: t.id,
                 label: t.name,

@@ -82,6 +82,12 @@ export function DeleteListDialog({
               id="delete-confirm"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && confirm === list.name && !loading) {
+                  e.preventDefault();
+                  handleDelete();
+                }
+              }}
               placeholder={list.name}
               autoFocus
               disabled={loading}
