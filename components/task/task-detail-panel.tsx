@@ -2,7 +2,6 @@
 
 import {
   ArchiveIcon,
-  ArrowRightIcon,
   CheckIcon,
   ClipboardTextIcon,
   CopyIcon,
@@ -43,11 +42,6 @@ import {
   toggleChecklistItem,
 } from "@/app/actions/task-checklist";
 import {
-  addDependency,
-  removeDependency,
-  searchTasksForDependency,
-} from "@/app/actions/task-dependency";
-import {
   addTaskTag,
   createTag,
   deleteTag,
@@ -60,6 +54,7 @@ import {
   TaskActivityFeed,
   type TaskActivityFeedHandle,
 } from "@/components/task/task-activity-feed";
+import { TaskDependencies } from "@/components/task/task-dependencies";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
 import {
   AlertDialog,
@@ -87,7 +82,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
-  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
@@ -215,10 +209,6 @@ export function TaskDetailPanel({
   const [newItemTexts, setNewItemTexts] = React.useState<
     Record<string, string>
   >({});
-  const [depQuery, setDepQuery] = React.useState("");
-  const [depResults, setDepResults] = React.useState<
-    { id: string; title: string; seqNumber: number }[]
-  >([]);
   const feedRef = React.useRef<TaskActivityFeedHandle>(null);
   const checklistFormRef = React.useRef<HTMLDivElement>(null);
   const addChecklistTriggerRef = React.useRef<HTMLButtonElement>(null);
@@ -340,7 +330,9 @@ export function TaskDetailPanel({
     watchers,
     tags,
     checklists,
-    dependencies,
+    blockedBy,
+    blocks,
+    canEdit,
     statuses,
     currentUserId,
   } = data;
@@ -490,36 +482,6 @@ export function TaskDetailPanel({
     }
     await addChecklistItem(workspaceId, spaceId, listId, checklistId, text);
     setNewItemTexts((prev) => ({ ...prev, [checklistId]: "" }));
-    load();
-  }
-
-  async function handleDepSearch(q: string) {
-    setDepQuery(q);
-    if (q.length < 2) {
-      setDepResults([]);
-      return;
-    }
-    const res = await searchTasksForDependency(workspaceId, spaceId, q, taskId);
-    if ("tasks" in res) {
-      setDepResults(
-        res.tasks?.map((t) => ({
-          id: t.id,
-          title: t.title,
-          seqNumber: t.seqNumber,
-        })) ?? []
-      );
-    }
-  }
-
-  async function handleAddDep(dependsOnTaskId: string) {
-    await addDependency(workspaceId, spaceId, listId, taskId, dependsOnTaskId);
-    setDepQuery("");
-    setDepResults([]);
-    load();
-  }
-
-  async function handleRemoveDep(depId: string) {
-    await removeDependency(workspaceId, spaceId, listId, depId, taskId);
     load();
   }
 
@@ -745,21 +707,23 @@ export function TaskDetailPanel({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent align="start" position="popper" sideOffset={4}>
-                {(
-                  Object.entries(PRIORITY_CONFIG) as [
-                    Priority,
-                    (typeof PRIORITY_CONFIG)[Priority],
-                  ][]
-                ).map(([key, cfg]) => (
-                  <SelectItem key={key} value={key}>
-                    <span
-                      className={cn("flex items-center gap-1.5", cfg.color)}
-                    >
-                      <span>{cfg.icon}</span>
-                      {cfg.label}
-                    </span>
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  {(
+                    Object.entries(PRIORITY_CONFIG) as [
+                      Priority,
+                      (typeof PRIORITY_CONFIG)[Priority],
+                    ][]
+                  ).map(([key, cfg]) => (
+                    <SelectItem key={key} value={key}>
+                      <span
+                        className={cn("flex items-center gap-1.5", cfg.color)}
+                      >
+                        <span>{cfg.icon}</span>
+                        {cfg.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>
@@ -925,91 +889,16 @@ export function TaskDetailPanel({
           )}
 
           {/* Dependencies */}
-          {dependencies.length > 0 && (
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Dependencies
-              </Label>
-              <div className="space-y-1">
-                {dependencies.map((dep) => (
-                  <div
-                    className="flex items-center gap-2 rounded-md border px-2 py-1.5 group"
-                    key={dep.id}
-                  >
-                    <ArrowRightIcon className="size-3 text-muted-foreground shrink-0" />
-                    <span className="text-xs font-mono text-muted-foreground shrink-0">
-                      #{dep.dependsOnSeq}
-                    </span>
-                    <span className="flex-1 text-sm truncate">
-                      {dep.dependsOnTitle}
-                    </span>
-                    <button
-                      className="opacity-0 group-hover:opacity-100 size-5 flex items-center justify-center rounded hover:bg-destructive/10 text-destructive transition-opacity"
-                      onClick={() => handleRemoveDep(dep.id)}
-                    >
-                      <XIcon className="size-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Add dependency — anchored to a full-width wrapper (not the
-                small trigger button) so the dropdown opens left-aligned,
-                matches the content column's width, and is constrained via
-                collisionBoundary to never spill outside the main column
-                (e.g. into the sidebar or, in the inline Inbox layout, the
-                adjacent task list). */}
-          <Popover>
-            <PopoverAnchor asChild>
-              <div className="relative">
-                <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    <PlusIcon className="size-3.5" />
-                    Add dependency
-                  </button>
-                </PopoverTrigger>
-              </div>
-            </PopoverAnchor>
-            <PopoverContent
-              align="start"
-              className="w-(--radix-popover-trigger-width) min-w-72 p-2"
-              collisionBoundary={mainColumnRef.current}
-              collisionPadding={12}
-              side="bottom"
-              sideOffset={4}
-            >
-              <Input
-                autoFocus
-                className="h-8 text-sm mb-2"
-                onChange={(e) => handleDepSearch(e.target.value)}
-                placeholder="Search tasks (#42 or title)…"
-                value={depQuery}
-              />
-              {depResults.length > 0 && (
-                <div className="space-y-1">
-                  {depResults.map((t) => (
-                    <button
-                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                      key={t.id}
-                      onClick={() => handleAddDep(t.id)}
-                    >
-                      <span className="font-mono text-xs text-muted-foreground">
-                        #{t.seqNumber}
-                      </span>
-                      <span className="truncate">{t.title}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {depQuery.length >= 2 && depResults.length === 0 && (
-                <p className="text-xs text-muted-foreground px-2">
-                  No tasks found
-                </p>
-              )}
-            </PopoverContent>
-          </Popover>
+          <TaskDependencies
+            blockedBy={blockedBy}
+            blocks={blocks}
+            canEdit={canEdit}
+            listId={listId}
+            onChanged={load}
+            spaceId={spaceId}
+            taskId={taskId}
+            workspaceId={workspaceId}
+          />
 
           {/* Comments + Activity feed */}
           <TaskActivityFeed

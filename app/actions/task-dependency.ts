@@ -1,29 +1,49 @@
 "use server";
 
-import { headers } from "next/headers";
-import { refreshWorkspace } from "@/lib/realtime/refresh";
 import { createId } from "@paralleldrive/cuid2";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { task, taskDependency } from "@/db/schema";
+import { writeActivityLog } from "@/lib/activity-log";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { task, taskDependency, listStatus } from "@/db/schema";
-import { canAccessSpace, getSpacePermission, hasPermissionLevel } from "@/lib/permissions";
-import { writeActivityLog } from "@/lib/activity-log";
+import {
+  canAccessSpace,
+  getSpacePermission,
+  hasPermissionLevel,
+} from "@/lib/permissions";
+import { refreshWorkspace } from "@/lib/realtime/refresh";
 
 // `taskId` lets an open task detail view skip refetching for other tasks.
-function revalidateList(workspaceId: string, spaceId: string, listId: string, taskId?: string) {
-  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`], { taskId });
+function revalidateList(
+  workspaceId: string,
+  spaceId: string,
+  listId: string,
+  taskId?: string
+) {
+  void refreshWorkspace(
+    workspaceId,
+    [`/${workspaceId}/${spaceId}/list/${listId}`],
+    { taskId }
+  );
 }
 
 // DFS cycle detection: returns true if adding taskId -> dependsOnTaskId would create a cycle
-async function wouldCreateCycle(taskId: string, dependsOnTaskId: string): Promise<boolean> {
+async function wouldCreateCycle(
+  taskId: string,
+  dependsOnTaskId: string
+): Promise<boolean> {
   const visited = new Set<string>();
   const queue = [dependsOnTaskId];
 
   while (queue.length > 0) {
     const current = queue.shift()!;
-    if (current === taskId) return true;
-    if (visited.has(current)) continue;
+    if (current === taskId) {
+      return true;
+    }
+    if (visited.has(current)) {
+      continue;
+    }
     visited.add(current);
 
     const deps = await db
@@ -41,15 +61,25 @@ export async function addDependency(
   spaceId: string,
   listId: string,
   taskId: string,
-  dependsOnTaskId: string,
+  dependsOnTaskId: string
 ): Promise<{ dependencyId: string } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
-  const permission = await getSpacePermission(session.user.id, workspaceId, spaceId);
-  if (permission === null || !hasPermissionLevel(permission, "edit")) return { error: "Forbidden" };
+  const permission = await getSpacePermission(
+    session.user.id,
+    workspaceId,
+    spaceId
+  );
+  if (permission === null || !hasPermissionLevel(permission, "edit")) {
+    return { error: "Forbidden" };
+  }
 
-  if (taskId === dependsOnTaskId) return { error: "A task cannot depend on itself" };
+  if (taskId === dependsOnTaskId) {
+    return { error: "A task cannot depend on itself" };
+  }
 
   // Verify the dependency target exists and is in the same workspace
   const [target] = await db
@@ -57,20 +87,33 @@ export async function addDependency(
     .from(task)
     .where(eq(task.id, dependsOnTaskId))
     .limit(1);
-  if (!target) return { error: "Target task not found" };
-  if (target.workspaceId !== workspaceId) return { error: "Cross-workspace dependencies are not allowed" };
+  if (!target) {
+    return { error: "Target task not found" };
+  }
+  if (target.workspaceId !== workspaceId) {
+    return { error: "Cross-workspace dependencies are not allowed" };
+  }
 
   // Check for existing dependency
   const [existing] = await db
     .select({ id: taskDependency.id })
     .from(taskDependency)
-    .where(and(eq(taskDependency.taskId, taskId), eq(taskDependency.dependsOnTaskId, dependsOnTaskId)))
+    .where(
+      and(
+        eq(taskDependency.taskId, taskId),
+        eq(taskDependency.dependsOnTaskId, dependsOnTaskId)
+      )
+    )
     .limit(1);
-  if (existing) return { error: "This dependency already exists" };
+  if (existing) {
+    return { error: "This dependency already exists" };
+  }
 
   // DFS cycle check
   if (await wouldCreateCycle(taskId, dependsOnTaskId)) {
-    return { error: "Adding this dependency would create a circular reference" };
+    return {
+      error: "Adding this dependency would create a circular reference",
+    };
   }
 
   const depId = createId();
@@ -81,7 +124,9 @@ export async function addDependency(
     type: "BLOCKED_BY",
   });
 
-  await writeActivityLog(taskId, session.user.id, "dependency_added", { dependsOnTaskId });
+  await writeActivityLog(taskId, session.user.id, "dependency_added", {
+    dependsOnTaskId,
+  });
   revalidateList(workspaceId, spaceId, listId, taskId);
   return { dependencyId: depId };
 }
@@ -91,13 +136,21 @@ export async function removeDependency(
   spaceId: string,
   listId: string,
   dependencyId: string,
-  taskId: string,
+  taskId: string
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
-  const permission = await getSpacePermission(session.user.id, workspaceId, spaceId);
-  if (permission === null || !hasPermissionLevel(permission, "edit")) return { error: "Forbidden" };
+  const permission = await getSpacePermission(
+    session.user.id,
+    workspaceId,
+    spaceId
+  );
+  if (permission === null || !hasPermissionLevel(permission, "edit")) {
+    return { error: "Forbidden" };
+  }
 
   const [dep] = await db
     .select({ dependsOnTaskId: taskDependency.dependsOnTaskId })
@@ -119,38 +172,55 @@ export async function searchTasksForDependency(
   workspaceId: string,
   spaceId: string,
   query: string,
-  excludeTaskId: string,
+  excludeTaskId: string
 ) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
-  const accessible = await canAccessSpace(session.user.id, workspaceId, spaceId);
-  if (!accessible) return { error: "Unauthorized" };
+  const accessible = await canAccessSpace(
+    session.user.id,
+    workspaceId,
+    spaceId
+  );
+  if (!accessible) {
+    return { error: "Unauthorized" };
+  }
 
-  if (query.trim().length < 2) return { tasks: [] };
+  const select = {
+    id: task.id,
+    title: task.title,
+    seqNumber: task.seqNumber,
+    statusId: task.statusId,
+    spaceId: task.spaceId,
+    listId: task.listId,
+  };
+
+  // Empty query → offer the most recently updated tasks as a quick-pick list,
+  // so a dependency can be added without typing.
+  if (query.trim().length < 2) {
+    const recent = await db
+      .select(select)
+      .from(task)
+      .where(and(eq(task.workspaceId, workspaceId), eq(task.isArchived, false)))
+      .orderBy(desc(task.updatedAt))
+      .limit(25);
+    return { tasks: recent.filter((t) => t.id !== excludeTaskId).slice(0, 8) };
+  }
 
   const results = await db
-    .select({
-      id: task.id,
-      title: task.title,
-      seqNumber: task.seqNumber,
-      statusId: task.statusId,
-      listId: task.listId,
-    })
+    .select(select)
     .from(task)
-    .where(
-      and(
-        eq(task.workspaceId, workspaceId),
-        eq(task.isArchived, false),
-      ),
-    )
-    .limit(20);
+    .where(and(eq(task.workspaceId, workspaceId), eq(task.isArchived, false)))
+    .orderBy(desc(task.updatedAt))
+    .limit(50);
 
   const filtered = results.filter(
     (t) =>
       t.id !== excludeTaskId &&
       (t.title.toLowerCase().includes(query.toLowerCase()) ||
-        String(t.seqNumber).includes(query.replace("#", ""))),
+        String(t.seqNumber).includes(query.replace("#", "")))
   );
 
   return { tasks: filtered.slice(0, 10) };

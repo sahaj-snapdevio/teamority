@@ -18,6 +18,7 @@ import { toastWithUndo } from "@/lib/undo-toast";
 import { useSetTopbar } from "@/lib/topbar-context";
 import { DeleteListDialog } from "@/components/list/delete-list-dialog";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
+import type { TaskDependencyIndicator } from "@/components/task/task-dependency-badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ListView } from "./list-view";
@@ -47,6 +48,7 @@ interface Task {
   pinnedToListOrder: number | null;
   tags: { id: string; name: string; color: string }[];
   assignees: { userId: string; name: string; image: string | null }[];
+  dependencyInfo?: TaskDependencyIndicator;
 }
 
 interface ListContainerProps {

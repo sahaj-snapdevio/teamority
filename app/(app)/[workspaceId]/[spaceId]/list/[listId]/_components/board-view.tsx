@@ -1,17 +1,16 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
 import {
+  closestCenter,
   DndContext,
+  type DragEndEvent,
+  type DragOverEvent,
   DragOverlay,
+  type DragStartEvent,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
-  closestCenter,
-  type DragStartEvent,
-  type DragOverEvent,
-  type DragEndEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -19,13 +18,12 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import {
   ArchiveIcon,
   ArrowCounterClockwiseIcon,
-  ArrowsDownUpIcon,
   ArrowSquareOutIcon,
+  ArrowsDownUpIcon,
   CheckCircleIcon,
   CopyIcon,
   DotsThreeIcon,
@@ -36,8 +34,10 @@ import {
   TextAaIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { toast } from "sonner";
-import { SearchInput } from "@/components/ui/search-input";
+import { createListStatus } from "@/app/actions/list";
 import {
   archiveTask,
   createSubtask,
@@ -48,32 +48,50 @@ import {
   updateTask,
   updateTaskStatus,
 } from "@/app/actions/task";
+import { FacetFilter } from "@/components/filters/facet-filter";
+import { useRealtimePause } from "@/components/realtime/realtime-provider";
+import { CreateTaskModal } from "@/components/task/create-task-modal";
+import {
+  TaskDependencyBadge,
+  type TaskDependencyIndicator,
+} from "@/components/task/task-dependency-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CreateTaskModal } from "@/components/task/create-task-modal";
-import { useRealtimePause } from "@/components/realtime/realtime-provider";
-import { FacetFilter } from "@/components/filters/facet-filter";
+import { taskUrl } from "@/lib/app-url";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
-import { createListStatus } from "@/app/actions/list";
 import { toastWithUndo } from "@/lib/undo-toast";
-import { taskUrl } from "@/lib/app-url";
 import { cn } from "@/lib/utils";
 import { QuickCreateTask } from "./quick-create-task";
 
 function userInitials(name: string) {
-  if (!name) return "?";
+  if (!name) {
+    return "?";
+  }
   const clean = name.includes("@") ? name.split("@")[0] : name;
-  return clean.split(/[\s._-]+/).map((n) => n[0]).filter(Boolean).join("").toUpperCase().slice(0, 2) || "?";
+  return (
+    clean
+      .split(/[\s._-]+/)
+      .map((n) => n[0])
+      .filter(Boolean)
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?"
+  );
 }
 
 function avatarSrc(key: string | null | undefined): string | undefined {
@@ -81,36 +99,42 @@ function avatarSrc(key: string | null | undefined): string | undefined {
 }
 
 interface Status {
+  color: string;
   id: string;
   name: string;
-  color: string;
-  type: "OPEN" | "ACTIVE" | "CLOSED";
   orderIndex: number;
+  type: "OPEN" | "ACTIVE" | "CLOSED";
 }
 
 interface Task {
-  id: string;
-  title: string;
-  priority: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  statusId: string | null;
-  seqNumber: number;
-  orderIndex: number;
-  tags: { id: string; name: string; color: string }[];
   assignees: { userId: string; name: string; image: string | null }[];
+  dependencyInfo?: TaskDependencyIndicator;
+  id: string;
+  orderIndex: number;
+  priority: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  seqNumber: number;
+  statusId: string | null;
+  tags: { id: string; name: string; color: string }[];
+  title: string;
 }
 
 interface BoardViewProps {
-  workspaceId: string;
-  space: { id: string; name: string; color: string | null };
-  list: { id: string; name: string; color?: string | null; description?: string | null };
-  statuses: Status[];
-  tasks: Task[];
-  headerless?: boolean;
   canEdit?: boolean;
   canManage?: boolean;
+  headerless?: boolean;
   isAdmin?: boolean;
+  list: {
+    id: string;
+    name: string;
+    color?: string | null;
+    description?: string | null;
+  };
   members?: { userId: string; name: string | null; email: string | null }[];
+  space: { id: string; name: string; color: string | null };
+  statuses: Status[];
   tags?: { id: string; name: string; color: string }[];
+  tasks: Task[];
+  workspaceId: string;
 }
 
 const PRIORITY_ORDER: Record<Task["priority"], number> = {
@@ -121,12 +145,15 @@ const PRIORITY_ORDER: Record<Task["priority"], number> = {
   NONE: 4,
 };
 
-const PRIORITY_CONFIG: Record<Task["priority"], { label: string; color: string; icon: string }> = {
-  NONE:   { label: "No Priority", color: "text-muted-foreground", icon: "😴" },
-  LOW:    { label: "Low",         color: "text-muted-foreground", icon: "🦥" },
-  MEDIUM: { label: "Medium",      color: "text-yellow-600",       icon: "🚶" },
-  HIGH:   { label: "High",        color: "text-orange-500",       icon: "🏃" },
-  URGENT: { label: "Urgent",      color: "text-red-500",          icon: "🚨" },
+const PRIORITY_CONFIG: Record<
+  Task["priority"],
+  { label: string; color: string; icon: string }
+> = {
+  NONE: { label: "No Priority", color: "text-muted-foreground", icon: "😴" },
+  LOW: { label: "Low", color: "text-muted-foreground", icon: "🦥" },
+  MEDIUM: { label: "Medium", color: "text-yellow-600", icon: "🚶" },
+  HIGH: { label: "High", color: "text-orange-500", icon: "🏃" },
+  URGENT: { label: "Urgent", color: "text-red-500", icon: "🚨" },
 };
 
 // ─── Card visual (no dnd hooks) ──────────────────────────────────────────────
@@ -165,7 +192,9 @@ function CardContent({
   const [localTitle, setLocalTitle] = React.useState(task.title);
   const [renaming, setRenaming] = React.useState(false);
   const [titleDraft, setTitleDraft] = React.useState(task.title);
-  React.useEffect(() => { setLocalTitle(task.title); }, [task.title]);
+  React.useEffect(() => {
+    setLocalTitle(task.title);
+  }, [task.title]);
 
   // Show a tooltip with the full title only when it's actually clipped by the
   // 2-line clamp (vertical) or an unbreakable word (horizontal).
@@ -177,7 +206,7 @@ function CardContent({
       el
         ? el.scrollHeight > el.clientHeight + 1 ||
             el.scrollWidth > el.clientWidth + 1
-        : false,
+        : false
     );
   }, [localTitle]);
 
@@ -189,7 +218,9 @@ function CardContent({
   const [deleting, setDeleting] = React.useState(false);
 
   function startRename() {
-    if (!canEdit) return;
+    if (!canEdit) {
+      return;
+    }
     setTitleDraft(localTitle);
     setRenaming(true);
   }
@@ -200,9 +231,17 @@ function CardContent({
     const trimmed = titleDraft.trim();
     setRenaming(false);
     // Empty or unchanged after trim → keep the old title, no request.
-    if (!trimmed || trimmed === localTitle) return;
+    if (!trimmed || trimmed === localTitle) {
+      return;
+    }
     setLocalTitle(trimmed); // optimistic
-    const res = await updateTask(workspaceId!, spaceId!, listId ?? null, task.id, { title: trimmed });
+    const res = await updateTask(
+      workspaceId!,
+      spaceId!,
+      listId ?? null,
+      task.id,
+      { title: trimmed }
+    );
     if (res && "error" in res) {
       setLocalTitle(task.title); // revert
       toast.error(res.error);
@@ -221,8 +260,16 @@ function CardContent({
   const completeTarget = isDone ? openStatus : doneStatus;
 
   async function toggleComplete() {
-    if (!completeTarget) return;
-    const res = await updateTaskStatus(workspaceId!, spaceId!, listId ?? null, task.id, completeTarget.id);
+    if (!completeTarget) {
+      return;
+    }
+    const res = await updateTaskStatus(
+      workspaceId!,
+      spaceId!,
+      listId ?? null,
+      task.id,
+      completeTarget.id
+    );
     if (res && "error" in res) {
       toast.error(res.error);
       return;
@@ -232,7 +279,9 @@ function CardContent({
 
   async function addSubtask() {
     const trimmed = subtaskTitle.trim();
-    if (!trimmed || creatingSubtask) return;
+    if (!trimmed || creatingSubtask) {
+      return;
+    }
     setCreatingSubtask(true);
     const res = await createSubtask(workspaceId!, spaceId!, task.id, trimmed);
     setCreatingSubtask(false);
@@ -247,7 +296,12 @@ function CardContent({
   }
 
   async function handleDuplicate() {
-    const res = await duplicateTask(workspaceId!, spaceId!, listId ?? null, task.id);
+    const res = await duplicateTask(
+      workspaceId!,
+      spaceId!,
+      listId ?? null,
+      task.id
+    );
     if ("error" in res) {
       toast.error(res.error);
       return;
@@ -297,18 +351,20 @@ function CardContent({
         "relative rounded-lg border bg-card p-3 shadow-sm group/card",
         isDragging && "opacity-40 shadow-none border-dashed",
         overlay && "shadow-xl rotate-1 cursor-grabbing",
-        !isDragging && !overlay && "hover:shadow-md transition-shadow",
+        !isDragging && !overlay && "hover:shadow-md transition-shadow"
       )}
     >
-      <div {...dragListeners} className={cn(!overlay && "cursor-grab active:cursor-grabbing")}>
+      <div
+        {...dragListeners}
+        className={cn(!overlay && "cursor-grab active:cursor-grabbing")}
+      >
         {renaming ? (
           <input
             autoFocus
             className="w-full rounded-md border border-input bg-background px-1.5 py-0.5 text-[13px] font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            value={titleDraft}
+            onBlur={() => void commitRename()}
             onChange={(e) => setTitleDraft(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               e.stopPropagation();
               if (e.key === "Enter") {
@@ -319,28 +375,39 @@ function CardContent({
                 cancelRename();
               }
             }}
-            onBlur={() => void commitRename()}
+            onPointerDown={(e) => e.stopPropagation()}
+            value={titleDraft}
           />
         ) : titleTruncated && !overlay ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <p ref={titleRef} className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2">{localTitle}</p>
+              <p
+                className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2"
+                ref={titleRef}
+              >
+                {localTitle}
+              </p>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-xs">
+            <TooltipContent className="max-w-xs" side="top">
               <span className="block min-w-0 whitespace-normal break-words text-center">
                 {localTitle}
               </span>
             </TooltipContent>
           </Tooltip>
         ) : (
-          <p ref={titleRef} className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2">{localTitle}</p>
+          <p
+            className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2"
+            ref={titleRef}
+          >
+            {localTitle}
+          </p>
         )}
         {task.tags.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {task.tags.map((tag) => (
               <span
-                key={tag.id}
                 className="rounded-full px-1.5 py-0.5 text-2xs font-medium"
+                key={tag.id}
                 style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
               >
                 {tag.name}
@@ -349,22 +416,44 @@ function CardContent({
           </div>
         )}
         <div className="mt-2 flex items-center justify-between gap-2">
-          <span className="font-mono text-2xs text-muted-foreground shrink-0">#{task.seqNumber}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="font-mono text-2xs text-muted-foreground">
+              #{task.seqNumber}
+            </span>
+            {task.dependencyInfo && (
+              <TaskDependencyBadge
+                incomplete={task.dependencyInfo.incomplete}
+                total={task.dependencyInfo.total}
+              />
+            )}
+          </div>
           <div className="flex items-center gap-2 min-w-0">
-            {task.priority !== "NONE" && (() => {
-              const cfg = PRIORITY_CONFIG[task.priority];
-              return cfg ? (
-                <span className={cn("flex items-center gap-1 text-xs font-bold shrink-0", cfg.color)}>
-                  <span>{cfg.icon}</span>
-                  {cfg.label}
-                </span>
-              ) : null;
-            })()}
+            {task.priority !== "NONE" &&
+              (() => {
+                const cfg = PRIORITY_CONFIG[task.priority];
+                return cfg ? (
+                  <span
+                    className={cn(
+                      "flex items-center gap-1 text-xs font-bold shrink-0",
+                      cfg.color
+                    )}
+                  >
+                    <span>{cfg.icon}</span>
+                    {cfg.label}
+                  </span>
+                ) : null;
+              })()}
             {task.assignees.length > 0 && (
               <div className="flex -space-x-1.5 ml-auto">
                 {task.assignees.slice(0, 3).map((a) => (
-                  <Avatar key={a.userId} className="size-7 border-2 border-background" title={a.name}>
-                    {a.image && <AvatarImage src={avatarSrc(a.image)} alt={a.name} />}
+                  <Avatar
+                    className="size-7 border-2 border-background"
+                    key={a.userId}
+                    title={a.name}
+                  >
+                    {a.image && (
+                      <AvatarImage alt={a.name} src={avatarSrc(a.image)} />
+                    )}
                     <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
                       {userInitials(a.name)}
                     </AvatarFallback>
@@ -390,10 +479,10 @@ function CardContent({
         <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5 rounded-md border bg-card/95 p-0.5 opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 has-[[data-state=open]]:pointer-events-auto has-[[data-state=open]]:opacity-100">
           {canEdit && completeTarget && (
             <button
-              type="button"
-              title={isDone ? "Reopen" : "Complete"}
               className={iconBtn}
               onClick={() => void toggleComplete()}
+              title={isDone ? "Reopen" : "Complete"}
+              type="button"
             >
               {isDone ? (
                 <ArrowCounterClockwiseIcon className="size-4" />
@@ -404,14 +493,16 @@ function CardContent({
           )}
           {canEdit && (
             <Popover
-              open={subtaskOpen}
               onOpenChange={(o) => {
                 setSubtaskOpen(o);
-                if (!o) setSubtaskTitle("");
+                if (!o) {
+                  setSubtaskTitle("");
+                }
               }}
+              open={subtaskOpen}
             >
               <PopoverTrigger asChild>
-                <button type="button" title="Add subtask" className={iconBtn}>
+                <button className={iconBtn} title="Add subtask" type="button">
                   <ListPlusIcon className="size-4" />
                 </button>
               </PopoverTrigger>
@@ -419,9 +510,7 @@ function CardContent({
                 <div className="flex items-center gap-2">
                   <Input
                     autoFocus
-                    placeholder="Subtask name…"
                     className="h-8 rounded-md text-xs"
-                    value={subtaskTitle}
                     disabled={creatingSubtask}
                     onChange={(e) => setSubtaskTitle(e.target.value)}
                     onKeyDown={(e) => {
@@ -430,12 +519,14 @@ function CardContent({
                         void addSubtask();
                       }
                     }}
+                    placeholder="Subtask name…"
+                    value={subtaskTitle}
                   />
                   <Button
-                    size="sm"
                     className="h-8 shrink-0 rounded-md px-3 text-xs font-semibold"
                     disabled={creatingSubtask || !subtaskTitle.trim()}
                     onClick={() => void addSubtask()}
+                    size="sm"
                   >
                     Add
                   </Button>
@@ -444,47 +535,76 @@ function CardContent({
             </Popover>
           )}
           {canEdit && (
-            <button type="button" title="Rename" className={iconBtn} onClick={startRename}>
+            <button
+              className={iconBtn}
+              onClick={startRename}
+              title="Rename"
+              type="button"
+            >
               <TextAaIcon className="size-4" />
             </button>
           )}
           <Popover>
             <PopoverTrigger asChild>
-              <button type="button" title="More" className={iconBtn}>
+              <button className={iconBtn} title="More" type="button">
                 <DotsThreeIcon className="size-4.5" weight="bold" />
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-52 rounded-xl p-1">
-              <button type="button" className={menuItem} onClick={() => void copyTaskLink()}>
-                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy task link
+              <button
+                className={menuItem}
+                onClick={() => void copyTaskLink()}
+                type="button"
+              >
+                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy
+                task link
               </button>
               <a
-                href={taskUrl(workspaceId!, task.id)}
-                target="_blank"
-                rel="noopener noreferrer"
                 className={menuItem}
+                href={taskUrl(workspaceId!, task.id)}
+                rel="noopener noreferrer"
+                target="_blank"
               >
-                <ArrowSquareOutIcon className="size-3.5 text-muted-foreground" /> Open in new tab
+                <ArrowSquareOutIcon className="size-3.5 text-muted-foreground" />{" "}
+                Open in new tab
               </a>
-              <button type="button" className={menuItem} onClick={() => void copyTaskId()}>
-                <HashIcon className="size-3.5 text-muted-foreground" /> Copy task ID
+              <button
+                className={menuItem}
+                onClick={() => void copyTaskId()}
+                type="button"
+              >
+                <HashIcon className="size-3.5 text-muted-foreground" /> Copy
+                task ID
               </button>
               {canEdit && (
                 <>
                   <div className="h-px bg-border my-1" />
-                  <button type="button" className={menuItem} onClick={() => void handleDuplicate()}>
-                    <CopyIcon className="size-3.5 text-muted-foreground" /> Duplicate
+                  <button
+                    className={menuItem}
+                    onClick={() => void handleDuplicate()}
+                    type="button"
+                  >
+                    <CopyIcon className="size-3.5 text-muted-foreground" />{" "}
+                    Duplicate
                   </button>
-                  <button type="button" className={menuItem} onClick={() => void handleArchive()}>
-                    <ArchiveIcon className="size-3.5 text-muted-foreground" /> Archive
+                  <button
+                    className={menuItem}
+                    onClick={() => void handleArchive()}
+                    type="button"
+                  >
+                    <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
+                    Archive
                   </button>
                 </>
               )}
               {isAdmin && (
                 <button
-                  type="button"
-                  className={cn(menuItem, "text-red-600 hover:bg-red-50 hover:text-red-700")}
+                  className={cn(
+                    menuItem,
+                    "text-red-600 hover:bg-red-50 hover:text-red-700"
+                  )}
                   onClick={() => setDeleteOpen(true)}
+                  type="button"
                 >
                   <TrashIcon className="size-3.5" /> Delete
                 </button>
@@ -495,7 +615,7 @@ function CardContent({
       )}
 
       {interactive && (
-        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <Dialog onOpenChange={setDeleteOpen} open={deleteOpen}>
           <DialogContent className="rounded-xl sm:max-w-sm">
             <DialogTitle className="sr-only">Delete task</DialogTitle>
             <div className="flex flex-col items-center gap-3 pt-2 text-center">
@@ -505,23 +625,24 @@ function CardContent({
               <div>
                 <p className="text-base font-semibold">Delete task?</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  “{localTitle}” will be permanently deleted. This can’t be undone.
+                  “{localTitle}” will be permanently deleted. This can’t be
+                  undone.
                 </p>
               </div>
               <div className="mt-2 flex w-full gap-2">
                 <Button
-                  variant="outline"
                   className="flex-1 rounded-md"
                   disabled={deleting}
                   onClick={() => setDeleteOpen(false)}
+                  variant="outline"
                 >
                   Cancel
                 </Button>
                 <Button
-                  variant="destructive"
                   className="flex-1 rounded-md"
                   disabled={deleting}
                   onClick={() => void confirmDelete()}
+                  variant="destructive"
                 >
                   {deleting ? "Deleting…" : "Delete"}
                 </Button>
@@ -587,16 +708,16 @@ function TaskCard({
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <CardContent
-        task={task}
-        isDragging={isDragging}
-        dragListeners={clickableListeners}
-        workspaceId={workspaceId}
-        spaceId={spaceId}
-        listId={listId}
-        statuses={statuses}
         canEdit={canEdit}
+        dragListeners={clickableListeners}
         isAdmin={isAdmin}
+        isDragging={isDragging}
+        listId={listId}
         onRefresh={onRefresh}
+        spaceId={spaceId}
+        statuses={statuses}
+        task={task}
+        workspaceId={workspaceId}
       />
     </div>
   );
@@ -634,8 +755,13 @@ function Column({
     >
       {/* Column header */}
       <div className="flex items-center gap-2 px-1 py-1">
-        <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: status.color }} />
-        <span className="flex-1 font-semibold text-sm uppercase tracking-wide text-foreground/80">{status.name}</span>
+        <span
+          className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: status.color }}
+        />
+        <span className="flex-1 font-semibold text-sm uppercase tracking-wide text-foreground/80">
+          {status.name}
+        </span>
         <span
           className="rounded-full px-2 py-0.5 text-xs font-semibold"
           style={{ backgroundColor: `${status.color}22`, color: status.color }}
@@ -645,37 +771,44 @@ function Column({
       </div>
 
       {/* Droppable task list — flex-1 + overflow-y-auto gives each column its own scroll */}
-      <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={tasks.map((t) => t.id)}
+        strategy={verticalListSortingStrategy}
+      >
         <div
-          ref={setNodeRef}
           className={cn(
             "flex flex-col gap-2 rounded-lg p-1 transition-all flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border",
-            tasks.length === 0 && "min-h-8",
+            tasks.length === 0 && "min-h-8"
           )}
-          style={isOver ? { boxShadow: `inset 0 0 0 2px ${status.color}` } : undefined}
+          ref={setNodeRef}
+          style={
+            isOver
+              ? { boxShadow: `inset 0 0 0 2px ${status.color}` }
+              : undefined
+          }
         >
           {tasks.map((t) => (
             <TaskCard
-              key={t.id}
-              task={t}
-              workspaceId={workspaceId}
-              spaceId={space.id}
-              listId={list.id}
-              statuses={statuses}
               canEdit={canEdit}
               isAdmin={isAdmin}
+              key={t.id}
+              listId={list.id}
               onRefresh={onRefresh}
+              spaceId={space.id}
+              statuses={statuses}
+              task={t}
+              workspaceId={workspaceId}
             />
           ))}
         </div>
       </SortableContext>
 
       <QuickCreateTask
-        workspaceId={workspaceId}
-        spaceId={space.id}
         listId={list.id}
-        statusId={status.id}
         placeholder="Add task"
+        spaceId={space.id}
+        statusId={status.id}
+        workspaceId={workspaceId}
       />
     </div>
   );
@@ -683,7 +816,17 @@ function Column({
 
 // ─── Board ────────────────────────────────────────────────────────────────────
 
-export function BoardView({ workspaceId, space, list, statuses, tasks, members = [], canEdit, canManage, isAdmin }: BoardViewProps) {
+export function BoardView({
+  workspaceId,
+  space,
+  list,
+  statuses,
+  tasks,
+  members = [],
+  canEdit,
+  canManage,
+  isAdmin,
+}: BoardViewProps) {
   const router = useRouter();
   // Re-pull the server-rendered board after a card quick-action. The actions
   // revalidate + broadcast server-side; this refreshes the current view too.
@@ -697,7 +840,9 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
 
   async function handleCreateGroup() {
     const name = newGroupName.trim();
-    if (!name || creatingGroup) return;
+    if (!name || creatingGroup) {
+      return;
+    }
     setCreatingGroup(true);
     const res = await createListStatus(workspaceId, space.id, list.id, {
       name,
@@ -720,7 +865,9 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
 
   // Sync when server data changes
-  React.useEffect(() => { setLocalTasks(tasks); }, [tasks]);
+  React.useEffect(() => {
+    setLocalTasks(tasks);
+  }, [tasks]);
 
   // ── Toolbar state ─────────────────────────────────────────────────────────
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -736,23 +883,37 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
   // ── Filtered + sorted tasks (for display) ────────────────────────────────
   const processedTasks = React.useMemo(() => {
     let result = localTasks.filter((t) => {
-      if (searchQuery.trim() && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      if (statusFilter.length && !statusFilter.includes(t.statusId ?? "")) return false;
-      if (priorityFilter.length && !priorityFilter.includes(t.priority)) return false;
+      if (
+        searchQuery.trim() &&
+        !t.title.toLowerCase().includes(searchQuery.toLowerCase())
+      ) {
+        return false;
+      }
+      if (statusFilter.length && !statusFilter.includes(t.statusId ?? "")) {
+        return false;
+      }
+      if (priorityFilter.length && !priorityFilter.includes(t.priority)) {
+        return false;
+      }
       if (assigneeFilter.length) {
         const hasUnassigned = assigneeFilter.includes("unassigned");
         const userIds = assigneeFilter.filter((a) => a !== "unassigned");
         const assigneeIds = t.assignees.map((a) => a.userId);
         const matchUnassigned = hasUnassigned && assigneeIds.length === 0;
-        const matchUser = userIds.length > 0 && assigneeIds.some((id) => userIds.includes(id));
-        if (!matchUnassigned && !matchUser) return false;
+        const matchUser =
+          userIds.length > 0 && assigneeIds.some((id) => userIds.includes(id));
+        if (!matchUnassigned && !matchUser) {
+          return false;
+        }
       }
       return true;
     });
 
     if (sortBy === "name") {
       result = [...result].sort((a, b) =>
-        sortOrder === "asc" ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title),
+        sortOrder === "asc"
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title)
       );
     } else if (sortBy === "priority") {
       result = [...result].sort((a, b) => {
@@ -762,19 +923,31 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
     }
 
     return result;
-  }, [localTasks, searchQuery, statusFilter, priorityFilter, assigneeFilter, sortBy, sortOrder]);
+  }, [
+    localTasks,
+    searchQuery,
+    statusFilter,
+    priorityFilter,
+    assigneeFilter,
+    sortBy,
+    sortOrder,
+  ]);
 
   // tasksByStatus uses processed tasks for display; DnD handlers still use localTasks
   const tasksByStatus = React.useMemo(() => {
-    const map: Record<string, Task[]> = Object.fromEntries(statuses.map((s) => [s.id, []]));
+    const map: Record<string, Task[]> = Object.fromEntries(
+      statuses.map((s) => [s.id, []])
+    );
     for (const t of processedTasks) {
-      if (t.statusId && map[t.statusId]) map[t.statusId].push(t);
+      if (t.statusId && map[t.statusId]) {
+        map[t.statusId].push(t);
+      }
     }
     return map;
   }, [processedTasks, statuses]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
   function findStatusForTask(taskId: string) {
@@ -801,31 +974,41 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
   }
 
   function onDragOver({ active, over }: DragOverEvent) {
-    if (!over) return;
+    if (!over) {
+      return;
+    }
 
     const activeId = active.id as string;
     const overId = over.id as string;
-    if (activeId === overId) return;
+    if (activeId === overId) {
+      return;
+    }
 
     const activeStatus = findStatusForTask(activeId);
     // over could be a column (statusId) or another task
-    const overStatus = statuses.find((s) => s.id === overId)?.id
-      ?? findStatusForTask(overId);
+    const overStatus =
+      statuses.find((s) => s.id === overId)?.id ?? findStatusForTask(overId);
 
-    if (!activeStatus || !overStatus) return;
+    if (!activeStatus || !overStatus) {
+      return;
+    }
 
     if (activeStatus === overStatus) {
       // Same column — reorder positions optimistically
       setLocalTasks((prev) => {
         const oldIndex = prev.findIndex((t) => t.id === activeId);
         const newIndex = prev.findIndex((t) => t.id === overId);
-        if (oldIndex === -1 || newIndex === -1) return prev;
+        if (oldIndex === -1 || newIndex === -1) {
+          return prev;
+        }
         return arrayMove(prev, oldIndex, newIndex);
       });
     } else {
       // Cross-column — move task to new column
       setLocalTasks((prev) =>
-        prev.map((t) => t.id === activeId ? { ...t, statusId: overStatus } : t),
+        prev.map((t) =>
+          t.id === activeId ? { ...t, statusId: overStatus } : t
+        )
       );
     }
   }
@@ -833,13 +1016,17 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
   async function onDragEnd({ active, over }: DragEndEvent) {
     setActiveTask(null);
     endDrag();
-    if (!over) return;
+    if (!over) {
+      return;
+    }
 
     const activeId = active.id as string;
     const finalStatus = findStatusForTask(activeId); // from localTasks after all onDragOver updates
     const originalStatus = tasks.find((t) => t.id === activeId)?.statusId;
 
-    if (!finalStatus) return;
+    if (!finalStatus) {
+      return;
+    }
 
     if (finalStatus === originalStatus) {
       // Same column — persist new card order
@@ -849,26 +1036,43 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
       const originalIds = tasks
         .filter((t) => t.statusId === originalStatus)
         .map((t) => t.id);
-      if (columnTaskIds.join(",") === originalIds.join(",")) return; // no change
-      const res = await reorderTasksInStatus(workspaceId, space.id, list.id, columnTaskIds);
-      if ("error" in res) setLocalTasks(tasks);
+      if (columnTaskIds.join(",") === originalIds.join(",")) {
+        return; // no change
+      }
+      const res = await reorderTasksInStatus(
+        workspaceId,
+        space.id,
+        list.id,
+        columnTaskIds
+      );
+      if ("error" in res) {
+        setLocalTasks(tasks);
+      }
     } else {
       // Cross-column — update status
-      const res = await updateTaskStatus(workspaceId, space.id, list.id, activeId, finalStatus);
-      if ("error" in res) setLocalTasks(tasks);
+      const res = await updateTaskStatus(
+        workspaceId,
+        space.id,
+        list.id,
+        activeId,
+        finalStatus
+      );
+      if ("error" in res) {
+        setLocalTasks(tasks);
+      }
     }
   }
 
   return (
     <TooltipProvider delayDuration={300}>
       <CreateTaskModal
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        workspaceId={workspaceId}
-        spaceId={space.id}
-        listId={list.id}
-        statuses={statuses}
         canManage={canEdit || isAdmin}
+        listId={list.id}
+        onOpenChange={setCreateOpen}
+        open={createOpen}
+        spaceId={space.id}
+        statuses={statuses}
+        workspaceId={workspaceId}
       />
 
       {/* Toolbar */}
@@ -876,30 +1080,34 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
         <div className="flex items-center gap-2 flex-wrap">
           {/* Search */}
           <SearchInput
-            placeholder="Search tasks…"
-            value={searchQuery}
+            className="w-44 focus:w-56"
             onChange={(e) => setSearchQuery(e.target.value)}
             onClear={() => setSearchQuery("")}
-            className="w-44 focus:w-56"
+            placeholder="Search tasks…"
+            value={searchQuery}
           />
 
           {/* Filters — shared facet controls (same state + filter logic) */}
           <FacetFilter
             label="Status"
-            options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
-            selected={statusFilter}
             onChange={setStatusFilter}
+            options={statuses.map((s) => ({
+              value: s.id,
+              label: s.name,
+              color: s.color,
+            }))}
+            selected={statusFilter}
           />
           <FacetFilter
             label="Priority"
+            onChange={setPriorityFilter}
             options={PRIORITY_OPTIONS}
             selected={priorityFilter}
-            onChange={setPriorityFilter}
           />
           {members.length > 0 && (
             <FacetFilter
               label="Assignee"
-              searchable
+              onChange={setAssigneeFilter}
               options={[
                 { value: "unassigned", label: "Unassigned" },
                 ...members.map((m) => ({
@@ -907,8 +1115,8 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
                   label: m.name || m.email || "Unknown",
                 })),
               ]}
+              searchable
               selected={assigneeFilter}
-              onChange={setAssigneeFilter}
             />
           )}
 
@@ -917,21 +1125,57 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
             <PopoverTrigger asChild>
               <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer select-none">
                 <ArrowsDownUpIcon className="size-3.5" />
-                Sort: {sortBy ? (sortBy.charAt(0).toUpperCase() + sortBy.slice(1)) : "None"}
+                Sort:{" "}
+                {sortBy
+                  ? sortBy.charAt(0).toUpperCase() + sortBy.slice(1)
+                  : "None"}
               </button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-44 p-1 flex flex-col gap-0.5">
-              <button onClick={() => setSortBy(null)} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground", !sortBy && "bg-accent")}>None</button>
-              <button onClick={() => { setSortBy("name"); setSortOrder((o) => o === "asc" ? "desc" : "asc"); }} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground", sortBy === "name" && "bg-accent")}>Task Name</button>
-              <button onClick={() => { setSortBy("priority"); setSortOrder((o) => o === "asc" ? "desc" : "asc"); }} className={cn("px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground", sortBy === "priority" && "bg-accent")}>Priority</button>
+            <PopoverContent
+              align="start"
+              className="w-44 p-1 flex flex-col gap-0.5"
+            >
+              <button
+                className={cn(
+                  "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
+                  !sortBy && "bg-accent"
+                )}
+                onClick={() => setSortBy(null)}
+              >
+                None
+              </button>
+              <button
+                className={cn(
+                  "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
+                  sortBy === "name" && "bg-accent"
+                )}
+                onClick={() => {
+                  setSortBy("name");
+                  setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                }}
+              >
+                Task Name
+              </button>
+              <button
+                className={cn(
+                  "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
+                  sortBy === "priority" && "bg-accent"
+                )}
+                onClick={() => {
+                  setSortBy("priority");
+                  setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                }}
+              >
+                Priority
+              </button>
             </PopoverContent>
           </Popover>
         </div>
 
         {/* Create Task button */}
         <button
-          onClick={() => setCreateOpen(true)}
           className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
+          onClick={() => setCreateOpen(true)}
         >
           <PlusIcon className="size-3.5" weight="bold" />
           Create Task
@@ -939,36 +1183,36 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
       </div>
 
       <DndContext
-        id="board-dnd"
-        sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={onDragStart}
-        onDragOver={onDragOver}
-        onDragEnd={onDragEnd}
+        id="board-dnd"
         onDragCancel={onDragCancel}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
+        onDragStart={onDragStart}
+        sensors={sensors}
       >
         <div className="flex gap-3 overflow-x-auto pb-4 items-start">
           {statuses.map((status) => (
             <Column
-              key={status.id}
-              status={status}
-              tasks={tasksByStatus[status.id] ?? []}
-              workspaceId={workspaceId}
-              space={space}
-              list={list}
-              statuses={statuses}
               canEdit={canEdit}
               isAdmin={isAdmin}
+              key={status.id}
+              list={list}
               onRefresh={handleRefresh}
+              space={space}
+              status={status}
+              statuses={statuses}
+              tasks={tasksByStatus[status.id] ?? []}
+              workspaceId={workspaceId}
             />
           ))}
 
           {/* Add group — creates a new status column (Full Access only). */}
           {canManage && (
             <button
-              type="button"
-              onClick={() => setNewGroupOpen(true)}
               className="flex h-9 shrink-0 select-none items-center gap-1.5 rounded-lg border border-dashed border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground"
+              onClick={() => setNewGroupOpen(true)}
+              type="button"
             >
               <PlusIcon className="size-4" weight="bold" /> Add group
             </button>
@@ -977,47 +1221,49 @@ export function BoardView({ workspaceId, space, list, statuses, tasks, members =
 
         {/* Drag overlay — shown while dragging */}
         <DragOverlay>
-          {activeTask && <CardContent task={activeTask} overlay />}
+          {activeTask && <CardContent overlay task={activeTask} />}
         </DragOverlay>
       </DndContext>
 
       {/* New group (status) dialog — mirrors the List view's New Status dialog. */}
       {canManage && (
-        <Dialog open={newGroupOpen} onOpenChange={setNewGroupOpen}>
+        <Dialog onOpenChange={setNewGroupOpen} open={newGroupOpen}>
           <DialogContent className="rounded-xl sm:max-w-xs">
             <DialogTitle className="text-sm font-bold">New Group</DialogTitle>
             <div className="space-y-3">
               <Input
                 autoFocus
-                placeholder="Group name"
-                value={newGroupName}
+                className="h-9 text-xs"
                 onChange={(e) => setNewGroupName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") void handleCreateGroup();
+                  if (e.key === "Enter") {
+                    void handleCreateGroup();
+                  }
                 }}
-                className="h-9 text-xs"
+                placeholder="Group name"
+                value={newGroupName}
               />
               <div className="flex flex-wrap gap-2">
                 {STATUS_PRESET_COLORS.map((color) => (
                   <button
-                    key={color}
-                    type="button"
-                    onClick={() => setNewGroupColor(color)}
                     className={cn(
                       "size-6 cursor-pointer rounded-full transition-transform",
                       newGroupColor === color &&
-                        "scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-popover",
+                        "scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-popover"
                     )}
+                    key={color}
+                    onClick={() => setNewGroupColor(color)}
                     style={{ backgroundColor: color }}
+                    type="button"
                   />
                 ))}
               </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button
-                variant="ghost"
                 className="h-8 text-xs font-semibold"
                 onClick={() => setNewGroupOpen(false)}
+                variant="ghost"
               >
                 Cancel
               </Button>

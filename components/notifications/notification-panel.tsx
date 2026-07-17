@@ -1,35 +1,38 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { formatDistanceToNow } from "date-fns";
-import useSWR, { mutate } from "swr";
-import { toast } from "sonner";
 import { XIcon } from "@phosphor-icons/react";
+import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { toast } from "sonner";
+import useSWR, { mutate } from "swr";
+import { UserAvatar } from "@/components/common/user-avatar";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { UserAvatar } from "@/components/common/user-avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getNotificationTarget } from "@/lib/notifications/target";
 import { cn } from "@/lib/utils";
 
 interface Notification {
-  id: string;
-  workspaceId: string;
   actorId: string | null;
-  triggerType: string;
-  entityType: string;
-  entityId: string;
-  title: string;
+  actorImage: string | null;
+  actorName: string | null;
   body: string | null;
+  createdAt: string;
+  entityId: string;
+  entityType: string;
+  id: string;
   isRead: boolean;
   readAt: string | null;
-  createdAt: string;
-  actorName: string | null;
-  actorImage: string | null;
+  title: string;
+  triggerType: string;
+  workspaceIcon: string | null;
+  workspaceId: string;
+  workspaceName: string | null;
 }
 
 interface NotificationsResponse {
@@ -40,8 +43,8 @@ interface NotificationsResponse {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface NotificationPanelProps {
-  open: boolean;
   onClose: () => void;
+  open: boolean;
 }
 
 export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
@@ -56,13 +59,15 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
     mutate: revalidate,
   } = useSWR<NotificationsResponse>(
     open ? `/api/me/notifications?filter=${activeTab}` : null,
-    fetcher,
+    fetcher
   );
 
   const notifications = data?.notifications ?? [];
 
   async function markAllRead() {
-    const res = await fetch("/api/me/notifications/read-all", { method: "PATCH" });
+    const res = await fetch("/api/me/notifications/read-all", {
+      method: "PATCH",
+    });
     await revalidate();
     await mutate("/api/me/notifications?filter=unread");
     if (!res.ok) {
@@ -73,7 +78,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
     toast.success(
       count > 0
         ? `${count} notification${count === 1 ? "" : "s"} marked as read`
-        : "You're all caught up",
+        : "You're all caught up"
     );
   }
 
@@ -89,7 +94,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
     toast.success(
       count > 0
         ? `${count} notification${count === 1 ? "" : "s"} cleared`
-        : "No notifications to clear",
+        : "No notifications to clear"
     );
   }
 
@@ -109,18 +114,26 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
     if (!n.isRead) {
       void markRead(n.id);
     }
-    // Navigate to entity
-    if (n.entityType === "TASK") {
-      router.push(`/${n.workspaceId}/task/${n.entityId}`);
-      onClose();
+    // Resolve the destination from the notification's OWN workspace, so any
+    // notification type navigates and switches into the right workspace.
+    const target = getNotificationTarget(n);
+    if (target.type === "info") {
+      toast.info(target.message);
+      return;
     }
+    router.push(
+      target.type === "task"
+        ? `/${n.workspaceId}/task/${n.entityId}`
+        : target.href
+    );
+    onClose();
   }
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+    <Sheet onOpenChange={(o) => !o && onClose()} open={open}>
       <SheetContent
-        side="right"
         className="flex w-full flex-col p-0 sm:max-w-md rounded-l-4xl"
+        side="right"
       >
         <SheetHeader className="relative border-b pl-4 pr-10 pt-3 pb-2 flex flex-col gap-2">
           {/* Row 1: Title + actions (pr-10 clears the Sheet close button) */}
@@ -128,15 +141,17 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
             <SheetTitle>Notifications</SheetTitle>
             <div className="flex items-center gap-3">
               <button
-                onClick={markAllRead}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                onClick={markAllRead}
               >
                 Mark all as read
               </button>
-              <span className="text-muted-foreground/40 text-xs select-none">|</span>
+              <span className="text-muted-foreground/40 text-xs select-none">
+                |
+              </span>
               <button
-                onClick={clearAll}
                 className="text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                onClick={clearAll}
               >
                 Clear all
               </button>
@@ -145,17 +160,26 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
 
           {/* Row 2: Tabs */}
           <Tabs
-            value={activeTab}
             onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+            value={activeTab}
           >
             <TabsList className="h-8 rounded-4xl p-2">
-              <TabsTrigger value="all" className="text-xs px-3 h-7 rounded-4xl cursor-pointer">
+              <TabsTrigger
+                className="text-xs px-3 h-7 rounded-4xl cursor-pointer"
+                value="all"
+              >
                 All
               </TabsTrigger>
-              <TabsTrigger value="unread" className="text-xs px-3 h-7 rounded-4xl cursor-pointer">
+              <TabsTrigger
+                className="text-xs px-3 h-7 rounded-4xl cursor-pointer"
+                value="unread"
+              >
                 Unread
               </TabsTrigger>
-              <TabsTrigger value="mentions" className="text-xs px-3 h-7 rounded-4xl cursor-pointer">
+              <TabsTrigger
+                className="text-xs px-3 h-7 rounded-4xl cursor-pointer"
+                value="mentions"
+              >
                 Mentions
               </TabsTrigger>
             </TabsList>
@@ -180,11 +204,11 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
           )}
           {notifications.map((n) => (
             <div
-              key={n.id}
               className={cn(
                 "group relative flex cursor-pointer items-start gap-3 border-b px-4 py-3 transition-colors hover:bg-accent/50",
-                !n.isRead && "bg-blue-50/50 dark:bg-blue-950/20",
+                !n.isRead && "bg-blue-50/50 dark:bg-blue-950/20"
               )}
+              key={n.id}
               onClick={() => handleNotificationClick(n)}
             >
               {/* Unread dot */}
@@ -194,7 +218,12 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
               {n.isRead && <span className="mt-2 h-2 w-2 shrink-0" />}
 
               {/* Actor avatar */}
-              <UserAvatar name={n.actorName} image={n.actorImage} size="sm" className="mt-0.5 shrink-0" />
+              <UserAvatar
+                className="mt-0.5 shrink-0"
+                image={n.actorImage}
+                name={n.actorName}
+                size="sm"
+              />
 
               <div className="flex-1 min-w-0">
                 <p className="text-sm leading-snug">{n.title}</p>
@@ -203,10 +232,23 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
                     {n.body}
                   </p>
                 )}
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(n.createdAt), {
-                    addSuffix: true,
-                  })}
+                <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                  {n.workspaceName && (
+                    <>
+                      <span className="flex min-w-0 items-center gap-1 font-medium">
+                        <span aria-hidden className="shrink-0">
+                          {n.workspaceIcon ?? "📁"}
+                        </span>
+                        <span className="truncate">{n.workspaceName}</span>
+                      </span>
+                      <span aria-hidden>·</span>
+                    </>
+                  )}
+                  <span className="shrink-0">
+                    {formatDistanceToNow(new Date(n.createdAt), {
+                      addSuffix: true,
+                    })}
+                  </span>
                 </p>
               </div>
 
