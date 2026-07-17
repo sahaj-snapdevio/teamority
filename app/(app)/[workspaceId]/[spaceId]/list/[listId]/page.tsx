@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sum } from "drizzle-orm";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -12,6 +12,7 @@ import {
   taskAssignee,
   taskDependency,
   taskTag,
+  timeEntry,
   user,
   workspaceMember,
 } from "@/db/schema";
@@ -157,61 +158,80 @@ export default async function ListPage({ params }: ListPageProps) {
   // Fetch tags, assignees, and personal pins in parallel
   const taskIds = tasks.map((t) => t.id);
 
-  const [tagRows, assigneeRows, personalPinRows, depRows] = await Promise.all([
-    taskIds.length > 0
-      ? db
-          .select({
-            taskId: taskTag.taskId,
-            id: tag.id,
-            name: tag.name,
-            color: tag.color,
-          })
-          .from(taskTag)
-          .innerJoin(tag, eq(taskTag.tagId, tag.id))
-          .where(inArray(taskTag.taskId, taskIds))
-      : Promise.resolve([]),
+  const [tagRows, assigneeRows, personalPinRows, depRows, trackedRows] =
+    await Promise.all([
+      taskIds.length > 0
+        ? db
+            .select({
+              taskId: taskTag.taskId,
+              id: tag.id,
+              name: tag.name,
+              color: tag.color,
+            })
+            .from(taskTag)
+            .innerJoin(tag, eq(taskTag.tagId, tag.id))
+            .where(inArray(taskTag.taskId, taskIds))
+        : Promise.resolve([]),
 
-    taskIds.length > 0
-      ? db
-          .select({
-            taskId: taskAssignee.taskId,
-            userId: taskAssignee.userId,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-          })
-          .from(taskAssignee)
-          .innerJoin(user, eq(user.id, taskAssignee.userId))
-          .where(inArray(taskAssignee.taskId, taskIds))
-      : Promise.resolve([]),
+      taskIds.length > 0
+        ? db
+            .select({
+              taskId: taskAssignee.taskId,
+              userId: taskAssignee.userId,
+              name: user.name,
+              email: user.email,
+              image: user.image,
+            })
+            .from(taskAssignee)
+            .innerJoin(user, eq(user.id, taskAssignee.userId))
+            .where(inArray(taskAssignee.taskId, taskIds))
+        : Promise.resolve([]),
 
-    taskIds.length > 0
-      ? db
-          .select({ taskId: pinnedTask.taskId })
-          .from(pinnedTask)
-          .where(
-            and(
-              eq(pinnedTask.userId, session.user.id),
-              inArray(pinnedTask.taskId, taskIds)
+      taskIds.length > 0
+        ? db
+            .select({ taskId: pinnedTask.taskId })
+            .from(pinnedTask)
+            .where(
+              and(
+                eq(pinnedTask.userId, session.user.id),
+                inArray(pinnedTask.taskId, taskIds)
+              )
             )
-          )
-      : Promise.resolve([]),
+        : Promise.resolve([]),
 
-    // "Blocked by" edges for the visible tasks — one row per blocker, carrying
-    // its status so the list/board indicator can show dependency state (all
-    // completed vs still blocked) without an N+1 query.
-    taskIds.length > 0
-      ? db
-          .select({
-            taskId: taskDependency.taskId,
-            blockerStatusType: listStatus.type,
-          })
-          .from(taskDependency)
-          .innerJoin(task, eq(taskDependency.dependsOnTaskId, task.id))
-          .leftJoin(listStatus, eq(listStatus.id, task.statusId))
-          .where(inArray(taskDependency.taskId, taskIds))
-      : Promise.resolve([]),
-  ]);
+      // "Blocked by" edges for the visible tasks — one row per blocker, carrying
+      // its status so the list/board indicator can show dependency state (all
+      // completed vs still blocked) without an N+1 query.
+      taskIds.length > 0
+        ? db
+            .select({
+              taskId: taskDependency.taskId,
+              blockerStatusType: listStatus.type,
+            })
+            .from(taskDependency)
+            .innerJoin(task, eq(taskDependency.dependsOnTaskId, task.id))
+            .leftJoin(listStatus, eq(listStatus.id, task.statusId))
+            .where(inArray(taskDependency.taskId, taskIds))
+        : Promise.resolve([]),
+
+      // Total completed tracked seconds per task (running timers excluded — the
+      // card badge shows settled time only).
+      taskIds.length > 0
+        ? db
+            .select({
+              taskId: timeEntry.taskId,
+              total: sum(timeEntry.durationSeconds),
+            })
+            .from(timeEntry)
+            .where(
+              and(
+                inArray(timeEntry.taskId, taskIds),
+                isNotNull(timeEntry.endTime)
+              )
+            )
+            .groupBy(timeEntry.taskId)
+        : Promise.resolve([]),
+    ]);
 
   const tagsByTaskId = new Map<
     string,
@@ -260,11 +280,17 @@ export default async function ListPage({ params }: ListPageProps) {
     depInfoByTaskId.set(row.taskId, existing);
   }
 
+  const trackedByTaskId = new Map<string, number>();
+  for (const row of trackedRows) {
+    trackedByTaskId.set(row.taskId, Number(row.total ?? 0));
+  }
+
   const tasksWithTags = tasks.map((t) => ({
     ...t,
     tags: tagsByTaskId.get(t.id) ?? [],
     assignees: assigneesByTaskId.get(t.id) ?? [],
     dependencyInfo: depInfoByTaskId.get(t.id),
+    trackedSeconds: trackedByTaskId.get(t.id),
   }));
 
   const pinnedListTasks = tasksWithTags

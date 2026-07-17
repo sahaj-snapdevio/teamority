@@ -42,6 +42,7 @@ import {
   TaskDependencyBadge,
   type TaskDependencyIndicator,
 } from "@/components/task/task-dependency-badge";
+import { TrackedTimeBadge } from "@/components/task/tracked-time-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -78,6 +79,7 @@ import { cn } from "@/lib/utils";
 export interface TaskListRowData {
   assignees: { userId: string; name: string; image: string | null }[];
   dependencyInfo?: TaskDependencyIndicator;
+  trackedSeconds?: number;
   dueDateEnd?: Date | null;
   dueDateStart: Date | null;
   id: string;
@@ -1282,6 +1284,7 @@ export function TaskListRow({
               total={task.dependencyInfo.total}
             />
           )}
+          <TrackedTimeBadge className="shrink-0" seconds={task.trackedSeconds} />
         </div>
         {assigneeCell}
         {dueDateCell}

@@ -14,7 +14,7 @@ const LEVEL_ORDER: Record<"view" | "edit" | "full_access", number> = {
 // full_access >= edit >= view
 export function hasPermissionLevel(
   permission: "full_access" | "edit" | "view",
-  minLevel: "view" | "edit" | "full_access",
+  minLevel: "view" | "edit" | "full_access"
 ): boolean {
   return LEVEL_ORDER[permission] >= LEVEL_ORDER[minLevel];
 }
@@ -24,20 +24,28 @@ export function hasPermissionLevel(
 export async function getSpacePermission(
   userId: string,
   workspaceId: string,
-  spaceId: string,
+  spaceId: string
 ): Promise<"full_access" | "edit" | "view" | null> {
   const membership = await getWorkspaceMembership(userId, workspaceId);
-  if (!membership) return null;
+  if (!membership) {
+    return null;
+  }
 
-  if (membership.role === "OWNER" || membership.role === "ADMIN") return "full_access";
+  if (membership.role === "OWNER" || membership.role === "ADMIN") {
+    return "full_access";
+  }
 
   const [sm] = await db
     .select({ permission: spaceMember.permission })
     .from(spaceMember)
-    .where(and(eq(spaceMember.spaceId, spaceId), eq(spaceMember.userId, userId)))
+    .where(
+      and(eq(spaceMember.spaceId, spaceId), eq(spaceMember.userId, userId))
+    )
     .limit(1);
 
-  if (!sm) return null;
+  if (!sm) {
+    return null;
+  }
 
   // Map DB enum values (FULL_ACCESS / EDIT / VIEW) to lowercase union
   const map: Record<string, "full_access" | "edit" | "view"> = {
@@ -55,7 +63,7 @@ export async function requireSpacePermission(
   userId: string,
   workspaceId: string,
   spaceId: string,
-  minLevel: "view" | "edit" | "full_access",
+  minLevel: "view" | "edit" | "full_access"
 ): Promise<{ error: string; status: number } | null> {
   const permission = await getSpacePermission(userId, workspaceId, spaceId);
 
@@ -82,7 +90,10 @@ export async function requireSpacePermission(
 
 // ─── Workspace membership ─────────────────────────────────────────────────────
 
-export async function getWorkspaceMembership(userId: string, workspaceId: string) {
+export async function getWorkspaceMembership(
+  userId: string,
+  workspaceId: string
+) {
   const [membership] = await db
     .select()
     .from(workspaceMember)
@@ -90,8 +101,8 @@ export async function getWorkspaceMembership(userId: string, workspaceId: string
       and(
         eq(workspaceMember.workspaceId, workspaceId),
         eq(workspaceMember.userId, userId),
-        eq(workspaceMember.status, "ACTIVE"),
-      ),
+        eq(workspaceMember.status, "ACTIVE")
+      )
     )
     .limit(1);
   return membership ?? null;
@@ -100,10 +111,12 @@ export async function getWorkspaceMembership(userId: string, workspaceId: string
 export async function getAccessibleSpaceIds(
   userId: string,
   workspaceId: string,
-  archivedOnly = false,
+  archivedOnly = false
 ): Promise<string[]> {
   const membership = await getWorkspaceMembership(userId, workspaceId);
-  if (!membership) return [];
+  if (!membership) {
+    return [];
+  }
 
   const archivedFilter = eq(space.isArchived, archivedOnly);
 
@@ -126,8 +139,8 @@ export async function getAccessibleSpaceIds(
         and(
           eq(spaceMember.userId, userId),
           eq(space.workspaceId, workspaceId),
-          archivedFilter,
-        ),
+          archivedFilter
+        )
       );
     return memberships.map((m) => m.spaceId);
   }
@@ -141,8 +154,8 @@ export async function getAccessibleSpaceIds(
         and(
           eq(space.workspaceId, workspaceId),
           archivedFilter,
-          eq(space.isPrivate, false),
-        ),
+          eq(space.isPrivate, false)
+        )
       ),
     db
       .select({ spaceId: spaceMember.spaceId })
@@ -153,8 +166,8 @@ export async function getAccessibleSpaceIds(
           eq(spaceMember.userId, userId),
           eq(space.workspaceId, workspaceId),
           archivedFilter,
-          eq(space.isPrivate, true),
-        ),
+          eq(space.isPrivate, true)
+        )
       ),
   ]);
 
@@ -165,7 +178,44 @@ export async function getAccessibleSpaceIds(
   return [...ids];
 }
 
-export async function canAccessSpace(userId: string, workspaceId: string, spaceId: string): Promise<boolean> {
+export async function canAccessSpace(
+  userId: string,
+  workspaceId: string,
+  spaceId: string
+): Promise<boolean> {
   const ids = await getAccessibleSpaceIds(userId, workspaceId);
   return ids.includes(spaceId);
+}
+
+// ─── Action-level access guards ───────────────────────────────────────────────
+// Shared by the task actions and the time-tracking actions. Each returns
+// `{ error }` when access is denied, or `null` when granted.
+
+// Requires at least "edit" permission — creates, updates, tags, time tracking, etc.
+export async function requireEditAccess(
+  userId: string,
+  workspaceId: string,
+  spaceId: string
+): Promise<{ error: string } | null> {
+  const permission = await getSpacePermission(userId, workspaceId, spaceId);
+  if (permission === null) {
+    return { error: "Forbidden" };
+  }
+  if (!hasPermissionLevel(permission, "edit")) {
+    return { error: "Forbidden" };
+  }
+  return null;
+}
+
+// Requires at least "view" permission — reads, activity, comments.
+export async function requireViewAccess(
+  userId: string,
+  workspaceId: string,
+  spaceId: string
+): Promise<{ error: string } | null> {
+  const accessible = await canAccessSpace(userId, workspaceId, spaceId);
+  if (!accessible) {
+    return { error: "Forbidden" };
+  }
+  return null;
 }

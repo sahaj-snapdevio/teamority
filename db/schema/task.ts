@@ -105,18 +105,6 @@ export const taskDescriptionSnapshot = pgTable("task_description_snapshot", {
   savedAt: timestamp("saved_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const timeLog = pgTable(
-  "time_log",
-  {
-    id: text("id").primaryKey(),
-    taskId: text("task_id")
-      .notNull()
-      .references(() => task.id, { onDelete: "cascade" }),
-    userId: text("user_id").notNull(),
-    durationMinutes: integer("duration_minutes").notNull(),
-    note: text("note"),
-    loggedAt: timestamp("logged_at", { withTimezone: true }).notNull().defaultNow(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index("time_log_task_id_idx").on(t.taskId)],
-);
+// NOTE: the old minutes-based `time_log` table was removed. Time tracking now
+// lives in `db/schema/time-tracking.ts` (seconds-based `time_entry`, with a
+// live-timer concept). Do not re-add a minutes-based log here.

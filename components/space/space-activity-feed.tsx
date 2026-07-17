@@ -6,6 +6,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ActivityIcon, CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getSpaceActivity, type SpaceActivityEntry } from "@/app/actions/space-activity";
+import { formatDuration } from "@/lib/format-duration";
 
 interface SpaceActivityFeedProps {
   workspaceId: string;
@@ -35,6 +36,9 @@ function describeEvent(eventType: string, meta: Record<string, unknown>): string
     case "task_archived": return "archived this task";
     case "task_unarchived": return "unarchived this task";
     case "task_moved": return "moved this task";
+    case "time_logged": return `logged ${formatDuration(Number(meta.seconds))}`;
+    case "timer_started": return "started time tracking";
+    case "timer_stopped": return "stopped time tracking";
     case "comment_added": return "commented";
     case "attachment_uploaded": return `uploaded "${meta.file_name}"`;
     case "subtask_created": return `added subtask "${meta.subtask_title}"`;

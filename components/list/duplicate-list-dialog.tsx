@@ -210,20 +210,6 @@ export function DuplicateListDialog({
                   onChange={(v) => setOpt(o.key, v)}
                 />
               ))}
-              <CheckboxRow
-                checked={false}
-                disabled
-                hint="Coming soon"
-                id="opt-copyAttachments"
-                label="Copy attachments"
-              />
-              <CheckboxRow
-                checked={false}
-                disabled
-                hint="Coming soon"
-                id="opt-copyComments"
-                label="Copy comments & activity"
-              />
             </div>
           </div>
 

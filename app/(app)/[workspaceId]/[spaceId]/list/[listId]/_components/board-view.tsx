@@ -55,6 +55,7 @@ import {
   TaskDependencyBadge,
   type TaskDependencyIndicator,
 } from "@/components/task/task-dependency-badge";
+import { TrackedTimeBadge } from "@/components/task/tracked-time-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -114,6 +115,7 @@ interface Status {
 interface Task {
   assignees: { userId: string; name: string; image: string | null }[];
   dependencyInfo?: TaskDependencyIndicator;
+  trackedSeconds?: number;
   id: string;
   orderIndex: number;
   priority: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
@@ -434,6 +436,7 @@ function CardContent({
                 total={task.dependencyInfo.total}
               />
             )}
+            <TrackedTimeBadge seconds={task.trackedSeconds} />
           </div>
           <div className="flex items-center gap-2 min-w-0">
             {task.priority !== "NONE" &&
