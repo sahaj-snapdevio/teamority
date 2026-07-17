@@ -11,7 +11,7 @@ import {
   spaceMember,
   taskAssignee,
   taskWatcher,
-  timeLog,
+  timeEntry,
   user,
   userEmailPreference,
   userNotificationPreference,
@@ -105,7 +105,7 @@ export async function purgeUser(
     // Task participation
     await tx.delete(taskAssignee).where(eq(taskAssignee.userId, userId));
     await tx.delete(taskWatcher).where(eq(taskWatcher.userId, userId));
-    await tx.delete(timeLog).where(eq(timeLog.userId, userId));
+    await tx.delete(timeEntry).where(eq(timeEntry.userId, userId));
     await tx.delete(commentReaction).where(eq(commentReaction.userId, userId));
     // Memberships (comments & activity logs intentionally kept — "Deleted User" fallback)
     await tx.delete(spaceMember).where(eq(spaceMember.userId, userId));

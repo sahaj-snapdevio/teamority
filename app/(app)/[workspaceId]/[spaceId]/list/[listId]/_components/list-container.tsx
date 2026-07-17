@@ -45,6 +45,7 @@ interface Status {
 interface Task {
   assignees: { userId: string; name: string; image: string | null }[];
   dependencyInfo?: TaskDependencyIndicator;
+  trackedSeconds?: number;
   dueDateEnd: Date | null;
   dueDateStart: Date | null;
   id: string;

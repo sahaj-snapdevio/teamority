@@ -34,7 +34,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { archiveList, duplicateList, unarchiveList } from "@/app/actions/list";
+import { archiveList, unarchiveList } from "@/app/actions/list";
+import { DuplicateListDialog } from "@/components/list/duplicate-list-dialog";
 import { archiveSpace, deleteSpace, unarchiveSpace } from "@/app/actions/space";
 import { getSprintSettings } from "@/app/actions/sprint";
 import { AddChannelMemberModal } from "@/components/channel/add-channel-member-modal";
@@ -169,6 +170,10 @@ export function WorkspaceShell({
     spaceId: string;
   } | null>(null);
   const [deleteList, setDeleteList] = React.useState<{
+    spaceId: string;
+    list: ListSummary;
+  } | null>(null);
+  const [duplicateListTarget, setDuplicateListTarget] = React.useState<{
     spaceId: string;
     list: ListSummary;
   } | null>(null);
@@ -340,6 +345,16 @@ export function WorkspaceShell({
           onOpenChange={(open) => !open && setDeleteList(null)}
           open
           spaceId={deleteList.spaceId}
+          workspaceId={workspace.id}
+        />
+      )}
+
+      {duplicateListTarget && (
+        <DuplicateListDialog
+          list={duplicateListTarget.list}
+          onOpenChange={(open) => !open && setDuplicateListTarget(null)}
+          open
+          spaceId={duplicateListTarget.spaceId}
           workspaceId={workspace.id}
         />
       )}
@@ -659,13 +674,12 @@ export function WorkspaceShell({
                                 </Link>
                                 <button
                                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
-                                  onClick={async () => {
-                                    await duplicateList(
-                                      workspace.id,
-                                      s.id,
-                                      l.id
-                                    );
-                                  }}
+                                  onClick={() =>
+                                    setDuplicateListTarget({
+                                      spaceId: s.id,
+                                      list: l,
+                                    })
+                                  }
                                 >
                                   <CopyIcon className="size-3.5 shrink-0 text-muted-foreground" />
                                   Duplicate

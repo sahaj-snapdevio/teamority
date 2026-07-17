@@ -27,7 +27,13 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { format } from "date-fns";
-import { GitBranch, ListChecks, ListTree, type LucideIcon } from "lucide-react";
+import {
+  GitBranch,
+  ListChecks,
+  ListTree,
+  type LucideIcon,
+  Timer,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import {
@@ -72,6 +78,7 @@ import {
 } from "@/components/task/task-activity-feed";
 import { TaskDependencies } from "@/components/task/task-dependencies";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
+import { TaskTimeTracking } from "@/components/task/task-time-tracking";
 import {
   Accordion,
   AccordionContent,
@@ -343,6 +350,9 @@ export function TaskDetailPage({
     if (data.checklists.length > 0) {
       open.push("checklist");
     }
+    if (data.timeEntries.length > 0) {
+      open.push("timeTracking");
+    }
     setOpenSections(open);
   }, [data, taskId]);
   // Clicking outside the sections collapses any *empty* open section (tidies up
@@ -365,6 +375,9 @@ export function TaskDetailPage({
       }
       if (section === "checklist") {
         return data.checklists.length > 0;
+      }
+      if (section === "timeTracking") {
+        return data.timeEntries.length > 0;
       }
       return false;
     };
@@ -543,6 +556,7 @@ export function TaskDetailPage({
     checklists,
     blockedBy,
     blocks,
+    timeEntries,
     canEdit,
     statuses,
     subtasks,
@@ -1823,6 +1837,31 @@ export function TaskDetailPage({
                         Add checklist
                       </button>
                     )}
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Time Tracking */}
+                <AccordionItem value="timeTracking">
+                  <AccordionTrigger className="hover:no-underline">
+                    <SectionHeader
+                      count={timeEntries.length}
+                      description="Track time spent on this task."
+                      icon={Timer}
+                      title="Time Tracking"
+                    />
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <TaskTimeTracking
+                      canEdit={canEdit}
+                      currentUserId={currentUserId}
+                      entries={timeEntries}
+                      hideHeader
+                      listId={listId}
+                      onChanged={load}
+                      spaceId={spaceId}
+                      taskId={taskId}
+                      workspaceId={workspaceId}
+                    />
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>

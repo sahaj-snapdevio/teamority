@@ -17,7 +17,7 @@ import {
   taskDependency,
   taskDescriptionSnapshot,
   taskAttachment,
-  timeLog,
+  timeEntry,
   workspace,
   workspaceMember,
   activityLog,
@@ -27,7 +27,12 @@ import {
   taskSprint,
   sprint,
 } from "@/db/schema";
-import { canAccessSpace, getSpacePermission, hasPermissionLevel } from "@/lib/permissions";
+import {
+  getSpacePermission,
+  hasPermissionLevel,
+  requireEditAccess,
+  requireViewAccess,
+} from "@/lib/permissions";
 import { writeActivityLog } from "@/lib/activity-log";
 import { refreshWorkspace } from "@/lib/realtime/refresh";
 import { createNotifications } from "@/lib/notifications/create-notification";
@@ -36,29 +41,8 @@ import { spaceRecipientUserIds } from "@/app/actions/space";
 import { storage } from "@/lib/storage";
 
 // ─── Permission helpers ──────────────────────────────────────────────────────
-
-// Requires at least "edit" permission — creates, updates, tags, time-logging, etc.
-async function requireEditAccess(
-  userId: string,
-  workspaceId: string,
-  spaceId: string,
-): Promise<{ error: string } | null> {
-  const permission = await getSpacePermission(userId, workspaceId, spaceId);
-  if (permission === null) return { error: "Forbidden" };
-  if (!hasPermissionLevel(permission, "edit")) return { error: "Forbidden" };
-  return null;
-}
-
-// Requires at least "view" permission — reads, activity, comments.
-async function requireViewAccess(
-  userId: string,
-  workspaceId: string,
-  spaceId: string,
-): Promise<{ error: string } | null> {
-  const accessible = await canAccessSpace(userId, workspaceId, spaceId);
-  if (!accessible) return { error: "Forbidden" };
-  return null;
-}
+// `requireEditAccess` / `requireViewAccess` now live in `lib/permissions.ts`
+// (shared with the time-tracking actions).
 
 // Requires "full_access" permission — delete task, etc.
 async function requireFullAccess(
@@ -297,7 +281,7 @@ export async function getTaskDetail(
     .limit(1);
   if (!t) return { error: "Task not found" };
 
-  const [assignees, watchers, tags, checklists, blockedBy, blocks, timeLogs, statuses, snapshot, subtasks, parentTaskInfo] =
+  const [assignees, watchers, tags, checklists, blockedBy, blocks, timeEntries, statuses, snapshot, subtasks, parentTaskInfo] =
     await Promise.all([
       db
         .select({ userId: taskAssignee.userId, name: user.name, email: user.email, image: user.image })
@@ -379,11 +363,23 @@ export async function getTaskDetail(
         .leftJoin(list, eq(list.id, task.listId))
         .where(eq(taskDependency.dependsOnTaskId, taskId)),
 
+      // Time entries (seconds-based). Running rows have `endTime`/`durationSeconds`
+      // NULL. Newest-first; joined to the user for the history list.
       db
-        .select()
-        .from(timeLog)
-        .where(eq(timeLog.taskId, taskId))
-        .orderBy(desc(timeLog.loggedAt)),
+        .select({
+          id: timeEntry.id,
+          userId: timeEntry.userId,
+          startTime: timeEntry.startTime,
+          endTime: timeEntry.endTime,
+          durationSeconds: timeEntry.durationSeconds,
+          description: timeEntry.description,
+          userName: user.name,
+          userImage: user.image,
+        })
+        .from(timeEntry)
+        .leftJoin(user, eq(user.id, timeEntry.userId))
+        .where(eq(timeEntry.taskId, taskId))
+        .orderBy(desc(timeEntry.startTime)),
 
       t.listId
         ? db.select().from(listStatus).where(eq(listStatus.listId, t.listId)).orderBy(asc(listStatus.orderIndex))
@@ -431,7 +427,7 @@ export async function getTaskDetail(
     checklists,
     blockedBy,
     blocks,
-    timeLogs,
+    timeEntries,
     statuses,
     snapshot,
     subtasks,
@@ -1362,73 +1358,10 @@ export async function getSubtasks(
   return { subtasks };
 }
 
-// ─── Log time ─────────────────────────────────────────────────────────────────
-
-export async function logTime(
-  workspaceId: string,
-  spaceId: string,
-  listId: string,
-  taskId: string,
-  durationMinutes: number,
-  note?: string,
-): Promise<{ ok: true } | { error: string }> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
-
-  const err = await requireEditAccess(session.user.id, workspaceId, spaceId);
-  if (err) return err;
-
-  if (durationMinutes <= 0) return { error: "Duration must be positive" };
-
-  await db.insert(timeLog).values({
-    id: createId(),
-    taskId,
-    userId: session.user.id,
-    durationMinutes,
-    note: note ?? null,
-  });
-
-  await writeActivityLog(taskId, session.user.id, "time_logged", { minutes: durationMinutes, note: note ?? null });
-  revalidateList(workspaceId, spaceId, listId);
-  return { ok: true };
-}
-
-export async function deleteTimeLog(
-  workspaceId: string,
-  spaceId: string,
-  listId: string,
-  taskId: string,
-  timeLogId: string,
-): Promise<{ ok: true } | { error: string }> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
-
-  const err = await requireEditAccess(session.user.id, workspaceId, spaceId);
-  if (err) return err;
-
-  const [entry] = await db
-    .select({ userId: timeLog.userId })
-    .from(timeLog)
-    .where(and(eq(timeLog.id, timeLogId), eq(timeLog.taskId, taskId)))
-    .limit(1);
-
-  if (!entry) return { error: "Time log not found" };
-
-  if (entry.userId !== session.user.id) {
-    const [member] = await db
-      .select({ role: workspaceMember.role })
-      .from(workspaceMember)
-      .where(and(eq(workspaceMember.workspaceId, workspaceId), eq(workspaceMember.userId, session.user.id)))
-      .limit(1);
-    if (!member || (member.role !== "OWNER" && member.role !== "ADMIN")) {
-      return { error: "You can only delete your own time entries" };
-    }
-  }
-
-  await db.delete(timeLog).where(and(eq(timeLog.id, timeLogId), eq(timeLog.taskId, taskId)));
-  revalidateList(workspaceId, spaceId, listId);
-  return { ok: true };
-}
+// ─── Time tracking ────────────────────────────────────────────────────────────
+// Time tracking lives in `app/actions/time-tracking.ts` (seconds-based
+// `time_entry`, live timer + manual logging). The old minutes-based
+// `logTime` / `deleteTimeLog` were removed with the `time_log` table.
 
 // ─── Bulk actions ─────────────────────────────────────────────────────────────
 

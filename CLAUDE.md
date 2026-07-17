@@ -73,8 +73,12 @@ server/                    ← server actions
 - **Where it's used:** the task description editor (`components/task/task-description-editor.tsx`) and the comment composer (`components/task/task-activity-feed.tsx`, where the composer's "+" button reuses `SlashCommandGrid`).
 - **Pattern:** for any new `/` menu, reuse this module — wire `refresh` (onUpdate/onSelectionUpdate), `handleKeyDown` (editorProps), `close` (onBlur), and `setEditor`. Each `SlashCommand.run(editor)` must only invoke an **existing** editor action — the menu is a shortcut, not new formatting. Do not re-implement a second slash menu.
 
-### Time Tracking (removed)
-- The time-tracking UI (Time Estimate, Time Logged, "Log time", Time Entries) has been **removed** from the task detail. Do not re-add it. The `TaskTimeLog` table may linger in the schema but is unused by the app.
+### Time Tracking (MVP)
+- Time tracking is a **live timer + manual logging** feature (ClickUp-style MVP). Data lives in the seconds-based `timeEntry` table (`db/schema/time-tracking.ts`); the old minutes-based `time_log` table was **removed**. Do not re-add a minutes-based log.
+- **Actions:** `app/actions/time-tracking.ts` — `startTimer` / `stopTimer` / `logTime` / `deleteTimeEntry`. At most one running timer per user (DB partial-unique index + app auto-stop on start). Each mutation writes an activity log (`timer_started` / `timer_stopped` / `time_logged`) and calls `refreshWorkspace`. Never write to the table on a per-second interval — the live clock ticks client-side only.
+- **UI:** one shared section `components/task/task-time-tracking.tsx` (used by the full task page accordion and the drawer panel via `hideHeader`). List/Board cards show a `TrackedTimeBadge` (`components/task/tracked-time-badge.tsx`) of total *completed* tracked time.
+- **Formatting:** `lib/format-duration.ts` — `formatDuration` ("3h 42m") and `formatTimer` ("HH:MM:SS"). Reuse these; don't reformat inline.
+- **Out of scope (do NOT build):** estimates, remaining time, billable/rates, timesheets, reports, CSV, pomodoro, idle/screenshot, badge on Sprint & My-Tasks views, a global topbar timer widget. `task.timeEstimate` stays untouched (separate/future concern).
 
 ### User Avatars
 - **Shared component:** `components/common/user-avatar.tsx` (`UserAvatar`) — use this everywhere a user avatar is shown. Props: `name`, `email`, `image` (storage key or null), `size` (`xs/sm/md/lg`), `className`.

@@ -47,6 +47,7 @@ import {
 } from "@/components/task/slash-command-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { formatDuration } from "@/lib/format-duration";
 
 // Slash commands for the comment composer — mirror its "+" formatting menu.
 const COMMENT_SLASH_COMMANDS: SlashCommand[] = [
@@ -183,13 +184,9 @@ function describeEvent(eventType: string, meta: Record<string, unknown>): string
     case "task_archived": return "archived this task";
     case "task_unarchived": return "unarchived this task";
     case "task_moved": return "moved this task";
-    case "time_logged": {
-      const mins = Number(meta.minutes);
-      const h = Math.floor(mins / 60);
-      const m = mins % 60;
-      const duration = h > 0 && m > 0 ? `${h}h ${m}m` : h > 0 ? `${h}h` : `${m}m`;
-      return `logged ${duration}`;
-    }
+    case "time_logged": return `logged ${formatDuration(Number(meta.seconds))}`;
+    case "timer_started": return "started time tracking";
+    case "timer_stopped": return "stopped time tracking";
     case "comment_added": return "left a comment";
     case "subtask_created": return `created subtask "${meta.subtask_title}"`;
     case "subtask_completed": return `completed subtask "${meta.subtask_title}"`;

@@ -55,6 +55,7 @@ import {
   type TaskActivityFeedHandle,
 } from "@/components/task/task-activity-feed";
 import { TaskDependencies } from "@/components/task/task-dependencies";
+import { TaskTimeTracking } from "@/components/task/task-time-tracking";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
 import {
   AlertDialog,
@@ -333,6 +334,7 @@ export function TaskDetailPanel({
     checklists,
     blockedBy,
     blocks,
+    timeEntries,
     canEdit,
     statuses,
     currentUserId,
@@ -903,6 +905,18 @@ export function TaskDetailPanel({
               Add checklist
             </button>
           )}
+
+          {/* Time Tracking */}
+          <TaskTimeTracking
+            canEdit={canEdit}
+            currentUserId={currentUserId}
+            entries={timeEntries}
+            listId={listId}
+            onChanged={load}
+            spaceId={spaceId}
+            taskId={taskId}
+            workspaceId={workspaceId}
+          />
 
           {/* Dependencies */}
           <TaskDependencies

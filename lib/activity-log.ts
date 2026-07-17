@@ -30,6 +30,8 @@ export type ActivityEventType =
   | "task_archived"
   | "task_unarchived"
   | "time_logged"
+  | "timer_started"
+  | "timer_stopped"
   | "comment_added"
   | "comment_edited"
   | "comment_deleted"
