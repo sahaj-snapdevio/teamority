@@ -1861,11 +1861,16 @@ export function ListView({
         sensors={sensors}
       >
         {/* ClickUp-style unified workspace container */}
-        <div className="w-full bg-card border border-border rounded-2xl p-5 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)] overflow-hidden flex flex-col gap-4">
-          {/* Sticky Toolbar + Table Header Section. z-10 keeps it above the
-              scrolling rows but BELOW the mobile sidebar drawer + backdrop
-              (z-20/z-30) — otherwise it floats over the open sidebar. */}
-          <div className="sticky top-0 z-10 bg-card pb-2 border-b border-border flex flex-col gap-3">
+        {/* `overflow-clip` (not `overflow-hidden`) still clips the rounded
+            corners but is NOT a scroll container, so the sticky toolbar inside
+            can pin to `<main>` instead of scrolling away with this card. */}
+        <div className="w-full bg-card border border-border rounded-2xl px-5 pb-5 pt-3 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)] overflow-clip flex flex-col gap-4">
+          {/* Sticky Toolbar + Table Header Section. `top-14` clears the sticky
+              List/Board/Calendar tabs above; `pt-3` (bg-card) keeps a bit of
+              breathing room between the tabs and the pinned toolbar. z-10 keeps
+              it above the scrolling rows but BELOW the mobile sidebar drawer +
+              backdrop (z-20/z-30). */}
+          <div className="sticky top-14 z-10 bg-card pt-5 pb-3 border-b border-border flex flex-col gap-3">
             {/* Action Bar / Toolbar */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">

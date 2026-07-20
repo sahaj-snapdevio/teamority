@@ -766,7 +766,7 @@ function Column({
 
   return (
     <div
-      className="flex w-64 shrink-0 flex-col rounded-xl p-2 gap-2 max-h-[calc(100vh-11rem)]"
+      className="flex w-64 shrink-0 flex-col rounded-xl p-2 gap-2 max-h-[calc(100vh-14rem)]"
       style={{ backgroundColor: `${status.color}14` }}
     >
       {/* Column header */}
@@ -793,7 +793,7 @@ function Column({
       >
         <div
           className={cn(
-            "flex flex-col gap-2 rounded-lg p-1 transition-all flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border",
+            "flex flex-col gap-2 rounded-lg p-1 transition-all flex-1 overflow-y-auto min-h-0 no-scrollbar",
             tasks.length === 0 && "min-h-8"
           )}
           ref={setNodeRef}

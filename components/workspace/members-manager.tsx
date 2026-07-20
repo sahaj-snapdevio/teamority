@@ -108,6 +108,8 @@ export function MembersManager({
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"ADMIN" | "MEMBER" | "GUEST">("MEMBER");
+  const inviteEmailTrimmed = inviteEmail.trim();
+  const inviteEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmailTrimmed);
 
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
 
@@ -247,8 +249,12 @@ export function MembersManager({
                         type="email"
                         placeholder="teammate@example.com"
                         value={inviteEmail}
+                        aria-invalid={inviteEmailTrimmed.length > 0 && !inviteEmailValid}
                         onChange={(e) => setInviteEmail(e.target.value)}
                       />
+                      {inviteEmailTrimmed.length > 0 && !inviteEmailValid && (
+                        <p className="text-xs text-destructive">Please enter a valid email address.</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Role</Label>
@@ -266,11 +272,11 @@ export function MembersManager({
                   </div>
                   <DialogFooter>
                     <Button
-                      disabled={pending || !inviteEmail.trim()}
+                      disabled={pending || !inviteEmailValid}
                       onClick={() =>
                         run(
-                          () => inviteMember({ workspaceId, email: inviteEmail, role: inviteRole }),
-                          () => { setInviteOpen(false); setInviteEmail(""); toast.success(`Invite sent to ${inviteEmail.trim()}`); },
+                          () => inviteMember({ workspaceId, email: inviteEmailTrimmed, role: inviteRole }),
+                          () => { setInviteOpen(false); setInviteEmail(""); toast.success(`Invite sent to ${inviteEmailTrimmed}`); },
                         )
                       }
                       className="gap-2"
