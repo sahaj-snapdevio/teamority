@@ -68,7 +68,15 @@ export async function addAssignee(
     }
   }
 
-  await writeActivityLog(taskId, session.user.id, "assignee_added", { userId: assigneeUserId });
+  const [assigneeUser] = await db
+    .select({ name: user.name, email: user.email })
+    .from(user)
+    .where(eq(user.id, assigneeUserId))
+    .limit(1);
+  await writeActivityLog(taskId, session.user.id, "assignee_added", {
+    userId: assigneeUserId,
+    user_name: assigneeUser?.name ?? assigneeUser?.email ?? "someone",
+  });
   if (listId) revalidateTask(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }
@@ -90,7 +98,15 @@ export async function removeAssignee(
     .delete(taskAssignee)
     .where(and(eq(taskAssignee.taskId, taskId), eq(taskAssignee.userId, assigneeUserId)));
 
-  await writeActivityLog(taskId, session.user.id, "assignee_removed", { userId: assigneeUserId });
+  const [removedUser] = await db
+    .select({ name: user.name, email: user.email })
+    .from(user)
+    .where(eq(user.id, assigneeUserId))
+    .limit(1);
+  await writeActivityLog(taskId, session.user.id, "assignee_removed", {
+    userId: assigneeUserId,
+    user_name: removedUser?.name ?? removedUser?.email ?? "someone",
+  });
 
   if (assigneeUserId !== session.user.id) {
     const [taskRow] = await db

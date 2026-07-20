@@ -267,8 +267,10 @@ export function ListContainer({
         />
       )}
 
-      {/* View tabs */}
-      <div className="flex items-center gap-1 border-b">
+      {/* View tabs — sticky to the top of the scroll area. Full-bleed (`-mx-6
+          px-6`) so scrolling rows pass under it; `-mt-6 pt-6` pins it flush to
+          the container top without a gap. */}
+      <div className="sticky top-0 z-20 -mx-6 -mt-6 flex items-center gap-1 border-b bg-app px-6 pt-6">
         {VIEWS.map(({ key, label, icon }) => (
           <button
             className={cn(

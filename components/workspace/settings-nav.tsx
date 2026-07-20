@@ -20,7 +20,7 @@ export function SettingsNav({ workspaceId, isOwner }: SettingsNavProps) {
   ];
 
   return (
-    <nav className="flex gap-1 md:w-[200px] md:flex-col md:shrink-0">
+    <nav className="flex gap-1 md:sticky md:top-6 md:w-[200px] md:shrink-0 md:flex-col md:self-start">
       {items.map((item) => (
         <Link
           key={item.href}

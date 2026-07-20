@@ -462,7 +462,14 @@ export function SearchPalette({
       />
 
       {/* Panel */}
-      <div className="relative z-10 flex h-[min(440px,85vh)] w-[min(880px,92vw)] flex-col overflow-hidden rounded-xl border bg-card shadow-2xl">
+      <div
+        className={cn(
+          "relative z-10 flex w-[min(880px,92vw)] flex-col overflow-hidden rounded-xl border bg-card shadow-2xl transition-[height] duration-200",
+          // Grow to fit ~4–5 result rows only when there's data; otherwise keep
+          // the compact default so an empty palette isn't oversized.
+          hasResults ? "h-[min(600px,85vh)]" : "h-[min(440px,85vh)]"
+        )}
+      >
         {/* Search input — the dominant element. */}
         <div className="flex h-[66px] shrink-0 items-center gap-4 border-b px-6">
           <MagnifyingGlassIcon className="size-6 shrink-0 text-muted-foreground" />

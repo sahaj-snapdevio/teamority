@@ -96,10 +96,23 @@ function AttachmentPreviewModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const [zoom, setZoom] = React.useState(1);
+  // Pan offset (px) so a zoomed image can be dragged to reveal every edge —
+  // CSS `scale` alone doesn't grow layout size, so an overflow container can't
+  // scroll to the clipped parts; we translate the image instead.
+  const [offset, setOffset] = React.useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = React.useState(false);
+  const dragStart = React.useRef<{
+    x: number;
+    y: number;
+    ox: number;
+    oy: number;
+  } | null>(null);
+  const bodyRef = React.useRef<HTMLDivElement>(null);
 
-  // Reset zoom whenever a different attachment is opened.
+  // Reset zoom + pan whenever a different attachment is opened.
   React.useEffect(() => {
     setZoom(1);
+    setOffset({ x: 0, y: 0 });
   }, [attachment?.id]);
 
   const mime = attachment?.mimeType ?? "";
@@ -108,9 +121,60 @@ function AttachmentPreviewModal({
   const isVideo = mime.startsWith("video/");
   const isAudio = mime.startsWith("audio/");
 
-  const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)));
-  const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)));
-  const zoomReset = () => setZoom(1);
+  // When zoom drops back to fit, recenter so the image never gets stranded.
+  const clampAfterZoom = (next: number) => {
+    if (next <= 1) setOffset({ x: 0, y: 0 });
+    return next;
+  };
+  const zoomIn = () =>
+    setZoom((z) => clampAfterZoom(Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2))));
+  const zoomOut = () =>
+    setZoom((z) => clampAfterZoom(Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2))));
+  const zoomReset = () => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  // Wheel to zoom (non-passive so we can prevent the page/scroll default).
+  React.useEffect(() => {
+    const el = bodyRef.current;
+    if (!el || !isImage) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const dir = e.deltaY < 0 ? 1 : -1;
+      setZoom((z) =>
+        clampAfterZoom(
+          Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(z + dir * ZOOM_STEP).toFixed(2))),
+        ),
+      );
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [isImage]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (zoom <= 1) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragging || !dragStart.current) return;
+    setOffset({
+      x: dragStart.current.ox + (e.clientX - dragStart.current.x),
+      y: dragStart.current.oy + (e.clientY - dragStart.current.y),
+    });
+  };
+  const endDrag = (e: React.PointerEvent) => {
+    if (!dragging) return;
+    setDragging(false);
+    dragStart.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // pointer capture may already be released
+    }
+  };
 
   return (
     <Dialog open={attachment !== null} onOpenChange={onOpenChange}>
@@ -193,15 +257,36 @@ function AttachmentPreviewModal({
             </div>
 
             {/* Body */}
-            <div className="relative flex-1 overflow-auto bg-muted/40">
+            <div
+              className={cn(
+                "relative flex-1 bg-muted/40",
+                isImage ? "select-none overflow-hidden" : "overflow-auto",
+              )}
+              onPointerDown={isImage ? onPointerDown : undefined}
+              onPointerMove={isImage ? onPointerMove : undefined}
+              onPointerUp={isImage ? endDrag : undefined}
+              onPointerLeave={isImage ? endDrag : undefined}
+              ref={bodyRef}
+              style={
+                isImage
+                  ? { cursor: zoom > 1 ? (dragging ? "grabbing" : "grab") : "default" }
+                  : undefined
+              }
+            >
               {isImage ? (
-                <div className="flex min-h-full w-full items-center justify-center p-6">
+                <div className="flex h-full w-full items-center justify-center p-6">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={attachment.url}
                     alt={attachment.fileName}
-                    style={{ transform: `scale(${zoom})` }}
-                    className="max-h-full max-w-full origin-center object-contain transition-transform duration-150"
+                    draggable={false}
+                    style={{
+                      transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                    }}
+                    className={cn(
+                      "max-h-full max-w-full origin-center object-contain",
+                      !dragging && "transition-transform duration-150",
+                    )}
                   />
                 </div>
               ) : isPdf ? (

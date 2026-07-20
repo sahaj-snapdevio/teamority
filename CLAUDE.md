@@ -167,6 +167,13 @@ server/                    ← server actions
 ### Folder
 - Folder is **post-MVP**. Do not implement it. `folder_id` on List is nullable and always null in MVP.
 
+### Bug Fix Documentation
+- **Whenever a bug is fixed, record it as two Markdown files in `docs/bugs/`** (create the folder if missing):
+  1. `{YYYY-MM-DD}-bug-{bug-title}.md` — describes the bug: symptom, where it happened, root cause.
+  2. `{YYYY-MM-DD}-solution-{solution-title}.md` — describes the fix: what was changed, files touched, why it works.
+- Use today's date (`YYYY-MM-DD`) and a short kebab-case title. Keep the `bug-` and `solution-` titles matching so the pair is easy to find.
+- Example: `2026-07-20-bug-autofill-popup-drifts-on-scroll.md` + `2026-07-20-solution-autofill-popup-drifts-on-scroll.md`.
+
 ---
 
 ## Feature Docs (read before implementing)

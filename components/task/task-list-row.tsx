@@ -1200,7 +1200,7 @@ export function TaskListRow({
           {dragProps && (
             <DotsSixVerticalIcon
               className={cn(
-                "size-3.5 text-muted-foreground/50 shrink-0 transition-opacity duration-200 cursor-grab active:cursor-grabbing",
+                "size-3.5 text-muted-foreground shrink-0 transition duration-200 cursor-grab active:cursor-grabbing hover:text-foreground",
                 selected
                   ? "opacity-100"
                   : "opacity-0 group-hover/row:opacity-100"
