@@ -438,6 +438,13 @@ export async function acceptInvite(token: string): Promise<
     .where(eq(workspaceMember.inviteToken, token));
 
   if (!invite) return { error: "Invalid or expired invitation" };
+
+  // Idempotent short-circuit: this user already accepted this exact invite —
+  // e.g. a duplicate/retry submit, or activatePendingInvites() beat us to it
+  // right after sign-in. Treat as success, not an error.
+  if (invite.status === "ACTIVE" && invite.userId === session.user.id) {
+    return { workspaceId: invite.workspaceId };
+  }
   if (invite.status !== "INVITED") return { error: "This invitation has already been used" };
   if (invite.inviteExpiresAt && invite.inviteExpiresAt < new Date())
     return { error: "This invitation has expired" };
@@ -446,19 +453,41 @@ export async function acceptInvite(token: string): Promise<
   if (invite.email && invite.email !== session.user.email?.toLowerCase())
     return { error: "This invitation was sent to a different email address" };
 
-  await db
+  // Atomic transition — the status="INVITED" guard closes the SELECT/UPDATE
+  // race (double-click, or a concurrent activatePendingInvites() accepting
+  // the same invite by email during sign-in).
+  const [updated] = await db
     .update(workspaceMember)
     .set({
       userId: session.user.id,
       status: "ACTIVE",
-      inviteToken: null,
       inviteExpiresAt: null,
       joinedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(workspaceMember.id, invite.id));
+    .where(
+      and(
+        eq(workspaceMember.id, invite.id),
+        eq(workspaceMember.status, "INVITED") // guard against a concurrent accept
+      )
+    )
+    .returning({ id: workspaceMember.id });
 
-  // Notify the inviter that their invitation was accepted.
+  if (!updated) {
+    // Lost the race between our SELECT and UPDATE above — re-check rather
+    // than assuming the token is invalid.
+    const [current] = await db
+      .select()
+      .from(workspaceMember)
+      .where(eq(workspaceMember.id, invite.id));
+    if (current?.status === "ACTIVE" && current.userId === session.user.id) {
+      return { workspaceId: current.workspaceId };
+    }
+    return { error: "This invitation has already been used" };
+  }
+
+  // Notify the inviter that their invitation was accepted — only on the
+  // winning transition, never on an idempotent short-circuit above.
   if (invite.invitedBy) {
     const accepterName = session.user.name ?? session.user.email ?? "Someone";
     const [wsRow] = await db
@@ -558,7 +587,6 @@ export async function activatePendingInvites(): Promise<{ activated: number }> {
       .set({
         userId: session.user.id,
         status: "ACTIVE",
-        inviteToken: null,
         inviteExpiresAt: null,
         joinedAt: now,
         updatedAt: now,

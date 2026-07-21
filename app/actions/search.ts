@@ -41,6 +41,7 @@ export type SearchTaskResult = {
   spaceId: string;
   spaceName: string;
   dueDateEnd: Date | null;
+  isArchived: boolean;
   assignees: { userId: string; name: string | null; email: string | null }[];
 };
 
@@ -56,6 +57,7 @@ export type SearchSpaceResult = {
   name: string;
   color: string | null;
   memberCount: number;
+  isArchived: boolean;
 };
 
 export type SearchMemberResult = {
@@ -110,7 +112,6 @@ export async function globalSearch(
   if (wantTasks) {
     const conditions: SQL[] = [
       eq(task.workspaceId, workspaceId),
-      eq(task.isArchived, false),
       isNull(task.parentTaskId),
       eq(list.isArchived, false),
       inArray(space.id, accessibleSpaceIds),
@@ -135,6 +136,7 @@ export async function globalSearch(
         spaceId: space.id,
         spaceName: space.name,
         dueDateEnd: task.dueDateEnd,
+        isArchived: task.isArchived,
       })
       .from(task)
       .innerJoin(list, eq(task.listId, list.id))
@@ -194,15 +196,24 @@ export async function globalSearch(
   }
 
   // ── Spaces (Projects) ──────────────────────────────────────────────────
-  let spaceRows: { id: string; name: string; color: string | null }[] = [];
+  // Archived projects are searchable too — `accessibleSpaceIds` only carries
+  // non-archived spaces, so the archived ones the user can access are fetched
+  // separately here (not needed for tasks/lists, which stay scoped to active
+  // spaces per docs/search-and-filters.md § Business Rules #2).
+  let spaceRows: { id: string; name: string; color: string | null; isArchived: boolean }[] = [];
   if (wantSpaces) {
+    const archivedSpaceIds = await getAccessibleSpaceIds(
+      session.user.id,
+      workspaceId,
+      true,
+    );
     spaceRows = await db
-      .select({ id: space.id, name: space.name, color: space.color })
+      .select({ id: space.id, name: space.name, color: space.color, isArchived: space.isArchived })
       .from(space)
       .where(
         and(
           eq(space.workspaceId, workspaceId),
-          inArray(space.id, accessibleSpaceIds),
+          inArray(space.id, [...accessibleSpaceIds, ...archivedSpaceIds]),
           ilike(space.name, q),
         ),
       )

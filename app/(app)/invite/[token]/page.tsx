@@ -18,33 +18,48 @@ export default function InvitePage({
   const [errorMsg, setErrorMsg] = React.useState("");
   const [workspaceId, setWorkspaceId] = React.useState("");
   const [token, setToken] = React.useState("");
+  // Synchronous in-flight locks — a rapid double click/tap can fire the
+  // handler twice before the `disabled` prop takes effect on the next
+  // render, which would submit the (single-use) token twice.
+  const acceptingRef = React.useRef(false);
+  const decliningRef = React.useRef(false);
 
   React.useEffect(() => {
     params.then((p) => setToken(p.token));
   }, [params]);
 
   async function handleAccept() {
-    if (!token) return;
+    if (!token || acceptingRef.current) return;
+    acceptingRef.current = true;
     setStatus("loading");
-    const res = await acceptInvite(token);
-    if ("error" in res) {
-      setStatus("error");
-      setErrorMsg(res.error);
-    } else {
-      setWorkspaceId(res.workspaceId);
-      setStatus("success");
+    try {
+      const res = await acceptInvite(token);
+      if ("error" in res) {
+        setStatus("error");
+        setErrorMsg(res.error);
+      } else {
+        setWorkspaceId(res.workspaceId);
+        setStatus("success");
+      }
+    } finally {
+      acceptingRef.current = false;
     }
   }
 
   async function handleDecline() {
-    if (!token) return;
+    if (!token || decliningRef.current) return;
+    decliningRef.current = true;
     setStatus("declining");
-    const res = await declineInvite(token);
-    if ("error" in res) {
-      setStatus("error");
-      setErrorMsg(res.error);
-    } else {
-      setStatus("declined");
+    try {
+      const res = await declineInvite(token);
+      if ("error" in res) {
+        setStatus("error");
+        setErrorMsg(res.error);
+      } else {
+        setStatus("declined");
+      }
+    } finally {
+      decliningRef.current = false;
     }
   }
 
