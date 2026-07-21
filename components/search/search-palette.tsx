@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArchiveIcon,
   CaretDownIcon,
   CheckSquareIcon,
   ClockIcon,
@@ -12,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { toast } from "sonner";
 import {
   type GlobalSearchResults,
   getSearchFilterOptions,
@@ -256,6 +258,15 @@ export function SearchPalette({
 
   async function navigateSpace(spaceId: string) {
     const s = results?.spaces.find((x) => x.id === spaceId);
+    // Archived projects have no viewable page (they're hidden from the
+    // sidebar and can only be unarchived, not opened) — surface that instead
+    // of navigating into a 404.
+    if (s?.isArchived) {
+      toast.info(
+        `"${s.name}" is archived. Unarchive it from the sidebar to open it.`
+      );
+      return;
+    }
     if (s) {
       recordOpened(workspaceId, { kind: "space", id: s.id, title: s.name });
     }
@@ -811,22 +822,36 @@ export function SearchPalette({
                         />
                         <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-sm font-medium">
+                            <p
+                              className={cn(
+                                "truncate text-sm font-medium",
+                                t.isArchived &&
+                                  "text-muted-foreground line-through"
+                              )}
+                            >
                               {t.title}
                             </p>
-                            {t.statusName && (
-                              <span
-                                className="shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium"
-                                style={{
-                                  backgroundColor: t.statusColor
-                                    ? t.statusColor + "26"
-                                    : undefined,
-                                  color: t.statusColor ?? undefined,
-                                }}
-                              >
-                                {t.statusName}
-                              </span>
-                            )}
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              {t.isArchived && (
+                                <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-2xs font-medium text-muted-foreground">
+                                  <ArchiveIcon className="size-3" />
+                                  Archived
+                                </span>
+                              )}
+                              {t.statusName && (
+                                <span
+                                  className="rounded-full px-2 py-0.5 text-2xs font-medium"
+                                  style={{
+                                    backgroundColor: t.statusColor
+                                      ? t.statusColor + "26"
+                                      : undefined,
+                                    color: t.statusColor ?? undefined,
+                                  }}
+                                >
+                                  {t.statusName}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
                             <span className="truncate">
@@ -934,7 +959,20 @@ export function SearchPalette({
                           className="size-4 shrink-0"
                           style={{ color: s.color ?? undefined }}
                         />
-                        <p className="truncate text-sm font-medium">{s.name}</p>
+                        <p
+                          className={cn(
+                            "truncate text-sm font-medium",
+                            s.isArchived && "text-muted-foreground line-through"
+                          )}
+                        >
+                          {s.name}
+                        </p>
+                        {s.isArchived && (
+                          <span className="flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-2xs font-medium text-muted-foreground">
+                            <ArchiveIcon className="size-3" />
+                            Archived
+                          </span>
+                        )}
                       </button>
                     );
                   })}
