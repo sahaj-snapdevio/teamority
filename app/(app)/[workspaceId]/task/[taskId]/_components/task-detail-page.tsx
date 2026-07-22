@@ -255,7 +255,7 @@ export function TaskDetailPage({
 
   const contextLabel = fromView === "sprint" ? "Sprint" : listName || "List";
   useSetTopbar({
-    breadcrumbs: [{ label: workspaceName }],
+    breadcrumbs: [{ label: workspaceName, href: `/${workspaceId}` }],
     title: contextLabel,
   });
   const [data, setData] = React.useState<Awaited<
@@ -853,7 +853,12 @@ export function TaskDetailPage({
           </button>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <ClipboardTextIcon className="size-4" />
-            <span>{listName}</span>
+            <button
+              className="hover:text-foreground transition-colors"
+              onClick={() => router.push(listBackUrl)}
+            >
+              {contextLabel}
+            </button>
             {parentTask && (
               <>
                 <CaretRightIcon className="size-3.5" />

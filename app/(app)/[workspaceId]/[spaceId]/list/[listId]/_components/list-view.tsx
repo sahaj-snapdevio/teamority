@@ -33,6 +33,7 @@ import {
   PlusIcon,
   PushPinIcon,
   TrashIcon,
+  UserPlusIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
@@ -60,8 +61,13 @@ import {
   updateTask,
   updateTaskStatus,
 } from "@/app/actions/task";
-import { addAssignee, removeAssignee } from "@/app/actions/task-assignee";
-import { FacetFilter } from "@/components/filters/facet-filter";
+import {
+  addAssignee,
+  bulkAssignTasks,
+  removeAssignee,
+} from "@/app/actions/task-assignee";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { FacetFilter, FacetOptionList } from "@/components/filters/facet-filter";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
 import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
@@ -83,6 +89,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -90,6 +97,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SearchInput } from "@/components/ui/search-input";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { filterTasks } from "@/lib/filters/task-filter";
@@ -798,6 +806,7 @@ function BulkActionBar({
   count,
   selectedIds,
   statuses,
+  members,
   workspaceId,
   spaceId,
   listId,
@@ -808,6 +817,12 @@ function BulkActionBar({
   count: number;
   selectedIds: Set<string>;
   statuses: Status[];
+  members: {
+    userId: string;
+    name: string | null;
+    email: string | null;
+    image?: string | null;
+  }[];
   workspaceId: string;
   spaceId: string;
   listId: string;
@@ -817,6 +832,11 @@ function BulkActionBar({
 }) {
   const [busy, setBusy] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [assignOpen, setAssignOpen] = React.useState(false);
+  const [assignSelected, setAssignSelected] = React.useState<string[]>([]);
+  const [assignMode, setAssignMode] = React.useState<"replace" | "add">(
+    "replace"
+  );
   const [sprints, setSprints] = React.useState<SprintOption[] | null>(null);
   const [loadingSprints, setLoadingSprints] = React.useState(false);
   const [listSpaces, setListSpaces] = React.useState<
@@ -910,6 +930,39 @@ function BulkActionBar({
     toast.success(
       `Moved ${res.moved} task${res.moved === 1 ? "" : "s"} to ${targetListName}`
     );
+    onClear();
+  }
+
+  function closeAssignDialog(open: boolean) {
+    setAssignOpen(open);
+    if (!open) {
+      setAssignSelected([]);
+      setAssignMode("replace");
+    }
+  }
+
+  async function handleBulkAssign() {
+    if (assignSelected.length === 0) {
+      return;
+    }
+    setBusy(true);
+    const res = await bulkAssignTasks(
+      workspaceId,
+      spaceId,
+      listId,
+      [...selectedIds],
+      assignSelected,
+      assignMode
+    );
+    setBusy(false);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(
+      `Assigned ${res.updated} task${res.updated === 1 ? "" : "s"}`
+    );
+    closeAssignDialog(false);
     onClear();
   }
 
@@ -1017,6 +1070,79 @@ function BulkActionBar({
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog onOpenChange={closeAssignDialog} open={assignOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Bulk Assign</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Members
+              </p>
+              <FacetOptionList
+                emptyText="No members"
+                onChange={setAssignSelected}
+                options={members.map((m) => ({
+                  value: m.userId,
+                  label: m.name || m.email || "Unknown",
+                  icon: (
+                    <UserAvatar
+                      email={m.email}
+                      image={m.image}
+                      name={m.name || m.email}
+                      size="xs"
+                    />
+                  ),
+                }))}
+                searchable
+                selected={assignSelected}
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Assignment Mode
+              </p>
+              <RadioGroup
+                onValueChange={(v) =>
+                  setAssignMode(v as "replace" | "add")
+                }
+                value={assignMode}
+              >
+                <label
+                  className="flex items-center gap-2 text-sm cursor-pointer"
+                  htmlFor="bulk-assign-mode-replace"
+                >
+                  <RadioGroupItem id="bulk-assign-mode-replace" value="replace" />
+                  Replace existing assignees
+                </label>
+                <label
+                  className="flex items-center gap-2 text-sm cursor-pointer"
+                  htmlFor="bulk-assign-mode-add"
+                >
+                  <RadioGroupItem id="bulk-assign-mode-add" value="add" />
+                  Add to existing assignees
+                </label>
+              </RadioGroup>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={busy}
+              onClick={() => closeAssignDialog(false)}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={busy || assignSelected.length === 0}
+              onClick={handleBulkAssign}
+            >
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-xl border border-white/10 bg-neutral-900 px-3 py-2 shadow-2xl text-white text-sm">
         {/* Count + clear */}
         <span className="font-semibold text-white pr-2 border-r border-white/20 mr-2 select-none">
@@ -1027,6 +1153,16 @@ function BulkActionBar({
           onClick={onClear}
         >
           <XIcon className="size-3.5 text-white/70" />
+        </button>
+
+        {/* Assign */}
+        <button
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+          disabled={busy}
+          onClick={() => setAssignOpen(true)}
+        >
+          <UserPlusIcon className="size-3.5" />
+          Assign
         </button>
 
         {/* Status */}
@@ -2169,6 +2305,7 @@ export function ListView({
           count={selectedIds.size}
           isAdmin={isAdmin}
           listId={listId}
+          members={members}
           onClear={() => setSelectedIds(new Set())}
           selectedIds={selectedIds}
           spaceId={spaceId}

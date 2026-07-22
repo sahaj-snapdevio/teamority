@@ -3,7 +3,7 @@
 import * as React from "react";
 
 interface TopbarState {
-  breadcrumbs: Array<{ label: string; color?: string | null }>;
+  breadcrumbs: Array<{ label: string; color?: string | null; href?: string }>;
   title: string;
   actions?: React.ReactNode;
 }
