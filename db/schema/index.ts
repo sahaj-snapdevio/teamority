@@ -7,6 +7,7 @@ export * from "@/db/schema/workspace";
 export * from "@/db/schema/space";
 export * from "@/db/schema/list";
 export * from "@/db/schema/task";
+export * from "@/db/schema/custom-field";
 export * from "@/db/schema/checklist";
 export * from "@/db/schema/time-tracking";
 export * from "@/db/schema/sprint";

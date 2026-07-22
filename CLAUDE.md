@@ -167,6 +167,15 @@ server/                    ← server actions
 ### Folder
 - Folder is **post-MVP**. Do not implement it. `folder_id` on List is nullable and always null in MVP.
 
+### Custom Fields
+- Definitions are scoped to workspace/space/list (`db/schema/custom-field.ts`); "which fields apply here" is a **union across scopes**, not an override chain (`queryFieldDefinitions()` in `app/actions/custom-field.ts`). Project Settings → Custom Fields (`components/space/custom-fields-settings.tsx`) only manages **space-scoped** fields today — workspace-wide/list-scoped are backend-supported but have no settings UI yet.
+- **Archive vs Delete are separate, non-overlapping paths.** Archive is reversible and keeps stored values; Delete (`deleteCustomFieldDefinition`) is permanent and cascades to every `customFieldValue` row (`onDelete: "cascade"` on the FK — no manual cleanup query needed). Delete requires the standard confirmation `Dialog` (never `window.confirm`), never the reverse.
+- A field's **type cannot change after creation** — the Edit form (which reuses the Create dialog, `FieldFormDialog`) disables the Type select rather than migrating existing values/config.
+- Permission is `requireFieldAdmin()`: **Full Access** on the Space for a space-scoped field, or **Workspace Owner/Admin** for a workspace-wide one (no space to check). The List/Board "Manage Custom Fields" toolbar shortcut reuses the same page-level `canManage` (`spacePermission === "full_access"`) flag, not `isAdmin`.
+- **Filters and Columns are hidden entirely when a project has zero active custom fields** (`filterFields.length > 0` / `columnOptions.length > 0`) — a control with nothing to act on is confusing, not helpful. Because of that, the **Manage Custom Fields** icon shortcut (`components/common/manage-fields-icon.tsx`, placed right after Columns) is the one control shown regardless of field count — it's how a permitted user reaches the settings page to create the first field.
+- `FacetOptionList` (`components/filters/facet-filter.tsx`) took on optional `searchPlaceholder` / `clearLabel` / `showClearDivider` / `maxListHeight` props for the Columns/Filters pickers — all default to the original behavior, so don't assume every caller needs them.
+- Full spec: `docs/custom-fields.md`.
+
 ### Bug Fix Documentation
 - **Whenever a bug is fixed, record it as two Markdown files in `docs/bugs/`** (create the folder if missing):
   1. `{YYYY-MM-DD}-bug-{bug-title}.md` — describes the bug: symptom, where it happened, root cause.
@@ -193,6 +202,7 @@ server/                    ← server actions
 | Real-time Sync | `docs/realtime.md` |
 | Notifications | `docs/notifications.md` |
 | Search & Filters | `docs/search-and-filters.md` |
+| Custom Fields | `docs/custom-fields.md` |
 | Permissions | `docs/permission-model.md` |
 | Settings | `docs/settings.md` |
 | Admin Panel | `docs/admin-panel.md` |

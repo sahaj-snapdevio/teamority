@@ -45,7 +45,9 @@ export type ActivityEventType =
   | "story_points_set"
   | "checklist_item_added"
   | "checklist_item_deleted"
-  | "checklist_renamed";
+  | "checklist_renamed"
+  | "custom_field_value_set"
+  | "custom_field_value_cleared";
 
 export type ActivityMeta = Record<string, unknown>;
 

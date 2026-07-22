@@ -19,6 +19,7 @@ import {
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { toast } from "sonner";
 import {
   archiveTask,
   deleteTask,
@@ -29,6 +30,12 @@ import {
   updateTask,
   updateTaskStatus,
 } from "@/app/actions/task";
+import {
+  deleteCustomFieldValue,
+  getCustomFieldsForTasks,
+  setCustomFieldValue,
+  type CustomFieldRow,
+} from "@/app/actions/custom-field";
 import {
   addAssignee,
   removeAssignee,
@@ -50,6 +57,7 @@ import {
 } from "@/app/actions/task-tag";
 import { ManageStatusesDialog } from "@/components/list/manage-statuses-dialog";
 import { AttachmentPreviewProvider } from "@/components/task/attachment-preview-modal";
+import { CustomFieldEditor } from "@/components/task/custom-field-editors";
 import {
   TaskActivityFeed,
   type TaskActivityFeedHandle,
@@ -202,6 +210,10 @@ export function TaskDetailPanel({
   const [allTags, setAllTags] = React.useState<
     { id: string; name: string; color: string }[]
   >([]);
+  const [customFields, setCustomFields] = React.useState<CustomFieldRow[]>([]);
+  const [customFieldValues, setCustomFieldValues] = React.useState<
+    Record<string, unknown>
+  >({});
   const [deleteTagTarget, setDeleteTagTarget] = React.useState<{
     id: string;
     name: string;
@@ -229,10 +241,11 @@ export function TaskDetailPanel({
   // open state lives in that provider). The skeleton is shown only on the
   // initial open / task switch, via the effect below.
   async function load() {
-    const [detail, mem, tags] = await Promise.all([
+    const [detail, mem, tags, customFieldsRes] = await Promise.all([
       getTaskDetail(workspaceId, spaceId, taskId),
       getWorkspaceMembers(workspaceId),
       getWorkspaceTags(workspaceId),
+      getCustomFieldsForTasks(workspaceId, spaceId, listId, [taskId]),
     ]);
     setData(detail && !("error" in detail) ? detail : null);
     if (mem && !("error" in mem)) {
@@ -244,6 +257,10 @@ export function TaskDetailPanel({
     }
     if (tags && !("error" in tags)) {
       setAllTags(tags.tags);
+    }
+    if (customFieldsRes && !("error" in customFieldsRes)) {
+      setCustomFields(customFieldsRes.fields);
+      setCustomFieldValues(customFieldsRes.valuesByTask[taskId] ?? {});
     }
     setLoading(false);
   }
@@ -416,6 +433,30 @@ export function TaskDetailPanel({
       await addAssignee(workspaceId, spaceId, listId, taskId, userId);
     }
     load();
+  }
+
+  // Updates local state directly on success instead of calling load() — a
+  // custom field value change doesn't invalidate anything else load() fetches,
+  // so there's nothing to gain from re-fetching the whole task. `value ===
+  // null` means "clear" — routed to deleteCustomFieldValue (revert to the
+  // field's default) rather than persisting an explicit null.
+  async function handleCustomFieldChange(fieldId: string, value: unknown) {
+    if (value === null || value === undefined) {
+      const res = await deleteCustomFieldValue(workspaceId, spaceId, taskId, fieldId);
+      if ("error" in res) {
+        toast.error(res.error);
+        return;
+      }
+      const field = customFields.find((f) => f.id === fieldId);
+      setCustomFieldValues((prev) => ({ ...prev, [fieldId]: field?.defaultValue ?? null }));
+      return;
+    }
+    const res = await setCustomFieldValue(workspaceId, spaceId, taskId, fieldId, value);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    setCustomFieldValues((prev) => ({ ...prev, [fieldId]: value }));
   }
 
   async function handleToggleTag(tagId: string) {
@@ -1195,6 +1236,29 @@ export function TaskDetailPanel({
               </span>
             </div>
           </div>
+
+          {/* Custom fields */}
+          {customFields.length > 0 && (
+            <>
+              <Separator />
+              {customFields.map((field) => (
+                <div key={field.id}>
+                  <span className="text-xs font-medium text-muted-foreground block mb-1.5">
+                    {field.name}
+                  </span>
+                  <CustomFieldEditor
+                    disabled={!canEdit}
+                    field={field}
+                    members={members.filter(
+                      (m): m is typeof m & { userId: string } => m.userId !== null
+                    )}
+                    onChange={(value) => handleCustomFieldChange(field.id, value)}
+                    value={customFieldValues[field.id]}
+                  />
+                </div>
+              ))}
+            </>
+          )}
 
           {/* Checklist progress (sidebar summary) */}
           {totalItems > 0 && (

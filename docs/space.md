@@ -209,6 +209,7 @@ L-- created_at          (timestamp)
 | Project Settings — General | `/[workspaceId]/[spaceId]/settings/general` | Full Access / Admin+ |
 | Project Settings — Members | `/[workspaceId]/[spaceId]/settings/members` | Full Access / Admin+ |
 | Project Settings — Notifications | `/[workspaceId]/[spaceId]/settings/notifications` | Any Project member (own settings) |
+| Project Settings — Custom Fields | `/[workspaceId]/[spaceId]/settings/custom-fields` | Full Access / Admin+ — see `docs/custom-fields.md` |
 | Create Project modal | Global (sidebar button) | Admin+ |
 
 ---
@@ -364,4 +365,3 @@ await db.update(space).set({ isPrivate: true }).where(eq(space.id, spaceId))
 - Project duplication / copy
 - Project-level analytics and reporting
 - Public Projects visible outside the workspace (external sharing)
-- Project-level custom fields

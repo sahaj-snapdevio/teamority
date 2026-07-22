@@ -39,6 +39,19 @@ import {
 } from "@/app/actions/task";
 import { addAssignee, removeAssignee } from "@/app/actions/task-assignee";
 import {
+  deleteCustomFieldValue,
+  setCustomFieldValue,
+  type CustomFieldRow,
+} from "@/app/actions/custom-field";
+import {
+  CustomFieldEditor,
+  type CustomFieldMember,
+} from "@/components/task/custom-field-editors";
+import {
+  CUSTOM_FIELD_COLUMN_WIDTH_CLASS,
+  describeCustomFieldValue,
+} from "@/lib/custom-fields/column-display";
+import {
   TaskDependencyBadge,
   type TaskDependencyIndicator,
 } from "@/components/task/task-dependency-badge";
@@ -78,6 +91,7 @@ import { cn } from "@/lib/utils";
 
 export interface TaskListRowData {
   assignees: { userId: string; name: string; image: string | null }[];
+  customFieldValues?: Record<string, unknown>;
   dependencyInfo?: TaskDependencyIndicator;
   trackedSeconds?: number;
   dueDateEnd?: Date | null;
@@ -114,6 +128,9 @@ export interface TaskListRowProps {
   canEdit?: boolean;
   /** Show "Pin to top / Unpin from top" in the ⋯ menu (list view) */
   canPinToList?: boolean;
+  /** Custom field definitions visible as columns — same array reference for
+   * every row (loaded once server-side), never fetched per row. */
+  customFields?: CustomFieldRow[];
   dragProps?: Record<string, unknown>;
   // Optional DnD props — provided by a SortableTaskRow wrapper in list view
   dragRef?: (node: HTMLElement | null) => void;
@@ -138,6 +155,11 @@ export interface TaskListRowProps {
   statuses: { id: string; name: string; color: string }[];
   task: TaskListRowData;
   workspaceId: string;
+  /** Full active workspace member list (loaded once server-side) — passed
+   * through to CustomFieldEditor for PERSON-type fields. Separate from this
+   * component's own lazily-loaded `members` state, which is scoped to the
+   * Assignee popover only. */
+  workspaceMembers?: CustomFieldMember[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -164,6 +186,8 @@ export function TaskListRow({
   dragStyle,
   dragProps,
   isDragging,
+  customFields = [],
+  workspaceMembers = [],
 }: TaskListRowProps) {
   const router = useRouter();
   const { mutate } = useSWRConfig();
@@ -183,6 +207,15 @@ export function TaskListRow({
   const [localPersonalPin, setLocalPersonalPin] = React.useState(
     isPersonallyPinnedProp ?? false
   );
+  // One generic map for every custom field on this row — not one useState per
+  // field/type, since the field set is open-ended and CustomFieldEditor (not
+  // this component) owns all per-type rendering/editing behavior.
+  const [localCustomFieldValues, setLocalCustomFieldValues] = React.useState<
+    Record<string, unknown>
+  >(task.customFieldValues ?? {});
+  React.useEffect(() => {
+    setLocalCustomFieldValues(task.customFieldValues ?? {});
+  }, [task.customFieldValues]);
 
   // ── Inline rename ─────────────────────────────────────────────────────────
   const [localTitle, setLocalTitle] = React.useState(task.title);
@@ -434,6 +467,24 @@ export function TaskListRow({
     if ("error" in res) {
       setLocalPriority(prev);
       toast.error("Failed to update priority");
+    } else {
+      onRefresh();
+    }
+  }
+
+  // Generic for every custom field type — `value === null` means "clear"
+  // (routed to deleteCustomFieldValue, matching the Task Detail integration),
+  // anything else is a set. Mirrors handleSetPriority's optimistic shape.
+  async function handleCustomFieldChange(fieldId: string, value: unknown) {
+    const prev = localCustomFieldValues[fieldId];
+    setLocalCustomFieldValues((p) => ({ ...p, [fieldId]: value }));
+    const res =
+      value === null || value === undefined
+        ? await deleteCustomFieldValue(workspaceId, spaceId, task.id, fieldId)
+        : await setCustomFieldValue(workspaceId, spaceId, task.id, fieldId, value);
+    if ("error" in res) {
+      setLocalCustomFieldValues((p) => ({ ...p, [fieldId]: prev }));
+      toast.error(res.error);
     } else {
       onRefresh();
     }
@@ -819,6 +870,34 @@ export function TaskListRow({
       )}
     </div>
   );
+
+  // One thin cell per visible custom field — CustomFieldEditor (PR2, unchanged)
+  // owns 100% of the per-type rendering/editing; this component never
+  // branches on field.type.
+  const customFieldCells = customFields.map((field) => (
+    <div
+      className={cn(
+        "self-stretch flex min-w-0 items-center overflow-hidden px-2",
+        CUSTOM_FIELD_COLUMN_WIDTH_CLASS[field.type]
+      )}
+      key={field.id}
+      onClick={(e) => e.stopPropagation()}
+      title={describeCustomFieldValue(
+        field,
+        localCustomFieldValues[field.id],
+        workspaceMembers
+      )}
+    >
+      <CustomFieldEditor
+        disabled={!canEdit}
+        emptyPlaceholder="—"
+        field={field}
+        members={workspaceMembers}
+        onChange={(value) => handleCustomFieldChange(field.id, value)}
+        value={localCustomFieldValues[field.id]}
+      />
+    </div>
+  ));
 
   const actionsCell = (
     <div
@@ -1289,6 +1368,7 @@ export function TaskListRow({
         {assigneeCell}
         {dueDateCell}
         {priorityCell}
+        {customFieldCells}
         {actionsCell}
       </div>
 

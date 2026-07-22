@@ -24,19 +24,24 @@ import {
   ArrowCounterClockwiseIcon,
   ArrowSquareOutIcon,
   ArrowsDownUpIcon,
+  CalendarBlankIcon,
+  CaretDownIcon,
   CheckCircleIcon,
+  CheckSquareIcon,
   CopyIcon,
   DotsThreeIcon,
   HashIcon,
   LinkIcon,
   ListPlusIcon,
   PlusIcon,
+  SlidersHorizontalIcon,
   TextAaIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
+import type { CustomFieldRow } from "@/app/actions/custom-field";
 import { createListStatus } from "@/app/actions/list";
 import {
   archiveTask,
@@ -48,7 +53,13 @@ import {
   updateTask,
   updateTaskStatus,
 } from "@/app/actions/task";
-import { FacetFilter } from "@/components/filters/facet-filter";
+import { ManageFieldsIcon } from "@/components/common/manage-fields-icon";
+import { CustomFieldFilterControl } from "@/components/filters/custom-field-filter";
+import {
+  FacetFilter,
+  FacetOptionList,
+} from "@/components/filters/facet-filter";
+import { FilterBuilder } from "@/components/filters/filter-builder";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
 import {
@@ -72,7 +83,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useListColumnPreferences } from "@/hooks/use-list-column-preferences";
 import { taskUrl } from "@/lib/app-url";
+import { describeCustomFieldValue } from "@/lib/custom-fields/column-display";
+import {
+  type CustomFieldFilters,
+  isCustomFieldFilterActive,
+} from "@/lib/custom-fields/filters";
 import {
   flashDuplicatedTask,
   useIsDuplicateHighlighted,
@@ -83,6 +100,13 @@ import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
 import { QuickCreateTask } from "./quick-create-task";
+
+type BoardMember = {
+  userId: string;
+  name: string | null;
+  email: string | null;
+  image?: string | null;
+};
 
 function userInitials(name: string) {
   if (!name) {
@@ -114,8 +138,8 @@ interface Status {
 
 interface Task {
   assignees: { userId: string; name: string; image: string | null }[];
+  customFieldValues?: Record<string, unknown>;
   dependencyInfo?: TaskDependencyIndicator;
-  trackedSeconds?: number;
   id: string;
   orderIndex: number;
   priority: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
@@ -123,11 +147,13 @@ interface Task {
   statusId: string | null;
   tags: { id: string; name: string; color: string }[];
   title: string;
+  trackedSeconds?: number;
 }
 
 interface BoardViewProps {
   canEdit?: boolean;
   canManage?: boolean;
+  customFields?: CustomFieldRow[];
   headerless?: boolean;
   isAdmin?: boolean;
   list: {
@@ -136,13 +162,160 @@ interface BoardViewProps {
     color?: string | null;
     description?: string | null;
   };
-  members?: { userId: string; name: string | null; email: string | null }[];
+  members?: BoardMember[];
   space: { id: string; name: string; color: string | null };
   statuses: Status[];
   tags?: { id: string; name: string; color: string }[];
   tasks: Task[];
   workspaceId: string;
 }
+
+// ─── Custom field card display (read-only) ──────────────────────────────────
+// Board cards never edit custom fields (Task Detail / drawer own that) — this
+// only turns a value into a compact, presentational node. Returns null for an
+// empty value so the caller can skip rendering the field entirely (cards hide
+// empty fields rather than showing a placeholder, unlike the row/detail
+// editors in custom-field-editors.tsx).
+function renderCardCustomField(
+  field: CustomFieldRow,
+  value: unknown,
+  members: BoardMember[]
+): React.ReactNode | null {
+  if (
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  ) {
+    return null;
+  }
+
+  if (field.type === "CHECKBOX") {
+    if (!value) {
+      return null;
+    }
+    return (
+      <Tooltip key={field.id}>
+        <TooltipTrigger asChild>
+          <span className="flex items-center text-primary">
+            <CheckSquareIcon className="size-3.5" weight="fill" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">{field.name}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  if (field.type === "PERSON") {
+    const person = members.find((m) => m.userId === value);
+    if (!person) {
+      return null;
+    }
+    return (
+      <Tooltip key={field.id}>
+        <TooltipTrigger asChild>
+          <Avatar className="size-6 shrink-0 border-2 border-background">
+            {person.image && (
+              <AvatarImage
+                alt={person.name ?? undefined}
+                src={avatarSrc(person.image)}
+              />
+            )}
+            <AvatarFallback className="text-2xs font-semibold bg-primary text-primary-foreground">
+              {userInitials(person.name || person.email || "?")}
+            </AvatarFallback>
+          </Avatar>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {field.name}: {describeCustomFieldValue(field, value, members)}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  if (field.type === "SINGLE_SELECT") {
+    const option = field.config.options?.find((o) => o.id === value);
+    if (!option) {
+      return null;
+    }
+    return (
+      <span
+        className="shrink-0 rounded-full px-1.5 py-0.5 text-2xs font-medium"
+        key={field.id}
+        style={{
+          backgroundColor: `${option.color ?? "#9CA3AF"}20`,
+          color: option.color ?? "#6B7280",
+        }}
+        title={`${field.name}: ${option.label}`}
+      >
+        {option.label}
+      </span>
+    );
+  }
+
+  if (field.type === "MULTI_SELECT") {
+    const ids = Array.isArray(value) ? (value as string[]) : [];
+    const options = field.config.options ?? [];
+    const selected = ids
+      .map((id) => options.find((o) => o.id === id))
+      .filter((o): o is NonNullable<typeof o> => !!o);
+    if (selected.length === 0) {
+      return null;
+    }
+    const shown = selected.slice(0, 2);
+    const extra = selected.length - shown.length;
+    return (
+      <span className="flex shrink-0 items-center gap-1" key={field.id}>
+        {shown.map((o) => (
+          <span
+            className="rounded-full px-1.5 py-0.5 text-2xs font-medium"
+            key={o.id}
+            style={{
+              backgroundColor: `${o.color ?? "#9CA3AF"}20`,
+              color: o.color ?? "#6B7280",
+            }}
+            title={`${field.name}: ${o.label}`}
+          >
+            {o.label}
+          </span>
+        ))}
+        {extra > 0 && (
+          <span
+            className="text-2xs font-medium text-muted-foreground"
+            title={`${field.name}: ${selected.map((o) => o.label).join(", ")}`}
+          >
+            +{extra}
+          </span>
+        )}
+      </span>
+    );
+  }
+
+  // TEXT / NUMBER / DATE — plain truncated text, formatted by the same helper
+  // the List View column cells use.
+  const text = describeCustomFieldValue(field, value, members);
+  if (!text) {
+    return null;
+  }
+  return (
+    <span
+      className="max-w-[110px] truncate text-2xs font-medium text-muted-foreground"
+      key={field.id}
+      title={`${field.name}: ${text}`}
+    >
+      {field.type === "DATE" && (
+        <CalendarBlankIcon className="-mt-0.5 mr-0.5 inline size-3" />
+      )}
+      {text}
+    </span>
+  );
+}
+
+// Caps how many custom-field chips a single card shows, regardless of how
+// many fields are enabled in the "Fields" menu — keeps card height compact
+// even when a list has many custom fields turned on. Extras collapse into a
+// single "+N more" chip rather than growing the card.
+const MAX_CARD_CUSTOM_FIELDS = 4;
 
 const PRIORITY_ORDER: Record<Task["priority"], number> = {
   URGENT: 0,
@@ -177,6 +350,8 @@ function CardContent({
   canEdit,
   isAdmin,
   onRefresh,
+  customFields = [],
+  members = [],
 }: {
   task: Task;
   overlay?: boolean;
@@ -189,12 +364,31 @@ function CardContent({
   canEdit?: boolean;
   isAdmin?: boolean;
   onRefresh?: () => void;
+  customFields?: CustomFieldRow[];
+  members?: BoardMember[];
 }) {
   // The hover quick-actions render only on real (non-overlay) cards that were
   // handed the workspace/list context. The drag overlay stays purely visual.
   const interactive =
     !overlay && !!workspaceId && !!spaceId && !!listId && !!onRefresh;
   const highlighted = useIsDuplicateHighlighted(task.id);
+
+  // Only fields with a real, non-empty value render — cards hide empty
+  // custom fields entirely rather than showing a placeholder (unlike the
+  // List View / Task Detail editors). Beyond MAX_CARD_CUSTOM_FIELDS, the rest
+  // collapse into a single "+N more" chip so an enthusiastically-configured
+  // Fields menu can't blow up card height.
+  const resolvedCustomFieldNodes = customFields
+    .map((field) =>
+      renderCardCustomField(field, task.customFieldValues?.[field.id], members)
+    )
+    .filter((node) => node !== null);
+  const customFieldNodes = resolvedCustomFieldNodes.slice(
+    0,
+    MAX_CARD_CUSTOM_FIELDS
+  );
+  const hiddenCustomFieldCount =
+    resolvedCustomFieldNodes.length - customFieldNodes.length;
 
   // Inline rename — mirrors the list-row flow (updateTask({ title })).
   const [localTitle, setLocalTitle] = React.useState(task.title);
@@ -216,7 +410,7 @@ function CardContent({
             el.scrollWidth > el.clientWidth + 1
         : false
     );
-  }, [localTitle]);
+  }, []);
 
   // Add-subtask mini composer + delete confirm.
   const [subtaskOpen, setSubtaskOpen] = React.useState(false);
@@ -479,6 +673,19 @@ function CardContent({
             )}
           </div>
         </div>
+        {resolvedCustomFieldNodes.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+            {customFieldNodes}
+            {hiddenCustomFieldCount > 0 && (
+              <span
+                className="text-2xs font-medium text-muted-foreground"
+                title={`${hiddenCustomFieldCount} more field${hiddenCustomFieldCount === 1 ? "" : "s"} set`}
+              >
+                +{hiddenCustomFieldCount} more
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Hover quick actions — sibling of the drag/click div above, so it starts
@@ -682,6 +889,8 @@ function TaskCard({
   canEdit,
   isAdmin,
   onRefresh,
+  customFields,
+  members,
 }: {
   task: Task;
   workspaceId: string;
@@ -691,6 +900,8 @@ function TaskCard({
   canEdit?: boolean;
   isAdmin?: boolean;
   onRefresh: () => void;
+  customFields: CustomFieldRow[];
+  members: BoardMember[];
 }) {
   const router = useRouter();
   const {
@@ -725,10 +936,12 @@ function TaskCard({
     <div ref={setNodeRef} style={style} {...attributes}>
       <CardContent
         canEdit={canEdit}
+        customFields={customFields}
         dragListeners={clickableListeners}
         isAdmin={isAdmin}
         isDragging={isDragging}
         listId={listId}
+        members={members}
         onRefresh={onRefresh}
         spaceId={spaceId}
         statuses={statuses}
@@ -751,6 +964,8 @@ function Column({
   canEdit,
   isAdmin,
   onRefresh,
+  customFields,
+  members,
 }: {
   status: Status;
   tasks: Task[];
@@ -761,6 +976,8 @@ function Column({
   canEdit?: boolean;
   isAdmin?: boolean;
   onRefresh: () => void;
+  customFields: CustomFieldRow[];
+  members: BoardMember[];
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
 
@@ -806,9 +1023,11 @@ function Column({
           {tasks.map((t) => (
             <TaskCard
               canEdit={canEdit}
+              customFields={customFields}
               isAdmin={isAdmin}
               key={t.id}
               listId={list.id}
+              members={members}
               onRefresh={onRefresh}
               spaceId={space.id}
               statuses={statuses}
@@ -840,6 +1059,7 @@ export function BoardView({
   statuses,
   tasks,
   members = [],
+  customFields = [],
   canEdit,
   canManage,
   isAdmin,
@@ -848,6 +1068,22 @@ export function BoardView({
   // Re-pull the server-rendered board after a card quick-action. The actions
   // revalidate + broadcast server-side; this refreshes the current view too.
   const handleRefresh = React.useCallback(() => router.refresh(), [router]);
+
+  // ── Board "Fields" preference — which custom fields show on cards ────────
+  // Reuses the same generic {id,label}[] preference hook List View's Columns
+  // menu uses (hooks/use-list-column-preferences.ts), keyed separately
+  // (`${list.id}:board`) so choosing card fields doesn't also toggle List
+  // View's table columns. Hidden by default, same as List View.
+  const fieldOptions = React.useMemo(
+    () => customFields.map((f) => ({ id: f.id, label: f.name })),
+    [customFields]
+  );
+  const { visibleIds: visibleFieldIds, setVisibleIds: setVisibleFieldIds } =
+    useListColumnPreferences(`${list.id}:board`, fieldOptions);
+  const visibleCustomFields = React.useMemo(
+    () => customFields.filter((f) => visibleFieldIds.includes(f.id)),
+    [customFields, visibleFieldIds]
+  );
 
   // ── "Add group" — create a new status column (reuses createListStatus). ────
   const [newGroupOpen, setNewGroupOpen] = React.useState(false);
@@ -896,15 +1132,77 @@ export function BoardView({
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
   const [priorityFilter, setPriorityFilter] = React.useState<string[]>([]);
   const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([]);
+  const [customFieldFilters, setCustomFieldFilters] =
+    React.useState<CustomFieldFilters>({});
+
+  // ── Filters (built-in + custom fields) ────────────────────────────────────
+  // Option lists shared between the standalone toolbar buttons above and the
+  // Filters builder below, so there's exactly one place that builds them.
+  const statusOptions = React.useMemo(
+    () => statuses.map((s) => ({ value: s.id, label: s.name, color: s.color })),
+    [statuses]
+  );
+  const assigneeOptions = React.useMemo(
+    () => [
+      { value: "unassigned", label: "Unassigned" },
+      ...members.map((m) => ({
+        value: m.userId,
+        label: m.name || m.email || "Unknown",
+      })),
+    ],
+    [members]
+  );
+  // Status/Priority/Assignee already have their own dedicated toolbar
+  // buttons directly above — the Filters builder is only for fields that
+  // don't, so it stays the "custom + future advanced fields" picker rather
+  // than duplicating what's already one click away.
+  const filterFields = React.useMemo(
+    () => customFields.map((field) => ({ key: field.id, label: field.name })),
+    [customFields]
+  );
+
+  function isFilterFieldActive(key: string) {
+    return isCustomFieldFilterActive(customFieldFilters[key]);
+  }
+
+  function clearFilterField(key: string) {
+    setCustomFieldFilters((prev) => {
+      const { [key]: _removed, ...rest } = prev;
+      return rest;
+    });
+  }
+
+  function renderFilterControl(key: string) {
+    const field = customFields.find((f) => f.id === key);
+    if (!field) {
+      return null;
+    }
+    return (
+      <CustomFieldFilterControl
+        field={field}
+        members={members}
+        onChange={(next) =>
+          setCustomFieldFilters((prev) => ({ ...prev, [field.id]: next }))
+        }
+        value={customFieldFilters[field.id]}
+      />
+    );
+  }
 
   // ── Filtered + sorted tasks (for display) ────────────────────────────────
   const processedTasks = React.useMemo(() => {
-    let result = filterTasks(localTasks, {
-      searchQuery,
-      statusFilter,
-      priorityFilter,
-      assigneeFilter,
-    });
+    let result = filterTasks(
+      localTasks,
+      {
+        searchQuery,
+        statusFilter,
+        priorityFilter,
+        assigneeFilter,
+        customFieldFilters,
+      },
+      customFields,
+      members
+    );
 
     if (sortBy === "name") {
       result = [...result].sort((a, b) =>
@@ -926,6 +1224,9 @@ export function BoardView({
     statusFilter,
     priorityFilter,
     assigneeFilter,
+    customFieldFilters,
+    customFields,
+    members,
     sortBy,
     sortOrder,
   ]);
@@ -1074,99 +1375,187 @@ export function BoardView({
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Logical groups get their own gap-2 row; the gap-4 on this wrapper
+            is what separates the groups from each other (Search /
+            Status+Priority+Assignee+Filters / Sort+Fields) — a bit more
+            breathing room than the gap-2 used inside each group. */}
+        <div className="flex items-center gap-4 flex-wrap">
           {/* Search */}
           <SearchInput
-            className="w-44 focus:w-56"
+            className="w-64 focus:w-80"
             onChange={(e) => setSearchQuery(e.target.value)}
             onClear={() => setSearchQuery("")}
             placeholder="Search tasks…"
             value={searchQuery}
           />
 
-          {/* Filters — shared facet controls (same state + filter logic) */}
-          <FacetFilter
-            label="Status"
-            onChange={setStatusFilter}
-            options={statuses.map((s) => ({
-              value: s.id,
-              label: s.name,
-              color: s.color,
-            }))}
-            selected={statusFilter}
-          />
-          <FacetFilter
-            label="Priority"
-            onChange={setPriorityFilter}
-            options={PRIORITY_OPTIONS}
-            selected={priorityFilter}
-          />
-          {members.length > 0 && (
+          {/* Filters — shared facet controls (same state + filter logic).
+              Kept exactly as standalone toolbar buttons — the Filters
+              builder is an additional entry point onto this same state, not
+              a replacement for these. */}
+          <div className="flex items-center gap-2 flex-wrap">
             <FacetFilter
-              label="Assignee"
-              onChange={setAssigneeFilter}
-              options={[
-                { value: "unassigned", label: "Unassigned" },
-                ...members.map((m) => ({
-                  value: m.userId,
-                  label: m.name || m.email || "Unknown",
-                })),
-              ]}
-              searchable
-              selected={assigneeFilter}
+              label="Status"
+              onChange={setStatusFilter}
+              options={statusOptions}
+              selected={statusFilter}
+            />
+            <FacetFilter
+              label="Priority"
+              onChange={setPriorityFilter}
+              options={PRIORITY_OPTIONS}
+              selected={priorityFilter}
+            />
+            {members.length > 0 && (
+              <FacetFilter
+                label="Assignee"
+                onChange={setAssigneeFilter}
+                options={assigneeOptions}
+                searchable
+                selected={assigneeFilter}
+              />
+            )}
+          </div>
+
+          {/* One compact "Filters" entry for custom fields only —
+              Status/Priority/Assignee already have dedicated buttons above,
+              so they're deliberately excluded here to avoid duplicating
+              them. Custom fields are picked dynamically instead of getting
+              their own always-visible toolbar button, so the toolbar stays
+              the same width no matter how many custom fields a list has.
+              Hidden entirely when there are none — it would otherwise open
+              onto an empty "No filters yet" picker with nothing to add. */}
+          {filterFields.length > 0 && (
+            <FilterBuilder
+              fields={filterFields}
+              isActive={isFilterFieldActive}
+              onClear={clearFilterField}
+              renderControl={renderFilterControl}
             />
           )}
 
-          {/* Sort */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer select-none">
-                <ArrowsDownUpIcon className="size-3.5" />
-                Sort:{" "}
-                {sortBy
-                  ? sortBy.charAt(0).toUpperCase() + sortBy.slice(1)
-                  : "None"}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              align="start"
-              className="w-44 p-1 flex flex-col gap-0.5"
-            >
-              <button
-                className={cn(
-                  "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
-                  !sortBy && "bg-accent"
-                )}
-                onClick={() => setSortBy(null)}
+          <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Sort */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer select-none">
+                  <ArrowsDownUpIcon className="size-3.5" />
+                  Sort:{" "}
+                  {sortBy
+                    ? sortBy.charAt(0).toUpperCase() + sortBy.slice(1)
+                    : "None"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                className="w-44 p-1 flex flex-col gap-0.5"
               >
-                None
-              </button>
+                <button
+                  className={cn(
+                    "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
+                    !sortBy && "bg-accent"
+                  )}
+                  onClick={() => setSortBy(null)}
+                >
+                  None
+                </button>
+                <button
+                  className={cn(
+                    "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
+                    sortBy === "name" && "bg-accent"
+                  )}
+                  onClick={() => {
+                    setSortBy("name");
+                    setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                  }}
+                >
+                  Task Name
+                </button>
+                <button
+                  className={cn(
+                    "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
+                    sortBy === "priority" && "bg-accent"
+                  )}
+                  onClick={() => {
+                    setSortBy("priority");
+                    setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                  }}
+                >
+                  Priority
+                </button>
+              </PopoverContent>
+            </Popover>
+
+            {/* Fields — which custom fields show on cards (hidden by
+                default, persisted per board via useListColumnPreferences).
+                Cards are read-only; editing stays on Task Detail / the
+                drawer. */}
+            {customFields.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className={cn(
+                      "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors cursor-pointer",
+                      visibleFieldIds.length > 0
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
+                    type="button"
+                  >
+                    <SlidersHorizontalIcon className="size-3.5" />
+                    Fields
+                    {visibleFieldIds.length > 0 && (
+                      <span className="font-bold">
+                        ({visibleFieldIds.length})
+                      </span>
+                    )}
+                    <CaretDownIcon className="size-3 opacity-60" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-56 rounded-xl p-1.5">
+                  <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Custom Fields
+                  </p>
+                  <FacetOptionList
+                    emptyText="No custom fields"
+                    onChange={setVisibleFieldIds}
+                    options={fieldOptions.map((f) => ({
+                      value: f.id,
+                      label: f.label,
+                    }))}
+                    searchable={fieldOptions.length > 6}
+                    selected={visibleFieldIds}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+
+            <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+
+            {/* Manage Custom Fields — a discoverability shortcut straight to
+                Project Settings → Custom Fields, not a general Settings
+                button. Only shown to full-access members (same permission
+                requireFieldAdmin enforces for a space-scoped field), and
+                independent of whether any custom fields exist yet — that's
+                the point: it's how you'd go create the first one when
+                Filters/Fields are hidden. */}
+            {canManage && (
               <button
-                className={cn(
-                  "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
-                  sortBy === "name" && "bg-accent"
-                )}
-                onClick={() => {
-                  setSortBy("name");
-                  setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
-                }}
+                className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
+                onClick={() =>
+                  router.push(
+                    `/${workspaceId}/${space.id}/settings/custom-fields`
+                  )
+                }
+                title="Manage Custom Fields"
+                type="button"
               >
-                Task Name
+                <ManageFieldsIcon className="size-4" />
               </button>
-              <button
-                className={cn(
-                  "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
-                  sortBy === "priority" && "bg-accent"
-                )}
-                onClick={() => {
-                  setSortBy("priority");
-                  setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
-                }}
-              >
-                Priority
-              </button>
-            </PopoverContent>
-          </Popover>
+            )}
+          </div>
         </div>
 
         {/* Create Task button */}
@@ -1192,9 +1581,11 @@ export function BoardView({
           {statuses.map((status) => (
             <Column
               canEdit={canEdit}
+              customFields={visibleCustomFields}
               isAdmin={isAdmin}
               key={status.id}
               list={list}
+              members={members}
               onRefresh={handleRefresh}
               space={space}
               status={status}
@@ -1218,7 +1609,14 @@ export function BoardView({
 
         {/* Drag overlay — shown while dragging */}
         <DragOverlay>
-          {activeTask && <CardContent overlay task={activeTask} />}
+          {activeTask && (
+            <CardContent
+              customFields={visibleCustomFields}
+              members={members}
+              overlay
+              task={activeTask}
+            />
+          )}
         </DragOverlay>
       </DndContext>
 

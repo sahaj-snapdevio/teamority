@@ -332,6 +332,64 @@ export const timeLog = pgTable("time_log", {
 
 ---
 
+## Custom Fields
+
+Schema file: `db/schema/custom-field.ts`. See `docs/custom-fields.md` for the full feature spec.
+
+```ts
+import { boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { workspace } from "./workspace";
+import { space } from "./space";
+import { list } from "./list";
+import { task } from "./task";
+
+export const customFieldTypeEnum = pgEnum("custom_field_type", [
+  "TEXT", "NUMBER", "CHECKBOX", "SINGLE_SELECT", "MULTI_SELECT", "DATE", "PERSON",
+]);
+
+// spaceId/listId both null = workspace-wide; spaceId set + listId null = whole
+// Project; both set = single List. Resolving "applicable fields" is a union
+// across these three scopes, not an override chain.
+export const customFieldDefinition = pgTable("custom_field_definition", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspace.id, { onDelete: "cascade" }),
+  spaceId: text("space_id").references(() => space.id, { onDelete: "cascade" }),
+  listId: text("list_id").references(() => list.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  slug: text("slug").notNull(),
+  description: text("description"),
+  placeholder: text("placeholder"),
+  type: customFieldTypeEnum("type").notNull(),
+  config: jsonb("config").notNull().default({}),  // { options?, min?, max? } — type-specific
+  defaultValue: jsonb("default_value"),           // validated same as a real value before persisting
+  required: boolean("required").notNull().default(false),
+  isArchived: boolean("is_archived").notNull().default(false),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  orderIndex: integer("order_index").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("custom_field_definition_scope_idx").on(t.workspaceId, t.spaceId, t.listId),
+  unique("custom_field_definition_scope_slug_unique").on(t.workspaceId, t.spaceId, t.listId, t.slug),
+]);
+
+export const customFieldValue = pgTable("custom_field_value", {
+  id: text("id").primaryKey(),
+  taskId: text("task_id").notNull().references(() => task.id, { onDelete: "cascade" }),
+  fieldId: text("field_id").notNull().references(() => customFieldDefinition.id, { onDelete: "cascade" }),
+  value: jsonb("value"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("custom_field_value_task_id_idx").on(t.taskId),
+  unique("custom_field_value_task_field_unique").on(t.taskId, t.fieldId),
+]);
+```
+
+> **Delete cascades:** `customFieldValue.fieldId` is `onDelete: "cascade"` — permanently deleting a `customFieldDefinition` row removes every value for it automatically. Archiving (`isArchived`/`archivedAt`) is the separate, reversible path and does not touch values.
+
+---
+
 ## Checklist
 
 Schema file: `db/schema/checklist.ts`

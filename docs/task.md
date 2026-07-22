@@ -54,6 +54,8 @@ Workspace
 
 > **Time tracking removed:** the time-tracking UI (Time Estimate, Time Logged, "Log time") has been removed from the task detail. Any legacy time-log records may still exist in the database, but there is no UI to create or view them.
 
+> **Custom Fields:** beyond the built-in fields above, a Project/Workspace/List can define extra per-task fields (Text, Number, Checkbox, Single/Multi Select, Date, Person). See `docs/custom-fields.md`.
+
 ---
 
 ## Priority Levels
@@ -696,7 +698,6 @@ src/
 
 ## Out of Scope (MVP)
 
-- Custom Fields (Text, Number, Dropdown, Date, Checkbox, URL)
 - Recurring Tasks (daily / weekly / monthly / custom) — requires pg-boss cron patterns and DST/skip-weekend edge cases
 - Task Templates
 - Email-to-task (create task by sending an email)

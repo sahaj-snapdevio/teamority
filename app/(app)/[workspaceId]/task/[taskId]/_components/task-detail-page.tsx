@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
+import { toast } from "sonner";
 import {
   archiveTask,
   createSubtask,
@@ -47,6 +48,12 @@ import {
   updateTask,
   updateTaskStatus,
 } from "@/app/actions/task";
+import {
+  deleteCustomFieldValue,
+  getCustomFieldsForTasks,
+  setCustomFieldValue,
+  type CustomFieldRow,
+} from "@/app/actions/custom-field";
 import {
   addAssignee,
   removeAssignee,
@@ -76,6 +83,7 @@ import {
   TaskActivityFeed,
   type TaskActivityFeedHandle,
 } from "@/components/task/task-activity-feed";
+import { CustomFieldEditor } from "@/components/task/custom-field-editors";
 import { TaskDependencies } from "@/components/task/task-dependencies";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
 import { TaskTimeTracking } from "@/components/task/task-time-tracking";
@@ -271,6 +279,10 @@ export function TaskDetailPage({
   const [allTags, setAllTags] = React.useState<
     { id: string; name: string; color: string }[]
   >([]);
+  const [customFields, setCustomFields] = React.useState<CustomFieldRow[]>([]);
+  const [customFieldValues, setCustomFieldValues] = React.useState<
+    Record<string, unknown>
+  >({});
   const [tagSearch, setTagSearch] = React.useState("");
   const [deleteTagTarget, setDeleteTagTarget] = React.useState<{
     id: string;
@@ -421,7 +433,7 @@ export function TaskDetailPage({
     if (showSpinner) {
       setLoading(true);
     }
-    const [detail, mem, tags, attRes, pinRes] = await Promise.all([
+    const [detail, mem, tags, attRes, pinRes, customFieldsRes] = await Promise.all([
       getTaskDetail(workspaceId, spaceId, taskId),
       getWorkspaceMembers(workspaceId),
       getWorkspaceTags(workspaceId),
@@ -431,6 +443,7 @@ export function TaskDetailPage({
       fetch(`/api/tasks/${taskId}/pin`, { method: "GET" })
         .then((r) => (r.ok ? r.json() : { pinned: false }))
         .catch(() => ({ pinned: false })),
+      getCustomFieldsForTasks(workspaceId, spaceId, listId, [taskId]),
     ]);
     setData(detail && !("error" in detail) ? detail : null);
     if (mem && !("error" in mem)) {
@@ -452,6 +465,10 @@ export function TaskDetailPage({
       setAttachments(attRes.attachments);
     }
     setIsPinned(!!pinRes?.pinned);
+    if (customFieldsRes && !("error" in customFieldsRes)) {
+      setCustomFields(customFieldsRes.fields);
+      setCustomFieldValues(customFieldsRes.valuesByTask[taskId] ?? {});
+    }
     if (showSpinner) {
       setLoading(false);
     }
@@ -651,6 +668,30 @@ export function TaskDetailPage({
       await addAssignee(workspaceId, spaceId, listId, taskId, userId);
     }
     load();
+  }
+
+  // Updates local state directly on success instead of calling load() — a
+  // custom field value change doesn't invalidate anything else fetchAll()
+  // loads, so there's nothing to gain from re-fetching the whole task.
+  // `value === null` means "clear" — routed to deleteCustomFieldValue (revert
+  // to the field's default) rather than persisting an explicit null.
+  async function handleCustomFieldChange(fieldId: string, value: unknown) {
+    if (value === null || value === undefined) {
+      const res = await deleteCustomFieldValue(workspaceId, spaceId, taskId, fieldId);
+      if ("error" in res) {
+        toast.error(res.error);
+        return;
+      }
+      const field = customFields.find((f) => f.id === fieldId);
+      setCustomFieldValues((prev) => ({ ...prev, [fieldId]: field?.defaultValue ?? null }));
+      return;
+    }
+    const res = await setCustomFieldValue(workspaceId, spaceId, taskId, fieldId, value);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    setCustomFieldValues((prev) => ({ ...prev, [fieldId]: value }));
   }
 
   async function handleToggleTag(tagId: string) {
@@ -1455,6 +1496,23 @@ export function TaskDetailPage({
                   )}
                 </div>
               </FieldRow>
+
+              {/* Custom fields */}
+              {customFields.map((field) => (
+                <FieldRow
+                  icon={<span className="size-3 shrink-0" />}
+                  key={field.id}
+                  label={field.name}
+                >
+                  <CustomFieldEditor
+                    disabled={!canEdit}
+                    field={field}
+                    members={members}
+                    onChange={(value) => handleCustomFieldChange(field.id, value)}
+                    value={customFieldValues[field.id]}
+                  />
+                </FieldRow>
+              ))}
             </div>
 
             {/* Description */}
