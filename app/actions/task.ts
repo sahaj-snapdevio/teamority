@@ -36,6 +36,10 @@ import {
 import { writeActivityLog } from "@/lib/activity-log";
 import { refreshWorkspace } from "@/lib/realtime/refresh";
 import { createNotifications } from "@/lib/notifications/create-notification";
+import {
+  createBulkNotifications,
+  type BulkNotifyTaskInfo,
+} from "@/lib/notifications/create-bulk-notifications";
 import { extractInlineImageAttachmentIds, extractMentionIds, toTiptapDoc } from "@/lib/notes";
 import { spaceRecipientUserIds } from "@/app/actions/space";
 import { storage } from "@/lib/storage";
@@ -1385,7 +1389,7 @@ export async function bulkUpdateStatus(
   // own list is authoritative. This keeps the update scoped to tasks that can
   // legitimately receive this status.
   const [statusRow] = await db
-    .select({ listId: listStatus.listId })
+    .select({ id: listStatus.id, name: listStatus.name, type: listStatus.type, listId: listStatus.listId })
     .from(listStatus)
     .innerJoin(list, eq(listStatus.listId, list.id))
     .where(and(eq(listStatus.id, statusId), eq(list.spaceId, spaceId)))
@@ -1393,13 +1397,91 @@ export async function bulkUpdateStatus(
 
   if (!statusRow) return { error: "Status not found" };
 
+  // Snapshot titles + previous status (with name) before the update, scoped to
+  // this space — also doubles as scoping against stale/foreign ids. Used below
+  // to log/notify only the tasks whose status actually changes, matching
+  // updateTaskStatus's single-task behavior.
+  const affected = await db
+    .select({
+      id: task.id,
+      title: task.title,
+      oldStatusId: task.statusId,
+      oldStatusName: listStatus.name,
+    })
+    .from(task)
+    .leftJoin(listStatus, eq(task.statusId, listStatus.id))
+    .where(and(inArray(task.id, taskIds), eq(task.spaceId, spaceId)));
+
+  if (affected.length === 0) return { ok: true };
+  const validTaskIds = affected.map((t) => t.id);
+
   // Set the status and align the task's list with the status's own list. This
   // covers sprint tasks that have no list yet (their listId is null, so a
   // list-scoped filter would never match them) and keeps status/list consistent.
   await db
     .update(task)
     .set({ statusId, listId: statusRow.listId, updatedAt: new Date() })
-    .where(and(inArray(task.id, taskIds), eq(task.spaceId, spaceId)));
+    .where(inArray(task.id, validTaskIds));
+
+  // Activity log + notifications — best-effort. Activity log stays one entry
+  // per task; notifications are grouped per recipient (createBulkNotifications)
+  // so a watcher of several changed tasks gets one notification, not one per
+  // task — matching updateTaskStatus's single-task copy in the N=1 case.
+  const changed = affected.filter((t) => t.oldStatusId !== statusId);
+  if (changed.length > 0) {
+    const actorName = session.user.name ?? session.user.email ?? "Someone";
+    const watcherRows = await db
+      .select({ taskId: taskWatcher.taskId, userId: taskWatcher.userId })
+      .from(taskWatcher)
+      .where(inArray(taskWatcher.taskId, changed.map((t) => t.id)));
+    const watchersByTask = new Map<string, string[]>();
+    for (const row of watcherRows) {
+      const ids = watchersByTask.get(row.taskId) ?? [];
+      ids.push(row.userId);
+      watchersByTask.set(row.taskId, ids);
+    }
+
+    const bulkTasks: BulkNotifyTaskInfo<{ title: string }>[] = [];
+    for (const t of changed) {
+      await writeActivityLog(t.id, session.user.id, "status_changed", {
+        from: t.oldStatusId,
+        to: statusId,
+        from_status_name: t.oldStatusName ?? null,
+        to_status_name: statusRow.name,
+      });
+
+      const watcherIds = watchersByTask.get(t.id) ?? [];
+      if (watcherIds.length > 0) {
+        bulkTasks.push({ taskId: t.id, recipientIds: watcherIds, data: { title: t.title } });
+      }
+    }
+
+    createBulkNotifications({
+      workspaceId,
+      actorId: session.user.id,
+      triggerType: statusRow.type === "CLOSED" ? "task_completed" : "task_status_changed",
+      entityType: "TASK",
+      tasks: bulkTasks,
+      buildMessage: ({ tasks: group }) => {
+        if (group.length === 1) {
+          return {
+            title:
+              statusRow.type === "CLOSED"
+                ? `${actorName} completed "${group[0].data.title}"`
+                : `${actorName} changed status of "${group[0].data.title}" to "${statusRow.name}"`,
+          };
+        }
+        const titles = group.map((g) => g.data.title);
+        return {
+          title:
+            statusRow.type === "CLOSED"
+              ? `${actorName} completed ${group.length} tasks`
+              : `${actorName} changed status of ${group.length} tasks to "${statusRow.name}"`,
+          body: titles.slice(0, 5).join(", ") + (titles.length > 5 ? "…" : ""),
+        };
+      },
+    });
+  }
 
   revalidateList(workspaceId, spaceId, statusRow.listId);
   return { ok: true };
@@ -1418,11 +1500,75 @@ export async function bulkDeleteTasks(
 
   if (taskIds.length === 0) return { ok: true };
 
+  // Snapshot titles + notification recipients BEFORE the delete (rows are gone
+  // afterwards) — also scopes to this space, guarding against stale/foreign ids.
+  const affected = await db
+    .select({ id: task.id, title: task.title, listId: task.listId })
+    .from(task)
+    .where(and(inArray(task.id, taskIds), eq(task.spaceId, spaceId)));
+  if (affected.length === 0) return { ok: true };
+  const validTaskIds = affected.map((t) => t.id);
+
+  const [assigneeRows, watcherRows] = await Promise.all([
+    db
+      .select({ taskId: taskAssignee.taskId, userId: taskAssignee.userId })
+      .from(taskAssignee)
+      .where(inArray(taskAssignee.taskId, validTaskIds)),
+    db
+      .select({ taskId: taskWatcher.taskId, userId: taskWatcher.userId })
+      .from(taskWatcher)
+      .where(inArray(taskWatcher.taskId, validTaskIds)),
+  ]);
+  const recipientsByTask = new Map<string, Set<string>>();
+  for (const row of [...assigneeRows, ...watcherRows]) {
+    const set = recipientsByTask.get(row.taskId) ?? new Set<string>();
+    set.add(row.userId);
+    recipientsByTask.set(row.taskId, set);
+  }
+
   // Scope by space, not a single list — the sprint view (and other cross-list
   // views) selects tasks that may span lists and has no single listId to pass.
-  await db
-    .delete(task)
-    .where(and(inArray(task.id, taskIds), eq(task.spaceId, spaceId)));
+  await db.delete(task).where(inArray(task.id, validTaskIds));
+
+  // Notify assignees + watchers per task, grouped per recipient — matches
+  // deleteTask's single-task recipient set/copy in the N=1 case, one
+  // notification per recipient (not per task) for N>1.
+  const actorName = session.user.name ?? session.user.email ?? "Someone";
+  const bulkTasks: BulkNotifyTaskInfo<{ title: string; listId: string | null }>[] = [];
+  for (const t of affected) {
+    const recipientIds = [...(recipientsByTask.get(t.id) ?? [])];
+    if (recipientIds.length > 0) {
+      bulkTasks.push({ taskId: t.id, recipientIds, data: { title: t.title, listId: t.listId } });
+    }
+  }
+  createBulkNotifications({
+    workspaceId,
+    actorId: session.user.id,
+    triggerType: "task_deleted",
+    entityType: "TASK",
+    tasks: bulkTasks,
+    buildMessage: ({ tasks: group, representativeTaskId }) => {
+      const rep = group.find((g) => g.taskId === representativeTaskId) ?? group[0];
+      const pushUrl = rep.data.listId
+        ? `/${workspaceId}/${spaceId}/list/${rep.data.listId}`
+        : `/${workspaceId}`;
+      if (group.length === 1) {
+        return {
+          title: `${actorName} deleted task "${group[0].data.title}"`,
+          pushTitle: group[0].data.title,
+          pushBody: `${actorName} deleted this task`,
+          pushUrl,
+        };
+      }
+      const titles = group.map((g) => g.data.title);
+      return {
+        title: `${actorName} deleted ${group.length} tasks`,
+        body: titles.slice(0, 5).join(", ") + (titles.length > 5 ? "…" : ""),
+        pushBody: `${actorName} deleted ${group.length} tasks`,
+        pushUrl,
+      };
+    },
+  });
 
   revalidateSpace(workspaceId, spaceId);
   return { ok: true };
@@ -1441,11 +1587,25 @@ export async function bulkArchiveTasks(
 
   if (taskIds.length === 0) return { ok: true };
 
-  // Scope by space, not a single list — see bulkDeleteTasks.
+  // Scope by space, not a single list — see bulkDeleteTasks. Also doubles as
+  // the set of ids to write activity log entries for below.
+  const affected = await db
+    .select({ id: task.id })
+    .from(task)
+    .where(and(inArray(task.id, taskIds), eq(task.spaceId, spaceId)));
+  if (affected.length === 0) return { ok: true };
+  const validTaskIds = affected.map((t) => t.id);
+
   await db
     .update(task)
     .set({ isArchived: true, archivedAt: new Date(), updatedAt: new Date() })
-    .where(and(inArray(task.id, taskIds), eq(task.spaceId, spaceId)));
+    .where(inArray(task.id, validTaskIds));
+
+  // Matches archiveTask's single-task activity log — no notification, since
+  // the single-task action doesn't send one either.
+  for (const taskId of validTaskIds) {
+    await writeActivityLog(taskId, session.user.id, "task_archived");
+  }
 
   revalidateSpace(workspaceId, spaceId);
   return { ok: true };
@@ -1481,6 +1641,14 @@ export async function bulkMoveTasks(
   if (targetStatuses.length === 0) return { error: "Target list has no statuses" };
 
   const firstOpen = targetStatuses.find((s) => s.type === "OPEN") ?? targetStatuses[0];
+  const [toListRow] = await db
+    .select({ name: list.name })
+    .from(list)
+    .where(eq(list.id, targetListId))
+    .limit(1);
+  const toListName = toListRow?.name ?? "another list";
+  const actorName = session.user.name ?? session.user.email ?? "Someone";
+  const bulkTasks: BulkNotifyTaskInfo<{ title: string; fromName?: string }>[] = [];
 
   let moved = 0;
   for (const taskId of taskIds) {
@@ -1528,8 +1696,56 @@ export async function bulkMoveTasks(
       toListId: targetListId,
     });
 
+    // Collect this task's recipients — notifications are sent once per
+    // recipient after the loop (createBulkNotifications), not per task here.
+    const moveRecipientIds = await assigneeAndWatcherIds(taskId);
+    if (moveRecipientIds.length > 0) {
+      const [[taskRow], fromListRow] = await Promise.all([
+        db.select({ title: task.title }).from(task).where(eq(task.id, taskId)).limit(1),
+        t.listId
+          ? db.select({ name: list.name }).from(list).where(eq(list.id, t.listId)).limit(1)
+          : Promise.resolve([] as { name: string }[]),
+      ]);
+      bulkTasks.push({
+        taskId,
+        recipientIds: moveRecipientIds,
+        data: { title: taskRow?.title ?? "a task", fromName: fromListRow[0]?.name },
+      });
+    }
+
     moved++;
   }
+
+  // Notify assignees + watchers, grouped per recipient — matches moveTask's
+  // single-task copy for a recipient touched by only one moved task; for a
+  // recipient touched by several, one notification names the count instead of
+  // firing once per task.
+  createBulkNotifications({
+    workspaceId,
+    actorId: session.user.id,
+    triggerType: "task_moved",
+    entityType: "TASK",
+    tasks: bulkTasks,
+    buildMessage: ({ tasks: group }) => {
+      if (group.length === 1) {
+        const t = group[0].data;
+        return {
+          title: t.fromName
+            ? `${actorName} moved "${t.title}" from ${t.fromName} to ${toListName}`
+            : `${actorName} moved "${t.title}" to ${toListName}`,
+        };
+      }
+      const distinctFrom = new Set(group.map((g) => g.data.fromName).filter(Boolean));
+      const titles = group.map((g) => g.data.title);
+      return {
+        title:
+          distinctFrom.size === 1
+            ? `${actorName} moved ${group.length} tasks from ${[...distinctFrom][0]} to ${toListName}`
+            : `${actorName} moved ${group.length} tasks to ${toListName}`,
+        body: titles.slice(0, 5).join(", ") + (titles.length > 5 ? "…" : ""),
+      };
+    },
+  });
 
   void refreshWorkspace(workspaceId);
   return { ok: true, moved };
