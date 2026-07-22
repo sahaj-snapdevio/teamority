@@ -82,6 +82,13 @@ import {
 import { useAttachmentPreview } from "@/components/task/attachment-preview-modal";
 import dynamic from "next/dynamic";
 
+// Stable reference — emoji-mart's Picker reprocesses/re-indexes the entire
+// emoji dataset whenever its `data` prop identity changes, so this must stay
+// a single shared function rather than an inline arrow recreated per render
+// (which was causing a re-index, and a visible lag, on every popover open).
+const loadEmojiData = () =>
+  import("@emoji-mart/data").then((mod) => mod.default);
+
 const EmojiPicker = dynamic(() => import("@emoji-mart/react"), {
   ssr: false,
   loading: () => (
@@ -442,7 +449,7 @@ function CommentEditor({
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 border-0 shadow-lg" align="start">
             <EmojiPicker
-              data={async () => (await import("@emoji-mart/data")).default}
+              data={loadEmojiData}
               onEmojiSelect={(e: { native: string }) => editor?.commands.insertContent(e.native)}
               theme={typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light"}
               previewPosition="none"
@@ -949,7 +956,7 @@ function CommentItem({
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 border-0 shadow-lg" align="start">
                 <EmojiPicker
-                  data={async () => (await import("@emoji-mart/data")).default}
+                  data={loadEmojiData}
                   onEmojiSelect={(e: { native: string }) => handleReaction(e.native)}
                   theme={typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light"}
                   previewPosition="none"

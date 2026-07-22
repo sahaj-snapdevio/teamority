@@ -205,7 +205,7 @@ function QuickCreateRow({
     return (
       <button
         onClick={() => onOpenChange(true)}
-        className="flex w-full items-center gap-2 pl-10 pr-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors"
+        className="flex w-full items-center gap-2 border-b border-border pl-10 pr-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors"
       >
         <PlusIcon className="size-3.5 shrink-0" />
         Add Task
@@ -214,7 +214,7 @@ function QuickCreateRow({
   }
 
   return (
-    <div ref={wrapperRef} className="py-1.5 pl-10 pr-4">
+    <div ref={wrapperRef} className="border-b border-border py-1.5 pl-10 pr-4">
       <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-background px-2 py-1.5 ring-1 ring-primary/20">
         <input
           ref={inputRef}

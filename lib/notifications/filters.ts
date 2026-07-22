@@ -4,6 +4,11 @@
 // (to render the Event dropdown) and the API route (to translate a selected
 // event into a `triggerType IN (...)` condition), so the two never drift.
 
+// Notifications per page (Gmail-style "51–100 of 300" pagination). Shared by
+// the client (range label + page-size math) and the API route (`.limit()`),
+// so the two never drift.
+export const NOTIFICATIONS_PAGE_SIZE = 50;
+
 export const EVENT_FILTERS: {
   value: string;
   label: string;

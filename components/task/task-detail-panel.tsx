@@ -561,10 +561,15 @@ export function TaskDetailPanel({
     onOpenChange(false);
   }
 
-  function copyLink() {
-    navigator.clipboard.writeText(
-      `${window.location.origin}/${workspaceId}/task/${taskId}`
-    );
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/${workspaceId}/task/${taskId}`
+      );
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
   }
 
   const dueDateStart = t.dueDateStart ? new Date(t.dueDateStart) : null;
@@ -580,7 +585,7 @@ export function TaskDetailPanel({
             <span className="font-mono">#{t.seqNumber}</span>
             <button
               className="flex items-center gap-1 hover:text-foreground"
-              onClick={copyLink}
+              onClick={() => void copyLink()}
             >
               <LinkIcon className="size-3" />
               Copy link

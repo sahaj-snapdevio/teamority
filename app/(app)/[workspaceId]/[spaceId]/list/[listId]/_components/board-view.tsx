@@ -1127,6 +1127,9 @@ export function BoardView({
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortBy, setSortBy] = React.useState<"name" | "priority" | null>(null);
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc");
+  // Sort is a single-select menu — picking an option closes the popover
+  // immediately, same as FacetFilter's `single` mode.
+  const [sortMenuOpen, setSortMenuOpen] = React.useState(false);
 
   // Local filter state (mirrors list-view pattern)
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
@@ -1438,7 +1441,7 @@ export function BoardView({
 
           <div className="flex items-center gap-2 flex-wrap">
             {/* Sort */}
-            <Popover>
+            <Popover onOpenChange={setSortMenuOpen} open={sortMenuOpen}>
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer select-none">
                   <ArrowsDownUpIcon className="size-3.5" />
@@ -1457,7 +1460,10 @@ export function BoardView({
                     "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
                     !sortBy && "bg-accent"
                   )}
-                  onClick={() => setSortBy(null)}
+                  onClick={() => {
+                    setSortBy(null);
+                    setSortMenuOpen(false);
+                  }}
                 >
                   None
                 </button>
@@ -1469,6 +1475,7 @@ export function BoardView({
                   onClick={() => {
                     setSortBy("name");
                     setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                    setSortMenuOpen(false);
                   }}
                 >
                   Task Name
@@ -1481,6 +1488,7 @@ export function BoardView({
                   onClick={() => {
                     setSortBy("priority");
                     setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                    setSortMenuOpen(false);
                   }}
                 >
                   Priority

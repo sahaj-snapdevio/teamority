@@ -301,6 +301,13 @@ export function TaskDetailPage({
   // Completed subtasks are hidden behind a "Completed (N)" row by default.
   const [completedOpen, setCompletedOpen] = React.useState(false);
   const subtaskInputRef = React.useRef<HTMLInputElement>(null);
+  // Subtask queued for deletion (confirmation dialog target) — a quick
+  // hover-delete so removing one doesn't require opening it first.
+  const [deletingSubtask, setDeletingSubtask] = React.useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [deletingSubtaskBusy, setDeletingSubtaskBusy] = React.useState(false);
   // Which content sections (subtasks / dependencies / checklist) are expanded.
   // Multiple can be open at once: sections that already have data auto-open so
   // they show together, while empty ones start collapsed and auto-collapse on
@@ -797,10 +804,26 @@ export function TaskDetailPage({
     router.push(backUrl);
   }
 
-  function copyLink() {
-    navigator.clipboard.writeText(
-      `${window.location.origin}/${workspaceId}/task/${taskId}`
-    );
+  async function confirmDeleteSubtask() {
+    if (!deletingSubtask) {
+      return;
+    }
+    setDeletingSubtaskBusy(true);
+    await deleteTask(workspaceId, spaceId, listId, deletingSubtask.id);
+    setDeletingSubtaskBusy(false);
+    setDeletingSubtask(null);
+    load();
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/${workspaceId}/task/${taskId}`
+      );
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
   }
 
   async function handleFileUpload(file: File) {
@@ -937,7 +960,7 @@ export function TaskDetailPage({
             </button>
             <button
               className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              onClick={copyLink}
+              onClick={() => void copyLink()}
             >
               <LinkIcon className="size-3.5" /> Copy link
             </button>
@@ -1564,14 +1587,20 @@ export function TaskDetailPage({
                               sub: (typeof subtasks)[number]
                             ) => (
                               <div
-                                className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 hover:bg-accent/30 cursor-pointer group"
+                                className="flex items-baseline gap-2 rounded-md border bg-card px-3 py-2 hover:bg-accent/30 cursor-pointer group"
                                 key={sub.id}
                                 onClick={() =>
                                   router.push(`/${workspaceId}/task/${sub.id}`)
                                 }
                               >
+                                {/* `self-center`: this row aligns by text
+                                    baseline (below) so the mono seq number and
+                                    the title sit on the same line, not just
+                                    the same centered box — but a plain glyph-
+                                    less dot/icon has no baseline of its own,
+                                    so it opts back into simple centering. */}
                                 <span
-                                  className="size-2.5 rounded-full shrink-0"
+                                  className="size-2.5 shrink-0 self-center rounded-full"
                                   style={{
                                     backgroundColor:
                                       sub.statusColor ?? "#9CA3AF",
@@ -1589,7 +1618,21 @@ export function TaskDetailPage({
                                 >
                                   {sub.title}
                                 </span>
-                                <CaretRightIcon className="size-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
+                                <button
+                                  className="flex size-6 shrink-0 self-center items-center justify-center rounded-md text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingSubtask({
+                                      id: sub.id,
+                                      title: sub.title,
+                                    });
+                                  }}
+                                  title="Delete subtask"
+                                  type="button"
+                                >
+                                  <TrashIcon className="size-3.5" />
+                                </button>
+                                <CaretRightIcon className="size-3.5 shrink-0 self-center text-muted-foreground opacity-0 group-hover:opacity-100" />
                               </div>
                             );
                             const active = subtasks.filter(
@@ -2161,6 +2204,47 @@ export function TaskDetailPage({
               variant="destructive"
             >
               {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        onOpenChange={(open) => !open && setDeletingSubtask(null)}
+        open={!!deletingSubtask}
+      >
+        <DialogContent className="sm:max-w-xs text-center">
+          <div className="flex flex-col items-center gap-3 pt-2">
+            <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
+              <TrashIcon className="size-6 text-destructive" weight="fill" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold">
+                Delete Subtask
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {deletingSubtask
+                  ? `"${deletingSubtask.title}" will be permanently deleted.`
+                  : ""}{" "}
+                This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-2">
+            <Button
+              className="flex-1"
+              disabled={deletingSubtaskBusy}
+              onClick={() => setDeletingSubtask(null)}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1"
+              disabled={deletingSubtaskBusy}
+              onClick={confirmDeleteSubtask}
+              variant="destructive"
+            >
+              {deletingSubtaskBusy ? "Deleting…" : "Delete"}
             </Button>
           </div>
         </DialogContent>

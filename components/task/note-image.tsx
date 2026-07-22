@@ -87,11 +87,18 @@ function NoteImageView({ node, selected, editor, deleteNode }: NodeViewProps) {
               />
             </button>
           ) : (
-            // Optimistic placeholder while uploading (not yet clickable)
+            // Local objectURL preview (not yet clickable — no fileKey to open
+            // yet). Only dimmed while an upload is actually in flight, paired
+            // with the spinner below; a deferred/pending preview (create
+            // modal, upload not started) is a lossless local copy of the
+            // file and should look identical to the final image.
             // biome-ignore lint/performance/noImgElement: transient local objectURL preview
             <img
               alt={alt ?? ""}
-              className="max-h-96 max-w-full object-contain opacity-60"
+              className={cn(
+                "max-h-96 max-w-full object-contain",
+                isUploading && "opacity-60"
+              )}
               draggable={false}
               src={src}
             />

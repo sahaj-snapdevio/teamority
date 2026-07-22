@@ -2,6 +2,8 @@
 
 import {
   ArrowSquareOutIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
   EnvelopeIcon,
   EnvelopeOpenIcon,
   FunnelIcon,
@@ -19,7 +21,6 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 import useSWR, { mutate as globalMutate } from "swr";
-import useSWRInfinite from "swr/infinite";
 import { getTaskLocation } from "@/app/actions/task";
 import {
   FacetFilter,
@@ -33,7 +34,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { SearchInput } from "@/components/ui/search-input";
-import { EVENT_FILTERS } from "@/lib/notifications/filters";
+import {
+  EVENT_FILTERS,
+  NOTIFICATIONS_PAGE_SIZE,
+} from "@/lib/notifications/filters";
 import { getNotificationTarget } from "@/lib/notifications/target";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +61,8 @@ interface Notification {
 
 interface NotificationsResponse {
   notifications: Notification[];
+  page: number;
+  totalCount: number;
   unreadCount: number;
 }
 
@@ -69,9 +75,6 @@ interface TaskLocation {
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-// Page size for cursor pagination — mirrors the API's `.limit(20)`.
-const PAGE_SIZE = 20;
 
 // Stable keys for the loading skeleton rows (avoids array-index keys).
 const SKELETON_KEYS = ["k0", "k1", "k2", "k3", "k4", "k5"];
@@ -198,98 +201,69 @@ export default function InboxPage() {
     [wsData]
   );
 
-  // Build a filtered notifications URL. All active filters combine (AND); date
-  // bounds are resolved client-side and passed as ISO instants.
-  const buildUrl = React.useCallback(
-    (cursor?: string) => {
-      const p = new URLSearchParams();
-      p.set("filter", activeTab);
-      if (q) {
-        p.set("q", q);
-      }
-      if (workspaceFilter) {
-        p.set("workspace", workspaceFilter);
-      }
-      if (eventFilter) {
-        p.set("event", eventFilter);
-      }
-      if (dateFilter) {
-        const { after, before } = dateRange(dateFilter);
-        if (after) {
-          p.set("after", after);
-        }
-        if (before) {
-          p.set("before", before);
-        }
-      }
-      if (cursor) {
-        p.set("cursor", cursor);
-      }
-      return `/api/me/notifications?${p.toString()}`;
-    },
-    [activeTab, q, workspaceFilter, eventFilter, dateFilter]
-  );
+  // Gmail-style fixed pagination — one 50-row page fetched at a time, instead
+  // of infinite scroll. `page` is local (not URL-synced, like Gmail); it
+  // resets to 1 whenever a filter changes below.
+  const [page, setPage] = React.useState(1);
 
-  // Cursor pagination: page 0 is the newest 20; each further page uses the
-  // previous page's last `createdAt` as the cursor. Changing any filter changes
-  // this key, which resets pagination to page 1.
-  const getKey = React.useCallback(
-    (pageIndex: number, prev: NotificationsResponse | null) => {
-      if (prev && prev.notifications.length < PAGE_SIZE) {
-        return null; // previous page was short — no more to load
+  // Build the filtered + paginated notifications URL. All active filters
+  // combine (AND); date bounds are resolved client-side and passed as ISO
+  // instants.
+  const url = React.useMemo(() => {
+    const p = new URLSearchParams();
+    p.set("filter", activeTab);
+    if (q) {
+      p.set("q", q);
+    }
+    if (workspaceFilter) {
+      p.set("workspace", workspaceFilter);
+    }
+    if (eventFilter) {
+      p.set("event", eventFilter);
+    }
+    if (dateFilter) {
+      const { after, before } = dateRange(dateFilter);
+      if (after) {
+        p.set("after", after);
       }
-      if (pageIndex === 0) {
-        return buildUrl();
+      if (before) {
+        p.set("before", before);
       }
-      const items = prev?.notifications ?? [];
-      const cursor = items[items.length - 1]?.createdAt;
-      if (!cursor) {
-        return null;
-      }
-      return buildUrl(cursor);
-    },
-    [buildUrl]
-  );
+    }
+    p.set("page", String(page));
+    return `/api/me/notifications?${p.toString()}`;
+  }, [activeTab, q, workspaceFilter, eventFilter, dateFilter, page]);
 
-  const { data, size, setSize, isLoading, mutate } =
-    useSWRInfinite<NotificationsResponse>(getKey, fetcher, {
+  const { data, isLoading, isValidating, mutate } =
+    useSWR<NotificationsResponse>(url, fetcher, {
+      keepPreviousData: true, // avoid a blank flash when flipping pages
       refreshInterval: 15_000,
     });
 
-  // Flatten pages, de-duplicating by id — a safety net against transient
-  // overlap at a page boundary when SSE prepends a new notification.
-  const notifications = React.useMemo(() => {
-    const seen = new Set<string>();
-    const out: Notification[] = [];
-    for (const page of data ?? []) {
-      for (const n of page?.notifications ?? []) {
-        if (!seen.has(n.id)) {
-          seen.add(n.id);
-          out.push(n);
-        }
-      }
-    }
-    return out;
-  }, [data]);
+  // Changing any filter changes `url`'s query — reset back to page 1 so a
+  // filter change never leaves the view stranded on a since-invalid page.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run on filter change
+  React.useEffect(() => {
+    setPage(1);
+  }, [activeTab, q, workspaceFilter, eventFilter, dateFilter]);
 
-  // Every page carries the same total unread count — take page 0's.
-  const unreadCount = data?.[0]?.unreadCount ?? 0;
+  const notifications = data?.notifications ?? [];
+  const unreadCount = data?.unreadCount ?? 0;
+  const totalCount = data?.totalCount ?? 0;
 
   const isLoadingInitial = isLoading;
-  const isLoadingMore =
-    !isLoadingInitial &&
-    size > 0 &&
-    !!data &&
-    typeof data[size - 1] === "undefined";
-  const lastPage = data?.[data.length - 1];
-  const isReachingEnd =
-    !!data &&
-    (data.length === 0 ||
-      (!!lastPage && lastPage.notifications.length < PAGE_SIZE));
   const isEmpty = !isLoadingInitial && notifications.length === 0;
 
+  const pageStart =
+    totalCount === 0 ? 0 : (page - 1) * NOTIFICATIONS_PAGE_SIZE + 1;
+  const pageEnd = Math.min(page * NOTIFICATIONS_PAGE_SIZE, totalCount);
+  const canGoPrev = page > 1;
+  const canGoNext = page * NOTIFICATIONS_PAGE_SIZE < totalCount;
+
   // Bucket into Today / Yesterday / Last 7 Days / Older. Ordering is preserved
-  // (newest first); a header is emitted wherever the bucket changes.
+  // (newest first); a header is emitted wherever the bucket changes. Buckets
+  // are scoped to the current page only — a day can split across a page
+  // boundary, same trade-off Gmail-style pagination always makes.
   const groups = React.useMemo(() => {
     const weekAgo = subDays(new Date(), 7);
     const out: { label: string; items: Notification[] }[] = [];
@@ -312,25 +286,12 @@ export default function InboxPage() {
     return out;
   }, [notifications]);
 
-  // Infinite scroll: fetch the next page when the sentinel nears the viewport.
+  // Scroll the list back to top whenever the page changes.
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const sentinelRef = React.useRef<HTMLDivElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run on page change
   React.useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || isReachingEnd) {
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && !isLoadingMore) {
-          void setSize((s) => s + 1);
-        }
-      },
-      { root: scrollRef.current, rootMargin: "300px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [isReachingEnd, isLoadingMore, setSize]);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [page]);
 
   // Optimistic cache patch — updates only the affected notification(s) without
   // refetching the whole list (Goals 4 & 5). `transform` returns the updated
@@ -340,34 +301,38 @@ export default function InboxPage() {
     transform: (n: Notification) => Notification | null
   ) {
     return mutate(
-      (pages) => {
-        if (!pages) {
-          return pages;
+      (current) => {
+        if (!current) {
+          return current;
         }
-        let delta = 0;
-        const mapped = pages.map((page) => {
-          const next: Notification[] = [];
-          for (const n of page.notifications) {
-            const wasUnread = !n.isRead;
-            const u = transform(n);
-            if (u === null) {
-              if (wasUnread) {
-                delta += 1;
-              }
-              continue;
+        let unreadDelta = 0;
+        const next: Notification[] = [];
+        for (const n of current.notifications) {
+          const wasUnread = !n.isRead;
+          const u = transform(n);
+          if (u === null) {
+            if (wasUnread) {
+              unreadDelta += 1;
             }
-            const nowUnread = !u.isRead;
-            if (wasUnread && !nowUnread) {
-              delta += 1;
-            } else if (!wasUnread && nowUnread) {
-              delta -= 1;
-            }
-            next.push(u);
+            continue;
           }
-          return { ...page, notifications: next };
-        });
-        const total = Math.max(0, (pages[0]?.unreadCount ?? 0) - delta);
-        return mapped.map((page) => ({ ...page, unreadCount: total }));
+          const nowUnread = !u.isRead;
+          if (wasUnread && !nowUnread) {
+            unreadDelta += 1;
+          } else if (!wasUnread && nowUnread) {
+            unreadDelta -= 1;
+          }
+          next.push(u);
+        }
+        // A removed/no-longer-matching item (dismissed, or read while on the
+        // Unread tab) also drops out of the current filter's total.
+        const removedCount = current.notifications.length - next.length;
+        return {
+          ...current,
+          notifications: next,
+          unreadCount: Math.max(0, current.unreadCount - unreadDelta),
+          totalCount: Math.max(0, current.totalCount - removedCount),
+        };
       },
       { revalidate: false }
     );
@@ -408,19 +373,30 @@ export default function InboxPage() {
 
   async function markAllRead() {
     await mutate(
-      (pages) =>
-        pages?.map((page) => ({
-          ...page,
+      (current) => {
+        if (!current) {
+          return current;
+        }
+        // Marking read is global (every notification, not just this page),
+        // so on the Unread tab the whole filtered total goes to zero too.
+        if (activeTab === "unread") {
+          return {
+            ...current,
+            notifications: [],
+            unreadCount: 0,
+            totalCount: 0,
+          };
+        }
+        return {
+          ...current,
           unreadCount: 0,
-          notifications:
-            activeTab === "unread"
-              ? []
-              : page.notifications.map((n) =>
-                  n.isRead
-                    ? n
-                    : { ...n, isRead: true, readAt: new Date().toISOString() }
-                ),
-        })),
+          notifications: current.notifications.map((n) =>
+            n.isRead
+              ? n
+              : { ...n, isRead: true, readAt: new Date().toISOString() }
+          ),
+        };
+      },
       { revalidate: false }
     );
     const res = await fetch("/api/me/notifications/read-all", {
@@ -440,7 +416,11 @@ export default function InboxPage() {
   }
 
   async function clearAll() {
-    await mutate([], { revalidate: false });
+    await mutate(
+      { notifications: [], page: 1, totalCount: 0, unreadCount: 0 },
+      { revalidate: false }
+    );
+    setPage(1);
     setSelectedTask(null);
     const res = await fetch("/api/me/notifications", { method: "DELETE" });
     await globalMutate("/api/me/notifications?filter=unread");
@@ -677,6 +657,36 @@ export default function InboxPage() {
           </Popover>
         </div>
 
+        {/* Pagination — Gmail-style "51–100 of 300" + Previous/Next, shown
+            only once there's more than one page's worth of results. */}
+        {totalCount > NOTIFICATIONS_PAGE_SIZE && (
+          <div className="flex items-center justify-end gap-3 border-b px-4 py-2 shrink-0">
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {pageStart}–{pageEnd} of {totalCount}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                aria-label="Previous page"
+                className="flex size-6 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                disabled={!canGoPrev || isValidating}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                type="button"
+              >
+                <CaretLeftIcon className="size-3.5" />
+              </button>
+              <button
+                aria-label="Next page"
+                className="flex size-6 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                disabled={!canGoNext || isValidating}
+                onClick={() => setPage((p) => p + 1)}
+                type="button"
+              >
+                <CaretRightIcon className="size-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* List */}
         <div className="flex-1 overflow-y-auto" ref={scrollRef}>
           {isLoadingInitial && <NotificationSkeletons count={6} />}
@@ -817,17 +827,6 @@ export default function InboxPage() {
                 })}
               </section>
             ))}
-
-          {/* Sentinel triggers the next page; skeletons show while it loads. */}
-          {!isReachingEnd && (
-            <div aria-hidden className="h-px" ref={sentinelRef} />
-          )}
-          {isLoadingMore && <NotificationSkeletons count={4} />}
-          {isReachingEnd && notifications.length > 0 && (
-            <p className="py-6 text-center text-xs text-muted-foreground">
-              You&apos;ve reached the end.
-            </p>
-          )}
         </div>
       </div>
 
