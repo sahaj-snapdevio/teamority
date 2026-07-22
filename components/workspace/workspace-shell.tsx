@@ -1383,15 +1383,30 @@ function TopbarRightColumn({
                   {i > 0 && (
                     <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
                   )}
-                  <span className="flex items-center gap-1.5 text-muted-foreground font-medium shrink-0">
-                    {crumb.color && (
-                      <span
-                        className="inline-block h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: crumb.color }}
-                      />
-                    )}
-                    {crumb.label}
-                  </span>
+                  {crumb.href ? (
+                    <Link
+                      href={crumb.href}
+                      className="flex items-center gap-1.5 text-muted-foreground font-medium shrink-0 hover:text-foreground transition-colors"
+                    >
+                      {crumb.color && (
+                        <span
+                          className="inline-block h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: crumb.color }}
+                        />
+                      )}
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-muted-foreground font-medium shrink-0">
+                      {crumb.color && (
+                        <span
+                          className="inline-block h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: crumb.color }}
+                        />
+                      )}
+                      {crumb.label}
+                    </span>
+                  )}
                 </React.Fragment>
               ))}
               {topbar.breadcrumbs.length > 0 && (

@@ -118,7 +118,9 @@ export function ListContainer({
   );
 
   useSetTopbar({
-    breadcrumbs: [{ label: space.name, color: space.color }],
+    breadcrumbs: [
+      { label: space.name, color: space.color, href: `/${workspaceId}/${space.id}` },
+    ],
     title: list.name,
     actions:
       canManage || isAdmin ? (

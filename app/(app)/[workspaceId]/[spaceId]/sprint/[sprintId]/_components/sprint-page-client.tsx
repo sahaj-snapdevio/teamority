@@ -26,7 +26,9 @@ export function SprintPageClient({ workspaceId, spaceId, sprintId, sprintStatus,
   const [showBacklog, setShowBacklog] = React.useState(false);
 
   useSetTopbar({
-    breadcrumbs: [{ label: spaceName, color: spaceColor }],
+    breadcrumbs: [
+      { label: spaceName, color: spaceColor, href: `/${workspaceId}/${spaceId}` },
+    ],
     title: "Sprints",
   });
 
