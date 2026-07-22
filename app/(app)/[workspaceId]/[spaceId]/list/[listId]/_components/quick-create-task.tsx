@@ -115,11 +115,11 @@ export function QuickCreateTask({
         workspaceId={workspaceId}
       />
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-xs text-muted-foreground whitespace-nowrap">
           Enter to save · Esc to cancel
         </p>
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 shrink-0">
           <Button onClick={close} size="sm" type="button" variant="ghost">
             Cancel
           </Button>

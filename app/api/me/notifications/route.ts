@@ -15,7 +15,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { notification, user, workspace } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { EVENT_TRIGGERS } from "@/lib/notifications/filters";
+import {
+  EVENT_TRIGGERS,
+  NOTIFICATIONS_PAGE_SIZE,
+} from "@/lib/notifications/filters";
 
 export async function DELETE(req: NextRequest) {
   void req;
@@ -41,7 +44,7 @@ export async function GET(req: NextRequest) {
   const userId = session.user.id;
   const { searchParams } = req.nextUrl;
   const filter = searchParams.get("filter") ?? "all";
-  const cursor = searchParams.get("cursor");
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
   // Advanced filters — all optional and combined with AND.
   const search = searchParams.get("q")?.trim();
   const workspaceFilter = searchParams.get("workspace");
@@ -97,47 +100,52 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (cursor) {
-    conditions.push(lt(notification.createdAt, new Date(cursor)));
-  }
-
-  const [notifications, unreadCountResult] = await Promise.all([
-    db
-      .select({
-        id: notification.id,
-        workspaceId: notification.workspaceId,
-        actorId: notification.actorId,
-        triggerType: notification.triggerType,
-        entityType: notification.entityType,
-        entityId: notification.entityId,
-        title: notification.title,
-        body: notification.body,
-        isRead: notification.isRead,
-        readAt: notification.readAt,
-        createdAt: notification.createdAt,
-        actorName: user.name,
-        actorImage: user.image,
-        workspaceName: workspace.name,
-        workspaceIcon: workspace.logoEmoji,
-      })
-      .from(notification)
-      .leftJoin(user, eq(user.id, notification.actorId))
-      .leftJoin(workspace, eq(workspace.id, notification.workspaceId))
-      .where(and(...conditions))
-      .orderBy(desc(notification.createdAt))
-      .limit(20),
-    db
-      .select({ count: count() })
-      .from(notification)
-      .where(
-        and(
-          eq(notification.recipientId, userId),
-          eq(notification.isRead, false)
-        )
-      ),
-  ]);
+  const [notifications, unreadCountResult, totalCountResult] =
+    await Promise.all([
+      db
+        .select({
+          id: notification.id,
+          workspaceId: notification.workspaceId,
+          actorId: notification.actorId,
+          triggerType: notification.triggerType,
+          entityType: notification.entityType,
+          entityId: notification.entityId,
+          title: notification.title,
+          body: notification.body,
+          isRead: notification.isRead,
+          readAt: notification.readAt,
+          createdAt: notification.createdAt,
+          actorName: user.name,
+          actorImage: user.image,
+          workspaceName: workspace.name,
+          workspaceIcon: workspace.logoEmoji,
+        })
+        .from(notification)
+        .leftJoin(user, eq(user.id, notification.actorId))
+        .leftJoin(workspace, eq(workspace.id, notification.workspaceId))
+        .where(and(...conditions))
+        .orderBy(desc(notification.createdAt))
+        .limit(NOTIFICATIONS_PAGE_SIZE)
+        .offset((page - 1) * NOTIFICATIONS_PAGE_SIZE),
+      db
+        .select({ count: count() })
+        .from(notification)
+        .where(
+          and(
+            eq(notification.recipientId, userId),
+            eq(notification.isRead, false)
+          )
+        ),
+      db
+        .select({ count: count() })
+        .from(notification)
+        .leftJoin(user, eq(user.id, notification.actorId))
+        .leftJoin(workspace, eq(workspace.id, notification.workspaceId))
+        .where(and(...conditions)),
+    ]);
 
   const unreadCount = unreadCountResult[0]?.count ?? 0;
+  const totalCount = totalCountResult[0]?.count ?? 0;
 
-  return NextResponse.json({ notifications, unreadCount });
+  return NextResponse.json({ notifications, unreadCount, totalCount, page });
 }

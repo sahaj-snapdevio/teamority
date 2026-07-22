@@ -1498,6 +1498,10 @@ export function ListView({
   const [groupBy, setGroupBy] = React.useState<
     "status" | "priority" | "assignee"
   >("status");
+  // Sort/Group By are single-select menus — picking an option closes the
+  // popover immediately, same as FacetFilter's `single` mode.
+  const [sortMenuOpen, setSortMenuOpen] = React.useState(false);
+  const [groupByMenuOpen, setGroupByMenuOpen] = React.useState(false);
   // Only one group's inline "Add Task" row may be open at a time.
   const [openAddGroupId, setOpenAddGroupId] = React.useState<string | null>(
     null
@@ -2174,15 +2178,27 @@ export function ListView({
               backdrop (z-20/z-30). */}
           <div className="sticky top-14 z-10 bg-card pt-5 pb-3 border-b border-border flex flex-col gap-3">
             {/* Action Bar / Toolbar */}
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              {/* Order: Search / Status+Priority+Assignee / Filters / Sort /
-                  Group By / Columns / Archived / Keyboard shortcuts. Every
-                  item here is its own direct child of this gap-4 row except
-                  Status+Priority+Assignee, which stay a tight gap-2 cluster —
-                  the gap-4 is what separates the rest from each other and
-                  from that cluster. */}
-              <div className="flex items-center gap-4 flex-wrap">
-                {/* Search */}
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+              {/* Left column: primary controls, then a secondary block. A
+                  plain flex-wrap row can't prioritize which group wraps
+                  first — the browser sizes each flex item to its own
+                  unwrapped content width before deciding what fits, so
+                  Create Task (as a flex sibling) could get bumped to its
+                  own line even while there's room to spare once the
+                  secondary block reflows. Using CSS grid for the outer row
+                  instead — a `minmax(0,1fr)` column for this div, `auto` for
+                  Create Task — forces this column to actually shrink to its
+                  allotted width, which is what makes its own flex-wrap
+                  content (Secondary, then Primary) reflow internally rather
+                  than pushing Create Task down. Primary (Search /
+                  Status+Priority+Assignee / Filters / Sort / Group By /
+                  Columns) is given priority to stay together; Secondary
+                  (Manage Custom Fields / Archived / Keyboard shortcuts) is
+                  its own non-wrapping unit so it moves to a second row as a
+                  whole instead of peeling off one control at a time. */}
+              <div className="flex items-center gap-4 flex-wrap min-w-0">
+                <div className="flex items-center gap-4 flex-wrap">
+                  {/* Search */}
                 <SearchInput
                   className="w-64 focus:w-80"
                   id="list-view-search"
@@ -2241,7 +2257,7 @@ export function ListView({
                 <div className="mx-1 h-5 w-px shrink-0 bg-border" />
 
                 {/* Sort */}
-                <Popover>
+                <Popover onOpenChange={setSortMenuOpen} open={sortMenuOpen}>
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
                       <ArrowsDownUpIcon className="size-3.5 text-gray-500" />
@@ -2260,7 +2276,10 @@ export function ListView({
                         "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
                         !sortBy && "bg-accent text-foreground"
                       )}
-                      onClick={() => setSortBy(null)}
+                      onClick={() => {
+                        setSortBy(null);
+                        setSortMenuOpen(false);
+                      }}
                     >
                       None
                     </button>
@@ -2272,6 +2291,7 @@ export function ListView({
                       onClick={() => {
                         setSortBy("name");
                         setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                        setSortMenuOpen(false);
                       }}
                     >
                       Task Name
@@ -2284,6 +2304,7 @@ export function ListView({
                       onClick={() => {
                         setSortBy("due");
                         setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                        setSortMenuOpen(false);
                       }}
                     >
                       Due Date
@@ -2296,6 +2317,7 @@ export function ListView({
                       onClick={() => {
                         setSortBy("priority");
                         setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                        setSortMenuOpen(false);
                       }}
                     >
                       Priority
@@ -2304,7 +2326,10 @@ export function ListView({
                 </Popover>
 
                 {/* Group By */}
-                <Popover>
+                <Popover
+                  onOpenChange={setGroupByMenuOpen}
+                  open={groupByMenuOpen}
+                >
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
                       <GearIcon className="size-3.5 text-gray-500" />
@@ -2321,7 +2346,10 @@ export function ListView({
                         "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
                         groupBy === "status" && "bg-accent text-foreground"
                       )}
-                      onClick={() => setGroupBy("status")}
+                      onClick={() => {
+                        setGroupBy("status");
+                        setGroupByMenuOpen(false);
+                      }}
                     >
                       Status
                     </button>
@@ -2330,7 +2358,10 @@ export function ListView({
                         "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
                         groupBy === "priority" && "bg-accent text-foreground"
                       )}
-                      onClick={() => setGroupBy("priority")}
+                      onClick={() => {
+                        setGroupBy("priority");
+                        setGroupByMenuOpen(false);
+                      }}
                     >
                       Priority
                     </button>
@@ -2339,7 +2370,10 @@ export function ListView({
                         "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
                         groupBy === "assignee" && "bg-accent text-foreground"
                       )}
-                      onClick={() => setGroupBy("assignee")}
+                      onClick={() => {
+                        setGroupBy("assignee");
+                        setGroupByMenuOpen(false);
+                      }}
                     >
                       Assignee
                     </button>
@@ -2416,57 +2450,64 @@ export function ListView({
                     </PopoverContent>
                   </Popover>
                 )}
+                </div>
 
-                <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+                {/* Secondary: Manage Custom Fields / Archived / Keyboard
+                    shortcuts. `shrink-0` and no `flex-wrap` keep this block
+                    non-breaking — it either sits on the primary row or wraps
+                    to a new row entirely, never split mid-group. */}
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="h-5 w-px shrink-0 bg-border" />
 
-                {/* Manage Custom Fields — a discoverability shortcut straight
-                    to Project Settings → Custom Fields, not a general
-                    Settings button. Only shown to full-access members (same
-                    permission requireFieldAdmin enforces for a space-scoped
-                    field), and independent of whether any custom fields
-                    exist yet — that's the whole point: it's how you'd go
-                    create the first one when the Filters button is hidden. */}
-                {canManage && (
+                  {/* Manage Custom Fields — a discoverability shortcut straight
+                      to Project Settings → Custom Fields, not a general
+                      Settings button. Only shown to full-access members (same
+                      permission requireFieldAdmin enforces for a space-scoped
+                      field), and independent of whether any custom fields
+                      exist yet — that's the whole point: it's how you'd go
+                      create the first one when the Filters button is hidden. */}
+                  {canManage && (
+                    <button
+                      className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
+                      onClick={() =>
+                        router.push(
+                          `/${workspaceId}/${spaceId}/settings/custom-fields`
+                        )
+                      }
+                      title="Manage Custom Fields"
+                      type="button"
+                    >
+                      <ManageFieldsIcon className="size-4" />
+                    </button>
+                  )}
+
+                  {/* Archived */}
+                  {onToggleArchived && (
+                    <button
+                      className={cn(
+                        "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
+                        showArchived
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                      )}
+                      onClick={() => onToggleArchived()}
+                      type="button"
+                    >
+                      <ArchiveIcon className="size-3.5" /> Archived
+                    </button>
+                  )}
+
+                  {/* Keyboard shortcuts */}
                   <button
+                    aria-label="Keyboard shortcuts"
                     className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
-                    onClick={() =>
-                      router.push(
-                        `/${workspaceId}/${spaceId}/settings/custom-fields`
-                      )
-                    }
-                    title="Manage Custom Fields"
+                    onClick={() => setShortcutsOpen(true)}
+                    title="Keyboard Shortcuts (?)"
                     type="button"
                   >
-                    <ManageFieldsIcon className="size-4" />
+                    <KeyboardIcon className="size-4" />
                   </button>
-                )}
-
-                {/* Archived */}
-                {onToggleArchived && (
-                  <button
-                    className={cn(
-                      "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
-                      showArchived
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-                    )}
-                    onClick={() => onToggleArchived()}
-                    type="button"
-                  >
-                    <ArchiveIcon className="size-3.5" /> Archived
-                  </button>
-                )}
-
-                {/* Keyboard shortcuts */}
-                <button
-                  aria-label="Keyboard shortcuts"
-                  className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
-                  onClick={() => setShortcutsOpen(true)}
-                  title="Keyboard Shortcuts (?)"
-                  type="button"
-                >
-                  <KeyboardIcon className="size-4" />
-                </button>
+                </div>
               </div>
 
               {/* Right actions: Create Task button */}
