@@ -15,6 +15,7 @@ import * as React from "react";
 import { useState, useTransition } from "react";
 import { archiveList, unarchiveList } from "@/app/actions/list";
 import { getArchivedTasksForList } from "@/app/actions/task";
+import type { CustomFieldRow } from "@/app/actions/custom-field";
 import { DeleteListDialog } from "@/components/list/delete-list-dialog";
 import { DuplicateListDialog } from "@/components/list/duplicate-list-dialog";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
@@ -44,6 +45,7 @@ interface Status {
 
 interface Task {
   assignees: { userId: string; name: string; image: string | null }[];
+  customFieldValues?: Record<string, unknown>;
   dependencyInfo?: TaskDependencyIndicator;
   trackedSeconds?: number;
   dueDateEnd: Date | null;
@@ -64,6 +66,7 @@ interface ListContainerProps {
   canManage: boolean;
   canPinToList: boolean;
   currentUserId: string;
+  customFields?: CustomFieldRow[];
   isAdmin: boolean;
   list: {
     id: string;
@@ -104,6 +107,7 @@ export function ListContainer({
   pinnedTasks,
   members,
   tags,
+  customFields,
   canManage,
   canEdit,
   isAdmin,
@@ -298,8 +302,10 @@ export function ListContainer({
           archivedLoading={archivedLoading}
           archivedTasks={showArchived ? archivedTasks : []}
           canEdit={canEdit}
+          canManage={canManage}
           canPinToList={canPinToList}
           currentUserId={currentUserId}
+          customFields={customFields}
           isAdmin={isAdmin}
           listId={list.id}
           members={members}
@@ -328,6 +334,7 @@ export function ListContainer({
         <BoardView
           canEdit={canEdit}
           canManage={canManage}
+          customFields={customFields}
           headerless
           isAdmin={isAdmin}
           list={list}

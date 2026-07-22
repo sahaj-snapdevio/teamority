@@ -177,6 +177,8 @@ function describeEvent(eventType: string, meta: Record<string, unknown>): string
     case "checklist_deleted": return `deleted checklist "${meta.checklist_name}"`;
     case "checklist_item_checked": return `checked "${meta.item_title}"`;
     case "checklist_item_unchecked": return `unchecked "${meta.item_title}"`;
+    case "custom_field_value_set": return `set "${meta.fieldName}"`;
+    case "custom_field_value_cleared": return `cleared "${meta.fieldName}"`;
     case "dependency_added": return `added dependency on "${meta.depends_on_task_title}"`;
     case "dependency_removed": return `removed dependency on "${meta.depends_on_task_title}"`;
     case "attachment_uploaded": return `uploaded "${meta.file_name}"`;

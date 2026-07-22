@@ -33,6 +33,10 @@ export function FacetOptionList({
   emptyText = "No options",
   onAfterToggle,
   onCreate,
+  searchPlaceholder = "Search…",
+  clearLabel = "Clear",
+  showClearDivider = false,
+  maxListHeight,
 }: {
   options: FacetOption[];
   selected: string[];
@@ -43,6 +47,14 @@ export function FacetOptionList({
   onAfterToggle?: () => void;
   /** When set, an unmatched search query offers a "Create <query>" action. */
   onCreate?: (label: string) => void;
+  /** Placeholder for the search input (only rendered when `searchable`). */
+  searchPlaceholder?: string;
+  /** Label for the "clear all" action shown once something is selected. */
+  clearLabel?: string;
+  /** Adds a divider above the clear action, separating it as a footer. */
+  showClearDivider?: boolean;
+  /** Fixed max-height (with scroll) for the option list, overriding the default item-count heuristic. */
+  maxListHeight?: string;
 }) {
   const [query, setQuery] = React.useState("");
 
@@ -77,15 +89,16 @@ export function FacetOptionList({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search…"
+          placeholder={searchPlaceholder}
           className="mb-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
         />
       )}
       <div
         className={cn(
           "space-y-0.5",
-          filtered.length > 8 && "max-h-56 overflow-y-auto",
+          maxListHeight ? "overflow-y-auto" : filtered.length > 8 && "max-h-56 overflow-y-auto",
         )}
+        style={maxListHeight ? { maxHeight: maxListHeight } : undefined}
       >
         {filtered.length === 0 ? (
           canCreate ? null : (
@@ -138,13 +151,16 @@ export function FacetOptionList({
         )}
       </div>
       {selected.length > 0 && !single && (
-        <button
-          type="button"
-          onClick={() => onChange([])}
-          className="mt-1 w-full rounded-md px-2 py-1 text-center text-xs text-muted-foreground hover:bg-accent"
-        >
-          Clear
-        </button>
+        <>
+          {showClearDivider && <div className="my-1 h-px bg-border" />}
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="mt-1 w-full rounded-md px-2 py-1 text-center text-xs text-muted-foreground hover:bg-accent"
+          >
+            {clearLabel}
+          </button>
+        </>
       )}
     </div>
   );

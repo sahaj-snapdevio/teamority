@@ -16,6 +16,7 @@ import {
   user,
   workspaceMember,
 } from "@/db/schema";
+import { getCustomFieldsForTasks } from "@/app/actions/custom-field";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -158,8 +159,14 @@ export default async function ListPage({ params }: ListPageProps) {
   // Fetch tags, assignees, and personal pins in parallel
   const taskIds = tasks.map((t) => t.id);
 
-  const [tagRows, assigneeRows, personalPinRows, depRows, trackedRows] =
-    await Promise.all([
+  const [
+    tagRows,
+    assigneeRows,
+    personalPinRows,
+    depRows,
+    trackedRows,
+    customFieldsRes,
+  ] = await Promise.all([
       taskIds.length > 0
         ? db
             .select({
@@ -231,7 +238,14 @@ export default async function ListPage({ params }: ListPageProps) {
             )
             .groupBy(timeEntry.taskId)
         : Promise.resolve([]),
+
+      getCustomFieldsForTasks(workspaceId, spaceId, listId, taskIds),
     ]);
+
+  const customFields =
+    customFieldsRes && !("error" in customFieldsRes) ? customFieldsRes.fields : [];
+  const customFieldValuesByTask =
+    customFieldsRes && !("error" in customFieldsRes) ? customFieldsRes.valuesByTask : {};
 
   const tagsByTaskId = new Map<
     string,
@@ -291,6 +305,7 @@ export default async function ListPage({ params }: ListPageProps) {
     assignees: assigneesByTaskId.get(t.id) ?? [],
     dependencyInfo: depInfoByTaskId.get(t.id),
     trackedSeconds: trackedByTaskId.get(t.id),
+    customFieldValues: customFieldValuesByTask[t.id] ?? {},
   }));
 
   const pinnedListTasks = tasksWithTags
@@ -309,6 +324,7 @@ export default async function ListPage({ params }: ListPageProps) {
       canManage={canManage}
       canPinToList={canManage}
       currentUserId={session.user.id}
+      customFields={customFields}
       isAdmin={isAdminOrOwner}
       list={currentList}
       members={members}

@@ -21,24 +21,36 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   ArchiveIcon,
   ArrowsDownUpIcon,
+  CalendarBlankIcon,
+  CaretCircleDownIcon,
   CaretDownIcon,
   CaretRightIcon,
   CheckIcon,
+  CheckSquareIcon,
+  ColumnsIcon,
   DotsThreeIcon,
   GearIcon,
+  HashIcon,
   KeyboardIcon,
   LightningIcon,
+  ListChecksIcon,
   MinusIcon,
   PencilSimpleIcon,
   PlusIcon,
   PushPinIcon,
+  TextAaIcon,
   TrashIcon,
+  UserIcon,
   UserPlusIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
+import type {
+  CustomFieldRow,
+  CustomFieldType,
+} from "@/app/actions/custom-field";
 import {
   createListStatus,
   getWorkspaceLists,
@@ -66,8 +78,14 @@ import {
   bulkAssignTasks,
   removeAssignee,
 } from "@/app/actions/task-assignee";
+import { ManageFieldsIcon } from "@/components/common/manage-fields-icon";
 import { UserAvatar } from "@/components/common/user-avatar";
-import { FacetFilter, FacetOptionList } from "@/components/filters/facet-filter";
+import { CustomFieldFilterControl } from "@/components/filters/custom-field-filter";
+import {
+  FacetFilter,
+  FacetOptionList,
+} from "@/components/filters/facet-filter";
+import { FilterBuilder } from "@/components/filters/filter-builder";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
 import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
@@ -89,7 +107,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -99,11 +116,32 @@ import {
 } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SearchInput } from "@/components/ui/search-input";
+import { useListColumnPreferences } from "@/hooks/use-list-column-preferences";
+import {
+  CUSTOM_FIELD_COLUMN_WIDTH_CLASS,
+  toTitleCase,
+} from "@/lib/custom-fields/column-display";
+import {
+  type CustomFieldFilters,
+  isCustomFieldFilterActive,
+} from "@/lib/custom-fields/filters";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { filterTasks } from "@/lib/filters/task-filter";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
+
+// Small, muted, purely decorative — one icon per custom field type for the
+// column header (optional per spec, kept subtle).
+const CUSTOM_FIELD_TYPE_ICON: Record<CustomFieldType, React.ReactNode> = {
+  TEXT: <TextAaIcon className="size-3 text-gray-400" />,
+  NUMBER: <HashIcon className="size-3 text-gray-400" />,
+  CHECKBOX: <CheckSquareIcon className="size-3 text-gray-400" />,
+  SINGLE_SELECT: <CaretCircleDownIcon className="size-3 text-gray-400" />,
+  MULTI_SELECT: <ListChecksIcon className="size-3 text-gray-400" />,
+  DATE: <CalendarBlankIcon className="size-3 text-gray-400" />,
+  PERSON: <UserIcon className="size-3 text-gray-400" />,
+};
 
 interface Status {
   color: string;
@@ -113,10 +151,17 @@ interface Status {
   type: "OPEN" | "ACTIVE" | "CLOSED";
 }
 
+type WorkspaceMemberOption = {
+  userId: string;
+  name: string | null;
+  email: string | null;
+  image?: string | null;
+};
+
 interface Task {
   assignees: { userId: string; name: string; image: string | null }[];
+  customFieldValues?: Record<string, unknown>;
   dependencyInfo?: TaskDependencyIndicator;
-  trackedSeconds?: number;
   dueDateEnd: Date | null;
   dueDateStart: Date | null;
   id: string;
@@ -128,14 +173,17 @@ interface Task {
   statusId: string | null;
   tags: { id: string; name: string; color: string }[];
   title: string;
+  trackedSeconds?: number;
 }
 
 interface ListViewProps {
   archivedLoading?: boolean;
   archivedTasks?: { id: string; title: string; seqNumber: number }[];
   canEdit?: boolean;
+  canManage?: boolean;
   canPinToList?: boolean;
   currentUserId?: string;
+  customFields?: CustomFieldRow[];
   isAdmin?: boolean;
   listId: string;
   members?: {
@@ -155,6 +203,10 @@ interface ListViewProps {
   tasks: Task[];
   workspaceId: string;
 }
+
+// Informational-only in the Columns menu today — no show/hide mechanism
+// exists yet for built-in columns (see the Columns menu comment below).
+const BUILT_IN_COLUMN_LABELS = ["Assignee", "Due Date", "Priority"];
 
 type SprintOption = {
   id: string;
@@ -204,6 +256,8 @@ function PinnedSection({
   isAdmin,
   canEdit,
   personallyPinnedIds,
+  visibleCustomFields,
+  workspaceMembers,
 }: {
   tasks: Task[];
   workspaceId: string;
@@ -214,6 +268,8 @@ function PinnedSection({
   isAdmin?: boolean;
   canEdit?: boolean;
   personallyPinnedIds?: Set<string>;
+  visibleCustomFields: CustomFieldRow[];
+  workspaceMembers: WorkspaceMemberOption[];
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
@@ -254,6 +310,7 @@ function PinnedSection({
               <TaskListRow
                 canEdit={canEdit}
                 canPinToList={canPinToList}
+                customFields={visibleCustomFields}
                 isAdmin={isAdmin}
                 isPersonallyPinned={personallyPinnedIds?.has(t.id)}
                 key={t.id}
@@ -267,6 +324,7 @@ function PinnedSection({
                 statuses={statuses}
                 task={t}
                 workspaceId={workspaceId}
+                workspaceMembers={workspaceMembers}
               />
             );
           })}
@@ -427,6 +485,8 @@ function StatusGroup({
   addOpen,
   onAddOpenChange,
   createDefaults,
+  visibleCustomFields,
+  workspaceMembers,
 }: {
   status: Status;
   tasks: Task[];
@@ -443,6 +503,8 @@ function StatusGroup({
   addOpen: boolean;
   onAddOpenChange: (v: boolean) => void;
   createDefaults: QuickCreateDefaults;
+  visibleCustomFields: CustomFieldRow[];
+  workspaceMembers: WorkspaceMemberOption[];
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
@@ -660,6 +722,18 @@ function StatusGroup({
               </div>
               <div className="w-28 shrink-0 py-2 px-4">Due Date</div>
               <div className="w-32 shrink-0 py-2 px-4">Priority</div>
+              {visibleCustomFields.map((f) => (
+                <div
+                  className={cn(
+                    "flex items-center gap-1 truncate py-2 px-4",
+                    CUSTOM_FIELD_COLUMN_WIDTH_CLASS[f.type]
+                  )}
+                  key={f.id}
+                >
+                  {CUSTOM_FIELD_TYPE_ICON[f.type]}
+                  <span className="truncate">{toTitleCase(f.name)}</span>
+                </div>
+              ))}
               <div className="w-48 shrink-0 text-right pr-4">Actions</div>
             </div>
             <div
@@ -673,6 +747,7 @@ function StatusGroup({
                 <SortableTaskRow
                   canEdit={canEdit}
                   canPinToList={canPinToList}
+                  customFields={visibleCustomFields}
                   isAdmin={isAdmin}
                   isPersonallyPinned={personallyPinnedIds?.has(task.id)}
                   key={task.id}
@@ -686,6 +761,7 @@ function StatusGroup({
                   statuses={statuses}
                   task={task}
                   workspaceId={workspaceId}
+                  workspaceMembers={workspaceMembers}
                 />
               ))}
 
@@ -1104,16 +1180,17 @@ function BulkActionBar({
                 Assignment Mode
               </p>
               <RadioGroup
-                onValueChange={(v) =>
-                  setAssignMode(v as "replace" | "add")
-                }
+                onValueChange={(v) => setAssignMode(v as "replace" | "add")}
                 value={assignMode}
               >
                 <label
                   className="flex items-center gap-2 text-sm cursor-pointer"
                   htmlFor="bulk-assign-mode-replace"
                 >
-                  <RadioGroupItem id="bulk-assign-mode-replace" value="replace" />
+                  <RadioGroupItem
+                    id="bulk-assign-mode-replace"
+                    value="replace"
+                  />
                   Replace existing assignees
                 </label>
                 <label
@@ -1345,6 +1422,7 @@ type ListViewPrefs = {
   priorityFilter: string[];
   assigneeFilter: string[];
   statusFilter: string[];
+  customFieldFilters: CustomFieldFilters;
 };
 
 function listViewPrefsKey(listId: string) {
@@ -1374,11 +1452,13 @@ export function ListView({
   pinnedTasks = [],
   isAdmin,
   canEdit,
+  canManage,
   canPinToList,
   currentUserId,
   personallyPinnedIds,
   members = [],
   tags = [],
+  customFields = [],
   archivedTasks,
   onArchivedChanged,
   showArchived,
@@ -1386,6 +1466,22 @@ export function ListView({
   archivedLoading,
 }: ListViewProps) {
   const router = useRouter();
+  const columnOptions = React.useMemo(
+    () => customFields.map((f) => ({ id: f.id, label: f.name })),
+    [customFields]
+  );
+  // Display order only (alphabetical) — the hook above only needs the set of
+  // valid ids, not the order, so it keeps using the unsorted `columnOptions`.
+  const sortedColumnOptions = React.useMemo(
+    () => [...columnOptions].sort((a, b) => a.label.localeCompare(b.label)),
+    [columnOptions]
+  );
+  const { visibleIds: visibleColumnIds, setVisibleIds: setVisibleColumnIds } =
+    useListColumnPreferences(listId, columnOptions);
+  const visibleCustomFields = React.useMemo(
+    () => customFields.filter((f) => visibleColumnIds.includes(f.id)),
+    [customFields, visibleColumnIds]
+  );
   const [createForStatusId, setCreateForStatusId] = React.useState<
     string | null
   >(null);
@@ -1411,6 +1507,8 @@ export function ListView({
   const [priorityFilter, setPriorityFilter] = React.useState<string[]>([]);
   const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([]);
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
+  const [customFieldFilters, setCustomFieldFilters] =
+    React.useState<CustomFieldFilters>({});
 
   // Apply persisted view prefs after mount (avoids SSR/client hydration mismatch).
   // `prefsHydrated` gates the persist effect so we never overwrite saved prefs
@@ -1437,6 +1535,9 @@ export function ListView({
       if (p.statusFilter) {
         setStatusFilter(p.statusFilter);
       }
+      if (p.customFieldFilters) {
+        setCustomFieldFilters(p.customFieldFilters);
+      }
     }
     setPrefsHydrated(true);
   }, [listId]);
@@ -1456,6 +1557,7 @@ export function ListView({
           priorityFilter,
           assigneeFilter,
           statusFilter,
+          customFieldFilters,
         })
       );
     } catch {
@@ -1470,7 +1572,62 @@ export function ListView({
     priorityFilter,
     assigneeFilter,
     statusFilter,
+    customFieldFilters,
   ]);
+
+  // ─── Filters (built-in + custom fields) ────────────────────────────────────
+  // Option lists shared between the standalone toolbar buttons above and the
+  // Filters builder below, so there's exactly one place that builds them.
+  const statusOptions = React.useMemo(
+    () => statuses.map((s) => ({ value: s.id, label: s.name, color: s.color })),
+    [statuses]
+  );
+  const assigneeOptions = React.useMemo(
+    () => [
+      { value: "unassigned", label: "Unassigned" },
+      ...members.map((m) => ({
+        value: m.userId,
+        label: m.name || m.email || "Unknown",
+      })),
+    ],
+    [members]
+  );
+  // Status/Priority/Assignee already have their own dedicated toolbar
+  // buttons directly above — the Filters builder is only for fields that
+  // don't, so it stays the "custom + future advanced fields" picker rather
+  // than duplicating what's already one click away.
+  const filterFields = React.useMemo(
+    () => customFields.map((field) => ({ key: field.id, label: field.name })),
+    [customFields]
+  );
+
+  function isFilterFieldActive(key: string) {
+    return isCustomFieldFilterActive(customFieldFilters[key]);
+  }
+
+  function clearFilterField(key: string) {
+    setCustomFieldFilters((prev) => {
+      const { [key]: _removed, ...rest } = prev;
+      return rest;
+    });
+  }
+
+  function renderFilterControl(key: string) {
+    const field = customFields.find((f) => f.id === key);
+    if (!field) {
+      return null;
+    }
+    return (
+      <CustomFieldFilterControl
+        field={field}
+        members={members}
+        onChange={(next) =>
+          setCustomFieldFilters((prev) => ({ ...prev, [field.id]: next }))
+        }
+        value={customFieldFilters[field.id]}
+      />
+    );
+  }
 
   // Optimistic DND tasks
   const [localTasks, setLocalTasks] = React.useState<Task[]>(tasks);
@@ -1497,12 +1654,18 @@ export function ListView({
 
   // ─── Local Filtering & Sorting ─────────────────────────────────────────────
   const processedTasks = React.useMemo(() => {
-    const list = filterTasks(localTasks, {
-      searchQuery,
-      statusFilter,
-      priorityFilter,
-      assigneeFilter,
-    });
+    const list = filterTasks(
+      localTasks,
+      {
+        searchQuery,
+        statusFilter,
+        priorityFilter,
+        assigneeFilter,
+        customFieldFilters,
+      },
+      customFields,
+      members
+    );
 
     // Sort
     if (sortBy) {
@@ -1529,6 +1692,9 @@ export function ListView({
     priorityFilter,
     assigneeFilter,
     statusFilter,
+    customFieldFilters,
+    customFields,
+    members,
     sortBy,
     sortOrder,
   ]);
@@ -2009,10 +2175,16 @@ export function ListView({
           <div className="sticky top-14 z-10 bg-card pt-5 pb-3 border-b border-border flex flex-col gap-3">
             {/* Action Bar / Toolbar */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-2 flex-wrap">
+              {/* Order: Search / Status+Priority+Assignee / Filters / Sort /
+                  Group By / Columns / Archived / Keyboard shortcuts. Every
+                  item here is its own direct child of this gap-4 row except
+                  Status+Priority+Assignee, which stay a tight gap-2 cluster —
+                  the gap-4 is what separates the rest from each other and
+                  from that cluster. */}
+              <div className="flex items-center gap-4 flex-wrap">
                 {/* Search */}
                 <SearchInput
-                  className="w-44 focus:w-56"
+                  className="w-64 focus:w-80"
                   id="list-view-search"
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onClear={() => setSearchQuery("")}
@@ -2020,52 +2192,53 @@ export function ListView({
                   value={searchQuery}
                 />
 
-                {/* Filters — shared facet controls (same state + filter logic) */}
-                <FacetFilter
-                  label="Status"
-                  onChange={setStatusFilter}
-                  options={statuses.map((s) => ({
-                    value: s.id,
-                    label: s.name,
-                    color: s.color,
-                  }))}
-                  selected={statusFilter}
-                />
-                <FacetFilter
-                  label="Priority"
-                  onChange={setPriorityFilter}
-                  options={PRIORITY_OPTIONS}
-                  selected={priorityFilter}
-                />
-                {members.length > 0 && (
+                {/* Filters — shared facet controls (same state + filter
+                    logic). Kept exactly as standalone toolbar buttons — the
+                    Filters builder is an additional entry point onto this
+                    same state, not a replacement for these. */}
+                <div className="flex items-center gap-2 flex-wrap">
                   <FacetFilter
-                    label="Assignee"
-                    onChange={setAssigneeFilter}
-                    options={[
-                      { value: "unassigned", label: "Unassigned" },
-                      ...members.map((m) => ({
-                        value: m.userId,
-                        label: m.name || m.email || "Unknown",
-                      })),
-                    ]}
-                    searchable
-                    selected={assigneeFilter}
+                    label="Status"
+                    onChange={setStatusFilter}
+                    options={statusOptions}
+                    selected={statusFilter}
+                  />
+                  <FacetFilter
+                    label="Priority"
+                    onChange={setPriorityFilter}
+                    options={PRIORITY_OPTIONS}
+                    selected={priorityFilter}
+                  />
+                  {members.length > 0 && (
+                    <FacetFilter
+                      label="Assignee"
+                      onChange={setAssigneeFilter}
+                      options={assigneeOptions}
+                      searchable
+                      selected={assigneeFilter}
+                    />
+                  )}
+                </div>
+
+                {/* One compact "Filters" entry for custom fields only —
+                    Status/Priority/Assignee already have dedicated buttons
+                    above, so they're deliberately excluded here to avoid
+                    duplicating them. Custom fields are picked dynamically
+                    instead of getting their own always-visible toolbar
+                    button, so the toolbar stays the same width no matter how
+                    many custom fields a list has. Hidden entirely when there
+                    are none — it would otherwise open onto an empty "No
+                    filters yet" picker with nothing to add. */}
+                {filterFields.length > 0 && (
+                  <FilterBuilder
+                    fields={filterFields}
+                    isActive={isFilterFieldActive}
+                    onClear={clearFilterField}
+                    renderControl={renderFilterControl}
                   />
                 )}
-                {onToggleArchived && (
-                  <button
-                    className={cn(
-                      "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
-                      showArchived
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-                    )}
-                    onClick={() => onToggleArchived()}
-                    type="button"
-                  >
-                    <ArchiveIcon className="size-3.5" /> Show archived
-                  </button>
-                )}
+
+                <div className="mx-1 h-5 w-px shrink-0 bg-border" />
 
                 {/* Sort */}
                 <Popover>
@@ -2173,6 +2346,117 @@ export function ListView({
                   </PopoverContent>
                 </Popover>
 
+                {/* Columns — sectioned show/hide menu. Built-in columns are
+                    listed for context but aren't toggleable yet (no
+                    show/hide support exists for them today); custom fields
+                    are the only interactive section, via the same generic
+                    {id,label}[] the hook/FacetOptionList already take — a
+                    future PR can make the Built-in section interactive
+                    without restructuring this menu. */}
+                {columnOptions.length > 0 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        className={cn(
+                          "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
+                          visibleColumnIds.length > 0
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                        )}
+                        type="button"
+                      >
+                        <ColumnsIcon className="size-3.5 text-gray-500" />
+                        Columns
+                        {visibleColumnIds.length > 0 && (
+                          <span className="font-bold">
+                            ({visibleColumnIds.length})
+                          </span>
+                        )}
+                        <CaretDownIcon className="size-3 opacity-60" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="w-56 rounded-xl p-1.5"
+                    >
+                      <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Built-in
+                      </p>
+                      {/* Read-only for now — no show/hide mechanism exists for
+                          built-in columns yet, so these are plain, non-
+                          interactive rows rather than fake checkboxes. */}
+                      <div className="mb-1.5 space-y-0.5">
+                        {BUILT_IN_COLUMN_LABELS.map((label) => (
+                          <div
+                            className="px-2 py-1.5 text-xs text-muted-foreground/70"
+                            key={label}
+                          >
+                            {label}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="my-1 h-px bg-border" />
+                      <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Custom Fields
+                      </p>
+                      <FacetOptionList
+                        clearLabel="Clear Selection"
+                        emptyText="No custom fields"
+                        maxListHeight="220px"
+                        onChange={setVisibleColumnIds}
+                        options={sortedColumnOptions.map((c) => ({
+                          value: c.id,
+                          label: c.label,
+                        }))}
+                        searchable
+                        searchPlaceholder="Search columns…"
+                        selected={visibleColumnIds}
+                        showClearDivider
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+
+                {/* Manage Custom Fields — a discoverability shortcut straight
+                    to Project Settings → Custom Fields, not a general
+                    Settings button. Only shown to full-access members (same
+                    permission requireFieldAdmin enforces for a space-scoped
+                    field), and independent of whether any custom fields
+                    exist yet — that's the whole point: it's how you'd go
+                    create the first one when the Filters button is hidden. */}
+                {canManage && (
+                  <button
+                    className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
+                    onClick={() =>
+                      router.push(
+                        `/${workspaceId}/${spaceId}/settings/custom-fields`
+                      )
+                    }
+                    title="Manage Custom Fields"
+                    type="button"
+                  >
+                    <ManageFieldsIcon className="size-4" />
+                  </button>
+                )}
+
+                {/* Archived */}
+                {onToggleArchived && (
+                  <button
+                    className={cn(
+                      "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
+                      showArchived
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
+                    onClick={() => onToggleArchived()}
+                    type="button"
+                  >
+                    <ArchiveIcon className="size-3.5" /> Archived
+                  </button>
+                )}
+
                 {/* Keyboard shortcuts */}
                 <button
                   aria-label="Keyboard shortcuts"
@@ -2207,7 +2491,9 @@ export function ListView({
               spaceId={spaceId}
               statuses={statuses}
               tasks={pinnedTasks}
+              visibleCustomFields={visibleCustomFields}
               workspaceId={workspaceId}
+              workspaceMembers={members}
             />
           )}
 
@@ -2236,7 +2522,9 @@ export function ListView({
                 }}
                 statuses={statuses}
                 tasks={group.tasks}
+                visibleCustomFields={visibleCustomFields}
                 workspaceId={workspaceId}
+                workspaceMembers={members}
               />
             ))}
           </div>

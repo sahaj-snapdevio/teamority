@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { label: "General", path: "general" },
   { label: "Members", path: "members" },
   { label: "Sprints", path: "sprints" },
+  { label: "Custom Fields", path: "custom-fields" },
 ];
 
 export function SpaceSettingsNav({ workspaceId, spaceId }: SpaceSettingsNavProps) {

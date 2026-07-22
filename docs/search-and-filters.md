@@ -84,22 +84,20 @@ Filters narrow down which tasks are visible within a List or View. They are appl
 
 ### Access
 
-- Filter icon / `Filters` button in the List toolbar (top of List View, Board View, Calendar View)
-- Active filters are shown as removable chips in the toolbar
-- Multiple filters can be active at the same time (AND logic — all conditions must match)
+- **Status**, **Priority**, and **Assignee** each have their own dedicated toolbar button (List View and Board View) — a `FacetFilter` chip that opens a checkbox popover directly, not tucked inside a `Filters` menu.
+- A separate `Filters` button (icon: funnel) covers **Custom Fields only** — it exists so custom fields don't need their own always-visible toolbar button apiece. It is **hidden entirely when the project has zero active custom fields** (there'd be nothing to filter). See `docs/custom-fields.md` § List / Board Toolbar Integration.
+- Multiple filters can be active at the same time (AND logic — all conditions must match).
 
 ### Available Filters
 
-| Filter | Options |
-|--------|---------|
-| **Status** | Select one or more statuses from the List's status set |
-| **Priority** | None / Low / Medium / High / Urgent (multi-select) |
-| **Assignee** | Select one or more workspace members; option: `Unassigned` |
-| **Due Date** | Overdue / Due Today / Due This Week / Due This Month / Custom Date Range / No Due Date |
-| **Tags** | Select one or more tags |
-| **Created By** | Select one or more members |
-| **Created Date** | Custom date range |
-| **Last Updated** | Custom date range |
+| Filter | Options | Where |
+|--------|---------|-------|
+| **Status** | Select one or more statuses from the List's status set | Dedicated toolbar button |
+| **Priority** | None / Low / Medium / High / Urgent (multi-select) | Dedicated toolbar button |
+| **Assignee** | Select one or more workspace members; option: `Unassigned` | Dedicated toolbar button |
+| **Custom Fields** | Per-field operator + value (Text/Number/Date/Checkbox/Select/Person) | `Filters` button, one entry per field |
+
+> Due Date / Tags / Created By / Created Date / Last Updated filters described below are aspirational — not present in the current List/Board toolbar implementation. Treat this table as the source of truth for what's actually built; update it alongside any future work that adds them.
 
 ### Filter logic
 
@@ -107,7 +105,9 @@ Filters narrow down which tasks are visible within a List or View. They are appl
 - Multiple different filters active = **AND** (e.g. Assignee: Jane AND Priority: High)
 - Example: `Assignee: Jane OR John` AND `Priority: Urgent OR High` AND `Due Date: This Week`
 
-### Filter chips
+### Filter chips (not in the current List/Board toolbar)
+
+> `components/list/list-filter-toolbar.tsx` implements chips + Saved Filters as described below, but it isn't mounted anywhere in `app/` — the live List/Board toolbars use the dedicated Status/Priority/Assignee buttons + `Filters` (custom fields) described above instead. Treat this subsection as a design reference, not current behavior, until/unless that component is wired in.
 
 Active filters show as chips in the toolbar:
 ```
@@ -116,7 +116,7 @@ Active filters show as chips in the toolbar:
 - Click `×` on a chip to remove that filter
 - Click `Clear All` to remove all active filters
 
-### Saved Filters
+### Saved Filters (not in the current List/Board toolbar — see note above)
 
 - Users can save a combination of active filters as a named Saved Filter
 - Save button appears in the filter panel when at least one filter is active
