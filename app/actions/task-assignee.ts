@@ -9,6 +9,10 @@ import { task, taskAssignee, taskWatcher, user, workspaceMember } from "@/db/sch
 import { canAccessSpace, getSpacePermission, hasPermissionLevel, getWorkspaceMembership } from "@/lib/permissions";
 import { writeActivityLog } from "@/lib/activity-log";
 import { createNotifications } from "@/lib/notifications/create-notification";
+import {
+  createBulkNotifications,
+  type BulkNotifyTaskInfo,
+} from "@/lib/notifications/create-bulk-notifications";
 
 // `taskId` lets an open task detail view skip refetching for other tasks.
 function revalidateTask(workspaceId: string, spaceId: string, listId: string, taskId?: string) {
@@ -208,10 +212,15 @@ export async function bulkAssignTasks(
     await tx.update(task).set({ updatedAt: new Date() }).where(inArray(task.id, validTaskIds));
   });
 
-  // Activity log + notifications are best-effort and per task/user (same
-  // granularity as the single-task actions above) — not part of the write
-  // transaction, which only covers the core assignee/watcher mutation.
+  // Activity log stays best-effort and per task/user (same granularity as the
+  // single-task actions above) — not part of the write transaction, which
+  // only covers the core assignee/watcher mutation. Notifications are
+  // collected here and sent grouped-per-recipient after the loop, so a
+  // recipient added to/removed from several tasks gets one notification per
+  // trigger type, not one per task.
   const actorName = session.user.name ?? session.user.email ?? "Someone";
+  const assignedTasks: BulkNotifyTaskInfo<{ title: string }>[] = [];
+  const unassignedTasks: BulkNotifyTaskInfo<{ title: string }>[] = [];
   for (const t of validTasks) {
     const previouslyAssigned = existingByTask.get(t.id) ?? new Set<string>();
     const added = uniqueAssigneeIds.filter((id) => !previouslyAssigned.has(id));
@@ -229,31 +238,46 @@ export async function bulkAssignTasks(
 
     const notifyAdded = added.filter((id) => id !== session.user.id);
     if (notifyAdded.length > 0) {
-      createNotifications({
-        workspaceId,
-        actorId: session.user.id,
-        recipientIds: notifyAdded,
-        triggerType: "task_assigned",
-        entityType: "TASK",
-        entityId: t.id,
-        title: `${actorName} assigned you to "${t.title}"`,
-        muteCheckEntityIds: [t.id],
-      });
+      assignedTasks.push({ taskId: t.id, recipientIds: notifyAdded, data: { title: t.title } });
     }
     const notifyRemoved = removed.filter((id) => id !== session.user.id);
     if (notifyRemoved.length > 0) {
-      createNotifications({
-        workspaceId,
-        actorId: session.user.id,
-        recipientIds: notifyRemoved,
-        triggerType: "task_unassigned",
-        entityType: "TASK",
-        entityId: t.id,
-        title: `You were unassigned from "${t.title}"`,
-        muteCheckEntityIds: [t.id],
-      });
+      unassignedTasks.push({ taskId: t.id, recipientIds: notifyRemoved, data: { title: t.title } });
     }
   }
+
+  createBulkNotifications({
+    workspaceId,
+    actorId: session.user.id,
+    triggerType: "task_assigned",
+    entityType: "TASK",
+    tasks: assignedTasks,
+    buildMessage: ({ tasks: group }) =>
+      group.length === 1
+        ? { title: `${actorName} assigned you to "${group[0].data.title}"` }
+        : {
+            title: `${actorName} assigned you to ${group.length} tasks`,
+            body:
+              group.map((g) => g.data.title).slice(0, 5).join(", ") +
+              (group.length > 5 ? "…" : ""),
+          },
+  });
+  createBulkNotifications({
+    workspaceId,
+    actorId: session.user.id,
+    triggerType: "task_unassigned",
+    entityType: "TASK",
+    tasks: unassignedTasks,
+    buildMessage: ({ tasks: group }) =>
+      group.length === 1
+        ? { title: `You were unassigned from "${group[0].data.title}"` }
+        : {
+            title: `You were unassigned from ${group.length} tasks`,
+            body:
+              group.map((g) => g.data.title).slice(0, 5).join(", ") +
+              (group.length > 5 ? "…" : ""),
+          },
+  });
 
   if (listId) {
     revalidateTask(workspaceId, spaceId, listId);
