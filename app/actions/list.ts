@@ -819,6 +819,7 @@ export async function getWorkspaceLists(
         id: string;
         name: string;
         color: string | null;
+        logoEmoji: string | null;
         lists: { id: string; name: string; color: string | null }[];
       }[];
     }
@@ -839,6 +840,7 @@ export async function getWorkspaceLists(
       spaceId: space.id,
       spaceName: space.name,
       spaceColor: space.color,
+      spaceLogoEmoji: space.logoEmoji,
       listId: list.id,
       listName: list.name,
       listColor: list.color,
@@ -857,6 +859,7 @@ export async function getWorkspaceLists(
       id: string;
       name: string;
       color: string | null;
+      logoEmoji: string | null;
       lists: { id: string; name: string; color: string | null }[];
     }
   >();
@@ -869,6 +872,7 @@ export async function getWorkspaceLists(
         id: r.spaceId,
         name: r.spaceName,
         color: r.spaceColor,
+        logoEmoji: r.spaceLogoEmoji,
         lists: [],
       });
     }

@@ -14,6 +14,7 @@ export const space = pgTable(
       .references(() => workspace.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     color: text("color"),
+    logoEmoji: text("logo_emoji"),
     isPrivate: boolean("is_private").notNull().default(false),
     isArchived: boolean("is_archived").notNull().default(false),
     archivedAt: timestamp("archived_at", { withTimezone: true }),

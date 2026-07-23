@@ -36,17 +36,47 @@ export function QuickCreateTask({
   const [meta, setMeta] = React.useState<QuickTaskMetaValue>(EMPTY_QUICK_META);
   const [loading, setLoading] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   function show() {
     setOpen(true);
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
-  function close() {
+  const close = React.useCallback(() => {
     setOpen(false);
     setTitle("");
     setMeta(EMPTY_QUICK_META);
-  }
+  }, []);
+
+  // Dismiss the composer when clicking anywhere outside it (same as Cancel).
+  // Clicks inside the composer's own portaled overlays — the Assignee/Priority/
+  // due-date popovers, which render outside this DOM subtree — must NOT close it.
+  React.useEffect(() => {
+    if (!open) {
+      return;
+    }
+    function onPointerDown(e: MouseEvent) {
+      const target = e.target as HTMLElement | null;
+      if (!target || loading) {
+        return;
+      }
+      if (containerRef.current?.contains(target)) {
+        return;
+      }
+      if (
+        target.closest(
+          '[data-radix-popper-content-wrapper],[role="dialog"],[role="menu"],[role="listbox"]'
+        )
+      ) {
+        return;
+      }
+      close();
+    }
+    // `mousedown` (not `click`) so it fires before focus/selection changes.
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open, loading, close]);
 
   async function submit() {
     const trimmed = title.trim();
@@ -88,6 +118,7 @@ export function QuickCreateTask({
   return (
     <div
       className={`space-y-2 rounded-lg border bg-background px-3 py-2 shadow-sm ${className ?? ""}`}
+      ref={containerRef}
     >
       <input
         className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"

@@ -79,6 +79,7 @@ import {
   removeAssignee,
 } from "@/app/actions/task-assignee";
 import { ManageFieldsIcon } from "@/components/common/manage-fields-icon";
+import { SpaceIcon } from "@/components/common/space-icon";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { CustomFieldFilterControl } from "@/components/filters/custom-field-filter";
 import {
@@ -920,6 +921,7 @@ function BulkActionBar({
         id: string;
         name: string;
         color: string | null;
+        logoEmoji: string | null;
         lists: { id: string; name: string; color: string | null }[];
       }[]
     | null
@@ -1356,9 +1358,9 @@ function BulkActionBar({
               listSpaces?.map((sp) => (
                 <div key={sp.id}>
                   <p className="flex items-center gap-1.5 px-2 py-1 text-2xs font-bold text-gray-400 uppercase">
-                    <span
-                      className="size-1.5 rounded-full shrink-0"
-                      style={{ backgroundColor: sp.color ?? "#6B7280" }}
+                    <SpaceIcon
+                      emoji={sp.logoEmoji}
+                      color={sp.color ?? "#6B7280"}
                     />
                     {sp.name}
                   </p>
@@ -1922,10 +1924,9 @@ export function ListView({
         }
         case "c": {
           e.preventDefault();
-          const id = idx >= 0 ? rows[idx].getAttribute("data-task-id") : null;
-          const groupId =
-            (id && findGroupForTask(id)) || groupedGroups[0]?.id || null;
-          setOpenAddGroupId(groupId);
+          // Open the full Create Task popup (same as the "Create Task" button),
+          // not the inline add-row composer.
+          setCreateForStatusId(statuses[0]?.id || "");
           break;
         }
         case "Escape": {
@@ -1940,7 +1941,7 @@ export function ListView({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router, workspaceId, selectedIds, groupedGroups, groupBy]);
+  }, [router, workspaceId, selectedIds, groupedGroups, groupBy, statuses]);
 
   // ─── Drag & Drop Event Handlers ────────────────────────────────────────────
   function findGroupForTask(taskId: string) {

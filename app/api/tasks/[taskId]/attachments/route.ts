@@ -5,7 +5,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { task, list, taskAttachment, taskAssignee } from "@/db/schema";
-import { storage, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from "@/lib/storage";
+import { storage, MAX_FILE_SIZE } from "@/lib/storage";
 import { canAccessSpace, getWorkspaceMembership } from "@/lib/permissions";
 import { rateLimit } from "@/lib/rate-limit";
 import { writeActivityLog } from "@/lib/activity-log";
@@ -116,17 +116,12 @@ export async function POST(
 
   const mimeType = file.type || "application/octet-stream";
   const commentId = formData.get("commentId");
-  // Inline images embedded in a comment/note body. They render inside the note
-  // and are excluded from the task Attachments section; they must be images and
-  // do NOT generate their own activity/notifications (the note is the event).
+  // Inline files embedded in a comment/note body (images render as pictures,
+  // other types as download chips). They render inside the note and are excluded
+  // from the task Attachments section, and do NOT generate their own activity/
+  // notifications (the note is the event). Any file type is allowed inline, same
+  // as a regular attachment — only the shared 10 MB size limit applies (above).
   const isInline = formData.get("inline") === "true";
-
-  if (isInline && !ALLOWED_MIME_TYPES.has(mimeType)) {
-    return NextResponse.json({ error: "Only image files can be embedded" }, { status: 415 });
-  }
-  if (isInline && !mimeType.startsWith("image/")) {
-    return NextResponse.json({ error: "Only image files can be embedded" }, { status: 415 });
-  }
 
   const attachmentId = createId();
   const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");

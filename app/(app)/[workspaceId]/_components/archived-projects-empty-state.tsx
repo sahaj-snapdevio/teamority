@@ -8,9 +8,11 @@ import { unarchiveSpace } from "@/app/actions/space";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useSetTopbar } from "@/lib/topbar-context";
+import { SpaceIcon } from "@/components/common/space-icon";
 
 interface ArchivedProject {
   color: string | null;
+  logoEmoji: string | null;
   id: string;
   name: string;
 }
@@ -71,9 +73,10 @@ export function ArchivedProjectsEmptyState({
           <ul className="divide-y">
             {archived.map((p) => (
               <li className="flex items-center gap-2.5 px-4 py-2.5" key={p.id}>
-                <span
-                  className="size-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: p.color ?? "#6B7280" }}
+                <SpaceIcon
+                  emoji={p.logoEmoji}
+                  color={p.color ?? "#6B7280"}
+                  size="sm"
                 />
                 <span className="flex-1 truncate text-sm font-medium">
                   {p.name}

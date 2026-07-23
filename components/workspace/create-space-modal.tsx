@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createSpace } from "@/app/actions/space";
+import { EmojiPickerPopover } from "@/components/common/emoji-picker-popover";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -35,13 +36,19 @@ export function CreateSpaceModal({ open, onOpenChange, workspaceId }: CreateSpac
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [color, setColor] = useState(COLORS[5]);
+  const [logoEmoji, setLogoEmoji] = useState<string | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
     startTransition(async () => {
-      const result = await createSpace(workspaceId, { name, color, isPrivate });
+      const result = await createSpace(workspaceId, {
+        name,
+        color,
+        logoEmoji,
+        isPrivate,
+      });
       if ("error" in result) {
         toast.error(result.error);
         return;
@@ -49,6 +56,7 @@ export function CreateSpaceModal({ open, onOpenChange, workspaceId }: CreateSpac
       toast.success("Project created");
       setName("");
       setColor(COLORS[5]);
+      setLogoEmoji(null);
       setIsPrivate(false);
       onOpenChange(false);
       router.push(`/${workspaceId}/${result.spaceId}/list/${result.listId}`);
@@ -65,14 +73,21 @@ export function CreateSpaceModal({ open, onOpenChange, workspaceId }: CreateSpac
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           <div className="space-y-1.5">
             <Label htmlFor="space-name">Name</Label>
-            <Input
-              id="space-name"
-              placeholder="e.g. Backend API"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-              required
-            />
+            <div className="flex items-center gap-2">
+              <EmojiPickerPopover
+                value={logoEmoji}
+                onChange={setLogoEmoji}
+                color={color}
+              />
+              <Input
+                id="space-name"
+                placeholder="e.g. Backend API"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">

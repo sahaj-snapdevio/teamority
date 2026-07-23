@@ -32,7 +32,7 @@ export default async function SprintPage({ params }: SprintPageProps) {
   if (!accessible) notFound();
 
   const [currentSpace, permission, membersRaw, sprintRow] = await Promise.all([
-    db.select({ id: space.id, name: space.name, color: space.color })
+    db.select({ id: space.id, name: space.name, color: space.color, logoEmoji: space.logoEmoji })
       .from(space)
       .where(and(eq(space.id, spaceId), eq(space.workspaceId, workspaceId), eq(space.isArchived, false)))
       .limit(1)
@@ -74,6 +74,7 @@ export default async function SprintPage({ params }: SprintPageProps) {
         sprintStatus={sprintRow.status}
         spaceName={currentSpace.name}
         spaceColor={currentSpace.color}
+        spaceLogoEmoji={currentSpace.logoEmoji}
         isAdmin={isAdmin}
         canEdit={canEdit}
         members={members}

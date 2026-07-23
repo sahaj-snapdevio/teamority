@@ -16,18 +16,24 @@ interface SprintPageClientProps {
   sprintStatus: "PLANNED" | "ACTIVE" | "CLOSED";
   spaceName: string;
   spaceColor: string | null;
+  spaceLogoEmoji: string | null;
   isAdmin: boolean;
   canEdit: boolean;
   members: { userId: string; name: string | null; email: string | null }[];
 }
 
-export function SprintPageClient({ workspaceId, spaceId, sprintId, sprintStatus, spaceName, spaceColor, isAdmin, canEdit, members }: SprintPageClientProps) {
+export function SprintPageClient({ workspaceId, spaceId, sprintId, sprintStatus, spaceName, spaceColor, spaceLogoEmoji, isAdmin, canEdit, members }: SprintPageClientProps) {
   const [refreshKey, setRefreshKey] = React.useState(0);
   const [showBacklog, setShowBacklog] = React.useState(false);
 
   useSetTopbar({
     breadcrumbs: [
-      { label: spaceName, color: spaceColor, href: `/${workspaceId}/${spaceId}` },
+      {
+        label: spaceName,
+        color: spaceColor,
+        emoji: spaceLogoEmoji,
+        href: `/${workspaceId}/${spaceId}`,
+      },
     ],
     title: "Sprints",
   });

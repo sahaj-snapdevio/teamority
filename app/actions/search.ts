@@ -68,6 +68,7 @@ export type SearchSpaceResult = {
   id: string;
   name: string;
   color: string | null;
+  logoEmoji: string | null;
   memberCount: number;
   isArchived: boolean;
 };
@@ -273,6 +274,7 @@ export async function globalSearch(
     id: string;
     name: string;
     color: string | null;
+    logoEmoji: string | null;
     isArchived: boolean;
   }[] = [];
   if (wantSpaces) {
@@ -286,6 +288,7 @@ export async function globalSearch(
         id: space.id,
         name: space.name,
         color: space.color,
+        logoEmoji: space.logoEmoji,
         isArchived: space.isArchived,
       })
       .from(space)
@@ -680,7 +683,7 @@ export async function getFilteredTasks(
 // ─── Search Filter Options ───────────────────────────────────────────────────
 
 export type SearchFilterOptions = {
-  spaces: { id: string; name: string; color: string | null }[];
+  spaces: { id: string; name: string; color: string | null; logoEmoji: string | null }[];
   members: {
     userId: string;
     name: string | null;
@@ -715,7 +718,7 @@ export async function getSearchFilterOptions(
 
   const [spaces, memberRows, tags, sprints] = await Promise.all([
     db
-      .select({ id: space.id, name: space.name, color: space.color })
+      .select({ id: space.id, name: space.name, color: space.color, logoEmoji: space.logoEmoji })
       .from(space)
       .where(
         and(

@@ -14,6 +14,7 @@ import {
   CodeBlockIcon,
   CodeIcon,
   ImageIcon,
+  PaperclipIcon,
   ListBulletsIcon,
   ListChecksIcon,
   ListNumbersIcon,
@@ -33,6 +34,7 @@ import {
   type SlashCommand,
 } from "@/components/task/slash-command-menu";
 import { NoteImage } from "@/components/task/note-image";
+import { NoteFile } from "@/components/task/note-file";
 import { useNoteImageUpload } from "@/hooks/use-note-image-upload";
 import { LINK_OPTIONS } from "@/lib/tiptap-link";
 import { getWorkspaceMentionMembers, type MentionMember } from "@/app/actions/mention";
@@ -126,11 +128,12 @@ export function TaskDescriptionEditor({
   const [linkOpen, setLinkOpen] = React.useState(false);
   const [linkUrl, setLinkUrl] = React.useState("");
   const slashMenu = useSlashCommands(SLASH_COMMANDS);
-  const localImageUpload = useNoteImageUpload({ taskId });
+  const localImageUpload = useNoteImageUpload({ taskId, acceptAllFiles: true });
   // Prefer an externally-supplied controller (deferred mode) over the local one.
   const imageUpload = externalImageUpload ?? localImageUpload;
   const canInlineImages = !!taskId || !!externalImageUpload;
   const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   // If the editor blurs while an image is still uploading, defer the autosave
   // until the upload finishes so we never persist a keyless placeholder node.
   const pendingSaveRef = React.useRef(false);
@@ -172,6 +175,7 @@ export function TaskDescriptionEditor({
       TaskList,
       TaskItem.configure({ nested: true }),
       NoteImage,
+      NoteFile,
       ...(mentionExtension ? [mentionExtension] : []),
     ],
     content: (() => {
@@ -229,6 +233,11 @@ export function TaskDescriptionEditor({
   }, [imageUpload.uploading, onSave]);
 
   function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
+    imageUpload.pickAndUpload(e.target.files);
+    e.target.value = "";
+  }
+
+  function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     imageUpload.pickAndUpload(e.target.files);
     e.target.value = "";
   }
@@ -439,7 +448,7 @@ export function TaskDescriptionEditor({
           </PopoverContent>
         </Popover>
 
-        {/* Image — paste, drop, or pick (only when the task exists) */}
+        {/* Image / file — paste, drop, or pick (only when the task exists) */}
         {canInlineImages && (
           <>
             <ToolbarButton title="Add image" onClick={() => imageInputRef.current?.click()}>
@@ -452,6 +461,19 @@ export function TaskDescriptionEditor({
               multiple
               className="hidden"
               onChange={handleImagePick}
+            />
+            <ToolbarButton
+              title="Attach file (PDF, DOC, …)"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <PaperclipIcon className="size-4" />
+            </ToolbarButton>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFilePick}
             />
           </>
         )}

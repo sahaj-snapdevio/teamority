@@ -132,12 +132,14 @@ const createSpaceSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/, "Invalid color")
     .optional()
     .nullable(),
+  logoEmoji: z.string().trim().min(1).max(16).optional().nullable(),
 });
 
 export async function createOnboardingSpace(input: {
   workspaceId: string;
   name: string;
   color?: string | null;
+  logoEmoji?: string | null;
 }): Promise<{ error: string } | undefined> {
   const user = await getSessionUser();
 
@@ -145,7 +147,7 @@ export async function createOnboardingSpace(input: {
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
-  const { workspaceId, name, color } = parsed.data;
+  const { workspaceId, name, color, logoEmoji } = parsed.data;
 
   // Only actual members who are allowed to create projects may do so. Guests
   // (and non-members) cannot create a project in an existing workspace.
@@ -163,6 +165,7 @@ export async function createOnboardingSpace(input: {
       workspaceId,
       name,
       color: color ?? null,
+      logoEmoji: logoEmoji ?? null,
       createdBy: user.id,
     });
 

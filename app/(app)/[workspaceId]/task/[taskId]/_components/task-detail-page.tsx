@@ -85,6 +85,7 @@ import {
 } from "@/components/task/task-activity-feed";
 import { CustomFieldEditor } from "@/components/task/custom-field-editors";
 import { TaskDependencies } from "@/components/task/task-dependencies";
+import { SubtaskRow } from "@/components/task/subtask-row";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
 import { TaskTimeTracking } from "@/components/task/task-time-tracking";
 import {
@@ -1586,54 +1587,26 @@ export function TaskDetailPage({
                             const renderRow = (
                               sub: (typeof subtasks)[number]
                             ) => (
-                              <div
-                                className="flex items-baseline gap-2 rounded-md border bg-card px-3 py-2 hover:bg-accent/30 cursor-pointer group"
+                              <SubtaskRow
+                                canEdit={canEdit}
                                 key={sub.id}
-                                onClick={() =>
+                                members={members}
+                                onChanged={load}
+                                onDelete={() =>
+                                  setDeletingSubtask({
+                                    id: sub.id,
+                                    title: sub.title,
+                                  })
+                                }
+                                onNavigate={() =>
                                   router.push(`/${workspaceId}/task/${sub.id}`)
                                 }
-                              >
-                                {/* `self-center`: this row aligns by text
-                                    baseline (below) so the mono seq number and
-                                    the title sit on the same line, not just
-                                    the same centered box — but a plain glyph-
-                                    less dot/icon has no baseline of its own,
-                                    so it opts back into simple centering. */}
-                                <span
-                                  className="size-2.5 shrink-0 self-center rounded-full"
-                                  style={{
-                                    backgroundColor:
-                                      sub.statusColor ?? "#9CA3AF",
-                                  }}
-                                />
-                                <span className="font-mono text-xs text-muted-foreground shrink-0">
-                                  #{sub.seqNumber}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "flex-1 text-sm truncate",
-                                    sub.statusType === "CLOSED" &&
-                                      "line-through text-muted-foreground"
-                                  )}
-                                >
-                                  {sub.title}
-                                </span>
-                                <button
-                                  className="flex size-6 shrink-0 self-center items-center justify-center rounded-md text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeletingSubtask({
-                                      id: sub.id,
-                                      title: sub.title,
-                                    });
-                                  }}
-                                  title="Delete subtask"
-                                  type="button"
-                                >
-                                  <TrashIcon className="size-3.5" />
-                                </button>
-                                <CaretRightIcon className="size-3.5 shrink-0 self-center text-muted-foreground opacity-0 group-hover:opacity-100" />
-                              </div>
+                                parentListId={t.listId}
+                                spaceId={spaceId}
+                                statuses={statuses}
+                                subtask={sub}
+                                workspaceId={workspaceId}
+                              />
                             );
                             const active = subtasks.filter(
                               (s) => s.statusType !== "CLOSED"

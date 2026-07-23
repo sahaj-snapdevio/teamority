@@ -29,6 +29,7 @@ export default async function SpaceGeneralSettingsPage({ params }: PageProps) {
     .select({
       name: space.name,
       color: space.color,
+      logoEmoji: space.logoEmoji,
       isPrivate: space.isPrivate,
       isArchived: space.isArchived,
     })
@@ -46,6 +47,7 @@ export default async function SpaceGeneralSettingsPage({ params }: PageProps) {
       spaceId={spaceId}
       spaceName={s.name}
       spaceColor={s.color}
+      spaceLogoEmoji={s.logoEmoji}
       isPrivate={s.isPrivate}
       isArchived={s.isArchived}
       isAdmin={isAdmin}

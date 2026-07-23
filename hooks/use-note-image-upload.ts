@@ -10,38 +10,48 @@ export function imageFilesFromList(list: FileList | null | undefined): File[] {
   return Array.from(list).filter((f) => f.type.startsWith("image/"));
 }
 
+function isImageFile(f: File): boolean {
+  return f.type.startsWith("image/");
+}
+
 function newTempId(): string {
   return typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : `tmp-${Date.now()}-${Math.round(Math.random() * 1e9)}`;
 }
 
-interface UploadedImage {
+interface UploadedFile {
   fileKey: string;
   attachmentId: string;
 }
 
 /**
- * Inline paste/drop/pick image support for a Tiptap editor that uses the
- * `noteImage` node (see components/task/note-image.tsx). Uploads reuse the
- * task attachments endpoint (`?inline=true`).
+ * Inline paste/drop/pick upload support for a Tiptap editor. Images are inserted
+ * as the `noteImage` node (see components/task/note-image.tsx); when
+ * `acceptAllFiles` is set, non-image files (PDF, DOC, …) are also accepted and
+ * inserted as the `noteFile` chip node (components/task/note-file.tsx). Uploads
+ * reuse the task attachments endpoint (`?inline=true`).
  *
  * Two modes:
- *  - **Immediate** (`taskId` set): each image uploads right away and its node
- *    is patched with the real storage key.
+ *  - **Immediate** (`taskId` set): each file uploads right away and its node is
+ *    patched with the real storage key.
  *  - **Deferred** (`deferred: true`, no taskId yet — e.g. the create modal):
- *    images are inserted as local previews only; call `flushPending(taskId)`
- *    after the task is created to upload them and rewrite the description.
+ *    files are inserted as placeholders only; call `flushPending(taskId)` after
+ *    the task is created to upload them and rewrite the description.
  */
 export function useNoteImageUpload(opts: {
   taskId?: string;
   deferred?: boolean;
+  /** Accept any file type (PDF/DOC/etc.), not just images. */
+  acceptAllFiles?: boolean;
 }) {
   const editorRef = React.useRef<Editor | null>(null);
   const taskIdRef = React.useRef(opts.taskId);
   taskIdRef.current = opts.taskId;
   const deferredRef = React.useRef(opts.deferred);
   deferredRef.current = opts.deferred;
+  const acceptAllRef = React.useRef(opts.acceptAllFiles);
+  acceptAllRef.current = opts.acceptAllFiles;
 
   // tempId -> File, for deferred uploads flushed after task creation.
   const pendingRef = React.useRef<Map<string, File>>(new Map());
@@ -51,14 +61,41 @@ export function useNoteImageUpload(opts: {
     editorRef.current = e;
   }, []);
 
-  // Update / remove the noteImage node identified by its (temp) attachmentId.
+  // Files from a FileList, filtered to what this controller accepts.
+  function filesForMode(list: FileList | null | undefined): File[] {
+    if (!list) return [];
+    const all = Array.from(list);
+    return acceptAllRef.current ? all : all.filter(isImageFile);
+  }
+
+  // The attrs to write onto a node once its upload succeeds. Image and file
+  // nodes have slightly different attr sets (previewSrc is image-only).
+  function successPatch(file: File, up: UploadedFile): Record<string, unknown> {
+    return isImageFile(file)
+      ? {
+          attachmentId: up.attachmentId,
+          fileKey: up.fileKey,
+          uploading: false,
+          previewSrc: null,
+        }
+      : {
+          attachmentId: up.attachmentId,
+          fileKey: up.fileKey,
+          uploading: false,
+        };
+  }
+
+  // Update / remove the noteImage|noteFile node identified by its (temp) id.
   function patchNode(matchId: string, attrs: Record<string, unknown> | null) {
     const editor = editorRef.current;
     if (!editor || editor.isDestroyed) return;
     const { state, view } = editor;
     let pos = -1;
     state.doc.descendants((node, p) => {
-      if (node.type.name === "noteImage" && node.attrs.attachmentId === matchId) {
+      if (
+        (node.type.name === "noteImage" || node.type.name === "noteFile") &&
+        node.attrs.attachmentId === matchId
+      ) {
         pos = p;
         return false;
       }
@@ -73,18 +110,38 @@ export function useNoteImageUpload(opts: {
     view.dispatch(tr);
   }
 
-  function insertPlaceholder(tempId: string, previewSrc: string, alt: string, uploading: boolean) {
-    editorRef.current
-      ?.chain()
-      .focus()
-      .insertContent({
-        type: "noteImage",
-        attrs: { attachmentId: tempId, uploading, previewSrc, alt },
-      })
-      .run();
+  function insertPlaceholder(
+    tempId: string,
+    file: File,
+    uploading: boolean,
+    previewSrc: string | null
+  ) {
+    const chain = editorRef.current?.chain().focus();
+    if (!chain) return;
+    if (isImageFile(file)) {
+      chain
+        .insertContent({
+          type: "noteImage",
+          attrs: { attachmentId: tempId, uploading, previewSrc, alt: file.name },
+        })
+        .run();
+    } else {
+      chain
+        .insertContent({
+          type: "noteFile",
+          attrs: {
+            attachmentId: tempId,
+            uploading,
+            fileName: file.name,
+            fileSize: file.size,
+            mimeType: file.type || "application/octet-stream",
+          },
+        })
+        .run();
+    }
   }
 
-  async function uploadOne(taskId: string, file: File): Promise<UploadedImage | null> {
+  async function uploadOne(taskId: string, file: File): Promise<UploadedFile | null> {
     const fd = new FormData();
     fd.append("file", file);
     fd.append("inline", "true");
@@ -102,36 +159,31 @@ export function useNoteImageUpload(opts: {
     const taskId = taskIdRef.current;
     if (!taskId) return;
     const tempId = newTempId();
-    const previewSrc = URL.createObjectURL(file);
+    const previewSrc = isImageFile(file) ? URL.createObjectURL(file) : null;
     setUploadCount((n) => n + 1);
-    insertPlaceholder(tempId, previewSrc, file.name, true);
+    insertPlaceholder(tempId, file, true, previewSrc);
     try {
       const up = await uploadOne(taskId, file);
       if (!up) throw new Error("upload failed");
-      patchNode(tempId, {
-        attachmentId: up.attachmentId,
-        fileKey: up.fileKey,
-        uploading: false,
-        previewSrc: null,
-      });
+      patchNode(tempId, successPatch(file, up));
     } catch {
       patchNode(tempId, null);
-      toast.error("Couldn't upload image");
+      toast.error(`Couldn't upload ${isImageFile(file) ? "image" : "file"}`);
     } finally {
-      URL.revokeObjectURL(previewSrc);
+      if (previewSrc) URL.revokeObjectURL(previewSrc);
       setUploadCount((n) => Math.max(0, n - 1));
     }
   }
 
-  // Deferred mode: insert a local preview only; remember the File for flush.
+  // Deferred mode: insert a placeholder only; remember the File for flush.
   function insertPending(file: File) {
     const tempId = newTempId();
-    const previewSrc = URL.createObjectURL(file);
+    const previewSrc = isImageFile(file) ? URL.createObjectURL(file) : null;
     pendingRef.current.set(tempId, file);
-    insertPlaceholder(tempId, previewSrc, file.name, false);
+    insertPlaceholder(tempId, file, false, previewSrc);
   }
 
-  function handleImageFiles(files: File[]) {
+  function handleFiles(files: File[]) {
     for (const f of files) {
       if (deferredRef.current) insertPending(f);
       else if (taskIdRef.current) void insertAndUpload(f);
@@ -139,11 +191,11 @@ export function useNoteImageUpload(opts: {
   }
 
   // Stable handlers (created once) that always call the latest logic.
-  const handleFilesRef = React.useRef(handleImageFiles);
-  handleFilesRef.current = handleImageFiles;
+  const handleFilesRef = React.useRef(handleFiles);
+  handleFilesRef.current = handleFiles;
 
   const handlePaste = React.useCallback((_view: unknown, event: ClipboardEvent) => {
-    const files = imageFilesFromList(event.clipboardData?.files);
+    const files = filesForMode(event.clipboardData?.files);
     if (files.length === 0) return false;
     event.preventDefault();
     handleFilesRef.current(files);
@@ -151,7 +203,7 @@ export function useNoteImageUpload(opts: {
   }, []);
 
   const handleDrop = React.useCallback((_view: unknown, event: DragEvent) => {
-    const files = imageFilesFromList(event.dataTransfer?.files);
+    const files = filesForMode(event.dataTransfer?.files);
     if (files.length === 0) return false;
     event.preventDefault();
     handleFilesRef.current(files);
@@ -159,13 +211,13 @@ export function useNoteImageUpload(opts: {
   }, []);
 
   const pickAndUpload = React.useCallback((fileList: FileList | null) => {
-    handleFilesRef.current(imageFilesFromList(fileList));
+    handleFilesRef.current(filesForMode(fileList));
   }, []);
 
   /**
-   * Deferred mode: upload every pending image against the now-known task,
-   * patch the successfully-uploaded nodes in the live editor, drop the failed
-   * ones, and return counts + the final description JSON to persist.
+   * Deferred mode: upload every pending file against the now-known task, patch
+   * the successfully-uploaded nodes in the live editor, drop the failed ones,
+   * and return counts + the final description JSON to persist.
    */
   async function flushPending(
     taskId: string,
@@ -180,12 +232,7 @@ export function useNoteImageUpload(opts: {
           const up = await uploadOne(taskId, file).catch(() => null);
           if (up) {
             uploaded++;
-            patchNode(tempId, {
-              attachmentId: up.attachmentId,
-              fileKey: up.fileKey,
-              uploading: false,
-              previewSrc: null,
-            });
+            patchNode(tempId, successPatch(file, up));
           } else {
             failed++;
             patchNode(tempId, null); // drop the failed placeholder

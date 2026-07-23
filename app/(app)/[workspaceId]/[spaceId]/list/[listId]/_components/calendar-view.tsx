@@ -38,6 +38,7 @@ import { UserAvatar } from "@/components/common/user-avatar";
 import { FacetFilter } from "@/components/filters/facet-filter";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
+import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -173,6 +174,9 @@ export function CalendarView({
 
   const [activeTask, setActiveTask] = React.useState<CalendarTask | null>(null);
   const [createDay, setCreateDay] = React.useState<Date | null>(null);
+  // "C" opens the Create Task popup (defaults the due date to today, matching
+  // how creation works in the calendar — clicking a day).
+  useCreateTaskShortcut(() => setCreateDay(new Date()), canEdit);
   const [pendingReschedule, setPendingReschedule] = React.useState<{
     taskId: string;
     newStart: Date | null;
@@ -305,6 +309,12 @@ export function CalendarView({
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full flex-col">
+        {/* Sticky header block — the filter toolbar + weekday row freeze at the
+            top of the page scroll (top-14 clears the List/Board/Calendar tabs)
+            while the month grid scrolls underneath. Wrapping both in one sticky
+            container avoids a fragile fixed offset, since the toolbar can wrap
+            to two rows on narrow widths. */}
+        <div className="sticky top-14 z-10 shrink-0 bg-app">
         {/* Toolbar: search + facet filters + month navigation */}
         <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2 shrink-0">
           <SearchInput
@@ -390,6 +400,7 @@ export function CalendarView({
               {d}
             </div>
           ))}
+        </div>
         </div>
 
         {/* Month grid */}

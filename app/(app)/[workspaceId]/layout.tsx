@@ -96,20 +96,21 @@ export default async function WorkspaceLayout({
             id: space.id,
             name: space.name,
             color: space.color,
+            logoEmoji: space.logoEmoji,
             isPrivate: space.isPrivate,
             sprintDateFormat: space.sprintDateFormat,
           })
           .from(space)
           .where(and(inArray(space.id, spaceIds), eq(space.isArchived, false)))
           .orderBy(asc(space.orderIndex), asc(space.createdAt))
-      : Promise.resolve([] as { id: string; name: string; color: string | null; isPrivate: boolean; sprintDateFormat: string }[]),
+      : Promise.resolve([] as { id: string; name: string; color: string | null; logoEmoji: string | null; isPrivate: boolean; sprintDateFormat: string }[]),
     archivedSpaceIds.length > 0
       ? db
-          .select({ id: space.id, name: space.name, color: space.color, isPrivate: space.isPrivate, sprintDateFormat: space.sprintDateFormat })
+          .select({ id: space.id, name: space.name, color: space.color, logoEmoji: space.logoEmoji, isPrivate: space.isPrivate, sprintDateFormat: space.sprintDateFormat })
           .from(space)
           .where(inArray(space.id, archivedSpaceIds))
           .orderBy(asc(space.orderIndex), asc(space.createdAt))
-      : Promise.resolve([] as { id: string; name: string; color: string | null; isPrivate: boolean; sprintDateFormat: string }[]),
+      : Promise.resolve([] as { id: string; name: string; color: string | null; logoEmoji: string | null; isPrivate: boolean; sprintDateFormat: string }[]),
   ]);
 
   const isAdminOrOwner =

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmojiPickerPopover } from "@/components/common/emoji-picker-popover";
 import { cn } from "@/lib/utils";
 
 const LOGO_EMOJIS = [
@@ -74,6 +75,7 @@ export function OnboardingWizard({
 
   const [spaceName, setSpaceName] = useState("");
   const [spaceColor, setSpaceColor] = useState(SPACE_COLORS[0]);
+  const [spaceLogoEmoji, setSpaceLogoEmoji] = useState<string | null>(null);
 
   function handleSaveName(e: React.FormEvent) {
     e.preventDefault();
@@ -111,6 +113,7 @@ export function OnboardingWizard({
         workspaceId: workspaceState.id,
         name: spaceName,
         color: spaceColor,
+        logoEmoji: spaceLogoEmoji,
       });
       if (result && "error" in result) toast.error(result.error);
     });
@@ -244,15 +247,22 @@ export function OnboardingWizard({
         <form onSubmit={handleCreateSpace} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="space-name">Project name</Label>
-            <Input
-              id="space-name"
-              placeholder="e.g. Product, Engineering, Design"
-              value={spaceName}
-              onChange={(e) => setSpaceName(e.target.value)}
-              maxLength={100}
-              autoFocus
-              required
-            />
+            <div className="flex items-center gap-2">
+              <EmojiPickerPopover
+                value={spaceLogoEmoji}
+                onChange={setSpaceLogoEmoji}
+                color={spaceColor}
+              />
+              <Input
+                id="space-name"
+                placeholder="e.g. Product, Engineering, Design"
+                value={spaceName}
+                onChange={(e) => setSpaceName(e.target.value)}
+                maxLength={100}
+                autoFocus
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

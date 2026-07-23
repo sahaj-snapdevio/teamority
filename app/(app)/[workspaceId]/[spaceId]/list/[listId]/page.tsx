@@ -85,7 +85,7 @@ export default async function ListPage({ params }: ListPageProps) {
 
   const [currentSpace, currentList] = await Promise.all([
     db
-      .select({ id: space.id, name: space.name, color: space.color })
+      .select({ id: space.id, name: space.name, color: space.color, logoEmoji: space.logoEmoji })
       .from(space)
       .where(eq(space.id, spaceId))
       .limit(1)

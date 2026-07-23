@@ -62,6 +62,7 @@ import {
 import { FilterBuilder } from "@/components/filters/filter-builder";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
+import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
 import {
   TaskDependencyBadge,
   type TaskDependencyIndicator,
@@ -163,7 +164,7 @@ interface BoardViewProps {
     description?: string | null;
   };
   members?: BoardMember[];
-  space: { id: string; name: string; color: string | null };
+  space: { id: string; name: string; color: string | null; logoEmoji: string | null };
   statuses: Status[];
   tags?: { id: string; name: string; color: string }[];
   tasks: Task[];
@@ -1124,6 +1125,8 @@ export function BoardView({
 
   // ── Toolbar state ─────────────────────────────────────────────────────────
   const [createOpen, setCreateOpen] = React.useState(false);
+  // "C" opens the Create Task popup (same as the toolbar button).
+  useCreateTaskShortcut(() => setCreateOpen(true), canEdit || isAdmin);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortBy, setSortBy] = React.useState<"name" | "priority" | null>(null);
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc");

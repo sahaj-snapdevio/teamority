@@ -40,7 +40,7 @@ import {
   createBulkNotifications,
   type BulkNotifyTaskInfo,
 } from "@/lib/notifications/create-bulk-notifications";
-import { extractInlineImageAttachmentIds, extractMentionIds, toTiptapDoc } from "@/lib/notes";
+import { extractInlineAttachmentIds, extractMentionIds, toTiptapDoc } from "@/lib/notes";
 import { spaceRecipientUserIds } from "@/app/actions/space";
 import { storage } from "@/lib/storage";
 
@@ -403,6 +403,9 @@ export async function getTaskDetail(
           title: task.title,
           priority: task.priority,
           statusId: task.statusId,
+          listId: task.listId,
+          dueDateStart: task.dueDateStart,
+          dueDateEnd: task.dueDateEnd,
           orderIndex: task.orderIndex,
           statusName: listStatus.name,
           statusColor: listStatus.color,
@@ -423,6 +426,30 @@ export async function getTaskDetail(
         : Promise.resolve(null),
     ]);
 
+  // Attach each subtask's assignees (one grouped query for all subtask ids) so
+  // the subtask rows can show + edit assignees inline.
+  const subtaskIds = subtasks.map((s) => s.id);
+  const subtaskAssigneeRows =
+    subtaskIds.length > 0
+      ? await db
+          .select({
+            taskId: taskAssignee.taskId,
+            userId: taskAssignee.userId,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+          })
+          .from(taskAssignee)
+          .leftJoin(user, eq(user.id, taskAssignee.userId))
+          .where(inArray(taskAssignee.taskId, subtaskIds))
+      : [];
+  const subtasksWithAssignees = subtasks.map((s) => ({
+    ...s,
+    assignees: subtaskAssigneeRows
+      .filter((a) => a.taskId === s.id)
+      .map((a) => ({ userId: a.userId, name: a.name, email: a.email, image: a.image })),
+  }));
+
   return {
     task: t,
     assignees,
@@ -434,7 +461,7 @@ export async function getTaskDetail(
     timeEntries,
     statuses,
     snapshot,
-    subtasks,
+    subtasks: subtasksWithAssignees,
     parentTask: parentTaskInfo,
     canEdit,
     currentUserId: session.user.id,
@@ -555,7 +582,7 @@ export async function updateTask(
     // deleted every description image on save, so other users saw broken images.
     const newDescDoc = toTiptapDoc(data.description);
     if (newDescDoc !== null && newDescDoc !== undefined) {
-      const keptIds = extractInlineImageAttachmentIds(newDescDoc);
+      const keptIds = extractInlineAttachmentIds(newDescDoc);
       const removed = await db
         .select({ id: taskAttachment.id, fileUrl: taskAttachment.fileUrl })
         .from(taskAttachment)
