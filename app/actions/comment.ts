@@ -9,7 +9,7 @@ import { comment, commentReaction, task, taskAttachment, taskWatcher, user } fro
 import { canAccessSpace, getSpacePermission, hasPermissionLevel } from "@/lib/permissions";
 import { writeActivityLog } from "@/lib/activity-log";
 import { createNotifications } from "@/lib/notifications/create-notification";
-import { extractInlineImageAttachmentIds, extractMentionIds } from "@/lib/notes";
+import { extractInlineAttachmentIds, extractMentionIds } from "@/lib/notes";
 import { storage } from "@/lib/storage";
 import { refreshWorkspace } from "@/lib/realtime/refresh";
 
@@ -249,7 +249,7 @@ export async function createComment(
 
   // Link any inline images (uploaded during compose, commentId still null) to
   // this comment so they're cleaned up when the comment is edited/deleted.
-  const inlineImageIds = extractInlineImageAttachmentIds(body);
+  const inlineImageIds = extractInlineAttachmentIds(body);
   if (inlineImageIds.length > 0) {
     await db
       .update(taskAttachment)
@@ -373,7 +373,7 @@ export async function editComment(
 
   // Reconcile inline images. Link any newly-added ones (uploaded during the
   // edit, still unlinked) to this comment.
-  const newImageIds = extractInlineImageAttachmentIds(body);
+  const newImageIds = extractInlineAttachmentIds(body);
   if (newImageIds.length > 0) {
     await db
       .update(taskAttachment)

@@ -18,6 +18,7 @@ import {
   type MyTask,
   type MyTasksGroupBy,
 } from "@/app/actions/my-tasks";
+import { SpaceIcon } from "@/components/common/space-icon";
 import {
   Popover,
   PopoverContent,
@@ -160,7 +161,12 @@ function groupByWorkspace(tasks: MyTask[]): Group[] {
 function groupBySpace(tasks: MyTask[]): Group[] {
   const map = new Map<
     string,
-    { label: string; color: string | null; tasks: MyTask[] }
+    {
+      label: string;
+      color: string | null;
+      logoEmoji: string | null;
+      tasks: MyTask[];
+    }
   >();
   for (const t of tasks) {
     const existing = map.get(t.space.id);
@@ -170,6 +176,7 @@ function groupBySpace(tasks: MyTask[]): Group[] {
       map.set(t.space.id, {
         label: t.space.name,
         color: t.space.color,
+        logoEmoji: t.space.logoEmoji,
         tasks: [t],
       });
     }
@@ -177,6 +184,7 @@ function groupBySpace(tasks: MyTask[]): Group[] {
   return Array.from(map.values()).map((g, i) => ({
     key: `space-${i}`,
     label: g.label,
+    icon: <SpaceIcon emoji={g.logoEmoji} color={g.color} size="sm" />,
     tasks: g.tasks,
   }));
 }

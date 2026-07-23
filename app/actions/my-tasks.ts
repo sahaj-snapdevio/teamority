@@ -16,7 +16,7 @@ export interface MyTask {
   dueDateEnd: Date | null;
   status: { id: string; name: string; color: string; type: "OPEN" | "ACTIVE" | "CLOSED" };
   list: { id: string; name: string };
-  space: { id: string; name: string; color: string | null };
+  space: { id: string; name: string; color: string | null; logoEmoji: string | null };
   workspace: { id: string; name: string };
   tags: { id: string; name: string; color: string }[];
 }
@@ -80,6 +80,7 @@ export async function getMyTasks(
       spaceId: space.id,
       spaceName: space.name,
       spaceColor: space.color,
+      spaceLogoEmoji: space.logoEmoji,
       workspaceId: workspace.id,
       workspaceName: workspace.name,
     })
@@ -135,7 +136,7 @@ export async function getMyTasks(
     dueDateEnd: r.dueDateEnd,
     status: { id: r.statusId, name: r.statusName, color: r.statusColor, type: r.statusType as MyTask["status"]["type"] },
     list: { id: r.listId, name: r.listName },
-    space: { id: r.spaceId, name: r.spaceName, color: r.spaceColor },
+    space: { id: r.spaceId, name: r.spaceName, color: r.spaceColor, logoEmoji: r.spaceLogoEmoji },
     workspace: { id: r.workspaceId, name: r.workspaceName },
     tags: tagsByTask.get(r.id) ?? [],
   }));

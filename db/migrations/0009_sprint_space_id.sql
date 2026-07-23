@@ -1,5 +1,5 @@
 -- Sprint architecture change: move sprint from list-level to project (space) level
--- Drops list_id and workspace_id, adds space_id FK → space
+-- Drops list_id and workspace_id, adds space_id FK -> space
 
 --> statement-breakpoint
 ALTER TABLE "sprint" DROP CONSTRAINT "sprint_list_id_list_id_fk";

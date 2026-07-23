@@ -8,7 +8,7 @@ import { useSetTopbar } from "@/lib/topbar-context";
 
 interface EmptySpaceProps {
   workspaceId: string;
-  space: { id: string; name: string; color: string | null };
+  space: { id: string; name: string; color: string | null; logoEmoji: string | null };
   canManage: boolean;
 }
 
@@ -16,7 +16,9 @@ export function EmptySpace({ workspaceId, space, canManage }: EmptySpaceProps) {
   const [createOpen, setCreateOpen] = React.useState(false);
 
   useSetTopbar({
-    breadcrumbs: [{ label: space.name, color: space.color }],
+    breadcrumbs: [
+      { label: space.name, color: space.color, emoji: space.logoEmoji },
+    ],
     title: "Lists",
   });
 

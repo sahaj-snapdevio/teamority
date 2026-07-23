@@ -77,7 +77,7 @@ interface ListContainerProps {
   members: { userId: string; name: string | null; email: string | null }[];
   personallyPinnedIds: Set<string>;
   pinnedTasks: Task[];
-  space: { id: string; name: string; color: string | null };
+  space: { id: string; name: string; color: string | null; logoEmoji: string | null };
   statuses: Status[];
   tags: { id: string; name: string; color: string }[];
   tasks: Task[];
@@ -123,7 +123,12 @@ export function ListContainer({
 
   useSetTopbar({
     breadcrumbs: [
-      { label: space.name, color: space.color, href: `/${workspaceId}/${space.id}` },
+      {
+        label: space.name,
+        color: space.color,
+        emoji: space.logoEmoji,
+        href: `/${workspaceId}/${space.id}`,
+      },
     ],
     title: list.name,
     actions:

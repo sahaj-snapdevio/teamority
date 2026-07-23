@@ -41,6 +41,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { SearchInput } from "@/components/ui/search-input";
 import { useRealtimeRefetch, useRealtimePause } from "@/components/realtime/realtime-provider";
 import { TaskListRow, type TaskListRowProps } from "@/components/task/task-list-row";
+import { SpaceIcon } from "@/components/common/space-icon";
+import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
 import { PRIORITY_CONFIG, userInitials, avatarSrc } from "@/lib/priority-config";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -132,7 +134,7 @@ interface SprintListViewProps {
 }
 
 type SprintOption = { id: string; name: string; status: "PLANNED" | "ACTIVE" | "CLOSED" };
-type ListSpaceOption = { id: string; name: string; color: string | null; lists: { id: string; name: string; color: string | null }[] };
+type ListSpaceOption = { id: string; name: string; color: string | null; logoEmoji: string | null; lists: { id: string; name: string; color: string | null }[] };
 
 function formatDateRange(start: Date | null, end: Date | null): string {
   const fmt = (d: Date | null) => (d ? format(new Date(d), "M/d") : "—");
@@ -582,7 +584,7 @@ function BulkActionBar({
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [sprints, setSprints] = React.useState<SprintOption[] | null>(null);
   const [loadingSprints, setLoadingSprints] = React.useState(false);
-  const [listSpaces, setListSpaces] = React.useState<{ id: string; name: string; color: string | null; lists: { id: string; name: string; color: string | null }[] }[] | null>(null);
+  const [listSpaces, setListSpaces] = React.useState<ListSpaceOption[] | null>(null);
   const [loadingLists, setLoadingLists] = React.useState(false);
 
   async function loadSprints() {
@@ -769,7 +771,7 @@ function BulkActionBar({
           {!loadingLists && listSpaces?.map((sp) => (
             <div key={sp.id}>
               <p className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground">
-                <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: sp.color ?? "#6B7280" }} />
+                <SpaceIcon emoji={sp.logoEmoji} color={sp.color ?? "#6B7280"} />
                 {sp.name}
               </p>
               {sp.lists.map((l) => (
@@ -1034,6 +1036,8 @@ export function SprintListView({ workspaceId, spaceId, listId = "", statuses = [
 
   // ── Toolbar state ─────────────────────────────────────────────────────────
   const [createOpen, setCreateOpen] = React.useState(false);
+  // "C" opens the Create Task popup (same as the toolbar button).
+  useCreateTaskShortcut(() => setCreateOpen(true), canEdit || isAdmin);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
   const [priorityFilter, setPriorityFilter] = React.useState<string[]>([]);

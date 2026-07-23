@@ -113,7 +113,7 @@ export function CreateTaskModal({
   const [manageStatusesOpen, setManageStatusesOpen] = React.useState(false);
   const [title, setTitle] = React.useState("");
   const [descriptionJson, setDescriptionJson] = React.useState("");
-  const descImages = useNoteImageUpload({ deferred: true });
+  const descImages = useNoteImageUpload({ deferred: true, acceptAllFiles: true });
   const [statusId, setStatusId] = React.useState(
     defaultStatusId ?? initialStatuses[0]?.id ?? ""
   );

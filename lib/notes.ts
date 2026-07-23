@@ -19,18 +19,23 @@ export function toTiptapDoc(body: unknown): unknown {
 }
 
 /**
- * Collect the taskAttachment ids of inline `noteImage` nodes embedded in a
- * Tiptap JSON body (object OR stringified). Used to link images on create and
- * reconcile (delete removed) images on edit — in comments and task descriptions.
+ * Collect the taskAttachment ids of inline attachment nodes — `noteImage`
+ * (pictures) and `noteFile` (PDF/DOC/etc. chips) — embedded in a Tiptap JSON
+ * body (object OR stringified). Used to link attachments on create and reconcile
+ * (delete removed) ones on edit — in comments and task descriptions.
  */
-export function extractInlineImageAttachmentIds(body: unknown): string[] {
+export function extractInlineAttachmentIds(body: unknown): string[] {
   body = toTiptapDoc(body);
   if (!body || typeof body !== "object") return [];
   const ids: string[] = [];
   function walk(node: unknown) {
     if (!node || typeof node !== "object") return;
     const n = node as Record<string, unknown>;
-    if (n.type === "noteImage" && n.attrs && typeof n.attrs === "object") {
+    if (
+      (n.type === "noteImage" || n.type === "noteFile") &&
+      n.attrs &&
+      typeof n.attrs === "object"
+    ) {
       const attrs = n.attrs as Record<string, unknown>;
       if (typeof attrs.attachmentId === "string") ids.push(attrs.attachmentId);
     }
@@ -76,7 +81,7 @@ export function tiptapHasContent(body: unknown): boolean {
   function walk(node: unknown) {
     if (found || !node || typeof node !== "object") return;
     const n = node as Record<string, unknown>;
-    if (n.type === "noteImage") {
+    if (n.type === "noteImage" || n.type === "noteFile") {
       found = true;
       return;
     }

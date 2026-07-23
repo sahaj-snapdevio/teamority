@@ -18,7 +18,7 @@ export type WorkspaceLandingState =
   | { kind: "ACTIVE_SPACE"; spaceId: string; listId: string | null }
   | {
       kind: "ONLY_ARCHIVED";
-      archived: { id: string; name: string; color: string | null }[];
+      archived: { id: string; name: string; color: string | null; logoEmoji: string | null }[];
     }
   | { kind: "EMPTY" }
   | { kind: "NO_ACCESS" };
@@ -68,7 +68,7 @@ export async function getWorkspaceLandingState(
   );
   if (archivedSpaceIds.length > 0) {
     const archived = await db
-      .select({ id: space.id, name: space.name, color: space.color })
+      .select({ id: space.id, name: space.name, color: space.color, logoEmoji: space.logoEmoji })
       .from(space)
       .where(inArray(space.id, archivedSpaceIds))
       .orderBy(asc(space.orderIndex), asc(space.createdAt));

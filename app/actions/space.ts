@@ -84,7 +84,12 @@ const DEFAULT_STATUSES = [
 
 export async function createSpace(
   workspaceId: string,
-  data: { name: string; color: string; isPrivate: boolean },
+  data: {
+    name: string;
+    color: string;
+    isPrivate: boolean;
+    logoEmoji?: string | null;
+  },
 ): Promise<{ spaceId: string; listId: string } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return { error: "Unauthorized" };
@@ -116,6 +121,7 @@ export async function createSpace(
       workspaceId,
       name,
       color: data.color,
+      logoEmoji: data.logoEmoji ?? null,
       isPrivate: data.isPrivate,
       createdBy: session.user.id,
       orderIndex: spaceCount,
@@ -150,7 +156,12 @@ export async function createSpace(
 export async function updateSpace(
   workspaceId: string,
   spaceId: string,
-  data: { name: string; color: string; isPrivate: boolean },
+  data: {
+    name: string;
+    color: string;
+    isPrivate: boolean;
+    logoEmoji?: string | null;
+  },
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return { error: "Unauthorized" };
@@ -170,7 +181,13 @@ export async function updateSpace(
 
   await db
     .update(space)
-    .set({ name, color: data.color, isPrivate: data.isPrivate, updatedAt: new Date() })
+    .set({
+      name,
+      color: data.color,
+      logoEmoji: data.logoEmoji ?? null,
+      isPrivate: data.isPrivate,
+      updatedAt: new Date(),
+    })
     .where(and(eq(space.id, spaceId), eq(space.workspaceId, workspaceId)));
 
   void refreshWorkspace(workspaceId);

@@ -56,6 +56,7 @@ import { Separator } from "@/components/ui/separator";
 import { CreateSpaceModal } from "@/components/workspace/create-space-modal";
 import { SpaceActionDialog } from "@/components/workspace/space-action-dialog";
 import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
+import { SpaceIcon } from "@/components/common/space-icon";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { authClient } from "@/lib/auth-client";
 import { rememberWorkspace } from "@/lib/last-workspace";
@@ -111,6 +112,7 @@ interface SpaceSummary {
   archivedLists: ListSummary[];
   canManageList: boolean;
   color: string | null;
+  logoEmoji: string | null;
   id: string;
   isPrivate: boolean;
   lists: ListSummary[];
@@ -231,6 +233,51 @@ export function WorkspaceShell({
   const [expandedSprintGroups, setExpandedSprintGroups] = React.useState<
     Set<string>
   >(new Set());
+  // Projects the user has collapsed in the sidebar. Persisted per-workspace so
+  // teams with many projects can hide the ones they aren't working in.
+  const [collapsedSpaces, setCollapsedSpaces] = React.useState<Set<string>>(
+    new Set()
+  );
+  const collapsedStorageKey = `kanbanica:collapsed-spaces:${workspace.id}`;
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem(collapsedStorageKey);
+      if (raw) {
+        setCollapsedSpaces(new Set(JSON.parse(raw) as string[]));
+      } else {
+        setCollapsedSpaces(new Set());
+      }
+    } catch {
+      setCollapsedSpaces(new Set());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace.id]);
+  function persistCollapsedSpaces(next: Set<string>) {
+    try {
+      localStorage.setItem(collapsedStorageKey, JSON.stringify([...next]));
+    } catch {
+      // localStorage unavailable (private mode) — collapse still works in-session.
+    }
+  }
+  function toggleSpaceCollapsed(id: string) {
+    setCollapsedSpaces((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      persistCollapsedSpaces(next);
+      return next;
+    });
+  }
+  const allSpacesCollapsed =
+    spaces.length > 0 && spaces.every((s) => collapsedSpaces.has(s.id));
+  function toggleAllSpaces() {
+    setCollapsedSpaces(() => {
+      const next = allSpacesCollapsed
+        ? new Set<string>()
+        : new Set(spaces.map((s) => s.id));
+      persistCollapsedSpaces(next);
+      return next;
+    });
+  }
   const [showArchivedSpaces, setShowArchivedSpaces] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [showProjectPicker, setShowProjectPicker] = React.useState(false);
@@ -499,6 +546,17 @@ export function WorkspaceShell({
               <p className="flex-1 text-xs font-semibold tracking-widest uppercase text-(--text-muted)">
                 Projects
               </p>
+              {spaces.length > 1 && (
+                <button
+                  className="flex size-5 items-center justify-center rounded text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                  onClick={toggleAllSpaces}
+                  title={
+                    allSpacesCollapsed ? "Expand all projects" : "Collapse all projects"
+                  }
+                >
+                  <CaretUpDownIcon className="size-3.5" />
+                </button>
+              )}
               {isAdmin && (
                 <button
                   className="flex size-5 items-center justify-center rounded text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
@@ -512,12 +570,24 @@ export function WorkspaceShell({
             <div className="space-y-0.5">
               {spaces.map((s) => (
                 <div key={s.id}>
-                  <div className="group flex items-center gap-2 px-3 py-1.5 text-[13px] font-medium text-(--text-sidebar-active)">
-                    <span
-                      className="size-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: s.color ?? "#9CA3AF" }}
-                    />
-                    <span className="flex-1 truncate">{s.name}</span>
+                  <div className="group flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium text-(--text-sidebar-active)">
+                    <button
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      onClick={() => toggleSpaceCollapsed(s.id)}
+                      title={
+                        collapsedSpaces.has(s.id)
+                          ? "Expand project"
+                          : "Collapse project"
+                      }
+                    >
+                      {collapsedSpaces.has(s.id) ? (
+                        <CaretRightIcon className="size-3 shrink-0 text-(--text-muted)" />
+                      ) : (
+                        <CaretDownIcon className="size-3 shrink-0 text-(--text-muted)" />
+                      )}
+                      <SpaceIcon emoji={s.logoEmoji} color={s.color} />
+                      <span className="flex-1 truncate">{s.name}</span>
+                    </button>
                     {s.isPrivate && (
                       <LockSimpleIcon className="size-3 shrink-0 text-(--text-muted)" />
                     )}
@@ -605,6 +675,7 @@ export function WorkspaceShell({
                       </PopoverContent>
                     </Popover>
                   </div>
+                  {!collapsedSpaces.has(s.id) && (
                   <div className="space-y-0.5">
                     {s.lists.map((l) => {
                       const href = `/${workspace.id}/${s.id}/list/${l.id}`;
@@ -933,6 +1004,7 @@ export function WorkspaceShell({
                         </div>
                       ))}
                   </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -958,9 +1030,10 @@ export function WorkspaceShell({
                       className="group flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] text-(--text-muted)"
                       key={s.id}
                     >
-                      <span
-                        className="size-2 shrink-0 rounded-full opacity-40"
-                        style={{ backgroundColor: s.color ?? "#9CA3AF" }}
+                      <SpaceIcon
+                        emoji={s.logoEmoji}
+                        color={s.color}
+                        dotClassName="opacity-40"
                       />
                       <span className="flex-1 truncate italic">{s.name}</span>
                       {isAdmin && (
@@ -1123,9 +1196,10 @@ export function WorkspaceShell({
                             setShowProjectPicker(false);
                           }}
                         >
-                          <span
-                            className="size-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: s.color ?? "#6B7280" }}
+                          <SpaceIcon
+                            emoji={s.logoEmoji}
+                            color={s.color ?? "#6B7280"}
+                            size="sm"
                           />
                           <span className="flex-1 truncate">{s.name}</span>
                           {isCurrent && (
@@ -1388,21 +1462,15 @@ function TopbarRightColumn({
                       href={crumb.href}
                       className="flex items-center gap-1.5 text-muted-foreground font-medium shrink-0 hover:text-foreground transition-colors"
                     >
-                      {crumb.color && (
-                        <span
-                          className="inline-block h-2 w-2 rounded-full shrink-0"
-                          style={{ backgroundColor: crumb.color }}
-                        />
+                      {(crumb.emoji || crumb.color) && (
+                        <SpaceIcon emoji={crumb.emoji} color={crumb.color} />
                       )}
                       {crumb.label}
                     </Link>
                   ) : (
                     <span className="flex items-center gap-1.5 text-muted-foreground font-medium shrink-0">
-                      {crumb.color && (
-                        <span
-                          className="inline-block h-2 w-2 rounded-full shrink-0"
-                          style={{ backgroundColor: crumb.color }}
-                        />
+                      {(crumb.emoji || crumb.color) && (
+                        <SpaceIcon emoji={crumb.emoji} color={crumb.color} />
                       )}
                       {crumb.label}
                     </span>

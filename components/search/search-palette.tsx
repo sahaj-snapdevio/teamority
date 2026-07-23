@@ -21,6 +21,7 @@ import {
   recordSearchVisit,
   type SearchFilterOptions,
 } from "@/app/actions/search";
+import { SpaceIcon } from "@/components/common/space-icon";
 import { UserAvatar } from "@/components/common/user-avatar";
 import {
   FacetFilter,
@@ -354,7 +355,7 @@ export function SearchPalette({
   const spaceOptions: FacetOption[] = (options?.spaces ?? []).map((s) => ({
     value: s.id,
     label: s.name,
-    color: s.color ?? undefined,
+    icon: <SpaceIcon emoji={s.logoEmoji} color={s.color} size="sm" />,
   }));
   const sprintOptions: FacetOption[] = (options?.sprints ?? []).map((s) => ({
     value: s.id,
@@ -955,10 +956,16 @@ export function SearchPalette({
                         onClick={() => navigateSpace(s.id)}
                         type="button"
                       >
-                        <SquaresFourIcon
-                          className="size-4 shrink-0"
-                          style={{ color: s.color ?? undefined }}
-                        />
+                        {s.logoEmoji ? (
+                          <span className="flex size-4 shrink-0 items-center justify-center text-[15px] leading-none">
+                            {s.logoEmoji}
+                          </span>
+                        ) : (
+                          <SquaresFourIcon
+                            className="size-4 shrink-0"
+                            style={{ color: s.color ?? undefined }}
+                          />
+                        )}
                         <p
                           className={cn(
                             "truncate text-sm font-medium",

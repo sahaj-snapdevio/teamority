@@ -26,6 +26,13 @@ const postgres = new EmbeddedPostgres({
   persistent: true,
   port,
   user,
+  // Force a UTF-8 cluster. Without this, initdb inherits the host OS locale —
+  // on Windows that is a WIN1252 codepage (e.g. English_India.1252), and the
+  // resulting database cannot store emoji or any non-Latin-1 character (task
+  // titles, comments, workspace names), failing inserts at runtime. `--locale=C`
+  // is encoding-agnostic and required so initdb accepts UTF8 regardless of host
+  // locale. Only applied when the cluster is first initialised.
+  initdbFlags: ["--encoding=UTF8", "--locale=C"],
 });
 
 async function main() {

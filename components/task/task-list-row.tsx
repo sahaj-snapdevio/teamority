@@ -56,6 +56,7 @@ import {
   type TaskDependencyIndicator,
 } from "@/components/task/task-dependency-badge";
 import { TrackedTimeBadge } from "@/components/task/tracked-time-badge";
+import { SpaceIcon } from "@/components/common/space-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -121,6 +122,7 @@ type ListSpaceOption = {
   id: string;
   name: string;
   color: string | null;
+  logoEmoji: string | null;
   lists: { id: string; name: string; color: string | null }[];
 };
 
@@ -1093,9 +1095,9 @@ export function TaskListRow({
                 moveListSpaces.map((sp) => (
                   <div key={sp.id}>
                     <p className="flex items-center gap-1.5 px-2 py-0.5 text-2xs font-bold text-muted-foreground uppercase">
-                      <span
-                        className="size-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: sp.color ?? "#6B7280" }}
+                      <SpaceIcon
+                        emoji={sp.logoEmoji}
+                        color={sp.color ?? "#6B7280"}
                       />
                       {sp.name}
                     </p>
