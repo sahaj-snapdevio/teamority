@@ -57,6 +57,7 @@ interface Task {
   priority: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   seqNumber: number;
   statusId: string | null;
+  subtaskCount: number;
   tags: { id: string; name: string; color: string }[];
   title: string;
 }
