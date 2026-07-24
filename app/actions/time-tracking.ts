@@ -140,13 +140,16 @@ export async function startTimer(
     : { startedTitle };
 }
 
-// Stop the caller's running timer on `taskId`.
+// Stop the caller's running timer on `taskId`. Returns the stopped entry's id
+// so the UI can attach an optional note to it right after (see
+// `setTimeEntryNote`) — the note is collected *after* the stop on purpose, so
+// the time spent typing it never lands inside the tracked duration.
 export async function stopTimer(
   workspaceId: string,
   spaceId: string,
   listId: string,
   taskId: string
-): Promise<{ ok: true } | { error: string }> {
+): Promise<{ ok: true; entryId: string; seconds: number } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return { error: "Unauthorized" };
@@ -181,6 +184,59 @@ export async function stopTimer(
     .where(eq(timeEntry.id, running.id));
 
   await writeActivityLog(taskId, session.user.id, "timer_stopped", { seconds });
+  revalidateList(workspaceId, spaceId, listId, taskId);
+  return { ok: true, entryId: running.id, seconds };
+}
+
+// ─── Note on an entry ─────────────────────────────────────────────────────────
+
+// Set (or clear) the note on a completed time entry. Same permission rule as
+// deleting one: its author, or a user with full access. An empty note is valid
+// and clears the field. No activity log — the entry's own history row shows it.
+export async function setTimeEntryNote(
+  workspaceId: string,
+  spaceId: string,
+  listId: string,
+  taskId: string,
+  entryId: string,
+  note: string
+): Promise<{ ok: true } | { error: string }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
+
+  const err = await requireEditAccess(session.user.id, workspaceId, spaceId);
+  if (err) {
+    return err;
+  }
+
+  const [entry] = await db
+    .select({ userId: timeEntry.userId })
+    .from(timeEntry)
+    .where(and(eq(timeEntry.id, entryId), eq(timeEntry.taskId, taskId)))
+    .limit(1);
+
+  if (!entry) {
+    return { error: "Time entry not found" };
+  }
+
+  if (entry.userId !== session.user.id) {
+    const permission = await getSpacePermission(
+      session.user.id,
+      workspaceId,
+      spaceId
+    );
+    if (!permission || !hasPermissionLevel(permission, "full_access")) {
+      return { error: "You can only edit your own time entries" };
+    }
+  }
+
+  await db
+    .update(timeEntry)
+    .set({ description: note.trim() || null, updatedAt: new Date() })
+    .where(and(eq(timeEntry.id, entryId), eq(timeEntry.taskId, taskId)));
+
   revalidateList(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, inArray, isNull, max, or } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, max, or } from "drizzle-orm";
 import { headers } from "next/headers";
 import {
   type CustomFieldConfig,
@@ -464,6 +464,49 @@ export async function unarchiveCustomFieldDefinition(
   fieldId: string
 ): Promise<{ ok: true } | { error: string }> {
   return setArchived(workspaceId, fieldId, false);
+}
+
+// How many tasks currently hold a value for this field — i.e. exactly what
+// deleteCustomFieldDefinition below would destroy. Read by the delete
+// confirmation dialog so the blast radius is stated before it happens.
+export async function getCustomFieldValueCount(
+  workspaceId: string,
+  fieldId: string
+): Promise<{ count: number } | { error: string }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
+
+  const [field] = await db
+    .select({ spaceId: customFieldDefinition.spaceId })
+    .from(customFieldDefinition)
+    .where(
+      and(
+        eq(customFieldDefinition.id, fieldId),
+        eq(customFieldDefinition.workspaceId, workspaceId)
+      )
+    )
+    .limit(1);
+  if (!field) {
+    return { error: "Field not found" };
+  }
+
+  const permErr = await requireFieldAdmin(
+    session.user.id,
+    workspaceId,
+    field.spaceId
+  );
+  if (permErr) {
+    return permErr;
+  }
+
+  const [row] = await db
+    .select({ value: count() })
+    .from(customFieldValue)
+    .where(eq(customFieldValue.fieldId, fieldId));
+
+  return { count: row?.value ?? 0 };
 }
 
 // Permanent removal, unlike archive above. customFieldValue.fieldId is

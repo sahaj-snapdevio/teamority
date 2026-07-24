@@ -159,24 +159,26 @@ export function QuickTaskMeta({
             : "Assignee"
         }
       >
-        <FacetOptionList
-          emptyText="No members"
-          onChange={(next) => onChange({ ...value, assigneeIds: next })}
-          options={members.map((m) => ({
-            value: m.userId,
-            label: m.name,
-            icon: (
-              <UserAvatar
-                email={m.email}
-                image={m.image}
-                name={m.name}
-                size="xs"
-              />
-            ),
-          }))}
-          searchable
-          selected={value.assigneeIds}
-        />
+        {() => (
+          <FacetOptionList
+            emptyText="No members"
+            onChange={(next) => onChange({ ...value, assigneeIds: next })}
+            options={members.map((m) => ({
+              value: m.userId,
+              label: m.name,
+              icon: (
+                <UserAvatar
+                  email={m.email}
+                  image={m.image}
+                  name={m.name}
+                  size="xs"
+                />
+              ),
+            }))}
+            searchable
+            selected={value.assigneeIds}
+          />
+        )}
       </MetaChip>
 
       {/* Priority */}
@@ -189,23 +191,26 @@ export function QuickTaskMeta({
         }
         label={value.priority === "NONE" ? "Priority" : priorityCfg.label}
       >
-        <FacetOptionList
-          onChange={(next) =>
-            onChange({ ...value, priority: (next[0] as Priority) ?? "NONE" })
-          }
-          options={(
-            Object.entries(PRIORITY_CONFIG) as [
-              Priority,
-              (typeof PRIORITY_CONFIG)[Priority],
-            ][]
-          ).map(([key, cfg]) => ({
-            value: key,
-            label: cfg.label,
-            icon: <span aria-hidden>{cfg.icon}</span>,
-          }))}
-          selected={value.priority === "NONE" ? [] : [value.priority]}
-          single
-        />
+        {(close) => (
+          <FacetOptionList
+            onAfterToggle={close}
+            onChange={(next) =>
+              onChange({ ...value, priority: (next[0] as Priority) ?? "NONE" })
+            }
+            options={(
+              Object.entries(PRIORITY_CONFIG) as [
+                Priority,
+                (typeof PRIORITY_CONFIG)[Priority],
+              ][]
+            ).map(([key, cfg]) => ({
+              value: key,
+              label: cfg.label,
+              icon: <span aria-hidden>{cfg.icon}</span>,
+            }))}
+            selected={value.priority === "NONE" ? [] : [value.priority]}
+            single
+          />
+        )}
       </MetaChip>
 
       {showMore ? (
@@ -249,24 +254,29 @@ export function QuickTaskMeta({
                 : "Tags"
             }
           >
-            <FacetOptionList
-              emptyText="No tags"
-              onChange={(next) => onChange({ ...value, tagIds: next })}
-              onCreate={async (label) => {
-                const res = await createTag(workspaceId, label);
-                if ("tag" in res) {
-                  setTags((prev) => [...prev, res.tag]);
-                  onChange({ ...value, tagIds: [...value.tagIds, res.tag.id] });
-                }
-              }}
-              options={tags.map((t) => ({
-                value: t.id,
-                label: t.name,
-                color: t.color,
-              }))}
-              searchable
-              selected={value.tagIds}
-            />
+            {() => (
+              <FacetOptionList
+                emptyText="No tags"
+                onChange={(next) => onChange({ ...value, tagIds: next })}
+                onCreate={async (label) => {
+                  const res = await createTag(workspaceId, label);
+                  if ("tag" in res) {
+                    setTags((prev) => [...prev, res.tag]);
+                    onChange({
+                      ...value,
+                      tagIds: [...value.tagIds, res.tag.id],
+                    });
+                  }
+                }}
+                options={tags.map((t) => ({
+                  value: t.id,
+                  label: t.name,
+                  color: t.color,
+                }))}
+                searchable
+                selected={value.tagIds}
+              />
+            )}
           </MetaChip>
 
           {/* Sprint */}
@@ -275,15 +285,18 @@ export function QuickTaskMeta({
             icon={<LightningIcon className="size-3.5" />}
             label={selectedSprint?.name ?? "Sprint"}
           >
-            <FacetOptionList
-              emptyText="No sprints"
-              onChange={(next) =>
-                onChange({ ...value, sprintId: next[0] ?? null })
-              }
-              options={sprints.map((s) => ({ value: s.id, label: s.name }))}
-              selected={value.sprintId ? [value.sprintId] : []}
-              single
-            />
+            {(close) => (
+              <FacetOptionList
+                emptyText="No sprints"
+                onAfterToggle={close}
+                onChange={(next) =>
+                  onChange({ ...value, sprintId: next[0] ?? null })
+                }
+                options={sprints.map((s) => ({ value: s.id, label: s.name }))}
+                selected={value.sprintId ? [value.sprintId] : []}
+                single
+              />
+            )}
           </MetaChip>
 
           {/* Status */}
@@ -293,18 +306,21 @@ export function QuickTaskMeta({
               icon={<CircleHalfIcon className="size-3.5" />}
               label={selectedStatus?.name ?? "Status"}
             >
-              <FacetOptionList
-                onChange={(next) =>
-                  onChange({ ...value, statusId: next[0] ?? null })
-                }
-                options={statuses.map((s) => ({
-                  value: s.id,
-                  label: s.name,
-                  color: s.color,
-                }))}
-                selected={value.statusId ? [value.statusId] : []}
-                single
-              />
+              {(close) => (
+                <FacetOptionList
+                  onAfterToggle={close}
+                  onChange={(next) =>
+                    onChange({ ...value, statusId: next[0] ?? null })
+                  }
+                  options={statuses.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                    color: s.color,
+                  }))}
+                  selected={value.statusId ? [value.statusId] : []}
+                  single
+                />
+              )}
             </MetaChip>
           )}
         </>
@@ -321,6 +337,10 @@ export function QuickTaskMeta({
   );
 }
 
+// `children` is a render prop so a single-select list can close the popover the
+// moment an option is picked (a task has exactly one priority/status/sprint, so
+// there's nothing left to choose). Multi-select chips ignore the argument and
+// stay open for further toggles.
 function MetaChip({
   active,
   icon,
@@ -330,18 +350,20 @@ function MetaChip({
   active: boolean;
   icon: React.ReactNode;
   label: string;
-  children: React.ReactNode;
+  children: (close: () => void) => React.ReactNode;
 }) {
+  const [open, setOpen] = React.useState(false);
+  const close = React.useCallback(() => setOpen(false), []);
   return (
-    <Popover>
+    <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <button className={chipClass(active)} type="button">
           {icon}
           <span className="max-w-32 truncate">{label}</span>
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-56 p-1">
-        {children}
+      <PopoverContent align="start" className="w-56 rounded-xl p-1">
+        {children(close)}
       </PopoverContent>
     </Popover>
   );

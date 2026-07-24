@@ -37,6 +37,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
+import { useSWRConfig } from "swr";
 import {
   archiveTask,
   createSubtask,
@@ -258,6 +259,7 @@ export function TaskDetailPage({
   canPinToList,
 }: TaskDetailPageProps) {
   const router = useRouter();
+  const { mutate } = useSWRConfig();
   const searchParams = useSearchParams();
   const fromView = searchParams.get("from");
   const fromSprintId = searchParams.get("sid");
@@ -436,6 +438,7 @@ export function TaskDetailPage({
   const [endCalOpen, setEndCalOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const [unarchiving, setUnarchiving] = React.useState(false);
 
   async function fetchAll(showSpinner: boolean) {
     if (showSpinner) {
@@ -488,12 +491,23 @@ export function TaskDetailPage({
     const res = await fetch(`/api/tasks/${taskId}/pin`, {
       method: next ? "POST" : "DELETE",
     });
-    if (!res.ok) {
-      setIsPinned(!next);
-      const data = await res.json().catch(() => ({}));
-      // eslint-disable-next-line no-console
-      console.error("Pin toggle failed:", data.error);
+    if (res.ok) {
+      // The topbar's pinned-tasks strip is an SWR resource, not a server-
+      // rendered path — revalidate its key so it updates now instead of on its
+      // 60s poll. This is what the list row already does; without it, pinning
+      // from here looked like it did nothing. Same event the topbar fires on
+      // unpin, so any mounted list row drops its pin marker too.
+      void mutate(`/api/workspaces/${workspaceId}/pinned-tasks`);
+      if (!next) {
+        window.dispatchEvent(
+          new CustomEvent("task-personal-unpin", { detail: { taskId } })
+        );
+      }
+      return;
     }
+    setIsPinned(!next);
+    const err = await res.json().catch(() => ({}));
+    toast.error(err.error ?? "Failed to update pin");
   }
 
   // Initial load shows spinner; subsequent refreshes are silent
@@ -591,6 +605,12 @@ export function TaskDetailPage({
   const backUrl = t.parentTaskId
     ? `/${workspaceId}/task/${t.parentTaskId}`
     : listBackUrl;
+  // An archived task stays open on its own page behind a banner rather than
+  // bouncing back to the list. It's lightly locked while archived: every
+  // section that takes a `canEdit` flag is switched off and the title stops
+  // being click-to-edit, so the banner's Unarchive is the one thing to do.
+  const isArchived = t.isArchived;
+  const canEditNow = canEdit && !isArchived;
   const isWatching = watchers.some((w) => w.userId === currentUserId);
   const currentStatus = statuses.find((s) => s.id === t.statusId);
   const priority =
@@ -785,12 +805,30 @@ export function TaskDetailPage({
     router.push(backUrl);
   }
 
+  // Archiving keeps the user here — the page re-renders behind the archived
+  // banner instead of navigating away, so the state change is visible and
+  // reversible without hunting for the task in the list's Archived section.
   async function handleArchive() {
     await archiveTask(workspaceId, spaceId, listId, taskId);
-    router.push(backUrl);
+    await load();
     toastWithUndo("Task archived", async () => {
       await unarchiveTask(workspaceId, spaceId, listId, taskId);
-      router.refresh();
+      await load();
+    });
+  }
+
+  async function handleUnarchive() {
+    setUnarchiving(true);
+    const res = await unarchiveTask(workspaceId, spaceId, listId, taskId);
+    setUnarchiving(false);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    await load();
+    toastWithUndo("Task unarchived", async () => {
+      await archiveTask(workspaceId, spaceId, listId, taskId);
+      await load();
     });
   }
 
@@ -998,10 +1036,10 @@ export function TaskDetailPage({
                 </button>
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                  onClick={handleArchive}
+                  onClick={isArchived ? handleUnarchive : handleArchive}
                 >
                   <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
-                  Archive
+                  {isArchived ? "Unarchive" : "Archive"}
                 </button>
                 {canPinToList && listId && (
                   <>
@@ -1059,6 +1097,39 @@ export function TaskDetailPage({
           </div>
         </div>
 
+        {/* Archived banner — shown in place of the old redirect-to-list. The
+            Unarchive action is omitted for viewers who can't edit; they still
+            see why the task looks frozen. */}
+        {isArchived && (
+          <div className="shrink-0 border-b px-5 py-3">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-50 px-4 py-2.5 dark:bg-amber-950/30">
+              <ArchiveIcon
+                className="size-4 shrink-0 text-amber-600 dark:text-amber-400"
+                weight="fill"
+              />
+              <p className="min-w-0 flex-1 text-sm text-amber-900 dark:text-amber-200">
+                This task has been archived.{" "}
+                <span className="text-amber-700/80 dark:text-amber-300/70">
+                  It stays hidden from lists and boards until it&rsquo;s
+                  restored.
+                </span>
+              </p>
+              {canEdit && (
+                <Button
+                  className="shrink-0"
+                  disabled={unarchiving}
+                  onClick={handleUnarchive}
+                  size="sm"
+                  variant="outline"
+                >
+                  <ArchiveIcon className="size-3.5" />
+                  {unarchiving ? "Restoring…" : "Unarchive"}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Two-column body */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* ── Left: main content ── */}
@@ -1097,8 +1168,11 @@ export function TaskDetailPage({
               />
             ) : (
               <h1
-                className="text-2xl font-bold cursor-text hover:bg-accent/50 rounded px-1 -mx-1 py-1 mb-5 transition-colors"
-                onClick={() => setTitleEditing(true)}
+                className={cn(
+                  "text-2xl font-bold rounded px-1 -mx-1 py-1 mb-5 transition-colors",
+                  canEditNow && "cursor-text hover:bg-accent/50"
+                )}
+                onClick={() => canEditNow && setTitleEditing(true)}
               >
                 {t.title}
               </h1>
@@ -1529,7 +1603,7 @@ export function TaskDetailPage({
                   label={field.name}
                 >
                   <CustomFieldEditor
-                    disabled={!canEdit}
+                    disabled={!canEditNow}
                     field={field}
                     members={members}
                     onChange={(value) => handleCustomFieldChange(field.id, value)}
@@ -1588,7 +1662,7 @@ export function TaskDetailPage({
                               sub: (typeof subtasks)[number]
                             ) => (
                               <SubtaskRow
-                                canEdit={canEdit}
+                                canEdit={canEditNow}
                                 key={sub.id}
                                 members={members}
                                 onChanged={load}
@@ -1742,7 +1816,7 @@ export function TaskDetailPage({
                     <TaskDependencies
                       blockedBy={blockedBy}
                       blocks={blocks}
-                      canEdit={canEdit}
+                      canEdit={canEditNow}
                       hideHeader
                       listId={listId}
                       onChanged={load}
@@ -1931,7 +2005,7 @@ export function TaskDetailPage({
                   </AccordionTrigger>
                   <AccordionContent>
                     <TaskTimeTracking
-                      canEdit={canEdit}
+                      canEdit={canEditNow}
                       currentUserId={currentUserId}
                       entries={timeEntries}
                       hideHeader
@@ -2087,13 +2161,17 @@ export function TaskDetailPage({
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4">
+            {/* No scroll here — the feed owns it, so its composer can sit as a
+                fixed footer below the scrolling activity list. */}
+            <div className="flex-1 min-h-0">
               <TaskActivityFeed
                 currentUserId={currentUserId}
+                hideHeader
                 listId={listId}
                 ref={feedRef}
                 spaceId={spaceId}
                 taskId={taskId}
+                variant="fill"
                 workspaceId={workspaceId}
               />
             </div>

@@ -194,6 +194,9 @@ Users can switch how tasks are displayed inside a List.
 - Created Date
 - Last Updated
 
+- Sort is controlled from the **clickable column headers** (asc/desc caret on the
+  active column); the toolbar Sort dropdown mirrors the same state and is the
+  mobile entry point. See `docs/views.md` § List View → Sorting.
 - Filter and sort state is **per user** — does not affect other members
 - Users can save a filter combination as a named **Saved Filter** for quick access
 

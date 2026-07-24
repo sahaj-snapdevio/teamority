@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import {
   deleteTimeEntry,
   logTime,
+  setTimeEntryNote,
   startTimer,
   stopTimer,
 } from "@/app/actions/time-tracking";
@@ -23,6 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -75,6 +77,13 @@ export function TaskTimeTracking({
 }) {
   const [pending, setPending] = React.useState(false);
   const [logOpen, setLogOpen] = React.useState(false);
+  // The entry that was just stopped, awaiting an optional note. Set after the
+  // stop has already been written, so the note prompt never inflates the
+  // recorded duration.
+  const [noteFor, setNoteFor] = React.useState<{
+    entryId: string;
+    seconds: number;
+  } | null>(null);
   // Which per-user history groups are expanded, keyed by `${dayLabel}::${userId}`.
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
 
@@ -162,6 +171,7 @@ export function TaskTimeTracking({
       toast.error(res.error);
       return;
     }
+    setNoteFor({ entryId: res.entryId, seconds: res.seconds });
     onChanged();
   }
 
@@ -344,7 +354,115 @@ export function TaskTimeTracking({
           workspaceId={workspaceId}
         />
       )}
+
+      {noteFor && (
+        <StopNoteDialog
+          entryId={noteFor.entryId}
+          listId={listId}
+          onChanged={onChanged}
+          onClose={() => setNoteFor(null)}
+          seconds={noteFor.seconds}
+          spaceId={spaceId}
+          taskId={taskId}
+          workspaceId={workspaceId}
+        />
+      )}
     </div>
+  );
+}
+
+// Optional note prompt shown right after a timer stops. The stop is already
+// saved by the time this opens, so skipping (or closing) it is a no-op — it
+// only ever adds a note to the entry that was just written.
+function StopNoteDialog({
+  workspaceId,
+  spaceId,
+  listId,
+  taskId,
+  entryId,
+  seconds,
+  onClose,
+  onChanged,
+}: {
+  workspaceId: string;
+  spaceId: string;
+  listId: string;
+  taskId: string;
+  entryId: string;
+  seconds: number;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const [note, setNote] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  async function handleSave() {
+    const trimmed = note.trim();
+    if (!trimmed) {
+      onClose();
+      return;
+    }
+    setSaving(true);
+    const res = await setTimeEntryNote(
+      workspaceId,
+      spaceId,
+      listId,
+      taskId,
+      entryId,
+      trimmed
+    );
+    setSaving(false);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    onClose();
+    onChanged();
+  }
+
+  return (
+    <Dialog onOpenChange={(open) => !open && onClose()} open>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Timer stopped</DialogTitle>
+          <DialogDescription>
+            {formatDuration(seconds)} tracked. Add a note about what you worked
+            on — optional.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="stop-note">Note</Label>
+          <Input
+            autoFocus
+            id="stop-note"
+            onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
+            placeholder="What did you work on?"
+            value={note}
+          />
+        </div>
+
+        <DialogFooter>
+          <Button
+            disabled={saving}
+            onClick={onClose}
+            type="button"
+            variant="ghost"
+          >
+            Skip
+          </Button>
+          <Button disabled={saving || !note.trim()} onClick={handleSave} type="button">
+            {saving ? "Saving…" : "Save note"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -48,6 +48,16 @@ The default view for every List. Tasks are displayed as rows with key fields vis
 **Task rows:**
 - Click a task row to open the Task detail panel
 - Inline edit: click a field directly in the row to edit (status, priority, due date, assignee) without opening the detail panel
+- **Inline rename:** the task title is editable in place — double-click the
+  title, or use the pencil button that appears beside it on row hover (also
+  reachable from the row's ⋯ menu → Rename). Enter or blur commits, Esc
+  cancels, and an empty title is rejected with a toast rather than saved.
+  Focus returns to the row afterwards so keyboard navigation keeps its place.
+  - This lives in the shared `components/task/task-list-row.tsx`, so it appears
+    anywhere that component is rendered — List view (including the Pinned
+    section) and Sprint view.
+  - Gated on `canEdit`; viewers see neither the pencil nor the double-click
+    behavior.
 - Subtasks shown as indented rows under their parent — collapsible per user
 - Completed tasks (closed status) shown with strikethrough — can be hidden via toggle `Hide Closed Tasks`
 
@@ -113,6 +123,25 @@ List toolbar:  [ List ][ Board ]  [+ Add Task]  [ Filter ]  [ ··· ▾ ]
 - Manual sort (drag-and-drop to reorder)
 - Sort by: Due Date / Priority / Status / Assignee / Created Date / Last Updated
 - Sort is per user — does not affect others
+- **Sorting is driven from the column headers.** Name, Due Date and Priority are
+  clickable headers that cycle `inactive → ascending → descending → off`, with a
+  caret on the active column showing the direction. Direction must never be
+  ambiguous — a sort control that names the column but not the direction is the
+  bug this replaced.
+  - Assignee is intentionally **not** sortable: with multi-assignee tasks there
+    is no single well-defined order, so it stays a plain label rather than a
+    header that appears clickable and does nothing.
+  - The toolbar **Sort** dropdown is kept and now shows the direction too. It is
+    not redundant — the header row is desktop-only (`hidden md:flex`), so the
+    dropdown is the only sort control on mobile. Both drive the same state.
+  - Picking a *different* column always restarts at ascending rather than
+    inheriting the previous column's direction.
+  - Undated tasks sort **last in both directions** when sorting by Due Date.
+    Reversing them to the top would bury every dated task behind a wall of
+    blanks.
+  - Due Date sorting reads `dueDateEnd` — the same field the Due Date column
+    displays and the inline editor writes (see
+    `docs/bugs/2026-07-24-solution-list-due-date-writes-both-start-and-end.md`).
 
 **Filters:**
 - All filters from the Filter & Sort module apply here

@@ -52,37 +52,31 @@ export async function GET(req: NextRequest) {
   const after = searchParams.get("after");
   const before = searchParams.get("before");
 
-  const conditions: SQL[] = [eq(notification.recipientId, userId)];
-
-  if (filter === "unread") {
-    conditions.push(eq(notification.isRead, false));
-  } else if (filter === "mentions") {
-    conditions.push(
-      inArray(notification.triggerType, [
-        "mention_comment",
-        "mention_description",
-      ])
-    );
-  }
+  // `scopeConditions` = everything the user narrowed the Inbox down to
+  // (workspace / event / date / search), WITHOUT the All·Unread·Mentions tab.
+  // The tabs replace each other, so the unread count means "how many unread
+  // you'd see if you switched to the Unread tab with these same filters" —
+  // which is what the header badge and the Unread tab badge both show.
+  const scopeConditions: SQL[] = [eq(notification.recipientId, userId)];
 
   if (workspaceFilter) {
-    conditions.push(eq(notification.workspaceId, workspaceFilter));
+    scopeConditions.push(eq(notification.workspaceId, workspaceFilter));
   }
 
   if (event) {
     const triggers = EVENT_TRIGGERS[event];
     if (triggers?.length) {
-      conditions.push(inArray(notification.triggerType, triggers));
+      scopeConditions.push(inArray(notification.triggerType, triggers));
     }
   }
 
   // Date range (bounds are computed client-side in the viewer's timezone and
   // sent as ISO instants, so they stay consistent with the client grouping).
   if (after) {
-    conditions.push(gte(notification.createdAt, new Date(after)));
+    scopeConditions.push(gte(notification.createdAt, new Date(after)));
   }
   if (before) {
-    conditions.push(lt(notification.createdAt, new Date(before)));
+    scopeConditions.push(lt(notification.createdAt, new Date(before)));
   }
 
   // Free-text search across the message, actor name and workspace name (the
@@ -96,8 +90,22 @@ export async function GET(req: NextRequest) {
       ilike(workspace.name, like)
     );
     if (matches) {
-      conditions.push(matches);
+      scopeConditions.push(matches);
     }
+  }
+
+  // The tab narrows the LIST on top of the scope above; it deliberately does
+  // not narrow the unread count.
+  const conditions: SQL[] = [...scopeConditions];
+  if (filter === "unread") {
+    conditions.push(eq(notification.isRead, false));
+  } else if (filter === "mentions") {
+    conditions.push(
+      inArray(notification.triggerType, [
+        "mention_comment",
+        "mention_description",
+      ])
+    );
   }
 
   const [notifications, unreadCountResult, totalCountResult] =
@@ -127,15 +135,14 @@ export async function GET(req: NextRequest) {
         .orderBy(desc(notification.createdAt))
         .limit(NOTIFICATIONS_PAGE_SIZE)
         .offset((page - 1) * NOTIFICATIONS_PAGE_SIZE),
+      // Unread count for the ACTIVE filter scope — the same joins as the list
+      // query, since the free-text search reaches into `user` / `workspace`.
       db
         .select({ count: count() })
         .from(notification)
-        .where(
-          and(
-            eq(notification.recipientId, userId),
-            eq(notification.isRead, false)
-          )
-        ),
+        .leftJoin(user, eq(user.id, notification.actorId))
+        .leftJoin(workspace, eq(workspace.id, notification.workspaceId))
+        .where(and(...scopeConditions, eq(notification.isRead, false))),
       db
         .select({ count: count() })
         .from(notification)

@@ -1,13 +1,12 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
-import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { list } from "@/db/schema";
 import { getSpacePermission } from "@/lib/permissions";
 import { ListSettingsNav } from "@/components/list/list-settings-nav";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
+import { TopbarTitle } from "@/components/common/topbar-title";
 
 interface ListSettingsLayoutProps {
   children: React.ReactNode;
@@ -31,17 +30,14 @@ export default async function ListSettingsLayout({ children, params }: ListSetti
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <div className="mb-6">
-        <Link
-          href={`/${workspaceId}/${spaceId}/list/${listId}`}
-          className="mb-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeftIcon className="size-3.5" />
-          Back to list
-        </Link>
-        <h1 className="text-xl font-semibold">{l.name} — Settings</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Manage this List</p>
-      </div>
+      {/* Page header lives in the topbar. The list crumb links back to the
+          list, so "back to list" stays reachable without a second header. */}
+      <TopbarTitle
+        breadcrumbs={[
+          { label: l.name, href: `/${workspaceId}/${spaceId}/list/${listId}` },
+        ]}
+        title="Settings"
+      />
       <ListSettingsNav workspaceId={workspaceId} spaceId={spaceId} listId={listId} />
       {children}
     </div>

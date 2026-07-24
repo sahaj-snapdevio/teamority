@@ -149,6 +149,16 @@ interface TaskActivityFeedProps {
   taskId: string;
   currentUserId: string;
   isAdmin?: boolean;
+  /** Hide the built-in "Activity" label (a parent header already supplies it). */
+  hideHeader?: boolean;
+  /**
+   * How the composer is pinned to the bottom of the panel:
+   * - "fill"   — the feed owns its parent's full height: the activity list is
+   *   the scroll container and the composer is a flex footer (full task page).
+   * - "inline" — the feed is one section inside a taller scroll column, so the
+   *   composer sticks to the bottom of that scrollport instead (drawer).
+   */
+  variant?: "fill" | "inline";
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1081,6 +1091,8 @@ function TaskActivityFeed({
   taskId,
   currentUserId,
   isAdmin,
+  hideHeader,
+  variant = "inline",
 }, ref) {
   const [comments, setComments] = React.useState<CommentWithReplies[]>([]);
   const [activityLogs, setActivityLogs] = React.useState<ActivityEntry[]>([]);
@@ -1146,57 +1158,84 @@ function TaskActivityFeed({
     void load();
   }
 
+  const header = hideHeader ? null : (
+    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+      Activity
+    </p>
+  );
+
+  const body = loading ? (
+    <div className="space-y-3 animate-pulse">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex gap-2">
+          <div className="size-7 rounded-full bg-muted shrink-0" />
+          <div className="flex-1 h-20 rounded-xl bg-muted" />
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="space-y-2">
+      {feed.map((item) =>
+        item.type === "comment" && item.comment ? (
+          <CommentItem
+            key={`c-${item.comment.id}`}
+            comment={item.comment}
+            workspaceId={workspaceId}
+            spaceId={spaceId}
+            listId={listId}
+            taskId={taskId}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            depth={0}
+            onRefresh={load}
+            members={members}
+          />
+        ) : item.activity ? (
+          <ActivityRow key={`a-${item.activity.id}`} entry={item.activity} />
+        ) : null,
+      )}
+      {feed.length === 0 && (
+        <p className="text-xs text-muted-foreground py-2">No activity yet.</p>
+      )}
+    </div>
+  );
+
+  const composer = (
+    <CommentEditor
+      placeholder="Add a comment… Type '/' for commands"
+      onSubmit={handleNewComment}
+      enableAttachments
+      members={members}
+      taskId={taskId}
+    />
+  );
+
+  // Full task page: the feed is the whole right column, so the activity list
+  // takes the remaining height and scrolls while the composer is a fixed
+  // footer. `min-h-0` on both is what lets the list actually shrink.
+  if (variant === "fill") {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-3 px-5 py-4">
+          {header}
+          {body}
+        </div>
+        <div className="shrink-0 border-t bg-background px-5 py-3">
+          {composer}
+        </div>
+      </div>
+    );
+  }
+
+  // Drawer: the feed is the last section of a taller scroll column it doesn't
+  // own, so the composer sticks to the bottom of that scrollport instead. The
+  // negative margin lets its background bleed over the column's px-6 padding.
   return (
     <div className="space-y-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        Activity
-      </p>
-
-      {loading ? (
-        <div className="space-y-3 animate-pulse">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex gap-2">
-              <div className="size-7 rounded-full bg-muted shrink-0" />
-              <div className="flex-1 h-20 rounded-xl bg-muted" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {feed.map((item) =>
-            item.type === "comment" && item.comment ? (
-              <CommentItem
-                key={`c-${item.comment.id}`}
-                comment={item.comment}
-                workspaceId={workspaceId}
-                spaceId={spaceId}
-                listId={listId}
-                taskId={taskId}
-                currentUserId={currentUserId}
-                isAdmin={isAdmin}
-                depth={0}
-                onRefresh={load}
-                members={members}
-              />
-            ) : item.activity ? (
-              <ActivityRow key={`a-${item.activity.id}`} entry={item.activity} />
-            ) : null,
-          )}
-          {feed.length === 0 && (
-            <p className="text-xs text-muted-foreground py-2">No activity yet.</p>
-          )}
-        </div>
-      )}
-
-      {/* New comment editor */}
-      <div className="pt-1">
-        <CommentEditor
-          placeholder="Add a comment… Type '/' for commands"
-          onSubmit={handleNewComment}
-          enableAttachments
-          members={members}
-          taskId={taskId}
-        />
+      {header}
+      {body}
+      <div className="sticky bottom-0 z-10 -mx-6 border-t bg-background px-6 pb-4 pt-3">
+        {composer}
       </div>
     </div>
   );

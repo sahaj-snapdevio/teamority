@@ -315,8 +315,11 @@ export function CalendarView({
             container avoids a fragile fixed offset, since the toolbar can wrap
             to two rows on narrow widths. */}
         <div className="sticky top-14 z-10 shrink-0 bg-app">
-        {/* Toolbar: search + facet filters + month navigation */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2 shrink-0">
+        {/* Toolbar: search + facet filters + month navigation. No top padding —
+            the view already sits below the List/Board/Calendar tabs with the
+            container's own gap, so a `py-*` here stacked a second gap on top and
+            pushed the calendar down relative to the List/Board toolbars. */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 pb-2 shrink-0">
           <SearchInput
             className="w-44 focus:w-56"
             onChange={(e) => setSearchQuery(e.target.value)}

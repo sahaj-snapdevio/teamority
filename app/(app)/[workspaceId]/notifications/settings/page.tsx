@@ -13,6 +13,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
+import { useParams } from "next/navigation";
+import { useSetTopbar } from "@/lib/topbar-context";
+
+// Half-hour slots for the daily-digest send time. A shadcn Select rather than
+// a native <input type="time"> — the app never uses native form controls.
+const DIGEST_TIMES = Array.from({ length: 48 }, (_, i) => {
+  const hour = Math.floor(i / 2);
+  const minute = i % 2 === 0 ? "00" : "30";
+  const value = `${String(hour).padStart(2, "0")}:${minute}`;
+  const suffix = hour < 12 ? "AM" : "PM";
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  return { value, label: `${displayHour}:${minute} ${suffix}` };
+});
 
 // Triggers whose notifications are never emitted by any code path yet, so a
 // toggle for them would do nothing. Hidden from the UI only — the trigger
@@ -70,6 +83,14 @@ interface NotifPref {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function NotificationSettingsPage() {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+
+  // Page header renders in the topbar, not in the content body.
+  useSetTopbar({
+    breadcrumbs: [{ label: "Inbox", href: `/${workspaceId}/notifications` }],
+    title: "Notification Settings",
+  });
+
   const { data: notifPrefData, mutate: mutateNotif } = useSWR(
     "/api/me/notification-preferences",
     fetcher,
@@ -134,6 +155,15 @@ export default function NotificationSettingsPage() {
     await mutateEmail();
   }
 
+  // A previously-stored time may not fall on a half-hour slot (the old control
+  // was a free-form time input) — keep it selectable so it isn't silently lost.
+  const digestTimeOptions = React.useMemo(() => {
+    if (DIGEST_TIMES.some((t) => t.value === digestTime)) {
+      return DIGEST_TIMES;
+    }
+    return [{ value: digestTime, label: digestTime }, ...DIGEST_TIMES];
+  }, [digestTime]);
+
   // `prefs` keeps every trigger (and its emailEnabled value) so PATCH payloads
   // stay unchanged; only the rendered rows are filtered.
   const visiblePrefs = React.useMemo(
@@ -163,16 +193,13 @@ export default function NotificationSettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 p-6">
-      <div>
-        <h2 className="text-xl font-semibold">Notification Settings</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Control how and when you receive notifications.
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Control how and when you receive notifications.
+      </p>
 
       {/* Browser push notifications */}
       {pushSupported && (
-        <div className="space-y-3 rounded-lg border p-4">
+        <div className="space-y-3 rounded-xl border p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="font-medium">Browser Notifications</h3>
@@ -217,7 +244,7 @@ export default function NotificationSettingsPage() {
 
       {/* Email delivery — only when SMTP can actually deliver it. */}
       {emailAvailable && (
-        <div className="space-y-4 rounded-lg border p-4">
+        <div className="space-y-4 rounded-xl border p-4">
           <h3 className="font-medium">Email Delivery</h3>
           <div className="flex items-center gap-4">
             <Label htmlFor="delivery-mode" className="w-32 shrink-0">
@@ -227,7 +254,7 @@ export default function NotificationSettingsPage() {
               <SelectTrigger id="delivery-mode" className="w-40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-1.5">
                 <SelectItem value="instant">Instant</SelectItem>
                 <SelectItem value="digest">Daily Digest</SelectItem>
                 <SelectItem value="off">Off</SelectItem>
@@ -239,13 +266,18 @@ export default function NotificationSettingsPage() {
               <Label htmlFor="digest-time" className="w-32 shrink-0">
                 Digest time
               </Label>
-              <input
-                id="digest-time"
-                type="time"
-                value={digestTime}
-                onChange={(e) => setDigestTime(e.target.value)}
-                className="rounded-md border bg-background px-3 py-1.5 text-sm"
-              />
+              <Select value={digestTime} onValueChange={setDigestTime}>
+                <SelectTrigger id="digest-time" className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="p-1.5">
+                  {digestTimeOptions.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
           <Button onClick={saveEmailPrefs} disabled={saving} size="sm">
@@ -255,7 +287,7 @@ export default function NotificationSettingsPage() {
       )}
 
       {/* In-app notification sound */}
-      <div className="space-y-3 rounded-lg border p-4">
+      <div className="space-y-3 rounded-xl border p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="font-medium">In-App Notification Sound</h3>
@@ -272,7 +304,7 @@ export default function NotificationSettingsPage() {
       {/* Per-trigger toggles */}
       <div className="space-y-4">
         <h3 className="font-medium">Notification Preferences</h3>
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-xl border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">

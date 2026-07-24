@@ -20,9 +20,14 @@ export type FacetOption = {
 };
 
 /**
- * The checkbox option list (with optional search + clear). Shared by FacetFilter
- * (inside its Popover) and any panel that needs the same list inline — e.g. the
- * omnibox "More filters" panel — so the list rendering lives in one place.
+ * The option list (with optional search + clear). Shared by FacetFilter (inside
+ * its Popover) and any panel that needs the same list inline — e.g. the omnibox
+ * "More filters" panel — so the list rendering lives in one place.
+ *
+ * `single` isn't just about the click behaviour: it also switches the indicator
+ * from a square checkbox to a round radio, so a field that holds exactly one
+ * value (Priority, Status, a SINGLE_SELECT custom field) never reads as a
+ * multi-select.
  */
 export function FacetOptionList({
   options,
@@ -113,19 +118,27 @@ export function FacetOptionList({
               <button
                 key={o.value}
                 type="button"
+                aria-pressed={active}
                 onClick={() => handleToggle(o.value)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent"
               >
-                {/* Visual checkbox only — the row itself is the button, so a
-                    real (button-based) Checkbox here would nest buttons. */}
+                {/* Visual indicator only — the row itself is the button, so a
+                    real (button-based) Checkbox/Radio here would nest buttons.
+                    Round dot for single-select, square tick for multi. */}
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "flex size-4 shrink-0 items-center justify-center rounded-none border border-input transition-colors",
+                    "flex size-4 shrink-0 items-center justify-center border border-input transition-colors",
+                    single ? "rounded-full" : "rounded-none",
                     active && "border-primary bg-primary text-primary-foreground",
                   )}
                 >
-                  {active && <CheckIcon className="size-3" weight="bold" />}
+                  {active &&
+                    (single ? (
+                      <span className="size-1.5 rounded-full bg-primary-foreground" />
+                    ) : (
+                      <CheckIcon className="size-3" weight="bold" />
+                    ))}
                 </span>
                 {o.icon}
                 {o.color && (

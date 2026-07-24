@@ -539,8 +539,18 @@ export default function InboxPage() {
         <div className="flex items-center justify-between border-b px-6 py-4 shrink-0">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold">Inbox</h1>
+            {/* Scoped to the active Date/Workspace/Event/search filters (the
+                API counts unread within the same scope), so it always matches
+                what the Unread tab would list. */}
             {unreadCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-500 px-1.5 text-xs font-semibold text-white leading-none">
+              <span
+                className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-500 px-1.5 text-xs font-semibold text-white leading-none"
+                title={
+                  hasActiveFilters
+                    ? `${unreadCount} unread matching the current filters`
+                    : `${unreadCount} unread`
+                }
+              >
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
