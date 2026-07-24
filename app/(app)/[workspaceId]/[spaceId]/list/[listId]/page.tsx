@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, isNull, sum } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull, sum } from "drizzle-orm";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -165,6 +165,7 @@ export default async function ListPage({ params }: ListPageProps) {
     personalPinRows,
     depRows,
     trackedRows,
+    subtaskCountRows,
     customFieldsRes,
   ] = await Promise.all([
       taskIds.length > 0
@@ -239,6 +240,25 @@ export default async function ListPage({ params }: ListPageProps) {
             .groupBy(timeEntry.taskId)
         : Promise.resolve([]),
 
+      // Subtask counts for the collapsible subtask row on Board cards — just
+      // the count, so cards that never get expanded never pay for the full
+      // subtask list (that's fetched lazily via getSubtasks on expand).
+      taskIds.length > 0
+        ? db
+            .select({
+              parentTaskId: task.parentTaskId,
+              count: count(),
+            })
+            .from(task)
+            .where(
+              and(
+                inArray(task.parentTaskId, taskIds),
+                eq(task.isArchived, false)
+              )
+            )
+            .groupBy(task.parentTaskId)
+        : Promise.resolve([]),
+
       getCustomFieldsForTasks(workspaceId, spaceId, listId, taskIds),
     ]);
 
@@ -299,6 +319,13 @@ export default async function ListPage({ params }: ListPageProps) {
     trackedByTaskId.set(row.taskId, Number(row.total ?? 0));
   }
 
+  const subtaskCountByTaskId = new Map<string, number>();
+  for (const row of subtaskCountRows) {
+    if (row.parentTaskId) {
+      subtaskCountByTaskId.set(row.parentTaskId, row.count);
+    }
+  }
+
   const tasksWithTags = tasks.map((t) => ({
     ...t,
     tags: tagsByTaskId.get(t.id) ?? [],
@@ -306,6 +333,7 @@ export default async function ListPage({ params }: ListPageProps) {
     dependencyInfo: depInfoByTaskId.get(t.id),
     trackedSeconds: trackedByTaskId.get(t.id),
     customFieldValues: customFieldValuesByTask[t.id] ?? {},
+    subtaskCount: subtaskCountByTaskId.get(t.id) ?? 0,
   }));
 
   const pinnedListTasks = tasksWithTags

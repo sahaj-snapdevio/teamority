@@ -26,10 +26,14 @@ import {
   ArrowsDownUpIcon,
   CalendarBlankIcon,
   CaretDownIcon,
+  CaretRightIcon,
   CheckCircleIcon,
+  CheckIcon,
   CheckSquareIcon,
+  CircleIcon,
   CopyIcon,
   DotsThreeIcon,
+  FlagIcon,
   HashIcon,
   LinkIcon,
   ListPlusIcon,
@@ -37,6 +41,8 @@ import {
   SlidersHorizontalIcon,
   TextAaIcon,
   TrashIcon,
+  UserIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -48,11 +54,13 @@ import {
   createSubtask,
   deleteTask,
   duplicateTask,
+  getSubtasks,
   reorderTasksInStatus,
   unarchiveTask,
   updateTask,
   updateTaskStatus,
 } from "@/app/actions/task";
+import { addAssignee, removeAssignee } from "@/app/actions/task-assignee";
 import { ManageFieldsIcon } from "@/components/common/manage-fields-icon";
 import { CustomFieldFilterControl } from "@/components/filters/custom-field-filter";
 import {
@@ -62,7 +70,6 @@ import {
 import { FilterBuilder } from "@/components/filters/filter-builder";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
-import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
 import {
   TaskDependencyBadge,
   type TaskDependencyIndicator,
@@ -70,6 +77,7 @@ import {
 import { TrackedTimeBadge } from "@/components/task/tracked-time-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -84,6 +92,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
 import { useListColumnPreferences } from "@/hooks/use-list-column-preferences";
 import { taskUrl } from "@/lib/app-url";
 import { describeCustomFieldValue } from "@/lib/custom-fields/column-display";
@@ -97,6 +106,7 @@ import {
 } from "@/lib/duplicate-highlight";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { filterTasks } from "@/lib/filters/task-filter";
+import { formatDueDate } from "@/lib/priority-config";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
@@ -141,14 +151,29 @@ interface Task {
   assignees: { userId: string; name: string; image: string | null }[];
   customFieldValues?: Record<string, unknown>;
   dependencyInfo?: TaskDependencyIndicator;
+  dueDateEnd: Date | null;
+  dueDateStart: Date | null;
   id: string;
   orderIndex: number;
   priority: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   seqNumber: number;
   statusId: string | null;
+  subtaskCount: number;
   tags: { id: string; name: string; color: string }[];
   title: string;
   trackedSeconds?: number;
+}
+
+interface SubtaskRow {
+  id: string;
+  orderIndex: number;
+  priority: string;
+  seqNumber: number;
+  statusColor: string | null;
+  statusId: string | null;
+  statusName: string | null;
+  statusType: "OPEN" | "ACTIVE" | "CLOSED" | null;
+  title: string;
 }
 
 interface BoardViewProps {
@@ -164,7 +189,12 @@ interface BoardViewProps {
     description?: string | null;
   };
   members?: BoardMember[];
-  space: { id: string; name: string; color: string | null; logoEmoji: string | null };
+  space: {
+    id: string;
+    name: string;
+    color: string | null;
+    logoEmoji: string | null;
+  };
   statuses: Status[];
   tags?: { id: string; name: string; color: string }[];
   tasks: Task[];
@@ -368,6 +398,8 @@ function CardContent({
   customFields?: CustomFieldRow[];
   members?: BoardMember[];
 }) {
+  const router = useRouter();
+
   // The hover quick-actions render only on real (non-overlay) cards that were
   // handed the workspace/list context. The drag overlay stays purely visual.
   const interactive =
@@ -419,6 +451,162 @@ function CardContent({
   const [creatingSubtask, setCreatingSubtask] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+
+  // Quick-set popovers for assignee/due date/priority — shown as small
+  // icon affordances only when the field is unset, so a card can get a
+  // first assignee/date/priority without opening the task (mirrors
+  // task-list-row.tsx's inline cells).
+  const [assigneeOpen, setAssigneeOpen] = React.useState(false);
+  const [memberSearch, setMemberSearch] = React.useState("");
+  const [dateOpen, setDateOpen] = React.useState(false);
+  const [priorityOpen, setPriorityOpen] = React.useState(false);
+  const dueDate = formatDueDate(task.dueDateEnd);
+  const filteredMembers = members.filter((m) => {
+    const q = memberSearch.trim().toLowerCase();
+    if (!q) {
+      return true;
+    }
+    return (m.name ?? m.email ?? "").toLowerCase().includes(q);
+  });
+
+  async function handleToggleAssignee(userId: string) {
+    const isAssigned = task.assignees.some((a) => a.userId === userId);
+    if (isAssigned) {
+      await removeAssignee(
+        workspaceId!,
+        spaceId!,
+        listId ?? null,
+        task.id,
+        userId
+      );
+    } else {
+      await addAssignee(
+        workspaceId!,
+        spaceId!,
+        listId ?? null,
+        task.id,
+        userId
+      );
+    }
+    onRefresh?.();
+  }
+
+  async function handleSetDueDate(date: Date | null) {
+    setDateOpen(false);
+    // "Due Date" is the deadline (end date). Preserve an existing start date;
+    // for tasks with no start, set both so single-date tasks stay consistent.
+    const patch = task.dueDateStart
+      ? { dueDateEnd: date }
+      : { dueDateStart: date, dueDateEnd: date };
+    const res = await updateTask(
+      workspaceId!,
+      spaceId!,
+      listId ?? null,
+      task.id,
+      patch
+    );
+    if (res && "error" in res) {
+      toast.error("Failed to update due date");
+      return;
+    }
+    onRefresh?.();
+  }
+
+  async function handleSetPriority(p: Task["priority"]) {
+    setPriorityOpen(false);
+    const res = await updateTask(
+      workspaceId!,
+      spaceId!,
+      listId ?? null,
+      task.id,
+      {
+        priority: p,
+      }
+    );
+    if (res && "error" in res) {
+      toast.error("Failed to update priority");
+      return;
+    }
+    onRefresh?.();
+  }
+
+  // Collapsible subtask list — collapsed by default (per requirements) so a
+  // task with subtasks doesn't cost extra card height until asked for. The
+  // full list is fetched lazily on first expand rather than eagerly for
+  // every card; only the count (task.subtaskCount, from the server) is known
+  // up front.
+  const [subtasksExpanded, setSubtasksExpanded] = React.useState(false);
+  const [subtaskList, setSubtaskList] = React.useState<SubtaskRow[] | null>(
+    null
+  );
+  const [loadingSubtasks, setLoadingSubtasks] = React.useState(false);
+
+  async function loadSubtasks() {
+    if (!workspaceId || !spaceId) {
+      return;
+    }
+    setLoadingSubtasks(true);
+    const res = await getSubtasks(workspaceId, spaceId, task.id);
+    setLoadingSubtasks(false);
+    if (!("error" in res)) {
+      setSubtaskList(res.subtasks);
+    }
+  }
+
+  function toggleSubtasksExpanded() {
+    const next = !subtasksExpanded;
+    setSubtasksExpanded(next);
+    if (next && subtaskList === null) {
+      void loadSubtasks();
+    }
+  }
+
+  // Re-fetch if the count changes while expanded (e.g. a subtask was added
+  // via the card's own "+" composer, or a realtime refresh landed) so the
+  // expanded list doesn't go stale.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refetch on count change while expanded
+  React.useEffect(() => {
+    if (subtasksExpanded) {
+      void loadSubtasks();
+    }
+  }, [task.subtaskCount]);
+
+  async function handleToggleSubtaskComplete(sub: SubtaskRow) {
+    const isDone = sub.statusType === "CLOSED";
+    const doneStatus = statuses?.find((s) => s.type === "CLOSED");
+    const openStatus =
+      statuses?.find((s) => s.type === "OPEN") ??
+      statuses?.find((s) => s.type === "ACTIVE");
+    const target = isDone ? openStatus : doneStatus;
+    if (!target) {
+      return;
+    }
+    setSubtaskList(
+      (prev) =>
+        prev?.map((s) =>
+          s.id === sub.id
+            ? {
+                ...s,
+                statusId: target.id,
+                statusType: target.type,
+                statusColor: target.color,
+                statusName: target.name,
+              }
+            : s
+        ) ?? prev
+    );
+    const res = await updateTaskStatus(
+      workspaceId!,
+      spaceId!,
+      listId ?? null,
+      sub.id,
+      target.id
+    );
+    if (res && "error" in res) {
+      toast.error("Failed to update subtask");
+      void loadSubtasks();
+    }
+  }
 
   function startRename() {
     if (!canEdit) {
@@ -620,8 +808,8 @@ function CardContent({
             ))}
           </div>
         )}
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 shrink-0">
+        <div className="mt-2 space-y-1.5">
+          <div className="flex items-center gap-1.5">
             <span className="font-mono text-2xs text-muted-foreground">
               #{task.seqNumber}
             </span>
@@ -633,44 +821,280 @@ function CardContent({
             )}
             <TrackedTimeBadge seconds={task.trackedSeconds} />
           </div>
-          <div className="flex items-center gap-2 min-w-0">
-            {task.priority !== "NONE" &&
-              (() => {
-                const cfg = PRIORITY_CONFIG[task.priority];
-                return cfg ? (
-                  <span
+          {/* Assignee / Due Date / Priority — persistent quick-edit controls,
+              not just quick-SET. Each stays clickable whether the value is
+              set or not, so a card never needs to be opened just to change
+              one of these. Both onClick and onPointerDown must stop
+              propagation on every trigger — this row is nested inside the
+              drag/click wrapper above (unlike the hover quick-actions
+              overlay, which is a sibling and needs neither). Read-only
+              (!canEdit) falls back to plain, non-interactive display.
+              On its own row (not sharing space with #seqNumber/tracked-time
+              above) so it never gets squeezed into horizontal overflow. */}
+          <div className="flex flex-wrap items-center gap-1">
+            {canEdit ? (
+              <Popover onOpenChange={setPriorityOpen} open={priorityOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className="flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs font-bold transition-colors hover:bg-accent"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    title="Change priority"
+                    type="button"
+                  >
+                    {task.priority === "NONE" ? (
+                      <FlagIcon className="size-3.5 text-muted-foreground" />
+                    ) : (
+                      <span
+                        className={cn(
+                          "flex items-center gap-1",
+                          PRIORITY_CONFIG[task.priority].color
+                        )}
+                      >
+                        <span>{PRIORITY_CONFIG[task.priority].icon}</span>
+                        {PRIORITY_CONFIG[task.priority].label}
+                      </span>
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-40 p-1"
+                  onClick={(e) => e.stopPropagation()}
+                  side="bottom"
+                >
+                  {(["URGENT", "HIGH", "MEDIUM", "LOW"] as const).map(
+                    (value) => (
+                      <button
+                        className={cn(
+                          "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent",
+                          task.priority === value && "bg-accent"
+                        )}
+                        key={value}
+                        onClick={() => void handleSetPriority(value)}
+                        type="button"
+                      >
+                        <span>{PRIORITY_CONFIG[value].icon}</span>
+                        <span className={PRIORITY_CONFIG[value].color}>
+                          {PRIORITY_CONFIG[value].label}
+                        </span>
+                      </button>
+                    )
+                  )}
+                  <div className="my-1 h-px bg-border" />
+                  <button
+                    className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent"
+                    onClick={() => void handleSetPriority("NONE")}
+                    type="button"
+                  >
+                    <XIcon className="size-3.5 shrink-0" /> Clear
+                  </button>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              task.priority !== "NONE" && (
+                <span
+                  className={cn(
+                    "flex items-center gap-1 text-xs font-bold shrink-0",
+                    PRIORITY_CONFIG[task.priority].color
+                  )}
+                >
+                  <span>{PRIORITY_CONFIG[task.priority].icon}</span>
+                  {PRIORITY_CONFIG[task.priority].label}
+                </span>
+              )
+            )}
+
+            {canEdit ? (
+              <Popover onOpenChange={setDateOpen} open={dateOpen}>
+                <PopoverTrigger asChild>
+                  <button
                     className={cn(
-                      "flex items-center gap-1 text-xs font-bold shrink-0",
-                      cfg.color
+                      "flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs font-semibold transition-colors hover:bg-accent",
+                      dueDate?.overdue
+                        ? "text-red-500"
+                        : "text-muted-foreground"
                     )}
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    title={dueDate ? "Change due date" : "Set due date"}
+                    type="button"
                   >
-                    <span>{cfg.icon}</span>
-                    {cfg.label}
-                  </span>
-                ) : null;
-              })()}
-            {task.assignees.length > 0 && (
-              <div className="flex -space-x-1.5 ml-auto">
-                {task.assignees.slice(0, 3).map((a) => (
-                  <Avatar
-                    className="size-7 border-2 border-background"
-                    key={a.userId}
-                    title={a.name}
+                    <CalendarBlankIcon className="size-3.5" />
+                    {dueDate && <span>{dueDate.label}</span>}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-auto p-0"
+                  onClick={(e) => e.stopPropagation()}
+                  side="bottom"
+                >
+                  <Calendar
+                    mode="single"
+                    onSelect={(date) => void handleSetDueDate(date ?? null)}
+                    selected={task.dueDateEnd ?? undefined}
+                  />
+                  {task.dueDateEnd && (
+                    <div className="border-t border-border p-1">
+                      <button
+                        className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent"
+                        onClick={() => void handleSetDueDate(null)}
+                        type="button"
+                      >
+                        <XIcon className="size-3.5 shrink-0" /> Clear due date
+                      </button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            ) : (
+              dueDate && (
+                <span
+                  className={cn(
+                    "flex items-center gap-1 text-xs font-semibold shrink-0",
+                    dueDate.overdue ? "text-red-500" : "text-muted-foreground"
+                  )}
+                >
+                  <CalendarBlankIcon className="size-3.5" />
+                  {dueDate.label}
+                </span>
+              )
+            )}
+
+            {canEdit ? (
+              <Popover
+                onOpenChange={(o) => {
+                  setAssigneeOpen(o);
+                  if (!o) {
+                    setMemberSearch("");
+                  }
+                }}
+                open={assigneeOpen}
+              >
+                <PopoverTrigger asChild>
+                  <button
+                    className="ml-auto flex shrink-0 cursor-pointer items-center rounded-full transition-colors hover:bg-accent"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    title={
+                      task.assignees.length > 0 ? "Change assignee" : "Assign"
+                    }
+                    type="button"
                   >
-                    {a.image && (
-                      <AvatarImage alt={a.name} src={avatarSrc(a.image)} />
+                    {task.assignees.length > 0 ? (
+                      <div className="flex -space-x-1.5">
+                        {task.assignees.slice(0, 3).map((a) => (
+                          <Avatar
+                            className="size-7 border-2 border-background"
+                            key={a.userId}
+                            title={a.name}
+                          >
+                            {a.image && (
+                              <AvatarImage
+                                alt={a.name}
+                                src={avatarSrc(a.image)}
+                              />
+                            )}
+                            <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+                              {userInitials(a.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                        {task.assignees.length > 3 && (
+                          <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground">
+                            +{task.assignees.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="flex size-7 items-center justify-center text-muted-foreground">
+                        <UserIcon className="size-3.5" />
+                      </span>
                     )}
-                    <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
-                      {userInitials(a.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-                {task.assignees.length > 3 && (
-                  <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground">
-                    +{task.assignees.length - 3}
-                  </div>
-                )}
-              </div>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-64 p-2"
+                  onClick={(e) => e.stopPropagation()}
+                  side="bottom"
+                >
+                  <Input
+                    autoFocus
+                    className="h-8 text-xs mb-2"
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder="Search members…"
+                    value={memberSearch}
+                  />
+                  {filteredMembers.length === 0 ? (
+                    <p className="py-2 px-1 text-xs text-muted-foreground">
+                      No members found
+                    </p>
+                  ) : (
+                    <div className="max-h-52 overflow-y-auto">
+                      {filteredMembers.map((m) => {
+                        const assigned = task.assignees.some(
+                          (a) => a.userId === m.userId
+                        );
+                        return (
+                          <button
+                            className={cn(
+                              "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors",
+                              assigned ? "bg-primary/10" : "hover:bg-accent"
+                            )}
+                            key={m.userId}
+                            onClick={() => void handleToggleAssignee(m.userId)}
+                            type="button"
+                          >
+                            <Avatar className="size-6 shrink-0">
+                              {m.image && (
+                                <AvatarImage src={avatarSrc(m.image)} />
+                              )}
+                              <AvatarFallback className="text-2xs bg-primary/10 text-primary font-semibold">
+                                {userInitials(m.name ?? m.email ?? "?")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="flex-1 min-w-0 truncate text-left">
+                              {m.name ?? m.email}
+                            </span>
+                            {assigned && (
+                              <CheckIcon
+                                className="size-3.5 shrink-0 text-primary"
+                                weight="bold"
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            ) : (
+              task.assignees.length > 0 && (
+                <div className="ml-auto flex -space-x-1.5">
+                  {task.assignees.slice(0, 3).map((a) => (
+                    <Avatar
+                      className="size-7 border-2 border-background"
+                      key={a.userId}
+                      title={a.name}
+                    >
+                      {a.image && (
+                        <AvatarImage alt={a.name} src={avatarSrc(a.image)} />
+                      )}
+                      <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+                        {userInitials(a.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {task.assignees.length > 3 && (
+                    <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground">
+                      +{task.assignees.length - 3}
+                    </div>
+                  )}
+                </div>
+              )
             )}
           </div>
         </div>
@@ -684,6 +1108,103 @@ function CardContent({
               >
                 +{hiddenCustomFieldCount} more
               </span>
+            )}
+          </div>
+        )}
+        {/* Collapsible subtasks — collapsed by default. onClick/onPointerDown
+            stop propagation throughout for the same reason as the
+            Assignee/Date/Priority controls above: this lives inside the
+            drag/click wrapper, so an unguarded click would either start a
+            drag or navigate into the parent task. */}
+        {task.subtaskCount > 0 && (
+          <div className="mt-2 border-t border-border pt-1.5">
+            <button
+              className="flex w-full cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSubtasksExpanded();
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              type="button"
+            >
+              {subtasksExpanded ? (
+                <CaretDownIcon className="size-3 shrink-0" />
+              ) : (
+                <CaretRightIcon className="size-3 shrink-0" />
+              )}
+              {task.subtaskCount}{" "}
+              {task.subtaskCount === 1 ? "subtask" : "subtasks"}
+            </button>
+            {subtasksExpanded && (
+              <div className="mt-1 space-y-0.5 pl-1">
+                {loadingSubtasks ? (
+                  <div className="space-y-1 py-0.5">
+                    {["k0", "k1"].map((k) => (
+                      <div
+                        className="h-5 animate-pulse rounded bg-muted"
+                        key={k}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  subtaskList?.map((sub) => {
+                    const isDone = sub.statusType === "CLOSED";
+                    return (
+                      // biome-ignore lint/a11y/useSemanticElements: contains a nested "Complete" <button>, so the row itself can't literally be a <button>
+                      <div
+                        className="flex cursor-pointer items-center gap-1.5 rounded px-1 py-1 transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        key={sub.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(
+                            `/${workspaceId}/task/${sub.id}?from=board`
+                          );
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            router.push(
+                              `/${workspaceId}/task/${sub.id}?from=board`
+                            );
+                          }
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <button
+                          className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleToggleSubtaskComplete(sub);
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          title={isDone ? "Reopen" : "Complete"}
+                          type="button"
+                        >
+                          {isDone ? (
+                            <CheckCircleIcon
+                              className="size-3.5 text-primary"
+                              weight="fill"
+                            />
+                          ) : (
+                            <CircleIcon className="size-3.5" />
+                          )}
+                        </button>
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 truncate text-xs",
+                            isDone && "text-muted-foreground line-through"
+                          )}
+                        >
+                          {sub.title}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
         )}
