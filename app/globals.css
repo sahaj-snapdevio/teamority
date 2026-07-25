@@ -298,7 +298,9 @@ body:has(.workspace-shell) {
    Generated from the palettes that used to live in components/theme/theme-provider.tsx.
    They are CSS, not inline styles injected after hydration, so the server can emit
    `data-theme` in the initial HTML and the correct colours paint on the very first
-   frame — no flash. `forest` is the default and needs no block (it IS :root).
+   frame — no flash. Every theme in THEME_IDS (lib/theme.ts), including
+   `forest` (the DB/app default), gets its own explicit block here — `forest`
+   is NOT just `:root`, whose base --primary is actually indigo/blue.
    `:root[data-theme]` and `.dark[data-theme]` are both (0,2,0), so source order decides:
    the dark blocks come last and win when `.dark` is present. */
 
@@ -342,6 +344,25 @@ body:has(.workspace-shell) {
   --accent-foreground: oklch(0.38 0.08 60);
   --secondary: oklch(0.96 0.01 60);
   --secondary-foreground: oklch(0.38 0.08 60);
+}
+
+/* Forest green (#174D38 ≈ oklch(0.38 0.07 163)) — the actual brand green used
+   by the landing page (.force-light) and the Forest swatch in theme settings.
+   This block was missing: an old comment claimed "forest is the default and
+   needs no block (it IS :root)", but :root's --primary is indigo/blue
+   (#5B6BF8), not green, so selecting/defaulting to Forest rendered blue. */
+:root[data-theme="forest"] {
+  --primary: oklch(0.38 0.07 163);
+  --primary-foreground: oklch(0.99 0.002 277);
+  --ring: oklch(0.48 0.09 163);
+  --sidebar: oklch(0.15 0.025 163);
+  --sidebar-accent: oklch(0.20 0.035 163);
+  --sidebar-border: oklch(0.22 0.035 163);
+  --sidebar-primary: oklch(0.48 0.09 163);
+  --accent: oklch(0.95 0.018 163);
+  --accent-foreground: oklch(0.36 0.07 163);
+  --secondary: oklch(0.96 0.01 163);
+  --secondary-foreground: oklch(0.36 0.07 163);
 }
 
 :root[data-theme="indigo"] {
@@ -482,6 +503,20 @@ body:has(.workspace-shell) {
   --accent-foreground: oklch(0.88 0.02 60);
   --secondary: oklch(0.21 0.02 60);
   --secondary-foreground: oklch(0.84 0.02 60);
+}
+
+.dark[data-theme="forest"] {
+  --primary: oklch(0.48 0.09 163);
+  --primary-foreground: oklch(0.155 0.018 277);
+  --ring: oklch(0.38 0.07 163);
+  --sidebar: oklch(0.11 0.018 163);
+  --sidebar-accent: oklch(0.17 0.025 163);
+  --sidebar-border: oklch(0.19 0.025 163);
+  --sidebar-primary: oklch(0.48 0.09 163);
+  --accent: oklch(0.22 0.025 163);
+  --accent-foreground: oklch(0.88 0.018 163);
+  --secondary: oklch(0.20 0.018 163);
+  --secondary-foreground: oklch(0.84 0.018 163);
 }
 
 .dark[data-theme="indigo"] {

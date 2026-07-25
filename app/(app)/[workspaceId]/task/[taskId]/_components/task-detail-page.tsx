@@ -2154,7 +2154,7 @@ export function TaskDetailPage({
           </div>
 
           {/* ── Right: activity ── */}
-          <div className="w-80 xl:w-96 shrink-0 border-l flex flex-col overflow-hidden">
+          <div className="w-80 xl:w-96 shrink-0 min-h-0 border-l flex flex-col overflow-hidden">
             <div className="flex shrink-0 border-b px-5 py-2.5">
               <span className="text-xs font-medium text-foreground">
                 Activity

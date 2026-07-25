@@ -60,7 +60,12 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
-  position = "item-aligned",
+  // "popper" anchors the dropdown directly below its trigger, matching every
+  // Popover-based dropdown elsewhere in the app (Status/Priority/Sort, filter
+  // pickers, etc.) — Radix's own default ("item-aligned") instead aligns the
+  // *selected item* with the trigger, which can make the dropdown appear to
+  // open from the middle of the screen instead of consistently below.
+  position = "popper",
   align = "center",
   onWheel,
   ...props

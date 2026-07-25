@@ -2844,6 +2844,58 @@ export function ListView({
             </div>
           </div>
 
+          {/* Archived tasks section — shown at the top (above pinned/status
+              groups) so toggling "Archived" on doesn't require scrolling
+              past the whole active list to find it. Rows navigate to the
+              task like any other row; the Unarchive button stops
+              propagation so it doesn't also trigger that navigation. */}
+          {showArchived && (
+            <div className="mb-6 border border-border rounded-xl overflow-hidden bg-muted/20">
+              <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 text-xs font-bold text-muted-foreground uppercase tracking-wide border-b border-border select-none">
+                <ArchiveIcon className="size-4" />
+                Archived ({archivedTasks?.length ?? 0})
+              </div>
+              {(!archivedTasks || archivedTasks.length === 0) && (
+                <div className="px-4 py-6 text-center text-xs text-muted-foreground italic">
+                  {archivedLoading
+                    ? "Loading archived tasks…"
+                    : "No archived tasks"}
+                </div>
+              )}
+              <div className="divide-y divide-border">
+                {archivedTasks?.map((t) => (
+                  <div
+                    className="group flex cursor-pointer items-center gap-3 px-4 py-2 transition-colors hover:bg-accent/30"
+                    key={t.id}
+                    onClick={() => router.push(`/${workspaceId}/task/${t.id}`)}
+                  >
+                    <span className="text-2xs text-muted-foreground font-mono shrink-0 select-none">
+                      #{t.seqNumber}
+                    </span>
+                    <span className="flex-1 text-[13px] text-muted-foreground font-medium line-through truncate">
+                      {t.title}
+                    </span>
+                    <button
+                      className="hidden group-hover:flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await unarchiveTask(workspaceId, spaceId, listId, t.id);
+                        await onArchivedChanged?.();
+                        toastWithUndo("Task unarchived", async () => {
+                          await archiveTask(workspaceId, spaceId, listId, t.id);
+                          await onArchivedChanged?.();
+                        });
+                      }}
+                    >
+                      <ArchiveIcon className="size-3.5 text-muted-foreground" />
+                      Unarchive
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Pinned tasks sticky section */}
           {pinnedTasks.length > 0 && (
             <PinnedSection
@@ -2896,51 +2948,6 @@ export function ListView({
             ))}
           </div>
 
-          {/* Archived tasks section */}
-          {showArchived && (
-            <div className="mt-6 border border-border rounded-xl overflow-hidden bg-muted/20">
-              <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 text-xs font-bold text-muted-foreground uppercase tracking-wide border-b border-border select-none">
-                <ArchiveIcon className="size-4" />
-                Archived ({archivedTasks?.length ?? 0})
-              </div>
-              {(!archivedTasks || archivedTasks.length === 0) && (
-                <div className="px-4 py-6 text-center text-xs text-muted-foreground italic">
-                  {archivedLoading
-                    ? "Loading archived tasks…"
-                    : "No archived tasks"}
-                </div>
-              )}
-              <div className="divide-y divide-border">
-                {archivedTasks?.map((t) => (
-                  <div
-                    className="group flex items-center gap-3 px-4 py-2 hover:bg-accent/30 transition-colors"
-                    key={t.id}
-                  >
-                    <span className="text-2xs text-muted-foreground font-mono shrink-0 select-none">
-                      #{t.seqNumber}
-                    </span>
-                    <span className="flex-1 text-[13px] text-muted-foreground font-medium line-through truncate">
-                      {t.title}
-                    </span>
-                    <button
-                      className="hidden group-hover:flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
-                      onClick={async () => {
-                        await unarchiveTask(workspaceId, spaceId, listId, t.id);
-                        await onArchivedChanged?.();
-                        toastWithUndo("Task unarchived", async () => {
-                          await archiveTask(workspaceId, spaceId, listId, t.id);
-                          await onArchivedChanged?.();
-                        });
-                      }}
-                    >
-                      <ArchiveIcon className="size-3.5 text-muted-foreground" />
-                      Unarchive
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </DndContext>
 
