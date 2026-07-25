@@ -141,7 +141,7 @@ export function SpaceMembersManager({
                   <SelectTrigger>
                     <SelectValue placeholder="Select a member…" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="p-1.5">
                     {addableMembers.map((m) => (
                       <SelectItem key={m.userId} value={m.userId}>
                         {m.name ?? m.email}
@@ -163,7 +163,7 @@ export function SpaceMembersManager({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="p-1.5">
                     {(Object.keys(PERMISSION_LABELS) as SpacePermission[]).map((p) => (
                       <SelectItem key={p} value={p}>
                         {PERMISSION_LABELS[p]}
@@ -213,7 +213,7 @@ export function SpaceMembersManager({
                 <SelectTrigger className="w-36 h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="p-1.5">
                   {(Object.keys(PERMISSION_LABELS) as SpacePermission[]).map((p) => (
                     <SelectItem key={p} value={p} className="text-xs">
                       {PERMISSION_LABELS[p]}

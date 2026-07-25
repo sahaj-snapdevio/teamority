@@ -15,12 +15,35 @@ function isConfigured() {
   return !!(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT);
 }
 
-if (isConfigured()) {
-  webpush.setVapidDetails(
-    env.VAPID_SUBJECT!,
-    env.VAPID_PUBLIC_KEY!,
-    env.VAPID_PRIVATE_KEY!,
-  );
+// `setVapidDetails` validates the keys and THROWS on a malformed pair (e.g. the
+// `your_public_key_here` placeholders straight out of .env.example). Doing that
+// at module scope took the whole server down — this module is imported by
+// `create-notification.ts`, which every server action pulls in transitively, so
+// one bad env var turned into a boot-time crash on unrelated pages. Configure
+// lazily instead and treat invalid keys the same as "not configured": push is
+// optional, so it degrades to off rather than breaking the app.
+let vapidReady: boolean | null = null;
+
+function ensureVapidDetails(): boolean {
+  if (!isConfigured()) return false;
+  if (vapidReady === null) {
+    try {
+      webpush.setVapidDetails(
+        env.VAPID_SUBJECT!,
+        env.VAPID_PUBLIC_KEY!,
+        env.VAPID_PRIVATE_KEY!,
+      );
+      vapidReady = true;
+    } catch (err) {
+      vapidReady = false;
+      console.warn(
+        `[push] Web Push disabled — invalid VAPID_* env values: ${
+          err instanceof Error ? err.message : String(err)
+        }. Generate a pair with \`npx web-push generate-vapid-keys\`.`,
+      );
+    }
+  }
+  return vapidReady;
 }
 
 export interface PushPayload {
@@ -30,7 +53,7 @@ export interface PushPayload {
 }
 
 export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
-  if (!isConfigured()) return;
+  if (!ensureVapidDetails()) return;
 
   const subs = await db
     .select()

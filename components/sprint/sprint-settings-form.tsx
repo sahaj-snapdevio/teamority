@@ -117,7 +117,7 @@ export function SprintSettingsForm({
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-1.5">
                 {DAY_NAMES.map((day, i) => (
                   <SelectItem key={i} value={String(i)}>{day}</SelectItem>
                 ))}
@@ -131,7 +131,7 @@ export function SprintSettingsForm({
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-1.5">
                 <SelectItem value="1">1 week</SelectItem>
                 <SelectItem value="2">2 weeks</SelectItem>
                 <SelectItem value="3">3 weeks</SelectItem>
@@ -158,7 +158,7 @@ export function SprintSettingsForm({
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-1.5">
                 {NAME_FORMATS.map((f) => (
                   <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
                 ))}
@@ -172,7 +172,7 @@ export function SprintSettingsForm({
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-1.5">
                 {DATE_FORMATS.map((f) => (
                   <SelectItem key={f.value} value={f.value}>
                     <span>{f.label}</span>

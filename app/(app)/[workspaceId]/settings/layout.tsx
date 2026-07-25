@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getWorkspaceMembership } from "@/lib/permissions";
 import { SettingsNav } from "@/components/workspace/settings-nav";
+import { TopbarTitle } from "@/components/common/topbar-title";
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
@@ -22,7 +23,8 @@ export default async function SettingsLayout({ children, params }: SettingsLayou
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <h1 className="text-xl font-semibold tracking-tight">Workspace Settings</h1>
+      {/* Page header lives in the topbar — see components/common/topbar-title. */}
+      <TopbarTitle title="Workspace Settings" />
       <div className="flex flex-col gap-6 md:flex-row">
         <SettingsNav workspaceId={workspaceId} isOwner={membership.role === "OWNER"} />
         <div className="flex-1 min-w-0">{children}</div>

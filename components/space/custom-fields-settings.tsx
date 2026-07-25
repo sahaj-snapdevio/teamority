@@ -3,6 +3,8 @@
 import * as React from "react";
 import { format } from "date-fns";
 import {
+  ArchiveIcon,
+  ArrowCounterClockwiseIcon,
   CalendarBlankIcon,
   CheckSquareIcon,
   DatabaseIcon,
@@ -42,6 +44,7 @@ import {
   createCustomFieldDefinition,
   deleteCustomFieldDefinition,
   getCustomFieldDefinitions,
+  getCustomFieldValueCount,
   reorderCustomFieldDefinitions,
   unarchiveCustomFieldDefinition,
   updateCustomFieldDefinition,
@@ -100,6 +103,10 @@ const FIELD_TYPES: { label: string; value: CustomFieldType }[] = (
   Object.keys(FIELD_TYPE_META) as CustomFieldType[]
 ).map((value) => ({ value, label: FIELD_TYPE_META[value].label }));
 
+// The shared <Label> primitive is ALL CAPS app-wide; the field form opts out so
+// its labels read as sentence case ("Name", not "NAME") per docs/design-system.md.
+const FIELD_LABEL_CLASS = "text-xs font-medium normal-case tracking-normal";
+
 function parseOptions(text: string): { id: string; label: string }[] {
   return text
     .split(",")
@@ -143,9 +150,31 @@ export function CustomFieldsSettings({
   const [editingField, setEditingField] = React.useState<Field | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<Field | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  // How many tasks hold a value for the field being deleted — null while the
+  // count is still loading, so the dialog never understates the blast radius.
+  const [deleteUsage, setDeleteUsage] = React.useState<number | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   );
+
+  // Load the affected-task count whenever the delete dialog opens. On failure
+  // it stays null and the dialog falls back to its generic warning.
+  React.useEffect(() => {
+    if (!deleteTarget) {
+      setDeleteUsage(null);
+      return;
+    }
+    let cancelled = false;
+    setDeleteUsage(null);
+    getCustomFieldValueCount(workspaceId, deleteTarget.id).then((res) => {
+      if (!cancelled && !("error" in res)) {
+        setDeleteUsage(res.count);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [deleteTarget, workspaceId]);
 
   async function refresh() {
     const res = await getCustomFieldDefinitions(workspaceId, spaceId, null, {
@@ -246,7 +275,10 @@ export function CustomFieldsSettings({
         onOpenChange={(v) => !v && setDeleteTarget(null)}
         open={!!deleteTarget}
       >
-        <DialogContent className="text-center sm:max-w-sm" showCloseButton={false}>
+        <DialogContent
+          className="rounded-xl text-center sm:max-w-sm"
+          showCloseButton={false}
+        >
           <div className="flex justify-center">
             <div className="flex size-12 items-center justify-center rounded-full bg-red-100">
               <TrashIcon className="size-6 text-red-500" />
@@ -257,8 +289,27 @@ export function CustomFieldsSettings({
               Delete &ldquo;{deleteTarget?.name}&rdquo;?
             </DialogTitle>
             <p className="text-center text-sm leading-relaxed text-muted-foreground">
-              This will permanently delete the field and remove all stored
-              values from every task. This action cannot be undone.
+              {deleteUsage === null ? (
+                <>
+                  This will permanently delete the field and remove all stored
+                  values from every task.
+                </>
+              ) : deleteUsage === 0 ? (
+                <>
+                  This will permanently delete the field. No task has a value
+                  for it yet.
+                </>
+              ) : (
+                <>
+                  This will permanently delete the field and its values from{" "}
+                  <span className="font-semibold text-foreground">
+                    {deleteUsage} {deleteUsage === 1 ? "task" : "tasks"}
+                  </span>
+                  .
+                </>
+              )}{" "}
+              This action cannot be undone — archive the field instead to hide
+              it while keeping its values.
             </p>
           </div>
           <div className="mt-1 flex gap-3">
@@ -458,11 +509,19 @@ function FieldRow({
                 <PencilSimpleIcon className="size-3.5" /> Edit
               </button>
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
                 onClick={onArchiveToggle}
                 type="button"
               >
-                {field.isArchived ? "Unarchive" : "Archive"}
+                {field.isArchived ? (
+                  <>
+                    <ArrowCounterClockwiseIcon className="size-3.5" /> Unarchive
+                  </>
+                ) : (
+                  <>
+                    <ArchiveIcon className="size-3.5" /> Archive
+                  </>
+                )}
               </button>
               <div className="my-1 h-px bg-border" />
               <button
@@ -608,13 +667,13 @@ function FieldFormDialog({
       }}
       open={open}
     >
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="rounded-xl sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Field" : "Create Field"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="cf-name">Name</Label>
+            <Label className={FIELD_LABEL_CLASS} htmlFor="cf-name">Name</Label>
             <Input
               disabled={busy}
               id="cf-name"
@@ -623,7 +682,7 @@ function FieldFormDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cf-description">Description</Label>
+            <Label className={FIELD_LABEL_CLASS} htmlFor="cf-description">Description</Label>
             <Input
               disabled={busy}
               id="cf-description"
@@ -632,7 +691,7 @@ function FieldFormDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cf-placeholder">Placeholder</Label>
+            <Label className={FIELD_LABEL_CLASS} htmlFor="cf-placeholder">Placeholder</Label>
             <Input
               disabled={busy}
               id="cf-placeholder"
@@ -641,7 +700,7 @@ function FieldFormDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Type</Label>
+            <Label className={FIELD_LABEL_CLASS}>Type</Label>
             <Select
               disabled={busy || isEdit}
               onValueChange={(v) => {
@@ -650,10 +709,12 @@ function FieldFormDialog({
               }}
               value={type}
             >
-              <SelectTrigger>
+              {/* w-full: SelectTrigger defaults to w-fit, which left this the
+                  only narrow control in an otherwise full-width form. */}
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-1.5">
                 {FIELD_TYPES.map((t) => (
                   <SelectItem key={t.value} value={t.value}>
                     {t.label}
@@ -669,7 +730,7 @@ function FieldFormDialog({
           </div>
           {(type === "SINGLE_SELECT" || type === "MULTI_SELECT") && (
             <div className="space-y-1.5">
-              <Label htmlFor="cf-options">Options (comma separated)</Label>
+              <Label className={FIELD_LABEL_CLASS} htmlFor="cf-options">Options (comma separated)</Label>
               <Input
                 disabled={busy}
                 id="cf-options"
@@ -682,7 +743,7 @@ function FieldFormDialog({
           {type === "NUMBER" && (
             <div className="flex gap-2">
               <div className="flex-1 space-y-1.5">
-                <Label htmlFor="cf-min">Min</Label>
+                <Label className={FIELD_LABEL_CLASS} htmlFor="cf-min">Min</Label>
                 <Input
                   disabled={busy}
                   id="cf-min"
@@ -692,7 +753,7 @@ function FieldFormDialog({
                 />
               </div>
               <div className="flex-1 space-y-1.5">
-                <Label htmlFor="cf-max">Max</Label>
+                <Label className={FIELD_LABEL_CLASS} htmlFor="cf-max">Max</Label>
                 <Input
                   disabled={busy}
                   id="cf-max"
@@ -717,7 +778,7 @@ function FieldFormDialog({
 
           {type === "TEXT" && (
             <div className="space-y-1.5">
-              <Label htmlFor="cf-default-text">Default value</Label>
+              <Label className={FIELD_LABEL_CLASS} htmlFor="cf-default-text">Default value</Label>
               <Input
                 disabled={busy}
                 id="cf-default-text"
@@ -728,7 +789,7 @@ function FieldFormDialog({
           )}
           {type === "NUMBER" && (
             <div className="space-y-1.5">
-              <Label htmlFor="cf-default-number">Default value</Label>
+              <Label className={FIELD_LABEL_CLASS} htmlFor="cf-default-number">Default value</Label>
               <Input
                 disabled={busy}
                 id="cf-default-number"
@@ -757,7 +818,7 @@ function FieldFormDialog({
           )}
           {type === "DATE" && (
             <div className="space-y-1.5">
-              <Label>Default value</Label>
+              <Label className={FIELD_LABEL_CLASS}>Default value</Label>
               <Popover onOpenChange={setDateOpen} open={dateOpen}>
                 <PopoverTrigger asChild>
                   <button
@@ -792,7 +853,7 @@ function FieldFormDialog({
           )}
           {(type === "SINGLE_SELECT" || type === "MULTI_SELECT") && (
             <div className="space-y-1.5">
-              <Label>Default value</Label>
+              <Label className={FIELD_LABEL_CLASS}>Default value</Label>
               <div className="rounded-md border p-1.5">
                 <FacetOptionList
                   emptyText="Add options above first"

@@ -201,10 +201,12 @@ export function TaskListRow({
   const [localPriority, setLocalPriority] = React.useState<string>(
     task.priority ?? "NONE"
   );
-  // The "Due Date" column represents the deadline — the end date (falling back
-  // to the start date for single-date tasks).
+  // The "Due Date" column is `dueDateEnd`, strictly — the same field the inline
+  // editor writes. It used to fall back to `dueDateStart` when the end was
+  // empty, which made clearing a due date look like a no-op on any task that
+  // also had a start date (the start would immediately take its place).
   const [localDueDate, setLocalDueDate] = React.useState<Date | null>(
-    task.dueDateEnd ?? task.dueDateStart ?? null
+    task.dueDateEnd ?? null
   );
   const [localPersonalPin, setLocalPersonalPin] = React.useState(
     isPersonallyPinnedProp ?? false
@@ -254,8 +256,9 @@ export function TaskListRow({
     const trimmed = titleDraft.trim();
     setRenaming(false);
     requestAnimationFrame(focusRow);
-    // Empty after trim → keep the previous title, no request.
+    // Empty after trim → reject, keep the previous title, no request.
     if (!trimmed) {
+      toast.error("Task title can't be empty");
       return;
     }
     // Unchanged → exit without a network request.
@@ -299,8 +302,8 @@ export function TaskListRow({
     setLocalPriority(task.priority ?? "NONE");
   }, [task.priority]);
   React.useEffect(() => {
-    setLocalDueDate(task.dueDateEnd ?? task.dueDateStart ?? null);
-  }, [task.dueDateEnd, task.dueDateStart]);
+    setLocalDueDate(task.dueDateEnd ?? null);
+  }, [task.dueDateEnd]);
   React.useEffect(() => {
     if (isPersonallyPinnedProp !== undefined) {
       setLocalPersonalPin(isPersonallyPinnedProp);
@@ -435,17 +438,17 @@ export function TaskListRow({
     const prev = localDueDate;
     setLocalDueDate(date);
     setDateOpen(false);
-    // "Due Date" is the deadline (end date). Preserve an existing start date; for
-    // tasks with no start, set both so single-date tasks stay consistent.
-    const patch = task.dueDateStart
-      ? { dueDateEnd: date }
-      : { dueDateStart: date, dueDateEnd: date };
+    // "Due Date" is the deadline — it maps to `dueDateEnd` and NOTHING else.
+    // It deliberately never touches `dueDateStart`: a single-field "Set date"
+    // affordance that silently also wrote the start date made every quick-edit
+    // overwrite an existing start, and gave date-less tasks a start date the
+    // user never asked for. Start dates are edited on the task detail only.
     const res = await updateTask(
       workspaceId,
       spaceId,
       effectiveListId,
       task.id,
-      patch
+      { dueDateEnd: date }
     );
     if ("error" in res) {
       setLocalDueDate(prev);
@@ -774,6 +777,8 @@ export function TaskListRow({
             </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-auto p-0" side="bottom">
+            {/* A due date can't land before the task's start date — the only
+                way `dueDateStart` participates here. It is never written. */}
             <Calendar
               disabled={
                 task.dueDateStart
@@ -787,6 +792,18 @@ export function TaskListRow({
               }}
               selected={localDueDate ?? undefined}
             />
+            {localDueDate && (
+              <div className="border-t p-2">
+                <Button
+                  className="w-full text-xs"
+                  onClick={() => void handleSetDueDate(null)}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Clear due date
+                </Button>
+              </div>
+            )}
           </PopoverContent>
         </Popover>
       ) : (
@@ -1341,9 +1358,39 @@ export function TaskListRow({
               value={titleDraft}
             />
           ) : (
-            <span className="text-[13px] font-medium text-foreground truncate group-hover/row:text-primary transition-colors">
-              {localTitle}
-            </span>
+            <>
+              {/* Double-click renames in place (the row's single click still
+                  opens the task). The pencil beside it is the discoverable
+                  version of the same action for pointer + keyboard users —
+                  double-click alone isn't an affordance anyone can see. */}
+              <span
+                className="text-[13px] font-medium text-foreground truncate group-hover/row:text-primary transition-colors"
+                onDoubleClick={(e) => {
+                  if (!canEdit) {
+                    return;
+                  }
+                  e.stopPropagation();
+                  startRename();
+                }}
+                title={canEdit ? "Double-click to rename" : undefined}
+              >
+                {localTitle}
+              </span>
+              {canEdit && (
+                <button
+                  aria-label={`Rename “${localTitle}”`}
+                  className="flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-colors hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 group-hover/row:opacity-100 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startRename();
+                  }}
+                  title="Rename task"
+                  type="button"
+                >
+                  <PencilSimpleIcon className="size-3" />
+                </button>
+              )}
+            </>
           )}
           {task.tags.slice(0, 2).map((tag) => (
             <span
@@ -1434,9 +1481,30 @@ export function TaskListRow({
                 </span>
               )}
             </div>
-            <p className="text-[13px] font-medium text-foreground line-clamp-2">
-              {localTitle}
-            </p>
+            {renaming ? (
+              <input
+                autoFocus
+                className="w-full bg-transparent text-[13px] font-medium text-foreground outline-none border-b border-primary/50"
+                onBlur={() => void commitRename()}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void commitRename();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancelRename();
+                  }
+                }}
+                value={titleDraft}
+              />
+            ) : (
+              <p className="text-[13px] font-medium text-foreground line-clamp-2">
+                {localTitle}
+              </p>
+            )}
           </div>
           <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
             <Popover>
@@ -1453,6 +1521,15 @@ export function TaskListRow({
                   <PencilSimpleIcon className="size-3.5 text-muted-foreground" />{" "}
                   Edit
                 </button>
+                {canEdit && (
+                  <button
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                    onClick={startRename}
+                  >
+                    <TextAaIcon className="size-3.5 text-muted-foreground" />{" "}
+                    Rename
+                  </button>
+                )}
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
                   onClick={copyTaskLink}
@@ -1515,10 +1592,27 @@ export function TaskListRow({
               </PopoverTrigger>
               <PopoverContent align="start" className="w-auto p-0">
                 <Calendar
+                  disabled={
+                    task.dueDateStart
+                      ? { before: new Date(task.dueDateStart) }
+                      : undefined
+                  }
                   mode="single"
                   onSelect={(date) => void handleSetDueDate(date ?? null)}
                   selected={localDueDate ?? undefined}
                 />
+                {localDueDate && (
+                  <div className="border-t p-2">
+                    <Button
+                      className="w-full text-xs"
+                      onClick={() => void handleSetDueDate(null)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Clear due date
+                    </Button>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
           </div>

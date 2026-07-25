@@ -460,6 +460,10 @@ function CardContent({
   const [memberSearch, setMemberSearch] = React.useState("");
   const [dateOpen, setDateOpen] = React.useState(false);
   const [priorityOpen, setPriorityOpen] = React.useState(false);
+  // The "More" menu is controlled so an action (Duplicate/Archive/…) can close
+  // it on click. Left uncontrolled, the menu stayed open over the card and the
+  // result only became visible once the user clicked outside.
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const dueDate = formatDueDate(task.dueDateEnd);
   const filteredMembers = members.filter((m) => {
     const q = memberSearch.trim().toLowerCase();
@@ -469,24 +473,51 @@ function CardContent({
     return (m.name ?? m.email ?? "").toLowerCase().includes(q);
   });
 
+  // Assignees render from local state so picking one applies on the click
+  // itself, instead of only appearing after the server round-trip + refresh
+  // (which read as "it commits when you click outside").
+  const [localAssignees, setLocalAssignees] = React.useState(task.assignees);
+  React.useEffect(() => {
+    setLocalAssignees(task.assignees);
+  }, [task.assignees]);
+
   async function handleToggleAssignee(userId: string) {
-    const isAssigned = task.assignees.some((a) => a.userId === userId);
-    if (isAssigned) {
-      await removeAssignee(
-        workspaceId!,
-        spaceId!,
-        listId ?? null,
-        task.id,
-        userId
-      );
-    } else {
-      await addAssignee(
-        workspaceId!,
-        spaceId!,
-        listId ?? null,
-        task.id,
-        userId
-      );
+    const isAssigned = localAssignees.some((a) => a.userId === userId);
+    const member = members.find((m) => m.userId === userId);
+    const previous = localAssignees;
+    setLocalAssignees(
+      isAssigned
+        ? previous.filter((a) => a.userId !== userId)
+        : [
+            ...previous,
+            {
+              userId,
+              name: member?.name ?? member?.email ?? "Unknown",
+              image: member?.image ?? null,
+            },
+          ]
+    );
+    setAssigneeOpen(false);
+    setMemberSearch("");
+    const res = isAssigned
+      ? await removeAssignee(
+          workspaceId!,
+          spaceId!,
+          listId ?? null,
+          task.id,
+          userId
+        )
+      : await addAssignee(
+          workspaceId!,
+          spaceId!,
+          listId ?? null,
+          task.id,
+          userId
+        );
+    if (res && "error" in res) {
+      setLocalAssignees(previous); // revert
+      toast.error(res.error);
+      return;
     }
     onRefresh?.();
   }
@@ -978,13 +1009,13 @@ function CardContent({
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                     title={
-                      task.assignees.length > 0 ? "Change assignee" : "Assign"
+                      localAssignees.length > 0 ? "Change assignee" : "Assign"
                     }
                     type="button"
                   >
-                    {task.assignees.length > 0 ? (
+                    {localAssignees.length > 0 ? (
                       <div className="flex -space-x-1.5">
-                        {task.assignees.slice(0, 3).map((a) => (
+                        {localAssignees.slice(0, 3).map((a) => (
                           <Avatar
                             className="size-7 border-2 border-background"
                             key={a.userId}
@@ -1001,9 +1032,9 @@ function CardContent({
                             </AvatarFallback>
                           </Avatar>
                         ))}
-                        {task.assignees.length > 3 && (
+                        {localAssignees.length > 3 && (
                           <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground">
-                            +{task.assignees.length - 3}
+                            +{localAssignees.length - 3}
                           </div>
                         )}
                       </div>
@@ -1034,7 +1065,7 @@ function CardContent({
                   ) : (
                     <div className="max-h-52 overflow-y-auto">
                       {filteredMembers.map((m) => {
-                        const assigned = task.assignees.some(
+                        const assigned = localAssignees.some(
                           (a) => a.userId === m.userId
                         );
                         return (
@@ -1072,9 +1103,9 @@ function CardContent({
                 </PopoverContent>
               </Popover>
             ) : (
-              task.assignees.length > 0 && (
+              localAssignees.length > 0 && (
                 <div className="ml-auto flex -space-x-1.5">
-                  {task.assignees.slice(0, 3).map((a) => (
+                  {localAssignees.slice(0, 3).map((a) => (
                     <Avatar
                       className="size-7 border-2 border-background"
                       key={a.userId}
@@ -1088,9 +1119,9 @@ function CardContent({
                       </AvatarFallback>
                     </Avatar>
                   ))}
-                  {task.assignees.length > 3 && (
+                  {localAssignees.length > 3 && (
                     <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground">
-                      +{task.assignees.length - 3}
+                      +{localAssignees.length - 3}
                     </div>
                   )}
                 </div>
@@ -1289,7 +1320,10 @@ function CardContent({
               <TextAaIcon className="size-4" />
             </button>
           )}
-          <Popover>
+          {/* Every item closes the menu on click — the action then runs with
+              the card visible, instead of the menu sitting open until an
+              outside click made the result look like it applied late. */}
+          <Popover onOpenChange={setMenuOpen} open={menuOpen}>
             <PopoverTrigger asChild>
               <button className={iconBtn} title="More" type="button">
                 <DotsThreeIcon className="size-4.5" weight="bold" />
@@ -1298,7 +1332,10 @@ function CardContent({
             <PopoverContent align="end" className="w-52 rounded-xl p-1">
               <button
                 className={menuItem}
-                onClick={() => void copyTaskLink()}
+                onClick={() => {
+                  setMenuOpen(false);
+                  void copyTaskLink();
+                }}
                 type="button"
               >
                 <LinkIcon className="size-3.5 text-muted-foreground" /> Copy
@@ -1307,6 +1344,7 @@ function CardContent({
               <a
                 className={menuItem}
                 href={taskUrl(workspaceId!, task.id)}
+                onClick={() => setMenuOpen(false)}
                 rel="noopener noreferrer"
                 target="_blank"
               >
@@ -1315,7 +1353,10 @@ function CardContent({
               </a>
               <button
                 className={menuItem}
-                onClick={() => void copyTaskId()}
+                onClick={() => {
+                  setMenuOpen(false);
+                  void copyTaskId();
+                }}
                 type="button"
               >
                 <HashIcon className="size-3.5 text-muted-foreground" /> Copy
@@ -1326,7 +1367,10 @@ function CardContent({
                   <div className="h-px bg-border my-1" />
                   <button
                     className={menuItem}
-                    onClick={() => void handleDuplicate()}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      void handleDuplicate();
+                    }}
                     type="button"
                   >
                     <CopyIcon className="size-3.5 text-muted-foreground" />{" "}
@@ -1334,7 +1378,10 @@ function CardContent({
                   </button>
                   <button
                     className={menuItem}
-                    onClick={() => void handleArchive()}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      void handleArchive();
+                    }}
                     type="button"
                   >
                     <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
@@ -1348,7 +1395,10 @@ function CardContent({
                     menuItem,
                     "text-red-600 hover:bg-red-50 hover:text-red-700"
                   )}
-                  onClick={() => setDeleteOpen(true)}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setDeleteOpen(true);
+                  }}
                   type="button"
                 >
                   <TrashIcon className="size-3.5" /> Delete
@@ -1612,12 +1662,25 @@ export function BoardView({
   const [newGroupName, setNewGroupName] = React.useState("");
   const [newGroupColor, setNewGroupColor] = React.useState("#6B7280");
   const [creatingGroup, setCreatingGroup] = React.useState(false);
+  const [groupError, setGroupError] = React.useState("");
 
   async function handleCreateGroup() {
     const name = newGroupName.trim();
     if (!name || creatingGroup) {
       return;
     }
+    // Group names must be unique within the list. Checked here for instant
+    // feedback; createListStatus enforces the same rule server-side (a stale
+    // `statuses` prop or a concurrent create can still collide).
+    if (
+      statuses.some(
+        (s) => s.name.trim().toLowerCase() === name.toLowerCase()
+      )
+    ) {
+      setGroupError(`A group named “${name}” already exists`);
+      return;
+    }
+    setGroupError("");
     setCreatingGroup(true);
     const res = await createListStatus(workspaceId, space.id, list.id, {
       name,
@@ -1626,11 +1689,12 @@ export function BoardView({
     });
     setCreatingGroup(false);
     if ("error" in res) {
-      toast.error(res.error);
+      setGroupError(res.error);
       return;
     }
     setNewGroupName("");
     setNewGroupColor("#6B7280");
+    setGroupError("");
     setNewGroupOpen(false);
     handleRefresh();
   }
@@ -2154,14 +2218,26 @@ export function BoardView({
 
       {/* New group (status) dialog — mirrors the List view's New Status dialog. */}
       {canManage && (
-        <Dialog onOpenChange={setNewGroupOpen} open={newGroupOpen}>
+        <Dialog
+          onOpenChange={(o) => {
+            setNewGroupOpen(o);
+            if (!o) {
+              setGroupError("");
+            }
+          }}
+          open={newGroupOpen}
+        >
           <DialogContent className="rounded-xl sm:max-w-xs">
             <DialogTitle className="text-sm font-bold">New Group</DialogTitle>
             <div className="space-y-3">
               <Input
+                aria-invalid={!!groupError}
                 autoFocus
                 className="h-9 text-xs"
-                onChange={(e) => setNewGroupName(e.target.value)}
+                onChange={(e) => {
+                  setNewGroupName(e.target.value);
+                  setGroupError("");
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     void handleCreateGroup();
@@ -2170,6 +2246,9 @@ export function BoardView({
                 placeholder="Group name"
                 value={newGroupName}
               />
+              {groupError && (
+                <p className="text-xs text-destructive">{groupError}</p>
+              )}
               <div className="flex flex-wrap gap-2">
                 {STATUS_PRESET_COLORS.map((color) => (
                   <button
@@ -2189,7 +2268,10 @@ export function BoardView({
             <div className="flex justify-end gap-2">
               <Button
                 className="h-8 text-xs font-semibold"
-                onClick={() => setNewGroupOpen(false)}
+                onClick={() => {
+                  setGroupError("");
+                  setNewGroupOpen(false);
+                }}
                 variant="ghost"
               >
                 Cancel

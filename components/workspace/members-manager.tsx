@@ -182,7 +182,7 @@ export function MembersManager({
                           <SelectTrigger>
                             <SelectValue placeholder="Select a member" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="p-1.5">
                             {members
                               .filter((m) => m.userId !== currentUserId && m.role !== "GUEST")
                               .map((m) => (
@@ -262,7 +262,7 @@ export function MembersManager({
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="p-1.5">
                           {isOwner && <SelectItem value="ADMIN">Admin</SelectItem>}
                           <SelectItem value="MEMBER">Member</SelectItem>
                           <SelectItem value="GUEST">Guest</SelectItem>
@@ -304,7 +304,7 @@ export function MembersManager({
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-1.5">
                 <SelectItem value="ALL">All roles</SelectItem>
                 <SelectItem value="OWNER">Owner</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
@@ -353,7 +353,7 @@ export function MembersManager({
                         <SelectTrigger className="h-8 w-28">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="p-1.5">
                           {isOwner && <SelectItem value="ADMIN">Admin</SelectItem>}
                           <SelectItem value="MEMBER">Member</SelectItem>
                           <SelectItem value="GUEST">Guest</SelectItem>

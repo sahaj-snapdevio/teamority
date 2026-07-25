@@ -619,6 +619,34 @@ export async function getListTaskCounts(
 
 // ── Status management ──────────────────────────────────────────────────────
 
+// Status names must be unique within a list (case-insensitive, trimmed). Board's
+// "Add group" and the Manage Statuses editor both land here, and two columns with
+// the same name are indistinguishable on the board. `excludeId` lets a rename
+// keep its own name.
+async function statusNameTaken(
+  listId: string,
+  name: string,
+  excludeId?: string
+): Promise<boolean> {
+  const conditions = [
+    eq(listStatus.listId, listId),
+    sql`lower(trim(${listStatus.name})) = ${name.trim().toLowerCase()}`,
+  ];
+  if (excludeId) {
+    conditions.push(ne(listStatus.id, excludeId));
+  }
+  const [existing] = await db
+    .select({ id: listStatus.id })
+    .from(listStatus)
+    .where(and(...conditions))
+    .limit(1);
+  return !!existing;
+}
+
+function duplicateStatusError(name: string) {
+  return { error: `A group named “${name}” already exists in this list` };
+}
+
 export async function createListStatus(
   workspaceId: string,
   spaceId: string,
@@ -642,6 +670,9 @@ export async function createListStatus(
   const name = data.name.trim();
   if (!name) {
     return { error: "Status name is required" };
+  }
+  if (await statusNameTaken(listId, name)) {
+    return duplicateStatusError(name);
   }
 
   const orderIndex = await getNextStatusOrderIndex(listId);
@@ -683,7 +714,14 @@ export async function updateListStatus(
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (data.name !== undefined) {
-    updates.name = data.name.trim();
+    const name = data.name.trim();
+    if (!name) {
+      return { error: "Status name is required" };
+    }
+    if (await statusNameTaken(listId, name, statusId)) {
+      return duplicateStatusError(name);
+    }
+    updates.name = name;
   }
   if (data.color !== undefined) {
     updates.color = data.color;

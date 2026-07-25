@@ -118,7 +118,7 @@ export function InviteMemberModal({
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-1.5">
                 <SelectItem value="ADMIN">Admin</SelectItem>
                 <SelectItem value="MEMBER">Member</SelectItem>
                 <SelectItem value="GUEST">Guest</SelectItem>

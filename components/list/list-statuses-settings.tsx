@@ -230,7 +230,7 @@ function EditRow({
           <SelectTrigger className="h-7 w-32 text-xs shrink-0">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="p-1.5">
             <SelectItem value="OPEN" className="text-xs">Not started</SelectItem>
             <SelectItem value="ACTIVE" className="text-xs">Active</SelectItem>
             <SelectItem value="CLOSED" className="text-xs">Closed</SelectItem>

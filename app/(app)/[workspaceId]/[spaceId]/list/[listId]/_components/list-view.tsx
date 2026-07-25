@@ -25,6 +25,7 @@ import {
   CaretCircleDownIcon,
   CaretDownIcon,
   CaretRightIcon,
+  CaretUpIcon,
   CheckIcon,
   CheckSquareIcon,
   ColumnsIcon,
@@ -38,6 +39,7 @@ import {
   PencilSimpleIcon,
   PlusIcon,
   PushPinIcon,
+  PushPinSlashIcon,
   TextAaIcon,
   TrashIcon,
   UserIcon,
@@ -257,6 +259,8 @@ function PinnedSection({
   isAdmin,
   canEdit,
   personallyPinnedIds,
+  selectedIds,
+  onSelect,
   visibleCustomFields,
   workspaceMembers,
 }: {
@@ -269,11 +273,23 @@ function PinnedSection({
   isAdmin?: boolean;
   canEdit?: boolean;
   personallyPinnedIds?: Set<string>;
+  selectedIds: Set<string>;
+  onSelect: (id: string, checked: boolean) => void;
   visibleCustomFields: CustomFieldRow[];
   workspaceMembers: WorkspaceMemberOption[];
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
+
+  // Same select-all semantics as a status group header — pinned tasks live in
+  // their own section and are excluded from every status group, so without this
+  // there is no way to select them as a set for a bulk action.
+  const selectedCount = tasks.reduce(
+    (n, t) => n + (selectedIds.has(t.id) ? 1 : 0),
+    0
+  );
+  const allSelected = tasks.length > 0 && selectedCount === tasks.length;
+  const someSelected = selectedCount > 0 && !allSelected;
 
   if (tasks.length === 0) {
     return null;
@@ -293,6 +309,32 @@ function PinnedSection({
             <CaretDownIcon className="size-3" weight="fill" />
           )}
         </div>
+        <button
+          aria-label={
+            allSelected
+              ? "Deselect all pinned tasks"
+              : "Select all pinned tasks"
+          }
+          className={cn(
+            "flex size-4 items-center justify-center rounded border transition-colors cursor-pointer",
+            allSelected || someSelected
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-primary/30 hover:border-primary/60 bg-background"
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            const target = !allSelected;
+            tasks.forEach((t) => onSelect(t.id, target));
+          }}
+          title={allSelected ? "Deselect all" : "Select all"}
+          type="button"
+        >
+          {allSelected ? (
+            <CheckIcon className="size-2.5" weight="bold" />
+          ) : someSelected ? (
+            <MinusIcon className="size-2.5" weight="bold" />
+          ) : null}
+        </button>
         <PushPinIcon className="size-3.5 text-primary" weight="fill" />
         <span className="text-2xs font-bold uppercase tracking-wider text-primary">
           Pinned
@@ -318,8 +360,8 @@ function PinnedSection({
                 listId={listId}
                 onOpen={() => router.push(`/${workspaceId}/task/${t.id}`)}
                 onRefresh={() => router.refresh()}
-                onSelect={() => {}}
-                selected={false}
+                onSelect={onSelect}
+                selected={selectedIds.has(t.id)}
                 spaceId={spaceId}
                 statusColor={statusColor}
                 statuses={statuses}
@@ -332,6 +374,95 @@ function PinnedSection({
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Sortable column header ───────────────────────────────────────────────────
+
+type SortKey = "name" | "due" | "priority";
+type SortOrder = "asc" | "desc";
+
+// Sortable columns, in the order the header row renders them. The toolbar's
+// Sort dropdown reads from the same list so the two controls can never drift.
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "name", label: "Task Name" },
+  { key: "due", label: "Due Date" },
+  { key: "priority", label: "Priority" },
+];
+
+const SORT_OPTION_LABEL: Record<SortKey, string> = {
+  name: "Task Name",
+  due: "Due Date",
+  priority: "Priority",
+};
+
+type SortControl = {
+  sortBy: SortKey | null;
+  sortOrder: SortOrder;
+  /** Cycles the given column: inactive → asc → desc → off */
+  onSort: (key: SortKey) => void;
+};
+
+/**
+ * A clickable table header that both reflects and controls the sort. The arrow
+ * is the point: the toolbar's Sort dropdown could tell you *which* column was
+ * sorted but never *which direction*, so the same label meant two opposite
+ * orderings. Inactive sortable columns show a ghosted arrow on hover so it's
+ * discoverable that they can be clicked at all.
+ */
+function SortableColumnHeader({
+  sortKey,
+  label,
+  className,
+  control,
+}: {
+  sortKey: SortKey;
+  label: string;
+  className?: string;
+  control: SortControl;
+}) {
+  const active = control.sortBy === sortKey;
+  const ascending = active && control.sortOrder === "asc";
+  // The header row is a flex layout, not a real <table>, so there is no
+  // columnheader to hang `aria-sort` on — the state goes in the button's own
+  // accessible name instead.
+  const state = active
+    ? ascending
+      ? "sorted ascending"
+      : "sorted descending"
+    : "not sorted";
+  return (
+    <button
+      aria-label={`${label}, ${state}`}
+      className={cn(
+        "group/sort flex items-center gap-1 py-2 px-4 text-left uppercase tracking-wider transition-colors cursor-pointer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50",
+        active && "text-foreground",
+        className
+      )}
+      onClick={() => control.onSort(sortKey)}
+      title={
+        active
+          ? ascending
+            ? `Sorted by ${label}, ascending — click for descending`
+            : `Sorted by ${label}, descending — click to clear`
+          : `Sort by ${label}`
+      }
+      type="button"
+    >
+      <span className="truncate">{label}</span>
+      {active ? (
+        ascending ? (
+          <CaretUpIcon className="size-3 shrink-0 text-primary" weight="bold" />
+        ) : (
+          <CaretDownIcon
+            className="size-3 shrink-0 text-primary"
+            weight="bold"
+          />
+        )
+      ) : (
+        <ArrowsDownUpIcon className="size-3 shrink-0 opacity-0 transition-opacity group-hover/sort:opacity-60" />
+      )}
+    </button>
   );
 }
 
@@ -486,6 +617,7 @@ function StatusGroup({
   addOpen,
   onAddOpenChange,
   createDefaults,
+  sortControl,
   visibleCustomFields,
   workspaceMembers,
 }: {
@@ -504,6 +636,7 @@ function StatusGroup({
   addOpen: boolean;
   onAddOpenChange: (v: boolean) => void;
   createDefaults: QuickCreateDefaults;
+  sortControl: SortControl;
   visibleCustomFields: CustomFieldRow[];
   workspaceMembers: WorkspaceMemberOption[];
 }) {
@@ -717,12 +850,30 @@ function StatusGroup({
                   ) : null}
                 </button>
               </div>
-              <div className="flex-1 py-2 pr-4 pl-1">Name</div>
+              <SortableColumnHeader
+                className="flex-1 min-w-0 pr-4 pl-1"
+                control={sortControl}
+                label="Name"
+                sortKey="name"
+              />
+              {/* Assignee has no sort key — sorting people by name across
+                  multi-assignee tasks isn't a single well-defined order, so it
+                  stays a plain label rather than a header that does nothing. */}
               <div className="w-36 shrink-0 py-2 px-4 text-center">
                 Assignee
               </div>
-              <div className="w-28 shrink-0 py-2 px-4">Due Date</div>
-              <div className="w-32 shrink-0 py-2 px-4">Priority</div>
+              <SortableColumnHeader
+                className="w-28 shrink-0"
+                control={sortControl}
+                label="Due Date"
+                sortKey="due"
+              />
+              <SortableColumnHeader
+                className="w-32 shrink-0"
+                control={sortControl}
+                label="Priority"
+                sortKey="priority"
+              />
               {visibleCustomFields.map((f) => (
                 <div
                   className={cn(
@@ -879,9 +1030,37 @@ function StatusGroup({
 
 // ─── Bulk action bar ──────────────────────────────────────────────────────────
 
+// Pin/unpin a batch of tasks against the shared list-pin route (`POST`/`DELETE
+// /api/tasks/:id/pin-to-list`) — the route's own contract is untouched; this
+// just drives it once per task. Sequential on purpose: pinning enforces a
+// 5-per-list cap with a read-then-write inside its transaction, so firing the
+// requests in parallel could let a batch slip past the limit.
+async function setListPinBatch(taskIds: string[], pinned: boolean) {
+  const failures: string[] = [];
+  const succeeded: string[] = [];
+  for (const id of taskIds) {
+    try {
+      const res = await fetch(`/api/tasks/${id}/pin-to-list`, {
+        method: pinned ? "POST" : "DELETE",
+      });
+      if (res.ok) {
+        succeeded.push(id);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        failures.push(data.error ?? "Request failed");
+      }
+    } catch {
+      failures.push("Request failed");
+    }
+  }
+  return { succeeded, failures };
+}
+
 function BulkActionBar({
   count,
   selectedIds,
+  pinnedSelectedIds,
+  unpinnedSelectedIds,
   statuses,
   members,
   workspaceId,
@@ -889,10 +1068,16 @@ function BulkActionBar({
   listId,
   isAdmin,
   canEdit,
+  canPinToList,
   onClear,
+  onRefresh,
 }: {
   count: number;
   selectedIds: Set<string>;
+  /** Selected tasks that are currently pinned to the top of the list */
+  pinnedSelectedIds: string[];
+  /** Selected tasks that are not pinned to the top of the list */
+  unpinnedSelectedIds: string[];
   statuses: Status[];
   members: {
     userId: string;
@@ -905,7 +1090,9 @@ function BulkActionBar({
   listId: string;
   isAdmin?: boolean;
   canEdit?: boolean;
+  canPinToList?: boolean;
   onClear: () => void;
+  onRefresh: () => void;
 }) {
   const [busy, setBusy] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
@@ -1080,6 +1267,42 @@ function BulkActionBar({
       `Moved ${res.moved} task${res.moved === 1 ? "" : "s"} to ${sprintName}`
     );
     onClear();
+  }
+
+  // Pin and unpin are separate actions over separate subsets of the selection —
+  // a single "toggle pin" button can't express "unpin these 3" when the
+  // selection also holds unpinned tasks, which is exactly why bulk unpin
+  // appeared to do nothing before.
+  async function handleBulkListPin(pinned: boolean) {
+    const ids = pinned ? unpinnedSelectedIds : pinnedSelectedIds;
+    if (ids.length === 0) {
+      return;
+    }
+    setBusy(true);
+    const { succeeded, failures } = await setListPinBatch(ids, pinned);
+    setBusy(false);
+    // The route calls refreshWorkspace() per task; the current page still needs
+    // to re-render against the revalidated data.
+    onRefresh();
+    if (succeeded.length === 0) {
+      toast.error(failures[0] ?? "Failed to update pins");
+      return;
+    }
+    if (failures.length > 0) {
+      toast.error(failures[0]);
+    }
+    onClear();
+    const noun = `${succeeded.length} task${succeeded.length === 1 ? "" : "s"}`;
+    toastWithUndo(
+      pinned ? `Pinned ${noun} to top` : `Unpinned ${noun}`,
+      async () => {
+        const undo = await setListPinBatch(succeeded, !pinned);
+        onRefresh();
+        if (undo.failures.length > 0) {
+          toast.error(undo.failures[0]);
+        }
+      }
+    );
   }
 
   async function handleBulkArchive() {
@@ -1384,6 +1607,38 @@ function BulkActionBar({
           </PopoverContent>
         </Popover>
 
+        {/* Pin / Unpin to the top of the list. Both are shown whenever the
+            selection contains tasks in that state, so a mixed selection can be
+            pinned and unpinned in either direction. */}
+        {canPinToList && (unpinnedSelectedIds.length > 0 ||
+          pinnedSelectedIds.length > 0) && (
+          <>
+            <div className="h-4 w-px bg-white/20 mx-1" />
+            {unpinnedSelectedIds.length > 0 && (
+              <button
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+                disabled={busy}
+                onClick={() => void handleBulkListPin(true)}
+                type="button"
+              >
+                <PushPinIcon className="size-3.5" />
+                Pin ({unpinnedSelectedIds.length})
+              </button>
+            )}
+            {pinnedSelectedIds.length > 0 && (
+              <button
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+                disabled={busy}
+                onClick={() => void handleBulkListPin(false)}
+                type="button"
+              >
+                <PushPinSlashIcon className="size-3.5" />
+                Unpin ({pinnedSelectedIds.length})
+              </button>
+            )}
+          </>
+        )}
+
         <div className="h-4 w-px bg-white/20 mx-1" />
 
         {/* Archive — requires edit permission */}
@@ -1493,10 +1748,34 @@ export function ListView({
   // Start from defaults so the server and first client render match (localStorage
   // isn't available on the server); persisted prefs are applied after mount below.
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [sortBy, setSortBy] = React.useState<
-    "name" | "due" | "priority" | null
-  >(null);
-  const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = React.useState<SortKey | null>(null);
+  const [sortOrder, setSortOrder] = React.useState<SortOrder>("asc");
+
+  // Single source of truth for sort, driven from two places: the column headers
+  // (primary, desktop) and the toolbar dropdown (which is the only sort control
+  // on mobile, where the header row is hidden). Clicking a column cycles
+  // inactive → asc → desc → off; picking a *different* column always restarts
+  // at ascending rather than inheriting the previous column's direction.
+  const cycleSort = React.useCallback(
+    (key: SortKey) => {
+      if (sortBy !== key) {
+        setSortBy(key);
+        setSortOrder("asc");
+        return;
+      }
+      if (sortOrder === "asc") {
+        setSortOrder("desc");
+        return;
+      }
+      setSortBy(null);
+      setSortOrder("asc");
+    },
+    [sortBy, sortOrder]
+  );
+  const sortControl = React.useMemo<SortControl>(
+    () => ({ sortBy, sortOrder, onSort: cycleSort }),
+    [sortBy, sortOrder, cycleSort]
+  );
   const [groupBy, setGroupBy] = React.useState<
     "status" | "priority" | "assignee"
   >("status");
@@ -1680,8 +1959,20 @@ export function ListView({
         if (sortBy === "name") {
           cmp = a.title.localeCompare(b.title);
         } else if (sortBy === "due") {
-          const tA = a.dueDateStart ? new Date(a.dueDateStart).getTime() : 0;
-          const tB = b.dueDateStart ? new Date(b.dueDateStart).getTime() : 0;
+          // Sort on the same field the Due Date column shows (`dueDateEnd`).
+          // Undated tasks always sink to the bottom in BOTH directions —
+          // reversing them into first place makes "sort by due date descending"
+          // look like it hid every dated task behind a wall of blanks.
+          const tA = a.dueDateEnd ? new Date(a.dueDateEnd).getTime() : null;
+          const tB = b.dueDateEnd ? new Date(b.dueDateEnd).getTime() : null;
+          if (tA === null || tB === null) {
+            if (tA === tB) {
+              return 0;
+            }
+            // Pre-negated so the `sortOrder` flip below leaves it unchanged.
+            const undatedLast = tA === null ? 1 : -1;
+            return sortOrder === "asc" ? undatedLast : -undatedLast;
+          }
           cmp = tA - tB;
         } else if (sortBy === "priority") {
           const weight = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 };
@@ -1805,6 +2096,23 @@ export function ListView({
       statusId: defaultOpenStatusId,
     };
   }
+
+  // Split the selection by list-pin state so the bulk bar can offer Pin and
+  // Unpin independently. Pinned tasks are served in their own `pinnedTasks`
+  // array and filtered out of `tasks` upstream, so both arrays must be
+  // consulted — reading only `localTasks` would report every selection as
+  // unpinned and leave bulk unpin with nothing to act on.
+  const { pinnedSelectedIds, unpinnedSelectedIds } = React.useMemo(() => {
+    const pinned: string[] = [];
+    const unpinned: string[] = [];
+    for (const t of [...pinnedTasks, ...localTasks]) {
+      if (!selectedIds.has(t.id)) {
+        continue;
+      }
+      (t.isPinnedToList ? pinned : unpinned).push(t.id);
+    }
+    return { pinnedSelectedIds: pinned, unpinnedSelectedIds: unpinned };
+  }, [pinnedTasks, localTasks, selectedIds]);
 
   // Global Checkbox toggles
   const allSelected =
@@ -2257,20 +2565,33 @@ export function ListView({
 
                 <div className="mx-1 h-5 w-px shrink-0 bg-border" />
 
-                {/* Sort */}
+                {/* Sort — kept alongside the clickable column headers because
+                    the header row is desktop-only (`hidden md:flex`); on mobile
+                    this dropdown is the only way to sort. It drives the same
+                    `cycleSort` the headers do, and now shows the direction so
+                    the two controls can never disagree or read ambiguously. */}
                 <Popover onOpenChange={setSortMenuOpen} open={sortMenuOpen}>
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
                       <ArrowsDownUpIcon className="size-3.5 text-gray-500" />
-                      Sort:{" "}
-                      {sortBy
-                        ? sortBy.charAt(0).toUpperCase() + sortBy.slice(1)
-                        : "None"}
+                      Sort: {sortBy ? SORT_OPTION_LABEL[sortBy] : "None"}
+                      {sortBy &&
+                        (sortOrder === "asc" ? (
+                          <CaretUpIcon
+                            className="size-3 text-primary"
+                            weight="bold"
+                          />
+                        ) : (
+                          <CaretDownIcon
+                            className="size-3 text-primary"
+                            weight="bold"
+                          />
+                        ))}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent
                     align="start"
-                    className="w-44 p-1 flex flex-col gap-0.5"
+                    className="w-48 p-1 flex flex-col gap-0.5"
                   >
                     <button
                       className={cn(
@@ -2279,50 +2600,51 @@ export function ListView({
                       )}
                       onClick={() => {
                         setSortBy(null);
+                        setSortOrder("asc");
                         setSortMenuOpen(false);
                       }}
                     >
                       None
                     </button>
-                    <button
-                      className={cn(
-                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                        sortBy === "name" && "bg-accent text-foreground"
-                      )}
-                      onClick={() => {
-                        setSortBy("name");
-                        setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
-                        setSortMenuOpen(false);
-                      }}
-                    >
-                      Task Name
-                    </button>
-                    <button
-                      className={cn(
-                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                        sortBy === "due" && "bg-accent text-foreground"
-                      )}
-                      onClick={() => {
-                        setSortBy("due");
-                        setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
-                        setSortMenuOpen(false);
-                      }}
-                    >
-                      Due Date
-                    </button>
-                    <button
-                      className={cn(
-                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                        sortBy === "priority" && "bg-accent text-foreground"
-                      )}
-                      onClick={() => {
-                        setSortBy("priority");
-                        setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
-                        setSortMenuOpen(false);
-                      }}
-                    >
-                      Priority
-                    </button>
+                    {SORT_OPTIONS.map(({ key, label }) => {
+                      const active = sortBy === key;
+                      return (
+                        <button
+                          className={cn(
+                            "flex items-center justify-between gap-2 px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                            active && "bg-accent text-foreground"
+                          )}
+                          key={key}
+                          onClick={() => {
+                            cycleSort(key);
+                            setSortMenuOpen(false);
+                          }}
+                        >
+                          <span>{label}</span>
+                          {active && (
+                            <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wide text-primary">
+                              {sortOrder === "asc" ? (
+                                <>
+                                  <CaretUpIcon
+                                    className="size-3"
+                                    weight="bold"
+                                  />
+                                  Asc
+                                </>
+                              ) : (
+                                <>
+                                  <CaretDownIcon
+                                    className="size-3"
+                                    weight="bold"
+                                  />
+                                  Desc
+                                </>
+                              )}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </PopoverContent>
                 </Popover>
 
@@ -2529,7 +2851,9 @@ export function ListView({
               canPinToList={canPinToList}
               isAdmin={isAdmin}
               listId={listId}
+              onSelect={handleSelect}
               personallyPinnedIds={personallyPinnedIds}
+              selectedIds={selectedIds}
               spaceId={spaceId}
               statuses={statuses}
               tasks={pinnedTasks}
@@ -2554,6 +2878,7 @@ export function ListView({
                 onSelect={handleSelect}
                 personallyPinnedIds={personallyPinnedIds}
                 selectedIds={selectedIds}
+                sortControl={sortControl}
                 spaceId={spaceId}
                 status={{
                   id: group.id,
@@ -2632,14 +2957,18 @@ export function ListView({
       {selectedIds.size > 0 && (
         <BulkActionBar
           canEdit={canEdit}
+          canPinToList={canPinToList}
           count={selectedIds.size}
           isAdmin={isAdmin}
           listId={listId}
           members={members}
           onClear={() => setSelectedIds(new Set())}
+          onRefresh={() => router.refresh()}
+          pinnedSelectedIds={pinnedSelectedIds}
           selectedIds={selectedIds}
           spaceId={spaceId}
           statuses={statuses}
+          unpinnedSelectedIds={unpinnedSelectedIds}
           workspaceId={workspaceId}
         />
       )}
