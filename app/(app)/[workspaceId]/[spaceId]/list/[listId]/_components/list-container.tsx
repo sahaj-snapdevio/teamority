@@ -227,26 +227,54 @@ export function ListContainer({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  // Persisted per-list (localStorage, same pattern as list-view's Sort/Group
+  // By/Filters prefs) so navigating into a task and back doesn't silently
+  // close the Archived section. Starts `false` so server and first client
+  // render match (localStorage isn't available on the server); the real
+  // saved value is applied after mount below.
   const [showArchived, setShowArchived] = React.useState(false);
   const [archivedTasks, setArchivedTasks] = React.useState<
     { id: string; title: string; seqNumber: number }[]
   >([]);
   const [archivedLoading, setArchivedLoading] = React.useState(false);
 
+  async function loadArchivedTasks() {
+    setArchivedLoading(true);
+    const result = await getArchivedTasksForList(
+      workspaceId,
+      space.id,
+      list.id
+    );
+    if (!("error" in result)) {
+      setArchivedTasks(result.tasks);
+    }
+    setArchivedLoading(false);
+  }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when the list changes, not when loadArchivedTasks is redefined
+  React.useEffect(() => {
+    const saved = window.localStorage.getItem(
+      `kanbanica:list-archived:${list.id}`
+    );
+    if (saved !== "1") {
+      return;
+    }
+    setShowArchived(true);
+    void loadArchivedTasks();
+  }, [list.id]);
+
   async function handleToggleArchived() {
     if (!showArchived && archivedTasks.length === 0) {
-      setArchivedLoading(true);
-      const result = await getArchivedTasksForList(
-        workspaceId,
-        space.id,
-        list.id
-      );
-      if (!("error" in result)) {
-        setArchivedTasks(result.tasks);
-      }
-      setArchivedLoading(false);
+      await loadArchivedTasks();
     }
-    setShowArchived((v) => !v);
+    setShowArchived((v) => {
+      const next = !v;
+      window.localStorage.setItem(
+        `kanbanica:list-archived:${list.id}`,
+        next ? "1" : "0"
+      );
+      return next;
+    });
   }
 
   return (
