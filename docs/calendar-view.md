@@ -4,15 +4,7 @@
 
 Provide a date-grid visualization of tasks within a List, allowing users to see task due dates spatially and drag tasks to reschedule them.
 
-**This feature is post-MVP and must not be implemented in Phases 0-18.**
-
----
-
-## Existing Scope (Post-MVP Only)
-
-This entire document is a planning artifact for a future phase. Calendar View will be introduced after the core task management system (Phases 1-18) is stable and adopted.
-
-**DO NOT build any part of this feature until the Development Plan explicitly lists it in a numbered phase.**
+**Status: shipped.** Calendar View is implemented as one of the List view-switcher tabs (alongside List/Board) — see `app/(app)/[workspaceId]/[spaceId]/list/[listId]/_components/calendar-view.tsx`, wired in via `list-container.tsx` in the same directory. The sections below describe the original design; some implementation details (folder layout, exact API shape) have since diverged from the plan as written — treat the source as ground truth for specifics, and this doc for the intended user flow and business rules.
 
 ---
 
@@ -70,18 +62,12 @@ This same pattern is required for Board View. Both views must never be imported 
 
 ## Folder Mapping
 
+Actual layout (differs from the original plan, which proposed a separate `/calendar` route and a split `components/calendar/` folder):
+
 ```
-src/
-  app/(app)/[workspaceId]/[spaceId]/list/[listId]/
-    calendar/
-      page.tsx                 <- dynamic import wrapper only (ssr: false)
-  components/
-    calendar/
-      calendar-view.tsx        <- main component (loaded client-side only)
-      calendar-grid.tsx        <- month/week grid
-      calendar-task-chip.tsx   <- task pill on date cell
-      unscheduled-sidebar.tsx
-      use-calendar-dnd.ts      <- dnd-kit drag logic
+app/(app)/[workspaceId]/[spaceId]/list/[listId]/_components/
+  calendar-view.tsx        <- the view, rendered as a tab inside list-container.tsx
+  list-container.tsx       <- view switcher (List / Board / Calendar)
 ```
 
 ---
@@ -99,7 +85,7 @@ No new API endpoints. Calendar View reuses existing task endpoints:
 
 No new tables. Calendar View reads and writes `Task.dueDateEnd` (and optionally `Task.dueDateStart` for date-range tasks).
 
-`UserListViewPreference.view` will include `calendar` as a valid value when this feature is built. Until then the column only accepts `list` and `board`.
+`UserListViewPreference.view` includes `calendar` as a valid value alongside `list` and `board`.
 
 ---
 
@@ -117,10 +103,10 @@ None.
 
 ## Dependencies
 
-- `Task.dueDateEnd` (nullable) -- already in schema
-- `UserListViewPreference` table -- must be implemented first (Phase 12)
-- dnd-kit (`@dnd-kit/core`, `@dnd-kit/sortable`) -- add to `package.json` when this phase begins
-- `date-fns` -- already in `package.json`
+- `Task.dueDateEnd` (nullable) -- in schema
+- `UserListViewPreference` table -- in schema
+- dnd-kit (`@dnd-kit/core`, `@dnd-kit/sortable`, plus `@dnd-kit/modifiers`/`@dnd-kit/utilities`) -- in `package.json`
+- `date-fns` -- in `package.json`
 
 ---
 
@@ -139,7 +125,7 @@ None.
 
 ## Acceptance Criteria
 
-*(Preliminary -- to be finalised when the phase is scheduled.)*
+*(Original design checklist -- not re-verified against the shipped implementation item-by-item; see the component source for current behavior.)*
 
 - [ ] Calendar renders all tasks with `dueDateEnd` on the correct date cell
 - [ ] Dragging a task chip to a new cell updates `dueDateEnd` with optimistic update
@@ -152,6 +138,5 @@ None.
 
 ## Implementation Notes
 
-- Do not begin until `UserListViewPreference` is in the schema and Board View is working
-- The `dynamic({ ssr: false })` wrapper is non-negotiable; add a code comment to prevent future removal
-- When building, add `calendar` to the `UserListViewPreference.view` enum at the same time as the component
+- The `dynamic({ ssr: false })` wrapper (see SSR Safety above) is non-negotiable for any dnd-kit-based component — do not remove it.
+- `calendar` is a valid `UserListViewPreference.view` value alongside `list` and `board`.

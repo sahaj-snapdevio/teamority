@@ -173,7 +173,7 @@ Create a workspace, add a project, and start making tasks.
 
 ## 7. Optional extras
 
-Everything below is optional — the app works fully without it in local development.
+Everything below is optional — the app works fully without it in local development. Each has a step-by-step guide (creating the account, generating credentials, verifying it works, troubleshooting) in **[`docs/credentials/`](./docs/credentials/)** — the summaries below are just the quick version.
 
 ### Real email (SMTP)
 Without SMTP, emails (including magic links) are logged to the terminal instead
@@ -189,18 +189,17 @@ SMTP_PASS=...
 EMAIL_FROM=you@yourdomain.com
 ```
 
-Restart `pnpm dev` after editing `.env`. For production setup (provider choices,
-domain verification, SPF/DKIM/DMARC), see
-[DEPLOYMENT.md → Production email (SMTP)](./DEPLOYMENT.md#production-email-smtp).
+Restart `pnpm dev` after editing `.env`. Full walkthrough (provider choices,
+domain verification, SPF/DKIM/DMARC, troubleshooting): **[docs/credentials/smtp.md](./docs/credentials/smtp.md)**.
 
 ### Google sign-in
-Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` to enable "Sign in with Google". Leave blank to use magic links only.
+Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` to enable "Sign in with Google". Leave blank to use magic links only. Full walkthrough (Google Cloud Console setup, exact redirect URI, common mistakes): **[docs/credentials/google-oauth.md](./docs/credentials/google-oauth.md)**.
 
 ### Cloud file storage (S3 / Cloudflare R2)
-By default, uploads are stored in the local `./uploads/` folder. For production, set `STORAGE_DRIVER=s3` (or `r2`) and the `S3_*` credentials in `.env`.
+By default, uploads are stored in the local `./uploads/` folder. For production, set `STORAGE_DRIVER=s3` (or `r2`) and the `S3_*` credentials in `.env`. Full walkthroughs: **[docs/credentials/storage-s3.md](./docs/credentials/storage-s3.md)** / **[docs/credentials/cloudflare-r2.md](./docs/credentials/cloudflare-r2.md)**.
 
 ### Web Push notifications
-Set the `VAPID_*` keys in `.env` to enable browser push notifications.
+Set the `VAPID_*` keys in `.env` to enable browser push notifications. Full walkthrough: **[docs/credentials/web-push-vapid.md](./docs/credentials/web-push-vapid.md)**.
 
 ---
 

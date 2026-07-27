@@ -692,13 +692,249 @@ export const platformAuditLog = pgTable("platform_audit_log", {
 
 ---
 
+## Time Tracking
+
+Schema file: `db/schema/time-tracking.ts`
+
+```ts
+import { sql } from "drizzle-orm";
+import { index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { task } from "./task";
+import { workspace } from "./workspace";
+
+export const timeEntry = pgTable("time_entry", {
+  id: text("id").primaryKey(),
+  taskId: text("task_id").notNull().references(() => task.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").notNull().references(() => workspace.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+  startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+  endTime: timestamp("end_time", { withTimezone: true }),  // NULL = running
+  durationSeconds: integer("duration_seconds"),  // NULL while running
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("time_entry_task_id_idx").on(t.taskId),
+  // At most one running timer per user, enforced at the DB level.
+  uniqueIndex("time_entry_one_running_uq").on(t.userId).where(sql`end_time is null`),
+]);
+```
+
+See `docs/time-tracking.md`.
+
+---
+
+## Channels (Team Chat)
+
+Schema file: `db/schema/channel.ts`
+
+```ts
+import { pgEnum, pgTable, text, timestamp, integer, boolean, index, unique } from "drizzle-orm/pg-core";
+import { workspace } from "./workspace";
+
+export const channelMemberRoleEnum = pgEnum("channel_member_role", ["ADMIN", "MEMBER"]);
+
+export const channel = pgTable("channel", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspace.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  unique("channel_workspace_name_unique").on(t.workspaceId, t.name),
+  index("channel_workspace_id_idx").on(t.workspaceId),
+]);
+
+export const channelMember = pgTable("channel_member", {
+  channelId: text("channel_id").notNull().references(() => channel.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+  role: channelMemberRoleEnum("role").notNull().default("MEMBER"),
+  joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  unique("channel_member_pk").on(t.channelId, t.userId),
+  index("channel_member_channel_id_idx").on(t.channelId),
+]);
+
+export const channelMessage = pgTable("channel_message", {
+  id: text("id").primaryKey(),
+  channelId: text("channel_id").notNull().references(() => channel.id, { onDelete: "cascade" }),
+  senderId: text("sender_id").notNull(),
+  content: text("content").notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("channel_message_channel_id_idx").on(t.channelId),
+  index("channel_message_created_at_idx").on(t.createdAt),
+]);
+
+export const channelMessageAttachment = pgTable("channel_message_attachment", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id").notNull().references(() => channelMessage.id, { onDelete: "cascade" }),
+  uploadedBy: text("uploaded_by").notNull(),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("channel_message_attachment_message_id_idx").on(t.messageId)]);
+```
+
+---
+
+## Support & Help Center
+
+Schema file: `db/schema/support.ts`
+
+```ts
+import { pgEnum, pgTable, text, timestamp, boolean, integer, json, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+export const supportTicketStatusEnum = pgEnum("support_ticket_status", ["OPEN", "IN_PROGRESS", "CLOSED"]);
+export const supportTicketCategoryEnum = pgEnum("support_ticket_category", [
+  "GENERAL", "TASKS", "BILLING", "TECHNICAL", "OTHER",
+]);
+
+export const supportTicket = pgTable("support_ticket", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  ticketNumber: text("ticket_number").notNull().unique(),
+  subject: text("subject").notNull(),
+  status: supportTicketStatusEnum("status").notNull().default("OPEN"),
+  category: supportTicketCategoryEnum("category").notNull().default("GENERAL"),
+  assignedTo: text("assigned_to"),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+  closedReason: text("closed_reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("support_ticket_user_status_idx").on(t.userId, t.status),
+  index("support_ticket_status_updated_idx").on(t.status, t.updatedAt),
+]);
+
+export const supportTicketMessage = pgTable("support_ticket_message", {
+  id: text("id").primaryKey(),
+  ticketId: text("ticket_id").notNull().references(() => supportTicket.id, { onDelete: "cascade" }),
+  authorId: text("author_id").notNull(),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  isInternalNote: boolean("is_internal_note").notNull().default(false),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("support_ticket_message_ticket_id_idx").on(t.ticketId)]);
+
+export const helpArticle = pgTable("help_article", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  category: text("category").notNull(),
+  body: json("body").notNull(),
+  isPublished: boolean("is_published").notNull().default(false),
+  authorId: text("author_id").notNull(),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  orderIndex: integer("order_index").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("help_article_category_idx").on(t.category, t.isPublished)]);
+
+// Single-row sequence table for atomic ticket number generation
+export const supportTicketSequence = pgTable("support_ticket_sequence", {
+  id: integer("id").primaryKey().default(1),
+  value: integer("value").notNull().default(sql`0`),
+});
+```
+
+See `docs/customer-support.md`.
+
+---
+
+## Email Outbox & Events
+
+Schema files: `db/schema/email-outbox.ts`, `db/schema/email-events.ts`
+
+```ts
+// email-outbox.ts — queued outgoing email, processed by the pg-boss worker
+export const emailOutboxStatus = pgEnum("email_outbox_status", ["queued", "sending", "sent", "failed"]);
+
+export const emailOutbox = pgTable("email_outbox", {
+  id: text("id").primaryKey().$defaultFn(createId),
+  idempotencyKey: text("idempotency_key").notNull(),
+  status: emailOutboxStatus("status").notNull().default("queued"),
+  payload: jsonb("payload").$type<{ to: string; subject: string; html: string; text?: string }>().notNull(),
+  attemptCount: integer("attempt_count").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(3),
+  providerMessageId: text("provider_message_id"),
+  lastError: text("last_error"),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("email_outbox_idempotency_key_unq").on(t.idempotencyKey),
+  index("email_outbox_status_idx").on(t.status),
+  index("email_outbox_status_claimed_at_idx").on(t.status, t.claimedAt),
+]);
+
+// email-events.ts — inbound provider webhook events (delivery/bounce/etc.)
+export const emailEvents = pgTable("email_events", {
+  id: text("id").primaryKey().$defaultFn(createId),
+  providerEventId: text("provider_event_id").notNull().unique(),
+  eventType: text("event_type").notNull(),
+  providerEmailId: text("provider_email_id"),
+  recipient: text("recipient"),
+  payload: jsonb("payload").notNull().$type<Record<string, unknown>>(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("email_events_event_type_idx").on(t.eventType),
+  index("email_events_recipient_idx").on(t.recipient),
+  index("email_events_received_at_idx").on(t.receivedAt),
+]);
+```
+
+`EMAIL_WEBHOOK_SECRET` authenticates inbound provider webhooks that populate `email_events`.
+
+---
+
+## Job Logs
+
+Schema file: `db/schema/job-logs.ts`
+
+```ts
+export const jobLogLevel = pgEnum("job_log_level", ["info", "warn", "error"]);
+
+export const jobLogs = pgTable("job_logs", {
+  id: text("id").primaryKey().$defaultFn(createId),
+  jobId: text("job_id").notNull(),
+  jobName: text("job_name").notNull(),
+  entityType: text("entity_type").notNull().default("system"),
+  entityId: text("entity_id").notNull().default("system"),
+  sequence: integer("sequence").notNull().default(0),
+  level: jobLogLevel("level").notNull().default("info"),
+  message: text("message").notNull(),
+  stdout: text("stdout"),
+  stderr: text("stderr"),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  durationMs: integer("duration_ms"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("job_logs_job_id_seq_idx").on(t.jobId, t.sequence),
+  index("job_logs_entity_idx").on(t.entityType, t.entityId, t.createdAt),
+]);
+```
+
+Structured log lines for pg-boss background jobs (e.g. sprint auto-close), surfaced in the admin panel's queue/job views.
+
+---
+
 ## Tables NOT in this schema
 
 | Table | Reason |
 |-------|--------|
 | `folder` | Post-MVP — do not create |
-| `user_list_view_preference` | Include when implementing Views (Phase 12) |
-| `user_my_tasks_preference` | Include when implementing My Tasks (Phase 12) |
+| `user_list_view_preference` | Views/Board/Calendar and My Tasks preferences were built without this table — the active view is persisted client-side via `localStorage` (see `list-container.tsx`), not server-side. Needs a full re-audit against `docs/views.md`'s Data Model section if server-side persistence is ever added. |
+| `user_my_tasks_preference` | Same as above — not implemented as a table. |
 
 ---
 

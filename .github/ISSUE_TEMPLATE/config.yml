@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 Questions & discussions
-    url: https://github.com/OWNER/REPO/discussions
+    url: https://github.com/sahaj-snapdevio/Kanbanica/discussions
     about: Ask questions and discuss ideas here (enable Discussions in repo settings).
   - name: 🔐 Report a security vulnerability
-    url: https://github.com/OWNER/REPO/security/advisories/new
+    url: https://github.com/sahaj-snapdevio/Kanbanica/security/advisories/new
     about: Please report security issues privately — see SECURITY.md. Do not open a public issue.

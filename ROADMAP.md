@@ -21,6 +21,11 @@ discussion.
   load balancer with more than one instance
 - 🔭 First-class object-storage guides (S3 / R2 / MinIO) beyond the current
   configuration switch
+- 💡 Optional built-in backup/export tooling — evaluate a CLI or admin-panel
+  workflow for database + uploaded-file backup, export, and restore. Today
+  this is entirely an operator runbook using standard `pg_dump`/Docker-volume
+  tools (see [DEPLOYMENT.md § Backups & Restore](./DEPLOYMENT.md#7-backups--restore))
+  with no in-app tooling of any kind
 - 💡 One-click deploy templates (Railway / Fly / Render)
 - 💡 Optional hosted demo instance for evaluation
 

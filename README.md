@@ -22,6 +22,8 @@ Kanbanica is a self-hostable, ClickUp-style project management app. Teams organi
 
 - 🗂️ **Workspaces, Projects, Lists & Sprints** — a flexible hierarchy for organizing any team's work
 - ✅ **Rich tasks** — assignees, due dates, priorities, subtasks/checklists, attachments, and Tiptap-powered descriptions
+- 🏷️ **Custom Fields** — Text, Number, Checkbox, Single/Multi Select, Date, and Person fields scoped to a Workspace, Project, or List
+- ⏱️ **Time tracking** — a live timer or manual log per task, with a per-user history
 - 🏃 **Sprints** — sprint planning, story points, and automatic sprint close
 - 📌 **Multiple views** — Board, List, Calendar, and a cross-workspace "My Tasks"
 - 💬 **Collaboration** — comments, @mentions, reactions, and an activity feed
@@ -47,7 +49,7 @@ Kanbanica is a self-hostable, ClickUp-style project management app. Teams organi
 | Auth | Better Auth (magic link / Google OAuth) |
 | Styling | Tailwind CSS v4 + shadcn/ui |
 | Rich Text | Tiptap |
-| State | Zustand (client) + SWR (server) |
+| State | SWR (server) + React state/context (client) |
 | Real-time | Server-Sent Events (SSE) |
 | Background Jobs | pg-boss worker |
 | Email | Nodemailer (SMTP) |
@@ -121,10 +123,13 @@ Any PostgreSQL 16+ reachable over the network works (company cluster, RDS, Neon,
 
 **Email:** magic-link login works with **any SMTP provider** (Resend recommended, or Brevo/Postmark/SES/…) — configure it via env vars; see [DEPLOYMENT.md → Production email](./DEPLOYMENT.md#production-email-smtp). Each deployment uses its own credentials; nothing is committed.
 
+**Credential setup:** need help configuring Google OAuth, SMTP, Web Push, S3, or Cloudflare R2? Step-by-step guides (where to click, which values to copy, how to verify it worked) live in **[`docs/credentials/`](./docs/credentials/)**.
+
 ## Documentation
 
 - [SETUP.md](./SETUP.md) — local development, start to finish
 - [DEPLOYMENT.md](./DEPLOYMENT.md) — self-hosting with Docker
+- [`docs/credentials/`](./docs/credentials/) — step-by-step setup for Google OAuth, SMTP, Web Push, S3, and Cloudflare R2
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the system fits together
 - [CLAUDE.md](./CLAUDE.md) — conventions and key decisions
 - [ROADMAP.md](./ROADMAP.md) — planned features and direction

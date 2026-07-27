@@ -80,18 +80,20 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 ```
 
+Full walkthrough (Google Cloud Console, exact redirect URI, common mistakes): [docs/credentials/google-oauth.md](./docs/credentials/google-oauth.md).
+
 **Option C — Email + password** (no external service at all): set `ALLOW_PASSWORD_SIGNUP=true`.
 
 > If you configure **none of the three**, the app will exit on startup with a clear error — by design, so you never ship a silently broken login.
 
 ### Optional
 
-- **File storage** — defaults to `STORAGE_DRIVER=local` (persisted in the `uploads` Docker volume). For object storage set `STORAGE_DRIVER=s3` (or `r2`) and the `S3_*` variables.
-- **Web Push (browser/desktop notifications)** — set the runtime `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` (`npx web-push generate-vapid-keys`) on the **app and worker**. That's all — the client fetches the public key at runtime from `/api/push/vapid-public-key`, so it works on **any** deployment (bare `pnpm build && pnpm start`, PM2, Vercel/Railway/Render/Coolify, Docker) with **no build-time key and no rebuild when keys rotate**. `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is optional/legacy (a build-time fallback). Requires HTTPS (behind Cloudflare, use SSL mode **Full (strict)**); `/sw.js` is served `no-cache` so CDNs/browsers never keep a stale service worker.
+- **File storage** — defaults to `STORAGE_DRIVER=local` (persisted in the `uploads` Docker volume). For object storage set `STORAGE_DRIVER=s3` (or `r2`) and the `S3_*` variables. Full walkthroughs: [docs/credentials/storage-s3.md](./docs/credentials/storage-s3.md) / [docs/credentials/cloudflare-r2.md](./docs/credentials/cloudflare-r2.md).
+- **Web Push (browser/desktop notifications)** — set the runtime `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` (`npx web-push generate-vapid-keys`) on the **app and worker**. That's all — the client fetches the public key at runtime from `/api/push/vapid-public-key`, so it works on **any** deployment (bare `pnpm build && pnpm start`, PM2, Vercel/Railway/Render/Coolify, Docker) with **no build-time key and no rebuild when keys rotate**. `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is optional/legacy (a build-time fallback). Requires HTTPS (behind Cloudflare, use SSL mode **Full (strict)**); `/sw.js` is served `no-cache` so CDNs/browsers never keep a stale service worker. Full walkthrough: [docs/credentials/web-push-vapid.md](./docs/credentials/web-push-vapid.md).
 
 ### Environment variable reference
 
-Complete list of variables (validated by `lib/env.ts`). "Client" means it's inlined into the browser bundle at build time (`NEXT_PUBLIC_*`).
+Complete list of variables. Most are validated by `lib/env.ts`; `NEXT_PUBLIC_SHOW_LANDING_PAGE` and the Docker-only `POSTGRES_*`/`APP_PORT` vars are read directly (`config/platform.ts`, `docker-compose.yml`) and aren't part of that schema. "Client" means it's inlined into the browser bundle at build time (`NEXT_PUBLIC_*`).
 
 | Variable | Required? | Default | Purpose |
 |----------|-----------|---------|---------|
@@ -102,6 +104,7 @@ Complete list of variables (validated by `lib/env.ts`). "Client" means it's inli
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | ⚠️ prod: one login method | `SMTP_PORT=587` | Magic-link + notification email. Unset in dev → emails logged to console. **Also switches signup email-verification on** — see [Authentication](#authentication). |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | ⚠️ prod: one login method | — | Optional Google OAuth login. |
 | `ALLOW_PASSWORD_SIGNUP` | ⚠️ prod: one login method | `false` | Allow visitors to register at `/signup` with email + password. Off = invite-only. |
+| `AUTO_PROMOTE_FIRST_ADMIN` | optional | `false` | Auto-promote the first user to sign in to platform admin instead of using the `/setup` wizard — see [§5 Create your first admin](#5-create-your-first-admin). |
 | `EMAIL_WEBHOOK_SECRET` | optional | — | Auth for the SMTP provider delivery webhook. |
 | `STORAGE_DRIVER` | optional | `local` | `local` (./uploads volume) or `s3` / `r2`. |
 | `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | needed if `STORAGE_DRIVER=s3\|r2` | MinIO-style defaults | Object-storage credentials. `S3_ENDPOINT` for R2/MinIO; omit for AWS S3. |
@@ -256,6 +259,8 @@ are never committed — the repo ships only an empty `.env.example`.
 Local development needs **no SMTP**: magic links print to the terminal (see
 [SETUP.md](./SETUP.md)).
 
+Full walkthrough (account creation, DNS records, verification, troubleshooting): [docs/credentials/smtp.md](./docs/credentials/smtp.md).
+
 ---
 
 ## 4. Bring it up
@@ -339,13 +344,58 @@ Make sure `APP_URL` matches the public HTTPS URL. Auth uses it for secure cookie
 
 ---
 
-## 7. Backups
+## 7. Backups & Restore
 
-- **Database:**
-  ```bash
-  docker compose exec postgres pg_dump -U kanbanica kanbanica > backup-$(date +%F).sql
-  ```
-- **Uploads** (only if `STORAGE_DRIVER=local`): back up the `uploads` Docker volume. With S3/R2, your provider handles durability.
+### Database backup
+
+```bash
+docker compose exec postgres pg_dump -U ${POSTGRES_USER:-kanbanica} ${POSTGRES_DB:-kanbanica} > backup-$(date +%F).sql
+```
+
+Automate this with cron on the host (outside the container) for regular, unattended backups:
+
+```bash
+# /etc/cron.d/kanbanica-backup — daily at 2am, keep 14 days
+0 2 * * * cd /path/to/kanbanica && docker compose exec -T postgres pg_dump -U kanbanica kanbanica | gzip > /path/to/backups/kanbanica-$(date +\%F).sql.gz && find /path/to/backups -name 'kanbanica-*.sql.gz' -mtime +14 -delete
+```
+
+Using an [external PostgreSQL](#using-an-external-postgresql) instead of the bundled container? Use your provider's own backup/snapshot mechanism (most managed Postgres providers — RDS, Neon, Supabase, Railway, Render — take automated daily snapshots) in addition to, or instead of, `pg_dump`.
+
+### Database restore
+
+```bash
+# Stop the app and worker so nothing writes during restore (leave postgres running)
+docker compose stop app worker
+
+# Restore into a fresh database (drops and recreates first — see db/reset.ts for the same logic)
+docker compose exec -T postgres psql -U ${POSTGRES_USER:-kanbanica} -d ${POSTGRES_DB:-kanbanica} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+docker compose exec -T postgres psql -U ${POSTGRES_USER:-kanbanica} -d ${POSTGRES_DB:-kanbanica} < backup-2026-07-01.sql
+
+# Bring the app back up — the migrate service is a no-op if the restored dump is already current
+docker compose up -d
+```
+
+If the backup predates a migration that's since been applied, run `docker compose up -d migrate` (or `pnpm db:migrate:prod`) after restoring, before starting `app`/`worker`, to bring the schema up to date.
+
+### Uploaded files backup
+
+- **`STORAGE_DRIVER=local`** (default): files live in the `uploads` Docker volume — back it up as a filesystem copy, e.g. `docker run --rm -v kanbanica_uploads:/data -v $(pwd):/backup alpine tar czf /backup/uploads-$(date +%F).tar.gz -C /data .` (adjust the volume name to match `docker compose config --volumes`). Restore by extracting the tarball back into the same named volume.
+- **`STORAGE_DRIVER=s3` or `r2`**: files live in your S3/R2 bucket, not on this host. Your provider's durability (S3: 11 nines; R2: comparable) covers hardware failure, but **does not protect against accidental deletion from the app** (e.g. a bug that deletes the wrong key). For that, enable your bucket's own versioning/lifecycle rules (S3 bucket versioning, R2's equivalent) or a periodic bucket-to-bucket sync (`aws s3 sync` / `rclone`) to a second bucket — Kanbanica does not manage this for you.
+
+### What's NOT covered by `pg_dump` alone
+
+The database dump captures every table (tasks, workspaces, custom fields, time entries, etc.) but **not** the files referenced by `file_url` / `image` / attachment columns — those are storage keys, not blobs, so a DB-only restore leaves the app pointing at files that must be restored separately (see above). Back up both together and restore both together to avoid orphaned references.
+
+### Disaster recovery checklist
+
+1. Provision a fresh host/container with the same `docker-compose.yml` (or external DB target).
+2. Restore the database (see above).
+3. Restore uploads (local volume tarball, or confirm the S3/R2 bucket is intact/replicated).
+4. Copy `.env` (or recreate it — see [step 3](#3-configure-env-for-production)) with the same `APP_SECRET` (rotating it invalidates all existing sessions and any encrypted data keyed on it).
+5. `docker compose up -d --build` and verify `/api/health` returns 200.
+6. Spot-check: sign in, open a workspace, confirm attachments/avatars render (proves storage wiring, not just DB restore).
+
+There is currently no automated backup verification (e.g. periodic restore-to-scratch-DB drills) — treat backups as unverified until you've done a manual restore test at least once.
 
 ---
 

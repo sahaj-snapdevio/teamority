@@ -61,7 +61,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Working Next.js project with all tools installed, all singletons created, infrastructure wired up, and both the Next.js and worker processes running.
 
-**Reference docs:** [services.md](./services.md), [authentication.md](./authentication.md), [design-system.md](./design-system.md)
+**Reference docs:** [services.md](../services.md), [authentication.md](../authentication.md), [design-system.md](../design-system.md)
 
 > Do not write any feature code until every task in this phase is complete. The singletons and patterns built here are used by every phase that follows.
 
@@ -186,8 +186,8 @@ Phase 20 ->  QA & Launch Prep
   export const dbClient = postgres(env.DATABASE_URL, { max: 20 })
   export const db = drizzle(dbClient, { schema })
   ```
-- [ ] `src/lib/auth.ts` -- Better Auth server instance (see [authentication.md](./authentication.md))
-- [ ] `src/lib/storage.ts` -- R2 client singleton + `getAttachmentUrl(r2Key)` + `deleteFromR2(r2Key)` helpers (see [services.md](./services.md))
+- [ ] `src/lib/auth.ts` -- Better Auth server instance (see [authentication.md](../authentication.md))
+- [ ] `src/lib/storage.ts` -- R2 client singleton + `getAttachmentUrl(r2Key)` + `deleteFromR2(r2Key)` helpers (see [services.md](../services.md))
 - [ ] `src/lib/email/` -- Nodemailer transporter singleton + send helper
 
 ### Step 4 — Worker Infrastructure
@@ -200,7 +200,7 @@ Phase 20 ->  QA & Launch Prep
   export type JobPayloadMap = Record<string, never>
   export const QUEUE_OPTIONS: Record<string, object> = {}
   ```
-- [ ] `src/lib/worker/enqueue.ts` -- mutex-guarded PgBoss singleton (see [services.md](./services.md))
+- [ ] `src/lib/worker/enqueue.ts` -- mutex-guarded PgBoss singleton (see [services.md](../services.md))
 - [ ] `scripts/worker.ts` -- worker entrypoint (imports handlers, calls `boss.work()`)
 - [ ] Update `package.json` scripts:
   ```json
@@ -215,13 +215,13 @@ Phase 20 ->  QA & Launch Prep
 
 ### Step 5 — Permissions and Auth Helpers
 
-- [ ] `src/lib/permissions.ts` -- `getAccessibleSpaceIds`, `requireSpaceMembershipAndPermission`, `hasPermissionLevel` (see [permission-model.md](./permission-model.md), [space.md](./space.md))
-- [ ] `src/lib/api/auth-helpers.ts` -- `getSessionOrUnauthorized()` (see [authentication.md](./authentication.md))
-- [ ] `src/lib/activity-log.ts` -- `writeActivityLog()` fire-and-forget (see [collaboration.md](./collaboration.md))
+- [ ] `src/lib/permissions.ts` -- `getAccessibleSpaceIds`, `requireSpaceMembershipAndPermission`, `hasPermissionLevel` (see [permission-model.md](../permission-model.md), [space.md](../space.md))
+- [ ] `src/lib/api/auth-helpers.ts` -- `getSessionOrUnauthorized()` (see [authentication.md](../authentication.md))
+- [ ] `src/lib/activity-log.ts` -- `writeActivityLog()` fire-and-forget (see [collaboration.md](../collaboration.md))
 
 ### Step 6 — Shared UI Primitives
 
-- [ ] `src/components/ui/local-date.tsx` -- `<LocalDate />` with `relative`, `date`, `datetime` formats (see [design-system.md](./design-system.md))
+- [ ] `src/components/ui/local-date.tsx` -- `<LocalDate />` with `relative`, `date`, `datetime` formats (see [design-system.md](../design-system.md))
 - [ ] `GET /api/health` route returning `{ ok: true, db: 'connected' }` after `db.execute(sql\`SELECT 1\`)` check
 
 ### Step 7 — Database
@@ -230,7 +230,7 @@ Phase 20 ->  QA & Launch Prep
   ```bash
   docker run --name kanbanica-db -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=kanbanica -p 5432:5432 -d postgres:16
   ```
-- [ ] Write Drizzle schema -- do in Phase 1 (see [database-schema.md](./database-schema.md))
+- [ ] Write Drizzle schema -- do in Phase 1 (see [database-schema.md](../database-schema.md))
 - [ ] `npx drizzle-kit generate`
 - [ ] `npx drizzle-kit migrate`
 
@@ -327,7 +327,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Full public-facing marketing site is live before auth pages. Visitors can see what the product is, view pricing, and click through to sign up.
 
-**Reference doc:** [landing-page.md](./landing-page.md)
+**Reference doc:** [landing-page.md](../landing-page.md)
 
 ### Tasks
 
@@ -378,7 +378,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Users can sign up, sign in, sign out, verify email, and reset password. Magic link passwordless login works.
 
-**Reference doc:** [authentication.md](./authentication.md), [settings.md](./settings.md) (section 1.1 + 1.2)
+**Reference doc:** [authentication.md](../authentication.md), [settings.md](../settings.md) (section 1.1 + 1.2)
 
 ### Tasks
 
@@ -412,7 +412,7 @@ Phase 20 ->  QA & Launch Prep
 - [ ] `/settings/account` — update name, avatar upload
 - [ ] `/settings/sessions` — view all active sessions, revoke individual, revoke all others
 
-**Avatar system (build once here, used everywhere — reference [avatar-system.md](./avatar-system.md)):**
+**Avatar system (build once here, used everywhere — reference [avatar-system.md](../avatar-system.md)):**
 - [ ] `getInitials(fullName)` utility — first + last initial, max 2 chars, uppercased
 - [ ] `getAvatarColor(userId)` utility — deterministic hash of UUID -> index into 10-color palette
 - [ ] `<Avatar>` component — accepts `user: { name, image, id }`, size prop (`xs/sm/md/lg/xl`), renders photo -> initials fallback in correct priority order
@@ -432,7 +432,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** New users are guided to create a Workspace and first Space before reaching the main app. Every screen a user can land on with no data shows a clear empty state with a CTA.
 
-**Reference docs:** [workspace.md](./workspace.md), [space.md](./space.md), [empty-states.md](./empty-states.md)
+**Reference docs:** [workspace.md](../workspace.md), [space.md](../space.md), [empty-states.md](../empty-states.md)
 
 ### Tasks
 
@@ -494,7 +494,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Full workspace management — create, edit, switch, invite members, manage roles.
 
-**Reference doc:** [workspace.md](./workspace.md), [settings.md](./settings.md) (sections 2 + 4)
+**Reference doc:** [workspace.md](../workspace.md), [settings.md](../settings.md) (sections 2 + 4)
 
 ### Tasks
 
@@ -520,7 +520,7 @@ Phase 20 ->  QA & Launch Prep
 - [ ] Danger zone: Delete workspace with confirmation modal
 - [ ] Transfer ownership modal
 - [ ] **Sidebar bottom — Workspace Settings icon** (`Settings` from Lucide): links to `/[workspaceId]/settings/general`; visible to Owner and Admin only (hidden for Member/Guest)
-- [ ] **Sidebar bottom — User profile row**: avatar + name; clicking opens a popover with links to `/settings/account`, `/settings/sessions`, `/settings/notifications`, and a Sign Out action (see [design-system.md](./design-system.md) Sidebar Bottom Bar section)
+- [ ] **Sidebar bottom — User profile row**: avatar + name; clicking opens a popover with links to `/settings/account`, `/settings/sessions`, `/settings/notifications`, and a Sign Out action (see [design-system.md](../design-system.md) Sidebar Bottom Bar section)
 - [ ] **Themes settings** (`/[workspaceId]/settings/themes`):
   - [ ] Appearance picker: Light / Dark / System cards
   - [ ] Accent color grid: 10 theme swatches (Indigo, Black, Purple, Blue, Pink, Violet, Orange, Teal, Bronze, Mint)
@@ -542,7 +542,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Spaces can be created, edited, archived, with members and permissions managed.
 
-**Reference doc:** [space.md](./space.md), [settings.md](./settings.md) (section 3)
+**Reference doc:** [space.md](../space.md), [settings.md](../settings.md) (section 3)
 
 ### Tasks
 
@@ -582,7 +582,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Folders can be created inside Spaces to organize Lists.
 
-**Reference doc:** [folder.md](./folder.md)
+**Reference doc:** [folder.md](../folder.md)
 
 ### Tasks
 
@@ -610,7 +610,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Lists can be created inside Spaces or Folders. Custom statuses work. Lists have full CRUD.
 
-**Reference doc:** [list.md](./list.md)
+**Reference doc:** [list.md](../list.md)
 
 ### Tasks
 
@@ -646,7 +646,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Full task management — the core of the product. All task fields, CRUD, and detail panel.
 
-**Reference doc:** [task.md](./task.md)
+**Reference doc:** [task.md](../task.md)
 
 ### Tasks
 
@@ -700,7 +700,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Tasks can have subtasks nested one level deep. Progress rollup works.
 
-**Reference doc:** [subtask.md](./subtask.md)
+**Reference doc:** [subtask.md](../subtask.md)
 
 ### Tasks
 
@@ -729,7 +729,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Sprints can be created, started, tasks added, and closed. Auto-create and auto-close toggles work.
 
-**Reference doc:** [sprint.md](./sprint.md)
+**Reference doc:** [sprint.md](../sprint.md)
 
 ### Tasks
 
@@ -767,7 +767,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Board View, Calendar View, and My Tasks View work alongside the existing List View.
 
-**Reference doc:** [views.md](./views.md)
+**Reference doc:** [views.md](../views.md)
 
 ### Tasks
 
@@ -810,7 +810,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Comments, replies, reactions, activity timeline, and file attachments all work.
 
-**Reference doc:** [collaboration.md](./collaboration.md)
+**Reference doc:** [collaboration.md](../collaboration.md)
 
 ### Tasks
 
@@ -842,7 +842,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Global search works across the workspace. List filters and sort work per view.
 
-**Reference doc:** [search-and-filters.md](./search-and-filters.md)
+**Reference doc:** [search-and-filters.md](../search-and-filters.md)
 
 ### Tasks
 
@@ -857,7 +857,7 @@ Phase 20 ->  QA & Launch Prep
 - [ ] Permission scoping — private Spaces excluded
 - [ ] Archived items excluded by default (toggle to include)
 
-**Keyboard Shortcuts (reference [keyboard-shortcuts.md](./keyboard-shortcuts.md)):**
+**Keyboard Shortcuts (reference [keyboard-shortcuts.md](../keyboard-shortcuts.md)):**
 - [ ] Global shortcut handler — single `keydown` listener on `window` with `{ capture: true }`, mounted in root client component
 - [ ] Suppress single-key shortcuts when focus is inside `<input>`, `<textarea>`, or `contenteditable`
 - [ ] `C` — open quick-create task (context-aware: inline in List View, modal elsewhere)
@@ -898,7 +898,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** In-app, email, and browser push notifications work for all trigger events.
 
-**Reference doc:** [notifications.md](./notifications.md)
+**Reference doc:** [notifications.md](../notifications.md)
 
 ### Tasks
 
@@ -955,7 +955,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Verify every API route and server action enforces permissions correctly. No route skips the check.
 
-**Reference doc:** [permission-model.md](./permission-model.md)
+**Reference doc:** [permission-model.md](../permission-model.md)
 
 ### Tasks
 
@@ -980,7 +980,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Internal `/admin` panel works for platform admins. User management, workspace management, support tickets, and analytics.
 
-**Reference doc:** [admin-panel.md](./admin-panel.md)
+**Reference doc:** [admin-panel.md](../admin-panel.md)
 
 ### Tasks
 
@@ -1032,7 +1032,7 @@ Phase 20 ->  QA & Launch Prep
 
 **Goal:** Help Center, Support Tickets, and Feature Requests are all functional.
 
-**Reference doc:** [customer-support.md](./customer-support.md)
+**Reference doc:** [customer-support.md](../customer-support.md)
 
 ### Tasks
 
