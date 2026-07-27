@@ -62,5 +62,17 @@ services:
         condition: service_completed_successfully
 
 volumes:
+  # Pinned to literal names (not just "pgdata"/"uploads") on purpose: Compose
+  # namespaces unnamed volumes as "<compose-project-name>_<volume-name>", and
+  # some deploy tools (observed with Dokploy) don't keep the project name
+  # stable across redeploys — that silently creates a NEW, empty volume each
+  # time, orphaning the old one (DB data or uploads) without any error. An
+  # upload appears to work right after it's made (same container, same
+  # volume still mounted) but is gone after the next redeploy, because the
+  # redeployed container mounted a fresh, empty volume instead of the one
+  # holding the file. Pinning guarantees every deploy reattaches to the same
+  # volume.
   pgdata:
+    name: kanbanica_pgdata
   uploads:
+    name: kanbanica_uploads
