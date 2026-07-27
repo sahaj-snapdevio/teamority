@@ -73,6 +73,6 @@ volumes:
   # holding the file. Pinning guarantees every deploy reattaches to the same
   # volume.
   pgdata:
-    name: kanbanica_pgdata
+    name: kanbanica-kanbanica-72jxmn_pgdata
   uploads:
-    name: kanbanica_uploads
+    name: kanbanica-kanbanica-72jxmn_uploads
