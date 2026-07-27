@@ -12,7 +12,7 @@ Full product specs live in `docs/`. Read the relevant doc before implementing an
 
 | Layer | Choice |
 |-------|--------|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Database | PostgreSQL |
 | ORM | Drizzle ORM |
@@ -21,7 +21,7 @@ Full product specs live in `docs/`. Read the relevant doc before implementing an
 | UI Components | shadcn/ui |
 | Rich Text | Tiptap |
 | Emoji Picker | emoji-mart (`@emoji-mart/react` + `@emoji-mart/data`) |
-| State | Zustand (client) + SWR (server) |
+| State | SWR (server) + React state/context (client) |
 | Real-time | SSE via `lib/sse-clients.ts` — notifications + live `data_changed` broadcasts (`refreshWorkspace`); see `docs/realtime.md` |
 | File Storage | files-sdk (local `fs` adapter in dev → S3/R2/GCS in prod) |
 | Background Jobs | pg-boss |
@@ -36,22 +36,28 @@ app/                       ← Next.js App Router
 ├── (auth)/                ← sign-in, onboarding (unauthenticated layout)
 ├── (app)/                 ← main app (authenticated layout)
 │   └── [workspaceId]/     ← workspace-scoped routes
+├── (orbit)/               ← platform admin panel (canonical — session-based)
+├── actions/               ← server actions (primary location — most mutations live here)
 ├── api/                   ← API route handlers
-└── admin/                 ← platform admin panel
+└── admin/                 ← platform admin panel (legacy — password-based login; see docs/admin-panel.md)
 components/
 ├── ui/                    ← shadcn/ui primitives
 └── common/                ← shared app components
+config/                    ← platform config (branding, dev-database settings)
 db/
 ├── schema/                ← Drizzle table definitions (one file per domain)
 └── migrations/            ← generated SQL migrations
+docs/                      ← feature specs, credential guides, architecture notes
+hooks/                     ← custom React hooks
 lib/
 ├── db.ts                  ← Drizzle client singleton
 ├── auth.ts                ← Better Auth server instance
 └── utils.ts               ← shared utilities
-hooks/                     ← custom React hooks
-store/                     ← Zustand stores
-types/                     ← TypeScript types and interfaces
-server/                    ← server actions
+public/                    ← static assets served at "/"
+scripts/                   ← CLI scripts (migrations, admin bootstrap, local dev DB)
+server/                    ← pinned-task / list-pin server actions (see app/actions/ for the primary location)
+tasks/                     ← ad-hoc agent/dev planning notes — not app code
+uploads/                   ← local file storage (STORAGE_DRIVER=local only), gitignored
 ```
 
 ---
@@ -199,6 +205,8 @@ server/                    ← server actions
 | Sprint | `docs/sprint.md` |
 | Pinned Tasks | `docs/pinned-tasks.md` |
 | Views | `docs/views.md` |
+| Calendar View | `docs/calendar-view.md` |
+| Time Tracking | `docs/time-tracking.md` |
 | Collaboration | `docs/collaboration.md` |
 | Real-time Sync | `docs/realtime.md` |
 | Notifications | `docs/notifications.md` |

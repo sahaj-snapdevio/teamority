@@ -1,5 +1,7 @@
 # Kanbanica — Open-Source Progress & Remaining Work
 
+> **Superseded.** This was a point-in-time snapshot. For current status see [`OPEN-SOURCE-RELEASE-REPORT.md`](./OPEN-SOURCE-RELEASE-REPORT.md); for the actionable remaining items see [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md). Kept for historical context.
+
 > Read-only status report. Compares the **Open-Source Readiness Audit** and the **Implementation Roadmap** against what's actually in the repo today (verified by inspection), then gives a **revised roadmap of only the remaining work**. Nothing here implements or changes code.
 >
 > Legend: ✅ Completed · 🟡 Partially completed · ❌ Not started

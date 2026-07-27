@@ -22,7 +22,7 @@ settings (not files in the repo).
 
 ## 3. Fill in placeholders
 
-- [ ] Replace `OWNER/REPO` in `.github/ISSUE_TEMPLATE/config.yml` (Discussions + security-advisory URLs)
+- [x] Replace `OWNER/REPO` in `.github/ISSUE_TEMPLATE/config.yml` (Discussions + security-advisory URLs)
 - [ ] Set a real security contact in `SECURITY.md` (or rely on GitHub Private Vulnerability Reporting)
 - [ ] Set a real enforcement contact in `CODE_OF_CONDUCT.md`
 - [ ] Resolve the ⚠️ item in `public/ATTRIBUTIONS.md` — confirm `log-illus.webp` is redistribution-safe, or replace it
@@ -33,7 +33,7 @@ Replace Mailtrap Sandbox with a real SMTP provider so users testing the **live
 demo** receive real magic-link emails. This is an **operational deployment
 change only** — configured in the demo deployment's own environment. **No SMTP
 credentials are committed to the repository** (it ships only an empty
-`.env.example`). See [DEPLOYMENT.md → Production email (SMTP)](./DEPLOYMENT.md#production-email-smtp).
+`.env.example`). See [DEPLOYMENT.md → Production email (SMTP)](../../DEPLOYMENT.md#production-email-smtp).
 
 > **Hosted demo (ours):** the live demo uses **our** SMTP credentials, set in the
 > demo server's environment. **Self-hosted deployments:** each operator must

@@ -1,6 +1,6 @@
 # Folder
 
-> **Post-MVP Feature.** Folder is not included in the initial MVP build. The MVP hierarchy is `Workspace → Space → List → Task → Subtask`. Folders will be introduced once teams are active and start accumulating enough Lists that grouping becomes necessary. See [improvement.md](./improvement.md) for the rationale.
+> **Post-MVP Feature.** Folder is not included in the initial MVP build. The MVP hierarchy is `Workspace → Space → List → Task → Subtask`. Folders will be introduced once teams are active and start accumulating enough Lists that grouping becomes necessary.
 
 ---
 

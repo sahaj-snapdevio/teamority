@@ -52,7 +52,7 @@ Workspace
 | Dependencies | Task[] | No | Blocked by / Blocking relationships to other tasks |
 | Subtasks | Task[] | No | Child tasks nested under this task |
 
-> **Time tracking removed:** the time-tracking UI (Time Estimate, Time Logged, "Log time") has been removed from the task detail. Any legacy time-log records may still exist in the database, but there is no UI to create or view them.
+> **Time Tracking:** a live timer + manual time log feature lives in the task detail (Time Tracking section) — start/stop a timer, log a completed block of time, and view a per-user history grouped by day. Not listed as a Task Field above because it's entry-based (many `TimeEntry` rows per task), not a single field. See `docs/time-tracking.md`.
 
 > **Custom Fields:** beyond the built-in fields above, a Project/Workspace/List can define extra per-task fields (Text, Number, Checkbox, Single/Multi Select, Date, Person). See `docs/custom-fields.md`.
 
@@ -703,6 +703,5 @@ src/
 - Email-to-task (create task by sending an email)
 - AI-generated task descriptions
 - Task approval workflow
-- Time tracking (live timer **and** manual time log) — the time-tracking UI has been removed; all of time tracking is now out of scope
 - Subtask progress auto-closing parent task
 - **Description version history with diff and restore** — full history (like Notion's page history or Jira's description diff) is post-MVP. MVP provides one level of recovery via `TaskDescriptionSnapshot` (restore the immediately previous version only). Research note: ClickUp and Linear also do not offer description restore — they only log that the description changed, not what it was.

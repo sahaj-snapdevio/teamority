@@ -4,7 +4,7 @@
 
 Views are different ways to visualize and interact with tasks. The same underlying tasks can be seen in multiple views — switching view does not change the data, only how it is displayed.
 
-**View preference is per user per List** — switching your view does not affect what other members see.
+**Switching your view does not affect what other members see** — it's local UI state, not a shared setting. It is also not remembered: reloading the page or navigating back into a List resets to List View unless the URL still carries `?view=board`/`?view=calendar` (see [View & Preference Persistence](#view--preference-persistence) below for exactly what is and isn't remembered).
 
 **MVP Views:**
 | View | Scope | Description |
@@ -280,54 +280,46 @@ My Tasks
 Every List has a view switcher in the toolbar (top of the List page):
 
 ```
-[ List ] [ Board ]
+[ List ] [ Board ] [ Calendar ]
 ```
 
-- Clicking a view tab switches to that view
-- Selected view is remembered per user per List
+- Clicking a view tab switches to that view instantly (client-side, no reload)
+- The selected tab is **not** remembered — it resets to List View on the next visit unless the URL explicitly carries `?view=board` or `?view=calendar` (see [View & Preference Persistence](#view--preference-persistence))
 - My Tasks is accessible from the global left sidebar, not the List toolbar
 
 ---
 
-## Data Model
+## View & Preference Persistence
 
-No separate table needed for views — view preference is stored as user settings.
+There is no `UserListViewPreference` or `UserMyTasksPreference` table — no such table exists in `db/schema/`. Every view/preference is either plain client-side `localStorage`, or not persisted at all:
 
-```
-UserListViewPreference
-├── id                  (uuid, primary key)
-├── user_id             (foreign key → User)
-├── list_id             (foreign key → List)
-├── view_type           (enum: list | board)
-├── column_config       (json — visible columns and order for List View)
-├── group_by            (string, nullable — grouping preference)
-├── sort_by             (string, nullable)
-├── sort_direction      (enum: asc | desc, nullable)
-└── updated_at          (timestamp)
+| What | Mechanism | Scope | Persisted across visits? |
+|---|---|---|---|
+| Active view tab (List/Board/Calendar) | React state seeded once from the `?view=` URL query param, default `list` (`list-container.tsx`) | Current page load only | **No** — resets to List unless the URL carries `?view=` |
+| List View sort / group-by / filters | `localStorage` key `kanbanica:list-view:{listId}` — JSON blob of `sortBy`, `sortOrder`, `groupBy`, `priorityFilter`, `assigneeFilter`, `statusFilter`, `customFieldFilters` (`list-view.tsx`) | Per list, per browser | Yes |
+| List View column visibility | `localStorage` key `kanbanica:list-columns:{listId}` via `useListColumnPreferences` (`hooks/use-list-column-preferences.ts`) | Per list, per browser | Yes — **custom fields only**; built-in columns (Priority, Due Date, Assignee, Tags) aren't toggleable yet, see the code comment in `list-view.tsx`'s Columns menu |
+| Archived section expanded/collapsed | `localStorage` key `kanbanica:list-archived:{listId}` (`list-container.tsx`) | Per list, per browser | Yes |
+| Calendar's displayed month | `localStorage` key `kanbanica:calendar-month:{listId}` (`calendar-view.tsx`) | Per list, per browser | Yes |
+| My Tasks group-by / show-completed | Plain `React.useState`, default `"due_date"` / `false` (`components/my-tasks/my-tasks-view.tsx`) | Current page load only | **No** — resets on every visit |
 
-UserMyTasksPreference
-├── id                  (uuid, primary key)
-├── user_id             (foreign key → User)
-├── group_by            (enum: due_date | space | list | priority | status, default: due_date)
-├── show_completed      (boolean, default: false)
-└── updated_at          (timestamp)
-```
+Practical consequences: nothing here syncs across devices or browsers (it's `localStorage`, not server state), there's no account/settings UI that surfaces or resets these values, and the active List/Board/Calendar tab itself is the one thing that doesn't even survive a reload on the same device. A server-backed preferences table is a reasonable future addition but isn't built today — treat any earlier draft of this document describing one as aspirational, not current.
 
 ---
 
-## API Endpoints
+## How view data actually loads and mutates
 
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| GET | `/api/lists/:listId/tasks?view=list` | Get tasks for List View (with sort/filter/group params) | Space member |
-| GET | `/api/lists/:listId/tasks?view=board` | Get tasks grouped by status for Board View | Space member |
-| GET | `/api/me/tasks` | Get all tasks assigned to current user (My Tasks) | Authenticated user |
-| PATCH | `/api/me/list-preferences/:listId` | Save view preference for a List | Authenticated user |
-| PATCH | `/api/me/my-tasks-preferences` | Save My Tasks grouping/filter preference | Authenticated user |
-| POST | `/api/tasks/bulk` | Apply a bulk action to multiple tasks | Edit / Full Access / Admin+ |
-| POST | `/api/lists/:listId/close-all` | Close all open tasks in a List (respects active filters) | Full Access / Admin+ |
-| POST | `/api/lists/:listId/archive-closed` | Archive all closed tasks in a List | Full Access / Admin+ |
-| POST | `/api/sprints/:id/mark-all-done` | Mark all incomplete sprint tasks as done (used in close sprint modal) | Full Access / Admin+ |
+There is no versioned REST API for views — Kanbanica reads and writes through Next.js Server Components and Server Actions, not a separate `/api/*` surface, for almost everything below:
+
+| Operation | How it actually works | Where |
+|---|---|---|
+| Load List/Board tasks | The List page (`page.tsx`) is a Server Component — it queries Drizzle directly and passes the result as props to `<ListContainer>`. No client-side fetch, no `/api/lists/:listId/tasks` route. | `app/(app)/[workspaceId]/[spaceId]/list/[listId]/page.tsx` |
+| Load My Tasks | `getMyTasks()` Server Action — cross-workspace, called directly from `MyTasksView`. | `app/actions/my-tasks.ts` |
+| Bulk status change / delete / archive / move | Four separate Server Actions, not one generic "bulk" endpoint: `bulkUpdateStatus`, `bulkDeleteTasks`, `bulkArchiveTasks`, `bulkMoveTasks`. | `app/actions/task.ts` |
+| Archive / unarchive a List | `archiveList` / `unarchiveList` Server Actions. | `app/actions/list.ts` |
+| Mark all incomplete sprint tasks done / close a sprint | `markAllSprintTasksDone` / `closeSprint` Server Actions. | `app/actions/sprint.ts` |
+| Pinned-task reordering | The one real REST route in this area: `PATCH /api/lists/[listId]/pinned-tasks/reorder`. | `app/api/lists/[listId]/pinned-tasks/reorder/route.ts` |
+
+**"Close All Tasks" and "Archive All Closed Tasks" as dedicated toolbar actions (referenced in earlier drafts of the Business Rules below) were not found anywhere in the codebase** — no matching Server Action, API route, or UI copy exists. If these are still wanted, they need to be built, not just re-documented; this doc no longer claims they exist.
 
 ---
 
@@ -335,9 +327,10 @@ UserMyTasksPreference
 
 | Screen | Route | Access |
 |--------|-------|--------|
-| List View | `/space/:spaceId/list/:listId?view=list` | Space member |
-| Board View | `/space/:spaceId/list/:listId?view=board` | Space member |
-| My Tasks | `/my-tasks` | All workspace members |
+| List View | `/[workspaceId]/[spaceId]/list/[listId]` (default; `?view=list` also works) | Space member |
+| Board View | `/[workspaceId]/[spaceId]/list/[listId]?view=board` | Space member |
+| Calendar View | `/[workspaceId]/[spaceId]/list/[listId]?view=calendar` | Space member |
+| My Tasks | `/[workspaceId]/my-tasks` | All workspace members |
 
 ---
 
@@ -356,14 +349,13 @@ UserMyTasksPreference
 12. Bulk actions are applied server-side atomically per task — if one task fails a permission check, that task is skipped and the others still apply. The result message shows how many succeeded and how many were skipped.
 13. Each task in a bulk action generates its own Activity Log entry — bulk actions do not create a single grouped log.
 14. Bulk delete requires an explicit confirmation modal showing the exact count — no undo.
-15. "Close All Tasks" and "Archive All Closed Tasks" respect active filters — only visible tasks are affected. The confirmation dialog always states the exact count and whether filters are applied.
+15. "Close All Tasks" and "Archive All Closed Tasks" are **not currently implemented** — no matching Server Action, API route, or UI control exists (verified against `app/actions/task.ts`, `app/actions/list.ts`, and the List View toolbar). This bullet describes the originally-planned behavior (respecting active filters, a confirmation dialog stating the exact count) for if/when it's built — see [How view data actually loads and mutates](#how-view-data-actually-loads-and-mutates).
 16. "Mark all as Done" inside the Close Sprint modal uses the List's `closed`-type status — if the List has multiple closed-type statuses, the first one in the status order is used.
 
 ---
 
 ## Out of Scope (MVP)
 
-- Calendar View -- full spec preserved in [calendar-view.md](./calendar-view.md), planned for post-MVP
 - Gantt / Timeline View
 - Table / Spreadsheet View
 - Workload View (capacity per member)
@@ -375,60 +367,25 @@ UserMyTasksPreference
 
 ## Implementation Notes
 
-### Board View -- SSR Safety (Critical)
+### Board View -- SSR and dnd-kit
 
-dnd-kit imports the browser's `window` object at module load time. In Next.js App Router, page components are server-rendered by default. A direct import of any dnd-kit module will crash the server render with `ReferenceError: window is not defined`.
-
-**Board View page must use dynamic import:**
-
-```typescript
-// src/app/(app)/[workspaceId]/[spaceId]/list/[listId]/page.tsx
-import dynamic from 'next/dynamic'
-
-const BoardView = dynamic(
-  () => import('@/components/views/board-view'),
-  { ssr: false }
-)
-```
-
-`board-view.tsx` and any component it imports that uses dnd-kit must never be imported at the module level in a server component. This is non-negotiable -- a missing `ssr: false` will cause a hard production crash.
+The original plan assumed dnd-kit accesses `window` at module load and required a `dynamic(..., { ssr: false })` wrapper to avoid crashing server render. **The shipped implementation does not do this** — `board-view.tsx` (and `calendar-view.tsx`, which also uses dnd-kit) are plain `"use client"` components, statically imported into `list-container.tsx` like any other component, with dnd-kit imported at the top of the file. This works because `@dnd-kit/core`/`@dnd-kit/sortable` (currently `^6.x` — see `package.json`) don't touch `window` at module scope; they defer any browser API access into effects that only run client-side. If you're adding a new dnd-kit-based view, follow the existing pattern (plain `"use client"` import) rather than reaching for `dynamic({ ssr: false })` — it isn't needed with the dnd-kit version this project uses.
 
 Add a `// NOTE: ssr: false required -- dnd-kit accesses window` comment at the dynamic import to prevent future removal.
-
-### `UserListViewPreference` and `UserMyTasksPreference` -- Phase 12 Deferral
-
-These tables are **not available until Phase 12**. Do NOT implement view preference persistence before Phase 12.
-
-**Until Phase 12:**
-- Default all users to List View
-- Use `localStorage` for transient view preference (survives page refresh but not cross-device)
-- Do NOT create `UserListViewPreference` or `UserMyTasksPreference` DB records
-
-```typescript
-// src/hooks/use-list-view-preference.ts  (Phase 1-11 version)
-export function useListViewPreference(listId: string) {
-  const [view, setView] = useLocalStorage(`view:${listId}`, 'list')
-  return { view, setView }
-}
-```
-
-When Phase 12 arrives: replace the `useLocalStorage` hook with a SWR-backed server preference, migrate existing localStorage values, and add the DB tables via a Drizzle migration (`npx drizzle-kit generate`).
 
 ### Board View Column Order
 
 Columns in Board View are ordered by `ListStatus.orderIndex`. This is the same `orderIndex` managed in List Settings. There is no separate Board column order -- status order is authoritative for both views.
 
-When drag-and-drop moves a task from one column to another, call `PATCH /api/tasks/:id` with `{ statusId: <newStatusId> }`. Do NOT reorder columns on drag.
+When drag-and-drop moves a task from one column to another, `board-view.tsx`'s `onDragEnd` calls the `updateTaskStatus` Server Action (`app/actions/task.ts`) — there is no `/api/tasks/:id` REST route. Do NOT reorder columns on drag.
 
 ### `order_index` for Task Drag Reordering
 
 Tasks within a List (and within a Board View column) use integer `order_index` for drag ordering.
 
-**Strategy:** Use a gap of 1000 between new tasks (0, 1000, 2000, 3000...) to allow insertions without full reindex. When inserting between two tasks, use the midpoint. When the gap between adjacent tasks reaches 0, rebalance:
+**Strategy:** Use a gap of 1000 between new tasks (0, 1000, 2000, 3000...) to allow insertions without full reindex. When inserting between two tasks, use the midpoint. When the gap between adjacent tasks reaches 0, rebalance. This is the same gap/rebalance strategy used elsewhere in the app (e.g. custom field ordering, pinned-task ordering) — illustrative pseudocode below, not a literal file:
 
 ```typescript
-// src/lib/tasks/reorder-task.ts
-
 async function reorderTask(taskId: string, afterTaskId: string | null, listId: string) {
   // Get the task before and after the new position
   const [before, after] = await getAdjacentTasks(afterTaskId, listId)
@@ -455,55 +412,29 @@ async function reorderTask(taskId: string, afterTaskId: string | null, listId: s
 
 ### My Tasks Query
 
-`GET /api/me/tasks` must join across Spaces the user has access to (not all tasks in all workspaces):
-
-```typescript
-// src/lib/tasks/get-my-tasks.ts
-
-async function getMyTasks(userId: string, workspaceId: string) {
-  // Only include tasks in Spaces the user is a member of (or Public spaces)
-  const accessibleSpaceIds = await getAccessibleSpaceIds(userId, workspaceId)
-
-  return db.task.findMany({
-    where: {
-      isArchived: false,
-      assignees: { some: { userId } },
-      list: {
-        space: { id: { in: accessibleSpaceIds } }
-      }
-    },
-    include: {
-      status: true,
-      list: { include: { space: true } },
-      assignees: true,
-    },
-    orderBy: { dueDateEnd: 'asc' }
-  })
-}
-```
+`getMyTasks(options?: { showCompleted?: boolean })` — a Server Action, not a REST route — in `app/actions/my-tasks.ts`. It's cross-workspace: for every **ACTIVE** workspace the caller belongs to, it takes the union of `getAccessibleSpaceIds()` (`lib/permissions.ts`) and returns tasks assigned to the caller within that combined set, each annotated with its `workspace`/`space`/`list`/`status`/`tags`. See [`docs/task.md`](./task.md) and the `MyTask`/`MyTasksGroupBy` types in `app/actions/my-tasks.ts` for the full shape.
 
 ### Folder Mapping
 
 ```
-src/
-  app/(app)/[workspaceId]/[spaceId]/list/[listId]/
-    page.tsx                <- view switcher; Board view uses dynamic import
-  components/views/
-    list-view.tsx           <- standard SSR-safe list
-    board-view.tsx          <- client-only (dnd-kit); loaded via dynamic({ ssr: false })
-    board-column.tsx        <- single kanban column
-    board-task-card.tsx     <- draggable task card
-    my-tasks-view.tsx       <- global my-tasks; no dnd-kit; SSR-safe
-  hooks/
-    use-list-view-preference.ts   <- localStorage until Phase 12
-  app/api/
-    me/
-      tasks/route.ts
-      list-preferences/[listId]/route.ts
-      my-tasks-preferences/route.ts
-    lists/[listId]/
-      close-all/route.ts
-      archive-closed/route.ts
-    tasks/bulk/route.ts
-    sprints/[id]/mark-all-done/route.ts
+app/(app)/[workspaceId]/[spaceId]/list/[listId]/
+  page.tsx                        <- Server Component: queries Drizzle directly, passes tasks as props
+  _components/
+    list-container.tsx            <- view switcher (List/Board/Calendar tabs)
+    list-view.tsx                 <- List View, incl. sort/group/filter/column UI
+    board-view.tsx                <- Board View ("use client", dnd-kit)
+    calendar-view.tsx             <- Calendar View
+components/my-tasks/
+  my-tasks-view.tsx                <- global My Tasks view
+hooks/
+  use-list-column-preferences.ts  <- localStorage-backed column visibility (custom fields only)
+app/actions/
+  my-tasks.ts                     <- getMyTasks()
+  task.ts                         <- bulkUpdateStatus, bulkDeleteTasks, bulkArchiveTasks, bulkMoveTasks, updateTaskStatus, archiveTask, unarchiveTask, ...
+  list.ts                         <- archiveList, unarchiveList
+  sprint.ts                       <- markAllSprintTasksDone, closeSprint
+app/api/lists/[listId]/pinned-tasks/reorder/
+  route.ts                        <- the one real REST route in this area
 ```
+
+No `app/api/me/*`, `app/api/lists/[listId]/{close-all,archive-closed}`, or `app/api/tasks/bulk` routes exist — those were part of the original planning spec and were never built; the actual functionality (where it exists at all — see the caveat on "Close All"/"Archive All Closed" above) lives in the Server Actions listed above instead.

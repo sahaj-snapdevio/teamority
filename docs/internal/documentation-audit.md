@@ -1,5 +1,7 @@
 ﻿# Kanbanica -- Complete Documentation Audit
 
+> **Superseded.** This was the earliest documentation audit (pre-dating the open-source conversion work). For current documentation status see the [`OPEN-SOURCE-RELEASE-REPORT.md`](./OPEN-SOURCE-RELEASE-REPORT.md) and the actionable items in [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md). Kept for historical reference only.
+
 **Roles applied:** Senior Product Manager, Staff Software Engineer, Solution Architect, Documentation Architect
 
 **Audit Date:** 2026-06-09

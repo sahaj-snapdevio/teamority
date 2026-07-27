@@ -1,5 +1,7 @@
 # Kanbanica — Open-Source Implementation Roadmap
 
+> **Superseded.** This execution plan has since been carried out and re-verified — see [`OPEN-SOURCE-PROGRESS.md`](./OPEN-SOURCE-PROGRESS.md) for what was completed against these item IDs, [`OPEN-SOURCE-RELEASE-REPORT.md`](./OPEN-SOURCE-RELEASE-REPORT.md) for current status, and [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) for what's still actionable. Kept for historical context on the original plan.
+>
 > Companion to `OPEN-SOURCE-READINESS-AUDIT.md`. This document turns the audit findings into a **prioritized, dependency-aware execution plan**. No code has been changed. Item IDs (C1–C6, R1–R8, N1–N10) map 1:1 to the audit.
 
 **Complexity key:** **S** = Small (≤1 h, mechanical) · **M** = Medium (few hours, some judgment) · **L** = Large (a day+, cross-cutting).

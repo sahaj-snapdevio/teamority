@@ -1,5 +1,7 @@
 # Kanbanica — Open-Source Readiness Audit & Release Plan
 
+> **Superseded.** This was the original audit that kicked off the open-source conversion. For current status see [`OPEN-SOURCE-RELEASE-REPORT.md`](./OPEN-SOURCE-RELEASE-REPORT.md); for remaining actionable items see [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md). Kept for historical context on the original findings.
+
 ## Context
 
 Kanbanica is a Next.js 15 project-management SaaS (ClickUp-style: Workspaces → Projects/Spaces → Lists/Sprints → Tasks) that the owner wants to publish as a self-hostable open-source project expecting significant community traction. This document is a **read-only audit** — no code was changed. It identifies every SaaS-specific assumption, security/secret/licensing concern, and community-health gap, then gives a prioritized, phased implementation plan.
