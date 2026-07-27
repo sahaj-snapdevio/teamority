@@ -36,8 +36,10 @@ Kanbanica is a self-hostable, ClickUp-style project management app. Teams organi
 
 ## Screenshots
 
-> _Screenshots coming soon._ See [`docs/screenshots/`](./docs/screenshots/) for the
-> list of captures we're looking for — contributions welcome.
+![Kanbanica](docs/screenshots/demo.png)
+
+More captures (Board, List, Sprint, Task detail, mobile) are welcome — see
+[`docs/screenshots/`](./docs/screenshots/) for the list we're looking for.
 
 ## Tech Stack
 
