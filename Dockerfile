@@ -11,6 +11,22 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
+# sharp's native binary (libvips) is dlopen'd at runtime based on platform/arch,
+# which the standalone output's file-tracer can miss. node_modules/@img (the
+# package holding it) is NOT hoisted to the top level under pnpm's default
+# isolated linking — it only exists nested inside sharp's own private
+# dependency scope (node_modules/.pnpm/sharp@<version>/node_modules/@img),
+# a sibling of sharp itself, not inside it. This stage dereferences that
+# entire scope (sharp + @img + its other siblings) into plain, non-symlinked
+# files so they can be copied into the runner as-is below.
+FROM node:22-bookworm-slim AS sharp-deps
+
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+RUN real_dir="$(dirname "$(readlink -f node_modules/sharp)")" \
+  && mkdir -p /sharp-runtime \
+  && cp -rL "$real_dir/." /sharp-runtime/
+
 
 FROM node:22-bookworm-slim AS builder
 
@@ -53,13 +69,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# sharp's native binary (libvips) is loaded dynamically based on platform/arch,
-# which the standalone output's file-tracer can miss — copy the real installed
-# package (and pnpm's content store, since node_modules/sharp is a symlink into
-# it) from `deps` explicitly rather than relying on what standalone traced.
-COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
-COPY --from=deps /app/node_modules/sharp ./node_modules/sharp
-COPY --from=deps /app/node_modules/@img ./node_modules/@img
+# The standalone trace leaves node_modules/sharp (and its native deps) as
+# symlinks into a pruned .pnpm store missing sharp's libvips .so — COPY can't
+# merge a real directory tree onto an existing symlink/file at the same path
+# ("cannot copy to non-directory"), so clear those exact entries first, then
+# overlay the fully-dereferenced real files from the sharp-deps stage above.
+RUN rm -rf node_modules/sharp node_modules/@img node_modules/detect-libc node_modules/semver
+COPY --from=sharp-deps /sharp-runtime/. ./node_modules/
 
 # Local-storage uploads live here; mount a volume to persist across redeploys.
 RUN mkdir -p /app/uploads && chown -R kanbanica:kanbanica /app/uploads
