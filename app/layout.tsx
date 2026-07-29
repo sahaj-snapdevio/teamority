@@ -22,8 +22,8 @@ export const metadata: Metadata = {
   },
   description: PRODUCT_DESCRIPTION,
   icons: {
-    icon: "/Kanbanica3.png",
-    apple: "/Kanbanica3.png",
+    icon: "/Kanbanica.png",
+    apple: "/Kanbanica.png",
   },
 };
 

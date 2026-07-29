@@ -7,7 +7,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { EnvelopeIcon, PaperPlaneTiltIcon, CheckCircleIcon, GoogleLogoIcon, SignInIcon } from "@phosphor-icons/react";
+import { EnvelopeIcon, PaperPlaneTiltIcon, CheckCircleIcon, SignInIcon } from "@phosphor-icons/react";
+import { GoogleIcon } from "@/components/common/google-icon";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-errors";
 import type { AuthMethods } from "@/lib/auth-config";
@@ -162,7 +163,7 @@ export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMet
             disabled={busy}
             onClick={handleGoogleSignIn}
           >
-            {googleLoading ? <Spinner className="size-4" /> : <GoogleLogoIcon className="size-4" />}
+            {googleLoading ? <Spinner className="size-4" /> : <GoogleIcon className="size-4" />}
             {googleLoading ? "Connecting…" : "Continue with Google"}
           </Button>
 
@@ -315,7 +316,7 @@ export function LoginForm({ methods = DEFAULT_METHODS }: { methods?: AuthMethods
         {methods.google && (
           <>
             <Button type="button" variant="outline" className="w-full gap-2" disabled={busy} onClick={handleGoogleSignIn}>
-              {googleLoading ? <Spinner className="size-4" /> : <GoogleLogoIcon className="size-4" />}
+              {googleLoading ? <Spinner className="size-4" /> : <GoogleIcon className="size-4" />}
               Continue with Google
             </Button>
             <div className="flex items-center gap-3">

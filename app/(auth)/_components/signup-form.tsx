@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircleIcon, GoogleLogoIcon, SignInIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, SignInIcon } from "@phosphor-icons/react";
+import { GoogleIcon } from "@/components/common/google-icon";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage, isUserExistsCode } from "@/lib/auth-errors";
 import type { AuthMethods } from "@/lib/auth-config";
@@ -131,7 +132,7 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
             disabled={busy}
             onClick={handleGoogleSignIn}
           >
-            {googleLoading ? <Spinner className="size-4" /> : <GoogleLogoIcon className="size-4" />}
+            {googleLoading ? <Spinner className="size-4" /> : <GoogleIcon className="size-4" />}
             {googleLoading ? "Connecting…" : "Continue with Google"}
           </Button>
 
