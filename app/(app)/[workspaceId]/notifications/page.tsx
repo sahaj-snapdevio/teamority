@@ -607,7 +607,9 @@ export default function InboxPage() {
           })}
         </div>
 
-        {/* Search + filters */}
+        {/* Search + filters + pagination — pagination sits inline here (not its
+            own row) since SearchInput's flex-1 already pushes everything after
+            it to the far right, leaving empty space this reuses. */}
         <div className="flex items-center gap-2 border-b px-4 py-2 shrink-0">
           <SearchInput
             className="h-8 flex-1"
@@ -665,37 +667,37 @@ export default function InboxPage() {
               )}
             </PopoverContent>
           </Popover>
-        </div>
 
-        {/* Pagination — Gmail-style "51–100 of 300" + Previous/Next, shown
-            only once there's more than one page's worth of results. */}
-        {totalCount > NOTIFICATIONS_PAGE_SIZE && (
-          <div className="flex items-center justify-end gap-3 border-b px-4 py-2 shrink-0">
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {pageStart}–{pageEnd} of {totalCount}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                aria-label="Previous page"
-                className="flex size-6 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-                disabled={!canGoPrev || isValidating}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                type="button"
-              >
-                <CaretLeftIcon className="size-3.5" />
-              </button>
-              <button
-                aria-label="Next page"
-                className="flex size-6 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-                disabled={!canGoNext || isValidating}
-                onClick={() => setPage((p) => p + 1)}
-                type="button"
-              >
-                <CaretRightIcon className="size-3.5" />
-              </button>
+          {/* Pagination — Gmail-style "51–100 of 300" + Previous/Next, shown
+              only once there's more than one page's worth of results. */}
+          {totalCount > NOTIFICATIONS_PAGE_SIZE && (
+            <div className="ml-auto flex shrink-0 items-center gap-3 border-l pl-3">
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {pageStart}–{pageEnd} of {totalCount}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  aria-label="Previous page"
+                  className="flex size-6 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                  disabled={!canGoPrev || isValidating}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  type="button"
+                >
+                  <CaretLeftIcon className="size-3.5" />
+                </button>
+                <button
+                  aria-label="Next page"
+                  className="flex size-6 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                  disabled={!canGoNext || isValidating}
+                  onClick={() => setPage((p) => p + 1)}
+                  type="button"
+                >
+                  <CaretRightIcon className="size-3.5" />
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* List */}
         <div className="flex-1 overflow-y-auto" ref={scrollRef}>

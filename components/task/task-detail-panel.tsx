@@ -686,7 +686,7 @@ export function TaskDetailPanel({
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Main column */}
         <div
-          className="flex-1 min-w-0 overflow-y-auto px-6 py-4 space-y-6"
+          className="flex-1 min-w-0 overflow-y-auto px-6 pt-4 space-y-6"
           ref={mainColumnRef}
         >
           {/* Status + Priority row */}

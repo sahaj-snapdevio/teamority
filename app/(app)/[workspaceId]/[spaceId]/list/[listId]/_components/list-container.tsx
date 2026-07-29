@@ -25,6 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { PRODUCT_NAME } from "@/config/platform";
 import { useSetTopbar } from "@/lib/topbar-context";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
@@ -78,7 +79,12 @@ interface ListContainerProps {
   members: { userId: string; name: string | null; email: string | null }[];
   personallyPinnedIds: Set<string>;
   pinnedTasks: Task[];
-  space: { id: string; name: string; color: string | null; logoEmoji: string | null };
+  space: {
+    id: string;
+    name: string;
+    color: string | null;
+    logoEmoji: string | null;
+  };
   statuses: Status[];
   tags: { id: string; name: string; color: string }[];
   tasks: Task[];
@@ -222,6 +228,19 @@ export function ListContainer({
       setPendingView(null);
     });
   }
+
+  // The tab title is server-rendered from the list/space name (`page.tsx`'s
+  // generateMetadata), which has no way to know which of List/Board/Calendar
+  // is active — that's client-only state. Keep the tab in sync on the client
+  // instead, prefixing the view label for Board/Calendar so the title
+  // actually reflects what's on screen; List keeps the original title as-is.
+  React.useEffect(() => {
+    const viewLabel = VIEWS.find((v) => v.key === view)?.label;
+    document.title =
+      view === "list"
+        ? `${list.name} · ${space.name} | ${PRODUCT_NAME}`
+        : `${viewLabel} · ${list.name} · ${space.name} | ${PRODUCT_NAME}`;
+  }, [view, list.name, space.name]);
 
   const showBoardSkeleton = isViewPending && pendingView === "board";
   const [deleteOpen, setDeleteOpen] = useState(false);

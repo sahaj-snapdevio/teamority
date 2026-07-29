@@ -98,6 +98,7 @@ interface ListSummary {
   description: string | null;
   id: string;
   name: string;
+  taskCount?: number;
 }
 
 interface SprintSummary {
@@ -285,7 +286,9 @@ export function WorkspaceShell({
 
   // The account menu opens on hover. A short close delay lets the pointer travel
   // from the trigger into the (portaled) menu without it snapping shut.
-  const profileCloseTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const profileCloseTimer = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   function openProfileMenu() {
     if (profileCloseTimer.current) clearTimeout(profileCloseTimer.current);
     setProfileOpen(true);
@@ -317,7 +320,11 @@ export function WorkspaceShell({
             t.tagName === "TEXTAREA" ||
             t.tagName === "SELECT");
         if (typing) return;
-        if (document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]')) {
+        if (
+          document.querySelector(
+            '[role="dialog"], [data-radix-popper-content-wrapper]'
+          )
+        ) {
           return;
         }
         e.preventDefault();
@@ -356,7 +363,10 @@ export function WorkspaceShell({
         open={searchOpen}
         workspaceId={workspace.id}
       />
-      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <KeyboardShortcutsDialog
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+      />
       <CreateSpaceModal
         onOpenChange={setCreateSpaceOpen}
         open={createSpaceOpen}
@@ -551,7 +561,9 @@ export function WorkspaceShell({
                   className="flex size-5 items-center justify-center rounded text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
                   onClick={toggleAllSpaces}
                   title={
-                    allSpacesCollapsed ? "Expand all projects" : "Collapse all projects"
+                    allSpacesCollapsed
+                      ? "Expand all projects"
+                      : "Collapse all projects"
                   }
                 >
                   <CaretUpDownIcon className="size-3.5" />
@@ -676,334 +688,355 @@ export function WorkspaceShell({
                     </Popover>
                   </div>
                   {!collapsedSpaces.has(s.id) && (
-                  <div className="space-y-0.5">
-                    {s.lists.map((l) => {
-                      const href = `/${workspace.id}/${s.id}/list/${l.id}`;
-                      const active = pathname === href;
-                      return (
-                        <div
-                          className="group/list relative flex items-center"
-                          key={l.id}
-                        >
-                          <Link
-                            className={cn(
-                              "relative flex flex-1 items-center gap-2 rounded-md py-1.5 pr-7 pl-7 text-[13px] transition-colors select-none",
-                              active
-                                ? "bg-(--bg-sidebar-item-active) text-(--text-sidebar-active) font-medium overflow-hidden after:absolute after:left-0 after:inset-y-0 after:w-0.75 after:bg-primary"
-                                : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
-                            )}
-                            href={href}
-                            onClick={() => setSidebarOpen(false)}
-                          >
-                            <ListIcon
-                              className="size-3.5 shrink-0"
-                              style={{ color: l.color ?? "#9CA3AF" }}
-                              weight="bold"
-                            />
-                            <span className="truncate">{l.name}</span>
-                          </Link>
-                          {s.canManageList && (
-                            <Popover
-                              onOpenChange={(o) =>
-                                setOpenMenu(o ? `list-${l.id}` : null)
-                              }
-                              open={openMenu === `list-${l.id}`}
-                            >
-                              <PopoverTrigger asChild>
-                                <button
-                                  className="absolute right-1 opacity-0 transition-opacity group-hover/list:opacity-100 flex size-5 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
-                                  onClick={(e) => e.stopPropagation()}
-                                  title="List options"
-                                >
-                                  <DotsThreeIcon
-                                    className="size-4.5 text-(--text-muted)"
-                                    weight="bold"
-                                  />
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                align="start"
-                                className="w-44 p-1"
-                                onClick={() => setOpenMenu(null)}
-                                side="right"
-                              >
-                                <Link
-                                  className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
-                                  href={`/${workspace.id}/${s.id}/list/${l.id}/settings/general`}
-                                  onClick={() => setSidebarOpen(false)}
-                                >
-                                  <GearIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                                  Settings
-                                </Link>
-                                <Link
-                                  className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
-                                  href={`/${workspace.id}/${s.id}/list/${l.id}/settings/statuses`}
-                                  onClick={() => setSidebarOpen(false)}
-                                >
-                                  <PencilSimpleIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                                  Manage Statuses
-                                </Link>
-                                <button
-                                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
-                                  onClick={() =>
-                                    setDuplicateListTarget({
-                                      spaceId: s.id,
-                                      list: l,
-                                    })
-                                  }
-                                >
-                                  <CopyIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                                  Duplicate
-                                </button>
-                                <div className="my-1 h-px bg-border" />
-                                <button
-                                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                                  onClick={async () => {
-                                    const res = await archiveList(
-                                      workspace.id,
-                                      s.id,
-                                      l.id
-                                    );
-                                    if (!("error" in res)) {
-                                      router.push(`/${workspace.id}/${s.id}`);
-                                      toastWithUndo(
-                                        "List archived",
-                                        async () => {
-                                          const undo = await unarchiveList(
-                                            workspace.id,
-                                            s.id,
-                                            l.id
-                                          );
-                                          if (!("error" in undo)) {
-                                            router.push(
-                                              `/${workspace.id}/${s.id}/list/${l.id}`
-                                            );
-                                          }
-                                        }
-                                      );
-                                    }
-                                  }}
-                                >
-                                  <ArchiveIcon className="size-3.5 shrink-0" />
-                                  Archive
-                                </button>
-                                {isAdmin && (
-                                  <button
-                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
-                                    onClick={() =>
-                                      setDeleteList({ spaceId: s.id, list: l })
-                                    }
-                                  >
-                                    <TrashIcon className="size-3.5 shrink-0" />
-                                    Delete
-                                  </button>
-                                )}
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {s.sprints.length > 0 &&
-                      (() => {
-                        const sprintsExpanded = expandedSprintGroups.has(s.id);
-                        const activeSprint = s.sprints.find(
-                          (sp) => sp.status === "ACTIVE"
-                        );
-                        const isOnSprintRoute = pathname.includes(
-                          `/${workspace.id}/${s.id}/sprint/`
-                        );
+                    <div className="space-y-0.5">
+                      {s.lists.map((l) => {
+                        const href = `/${workspace.id}/${s.id}/list/${l.id}`;
+                        const active = pathname === href;
                         return (
-                          <div>
-                            {/* Sprints folder header */}
-                            <button
+                          <div
+                            className="group/list relative flex items-center"
+                            key={l.id}
+                          >
+                            <Link
                               className={cn(
-                                "group/sprints relative flex w-full items-center gap-2 rounded-md py-1.5 pr-2 pl-7 text-[13px] transition-colors select-none",
-                                isOnSprintRoute
-                                  ? "text-(--text-sidebar-active)"
+                                "relative flex flex-1 items-center gap-2 rounded-md py-1.5 pr-7 pl-7 text-[13px] transition-colors select-none",
+                                active
+                                  ? "bg-(--bg-sidebar-item-active) text-(--text-sidebar-active) font-medium overflow-hidden after:absolute after:left-0 after:inset-y-0 after:w-0.75 after:bg-primary"
                                   : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
                               )}
-                              onClick={() =>
-                                setExpandedSprintGroups((prev) => {
-                                  const next = new Set(prev);
-                                  next.has(s.id)
-                                    ? next.delete(s.id)
-                                    : next.add(s.id);
-                                  return next;
-                                })
-                              }
+                              href={href}
+                              onClick={() => setSidebarOpen(false)}
                             >
-                              {sprintsExpanded ? (
-                                <CaretDownIcon className="size-3 shrink-0 text-(--text-muted)" />
-                              ) : (
-                                <CaretRightIcon className="size-3 shrink-0 text-(--text-muted)" />
-                              )}
-                              <LightningIcon
+                              <ListIcon
                                 className="size-3.5 shrink-0"
-                                style={{
-                                  color: activeSprint ? "#4ADE80" : undefined,
-                                }}
-                                weight="fill"
+                                style={{ color: l.color ?? "#9CA3AF" }}
+                                weight="bold"
                               />
-                              <span className="flex-1 truncate text-left">
-                                Sprints
-                              </span>
-                              {activeSprint && !sprintsExpanded && (
-                                <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0 animate-pulse" />
-                              )}
-                              {s.canManageList && (
-                                <span className="opacity-0 group-hover/sprints:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
-                                  <span
-                                    className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openSprintSettings(s.id);
-                                    }}
-                                    role="button"
-                                    title="Sprint settings"
-                                  >
-                                    <GearIcon className="size-3" />
-                                  </span>
-                                  <span
-                                    className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCreateSprintClick(s.id, s.name);
-                                    }}
-                                    role="button"
-                                    title="Create sprint"
-                                  >
-                                    <PlusIcon className="size-3" />
-                                  </span>
+                              <span className="truncate">{l.name}</span>
+                              {!!l.taskCount && (
+                                <span className="ml-auto shrink-0 text-2xs font-medium tabular-nums text-(--text-muted)">
+                                  {l.taskCount > 99 ? "99+" : l.taskCount}
                                 </span>
                               )}
-                            </button>
-
-                            {/* Sprint items */}
-                            {sprintsExpanded &&
-                              s.sprints.map((sp) => {
-                                const href = `/${workspace.id}/${s.id}/sprint/${sp.id}`;
-                                const active = pathname === href;
-                                return (
+                            </Link>
+                            {s.canManageList && (
+                              <Popover
+                                onOpenChange={(o) =>
+                                  setOpenMenu(o ? `list-${l.id}` : null)
+                                }
+                                open={openMenu === `list-${l.id}`}
+                              >
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className="absolute right-1 opacity-0 transition-opacity group-hover/list:opacity-100 flex size-5 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
+                                    onClick={(e) => e.stopPropagation()}
+                                    title="List options"
+                                  >
+                                    <DotsThreeIcon
+                                      className="size-4.5 text-(--text-muted)"
+                                      weight="bold"
+                                    />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  align="start"
+                                  className="w-44 p-1"
+                                  onClick={() => setOpenMenu(null)}
+                                  side="right"
+                                >
                                   <Link
-                                    className={cn(
-                                      "relative flex items-center gap-2 rounded-md py-1.5 pr-2 pl-12 text-[13px] transition-colors select-none",
-                                      active
-                                        ? "bg-(--bg-sidebar-item-active) text-(--text-sidebar-active) font-medium overflow-hidden after:absolute after:left-0 after:inset-y-0 after:w-0.75 after:bg-primary"
-                                        : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
-                                    )}
-                                    href={href}
-                                    key={sp.id}
+                                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                                    href={`/${workspace.id}/${s.id}/list/${l.id}/settings/general`}
                                     onClick={() => setSidebarOpen(false)}
                                   >
-                                    <LightningIcon
-                                      className="size-3.5 shrink-0"
-                                      style={{
-                                        color:
-                                          sp.status === "ACTIVE"
-                                            ? "#4ADE80"
-                                            : undefined,
-                                      }}
-                                      weight={
-                                        sp.status === "ACTIVE"
-                                          ? "fill"
-                                          : "regular"
-                                      }
-                                    />
-                                    <span className="flex-1 min-w-0">
-                                      <span className="truncate block">
-                                        {sp.name}
-                                      </span>
-                                      {(sp.startDate || sp.endDate) && (
-                                        <span className="text-2xs text-(--text-muted) font-normal leading-none">
-                                          {formatSprintDate(
-                                            sp.startDate,
-                                            s.sprintDateFormat
-                                          )}
-                                          {" – "}
-                                          {formatSprintDate(
-                                            sp.endDate,
-                                            s.sprintDateFormat
-                                          )}
-                                        </span>
-                                      )}
-                                    </span>
-                                    {sp.status === "ACTIVE" && (
-                                      <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0 animate-pulse" />
-                                    )}
+                                    <GearIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                                    Settings
                                   </Link>
-                                );
-                              })}
+                                  <Link
+                                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                                    href={`/${workspace.id}/${s.id}/list/${l.id}/settings/statuses`}
+                                    onClick={() => setSidebarOpen(false)}
+                                  >
+                                    <PencilSimpleIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                                    Manage Statuses
+                                  </Link>
+                                  <button
+                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                                    onClick={() =>
+                                      setDuplicateListTarget({
+                                        spaceId: s.id,
+                                        list: l,
+                                      })
+                                    }
+                                  >
+                                    <CopyIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                                    Duplicate
+                                  </button>
+                                  <div className="my-1 h-px bg-border" />
+                                  <button
+                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                    onClick={async () => {
+                                      const res = await archiveList(
+                                        workspace.id,
+                                        s.id,
+                                        l.id
+                                      );
+                                      if (!("error" in res)) {
+                                        router.push(`/${workspace.id}/${s.id}`);
+                                        toastWithUndo(
+                                          "List archived",
+                                          async () => {
+                                            const undo = await unarchiveList(
+                                              workspace.id,
+                                              s.id,
+                                              l.id
+                                            );
+                                            if (!("error" in undo)) {
+                                              router.push(
+                                                `/${workspace.id}/${s.id}/list/${l.id}`
+                                              );
+                                            }
+                                          }
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    <ArchiveIcon className="size-3.5 shrink-0" />
+                                    Archive
+                                  </button>
+                                  {isAdmin && (
+                                    <button
+                                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                                      onClick={() =>
+                                        setDeleteList({
+                                          spaceId: s.id,
+                                          list: l,
+                                        })
+                                      }
+                                    >
+                                      <TrashIcon className="size-3.5 shrink-0" />
+                                      Delete
+                                    </button>
+                                  )}
+                                </PopoverContent>
+                              </Popover>
+                            )}
                           </div>
                         );
-                      })()}
-                    {s.sprints.length === 0 && s.canManageList && (
-                      <button
-                        className="flex w-full items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-xs text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
-                        onClick={() => handleCreateSprintClick(s.id, s.name)}
-                      >
-                        <LightningIcon className="size-3" />
-                        Create sprint
-                      </button>
-                    )}
-                    {s.canManageList && (
-                      <button
-                        className="flex w-full items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-xs text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
-                        onClick={() => setCreateListForSpace({ spaceId: s.id })}
-                      >
-                        <PlusIcon className="size-3" />
-                        Add list
-                      </button>
-                    )}
-                    {s.archivedLists.length > 0 && (
-                      <button
-                        className="flex items-center gap-1.5 pl-7 pr-2 py-1 text-xs text-(--text-muted) hover:text-(--text-sidebar) transition-colors w-full"
-                        onClick={() =>
-                          setExpandedArchivedLists((prev) => {
-                            const next = new Set(prev);
-                            next.has(s.id) ? next.delete(s.id) : next.add(s.id);
-                            return next;
-                          })
-                        }
-                      >
-                        <ArchiveIcon className="size-3" />
-                        {expandedArchivedLists.has(s.id)
-                          ? "Hide"
-                          : `${s.archivedLists.length} archived`}
-                      </button>
-                    )}
-                    {expandedArchivedLists.has(s.id) &&
-                      s.archivedLists.map((l) => (
-                        <div
-                          className="group flex items-center gap-2 pl-7 pr-2 py-1 text-xs text-(--text-muted)"
-                          key={l.id}
-                        >
-                          <ArchiveIcon className="size-3 shrink-0" />
-                          <span className="flex-1 truncate italic">
-                            {l.name}
-                          </span>
-                          {s.canManageList && (
-                            <button
-                              className="hidden group-hover:block text-2xs px-1.5 py-0.5 rounded bg-(--bg-sidebar-item-hover) hover:bg-(--bg-sidebar-item-active) text-(--text-sidebar)"
-                              onClick={async () => {
-                                const res = await unarchiveList(
-                                  workspace.id,
-                                  s.id,
-                                  l.id
-                                );
-                                if (!("error" in res)) {
-                                  toastWithUndo("List unarchived", async () => {
-                                    await archiveList(workspace.id, s.id, l.id);
-                                  });
+                      })}
+                      {s.sprints.length > 0 &&
+                        (() => {
+                          const sprintsExpanded = expandedSprintGroups.has(
+                            s.id
+                          );
+                          const activeSprint = s.sprints.find(
+                            (sp) => sp.status === "ACTIVE"
+                          );
+                          const isOnSprintRoute = pathname.includes(
+                            `/${workspace.id}/${s.id}/sprint/`
+                          );
+                          return (
+                            <div>
+                              {/* Sprints folder header */}
+                              <button
+                                className={cn(
+                                  "group/sprints relative flex w-full items-center gap-2 rounded-md py-1.5 pr-2 pl-7 text-[13px] transition-colors select-none",
+                                  isOnSprintRoute
+                                    ? "text-(--text-sidebar-active)"
+                                    : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                                )}
+                                onClick={() =>
+                                  setExpandedSprintGroups((prev) => {
+                                    const next = new Set(prev);
+                                    next.has(s.id)
+                                      ? next.delete(s.id)
+                                      : next.add(s.id);
+                                    return next;
+                                  })
                                 }
-                              }}
-                            >
-                              Unarchive
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                  </div>
+                              >
+                                {sprintsExpanded ? (
+                                  <CaretDownIcon className="size-3 shrink-0 text-(--text-muted)" />
+                                ) : (
+                                  <CaretRightIcon className="size-3 shrink-0 text-(--text-muted)" />
+                                )}
+                                <LightningIcon
+                                  className="size-3.5 shrink-0"
+                                  style={{
+                                    color: activeSprint ? "#4ADE80" : undefined,
+                                  }}
+                                  weight="fill"
+                                />
+                                <span className="flex-1 truncate text-left">
+                                  Sprints
+                                </span>
+                                {activeSprint && !sprintsExpanded && (
+                                  <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0 animate-pulse" />
+                                )}
+                                {s.canManageList && (
+                                  <span className="opacity-0 group-hover/sprints:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
+                                    <span
+                                      className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openSprintSettings(s.id);
+                                      }}
+                                      role="button"
+                                      title="Sprint settings"
+                                    >
+                                      <GearIcon className="size-3" />
+                                    </span>
+                                    <span
+                                      className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCreateSprintClick(s.id, s.name);
+                                      }}
+                                      role="button"
+                                      title="Create sprint"
+                                    >
+                                      <PlusIcon className="size-3" />
+                                    </span>
+                                  </span>
+                                )}
+                              </button>
+
+                              {/* Sprint items */}
+                              {sprintsExpanded &&
+                                s.sprints.map((sp) => {
+                                  const href = `/${workspace.id}/${s.id}/sprint/${sp.id}`;
+                                  const active = pathname === href;
+                                  return (
+                                    <Link
+                                      className={cn(
+                                        "relative flex items-center gap-2 rounded-md py-1.5 pr-2 pl-12 text-[13px] transition-colors select-none",
+                                        active
+                                          ? "bg-(--bg-sidebar-item-active) text-(--text-sidebar-active) font-medium overflow-hidden after:absolute after:left-0 after:inset-y-0 after:w-0.75 after:bg-primary"
+                                          : "text-(--text-sidebar) hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                                      )}
+                                      href={href}
+                                      key={sp.id}
+                                      onClick={() => setSidebarOpen(false)}
+                                    >
+                                      <LightningIcon
+                                        className="size-3.5 shrink-0"
+                                        style={{
+                                          color:
+                                            sp.status === "ACTIVE"
+                                              ? "#4ADE80"
+                                              : undefined,
+                                        }}
+                                        weight={
+                                          sp.status === "ACTIVE"
+                                            ? "fill"
+                                            : "regular"
+                                        }
+                                      />
+                                      <span className="flex-1 min-w-0">
+                                        <span className="truncate block">
+                                          {sp.name}
+                                        </span>
+                                        {(sp.startDate || sp.endDate) && (
+                                          <span className="text-2xs text-(--text-muted) font-normal leading-none">
+                                            {formatSprintDate(
+                                              sp.startDate,
+                                              s.sprintDateFormat
+                                            )}
+                                            {" – "}
+                                            {formatSprintDate(
+                                              sp.endDate,
+                                              s.sprintDateFormat
+                                            )}
+                                          </span>
+                                        )}
+                                      </span>
+                                      {sp.status === "ACTIVE" && (
+                                        <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0 animate-pulse" />
+                                      )}
+                                    </Link>
+                                  );
+                                })}
+                            </div>
+                          );
+                        })()}
+                      {s.sprints.length === 0 && s.canManageList && (
+                        <button
+                          className="flex w-full items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-xs text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                          onClick={() => handleCreateSprintClick(s.id, s.name)}
+                        >
+                          <LightningIcon className="size-3" />
+                          Create sprint
+                        </button>
+                      )}
+                      {s.canManageList && (
+                        <button
+                          className="flex w-full items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-xs text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
+                          onClick={() =>
+                            setCreateListForSpace({ spaceId: s.id })
+                          }
+                        >
+                          <PlusIcon className="size-3" />
+                          Add list
+                        </button>
+                      )}
+                      {s.archivedLists.length > 0 && (
+                        <button
+                          className="flex items-center gap-1.5 pl-7 pr-2 py-1 text-xs text-(--text-muted) hover:text-(--text-sidebar) transition-colors w-full"
+                          onClick={() =>
+                            setExpandedArchivedLists((prev) => {
+                              const next = new Set(prev);
+                              next.has(s.id)
+                                ? next.delete(s.id)
+                                : next.add(s.id);
+                              return next;
+                            })
+                          }
+                        >
+                          <ArchiveIcon className="size-3" />
+                          {expandedArchivedLists.has(s.id)
+                            ? "Hide"
+                            : `${s.archivedLists.length} archived`}
+                        </button>
+                      )}
+                      {expandedArchivedLists.has(s.id) &&
+                        s.archivedLists.map((l) => (
+                          <div
+                            className="group flex items-center gap-2 pl-7 pr-2 py-1 text-xs text-(--text-muted)"
+                            key={l.id}
+                          >
+                            <ArchiveIcon className="size-3 shrink-0" />
+                            <span className="flex-1 truncate italic">
+                              {l.name}
+                            </span>
+                            {s.canManageList && (
+                              <button
+                                className="hidden group-hover:block text-2xs px-1.5 py-0.5 rounded bg-(--bg-sidebar-item-hover) hover:bg-(--bg-sidebar-item-active) text-(--text-sidebar)"
+                                onClick={async () => {
+                                  const res = await unarchiveList(
+                                    workspace.id,
+                                    s.id,
+                                    l.id
+                                  );
+                                  if (!("error" in res)) {
+                                    toastWithUndo(
+                                      "List unarchived",
+                                      async () => {
+                                        await archiveList(
+                                          workspace.id,
+                                          s.id,
+                                          l.id
+                                        );
+                                      }
+                                    );
+                                  }
+                                }}
+                              >
+                                Unarchive
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                    </div>
                   )}
                 </div>
               ))}

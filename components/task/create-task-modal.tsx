@@ -22,7 +22,7 @@ import {
 import { createTag, getWorkspaceTags } from "@/app/actions/task-tag";
 import { ManageStatusesDialog } from "@/components/list/manage-statuses-dialog";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -88,15 +88,6 @@ const PRIORITY_OPTIONS: {
   { value: "URGENT", label: "Urgent", color: "text-red-500", icon: "🚨" },
 ];
 
-function userInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
 export function CreateTaskModal({
   open,
   onOpenChange,
@@ -113,7 +104,10 @@ export function CreateTaskModal({
   const [manageStatusesOpen, setManageStatusesOpen] = React.useState(false);
   const [title, setTitle] = React.useState("");
   const [descriptionJson, setDescriptionJson] = React.useState("");
-  const descImages = useNoteImageUpload({ deferred: true, acceptAllFiles: true });
+  const descImages = useNoteImageUpload({
+    deferred: true,
+    acceptAllFiles: true,
+  });
   const [statusId, setStatusId] = React.useState(
     defaultStatusId ?? initialStatuses[0]?.id ?? ""
   );
@@ -461,14 +455,13 @@ export function CreateTaskModal({
                       <>
                         <div className="flex -space-x-1">
                           {selectedMembers.slice(0, 2).map((m) => (
-                            <Avatar
-                              className="size-4 border border-background"
+                            <UserAvatar
+                              className="border border-background"
+                              image={m.image}
                               key={m.userId}
-                            >
-                              <AvatarFallback className="text-[8px]">
-                                {userInitials(m.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                              name={m.name}
+                              size="xs"
+                            />
                           ))}
                         </div>
                         <span>
@@ -504,11 +497,12 @@ export function CreateTaskModal({
                             )
                           }
                         >
-                          <Avatar className="size-6 shrink-0">
-                            <AvatarFallback className="text-2xs">
-                              {userInitials(m.name)}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar
+                            className="shrink-0"
+                            image={m.image}
+                            name={m.name}
+                            size="sm"
+                          />
                           <span className="flex-1 truncate text-left">
                             {m.name}
                           </span>

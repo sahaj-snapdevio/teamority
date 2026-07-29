@@ -65,6 +65,7 @@ import {
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { filterTasks } from "@/lib/filters/task-filter";
 import { PRIORITY_CONFIG, type Priority } from "@/lib/priority-config";
+import { setTaskNavContext } from "@/lib/task-nav-context";
 import { cn } from "@/lib/utils";
 
 type Status = {
@@ -226,7 +227,19 @@ export function CalendarView({
     return map;
   }, [localTasks, searchQuery, statusFilter, priorityFilter, assigneeFilter]);
 
+  // Previous/Next Task nav context: the visible 6-week grid in chronological
+  // order, each day's tasks in their displayed order — handed to Task Detail
+  // so Prev/Next walks it without a DB query.
+  const visibleOrderedTaskIds = React.useMemo(
+    () =>
+      gridDays.flatMap((day) =>
+        (tasksByDay.get(dayKey(day)) ?? []).map((t) => t.id)
+      ),
+    [gridDays, tasksByDay]
+  );
+
   function openTask(taskId: string) {
+    setTaskNavContext({ taskIds: visibleOrderedTaskIds });
     router.push(`/${workspaceId}/task/${taskId}?from=calendar`);
   }
 
@@ -315,95 +328,95 @@ export function CalendarView({
             container avoids a fragile fixed offset, since the toolbar can wrap
             to two rows on narrow widths. */}
         <div className="sticky top-14 z-10 shrink-0 bg-app">
-        {/* Toolbar: search + facet filters + month navigation. No top padding —
+          {/* Toolbar: search + facet filters + month navigation. No top padding —
             the view already sits below the List/Board/Calendar tabs with the
             container's own gap, so a `py-*` here stacked a second gap on top and
             pushed the calendar down relative to the List/Board toolbars. */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 pb-2 shrink-0">
-          <SearchInput
-            className="w-44 focus:w-56"
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onClear={() => setSearchQuery("")}
-            placeholder="Search tasks…"
-            value={searchQuery}
-          />
-          <FacetFilter
-            label="Status"
-            onChange={setStatusFilter}
-            options={statuses.map((s) => ({
-              value: s.id,
-              label: s.name,
-              color: s.color,
-            }))}
-            selected={statusFilter}
-          />
-          <FacetFilter
-            label="Priority"
-            onChange={setPriorityFilter}
-            options={PRIORITY_OPTIONS}
-            selected={priorityFilter}
-          />
-          {members.length > 0 && (
-            <FacetFilter
-              label="Assignee"
-              onChange={setAssigneeFilter}
-              options={[
-                { value: "unassigned", label: "Unassigned" },
-                ...members.map((m) => ({
-                  value: m.userId,
-                  label: m.name || m.email || "Unknown",
-                })),
-              ]}
-              searchable
-              selected={assigneeFilter}
+          <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 pb-2 shrink-0">
+            <SearchInput
+              className="w-44 focus:w-56"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery("")}
+              placeholder="Search tasks…"
+              value={searchQuery}
             />
-          )}
+            <FacetFilter
+              label="Status"
+              onChange={setStatusFilter}
+              options={statuses.map((s) => ({
+                value: s.id,
+                label: s.name,
+                color: s.color,
+              }))}
+              selected={statusFilter}
+            />
+            <FacetFilter
+              label="Priority"
+              onChange={setPriorityFilter}
+              options={PRIORITY_OPTIONS}
+              selected={priorityFilter}
+            />
+            {members.length > 0 && (
+              <FacetFilter
+                label="Assignee"
+                onChange={setAssigneeFilter}
+                options={[
+                  { value: "unassigned", label: "Unassigned" },
+                  ...members.map((m) => ({
+                    value: m.userId,
+                    label: m.name || m.email || "Unknown",
+                  })),
+                ]}
+                searchable
+                selected={assigneeFilter}
+              />
+            )}
 
-          <div className="ml-auto flex items-center gap-1">
-            <button
-              aria-label="Previous month"
-              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              onClick={() => goToMonth(subMonths(viewDate, 1))}
-              type="button"
-            >
-              <CaretLeftIcon className="size-4" />
-            </button>
-            <div className="min-w-36 text-center text-sm font-semibold">
-              {format(viewDate, "MMMM yyyy")}
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                aria-label="Previous month"
+                className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                onClick={() => goToMonth(subMonths(viewDate, 1))}
+                type="button"
+              >
+                <CaretLeftIcon className="size-4" />
+              </button>
+              <div className="min-w-36 text-center text-sm font-semibold">
+                {format(viewDate, "MMMM yyyy")}
+              </div>
+              <button
+                aria-label="Next month"
+                className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                onClick={() => goToMonth(addMonths(viewDate, 1))}
+                type="button"
+              >
+                <CaretRightIcon className="size-4" />
+              </button>
+              <Button
+                className="ml-1 h-8 text-xs"
+                onClick={() => goToMonth(new Date())}
+                size="sm"
+                variant="outline"
+              >
+                Today
+              </Button>
             </div>
-            <button
-              aria-label="Next month"
-              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              onClick={() => goToMonth(addMonths(viewDate, 1))}
-              type="button"
-            >
-              <CaretRightIcon className="size-4" />
-            </button>
-            <Button
-              className="ml-1 h-8 text-xs"
-              onClick={() => goToMonth(new Date())}
-              size="sm"
-              variant="outline"
-            >
-              Today
-            </Button>
           </div>
-        </div>
 
-        {/* Weekday header */}
-        <div className="grid grid-cols-7 border-b border-border text-2xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
-          {WEEKDAYS.map((d, i) => (
-            <div
-              className={cn(
-                "px-2 py-1.5",
-                (i === 0 || i === 6) && "bg-muted/30 dark:bg-muted/10"
-              )}
-              key={d}
-            >
-              {d}
-            </div>
-          ))}
-        </div>
+          {/* Weekday header */}
+          <div className="grid grid-cols-7 border-b border-border text-2xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
+            {WEEKDAYS.map((d, i) => (
+              <div
+                className={cn(
+                  "px-2 py-1.5",
+                  (i === 0 || i === 6) && "bg-muted/30 dark:bg-muted/10"
+                )}
+                key={d}
+              >
+                {d}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Month grid */}

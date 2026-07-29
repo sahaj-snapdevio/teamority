@@ -108,6 +108,7 @@ import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { filterTasks } from "@/lib/filters/task-filter";
 import { formatDueDate } from "@/lib/priority-config";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
+import { setTaskNavContext } from "@/lib/task-nav-context";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
 import { QuickCreateTask } from "./quick-create-task";
@@ -1463,6 +1464,7 @@ function TaskCard({
   onRefresh,
   customFields,
   members,
+  taskNavIds,
 }: {
   task: Task;
   workspaceId: string;
@@ -1474,6 +1476,7 @@ function TaskCard({
   onRefresh: () => void;
   customFields: CustomFieldRow[];
   members: BoardMember[];
+  taskNavIds: string[];
 }) {
   const router = useRouter();
   const {
@@ -1499,6 +1502,7 @@ function TaskCard({
     onClick: (e: React.MouseEvent<HTMLDivElement>) => {
       if (!isDragging) {
         e.stopPropagation();
+        setTaskNavContext({ taskIds: taskNavIds });
         router.push(`/${workspaceId}/task/${task.id}?from=board`);
       }
     },
@@ -1538,6 +1542,7 @@ function Column({
   onRefresh,
   customFields,
   members,
+  taskNavIds,
 }: {
   status: Status;
   tasks: Task[];
@@ -1550,6 +1555,7 @@ function Column({
   onRefresh: () => void;
   customFields: CustomFieldRow[];
   members: BoardMember[];
+  taskNavIds: string[];
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
 
@@ -1604,6 +1610,7 @@ function Column({
               spaceId={space.id}
               statuses={statuses}
               task={t}
+              taskNavIds={taskNavIds}
               workspaceId={workspaceId}
             />
           ))}
@@ -1673,9 +1680,7 @@ export function BoardView({
     // feedback; createListStatus enforces the same rule server-side (a stale
     // `statuses` prop or a concurrent create can still collide).
     if (
-      statuses.some(
-        (s) => s.name.trim().toLowerCase() === name.toLowerCase()
-      )
+      statuses.some((s) => s.name.trim().toLowerCase() === name.toLowerCase())
     ) {
       setGroupError(`A group named “${name}” already exists`);
       return;
@@ -1834,6 +1839,14 @@ export function BoardView({
     }
     return map;
   }, [processedTasks, statuses]);
+
+  // Previous/Next Task nav context: current columns left-to-right, each
+  // column's cards top-to-bottom — the same order the board renders. Handed
+  // to Task Detail so Prev/Next walks it without a DB query.
+  const visibleOrderedTaskIds = React.useMemo(
+    () => statuses.flatMap((s) => (tasksByStatus[s.id] ?? []).map((t) => t.id)),
+    [statuses, tasksByStatus]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -2186,6 +2199,7 @@ export function BoardView({
               space={space}
               status={status}
               statuses={statuses}
+              taskNavIds={visibleOrderedTaskIds}
               tasks={tasksByStatus[status.id] ?? []}
               workspaceId={workspaceId}
             />

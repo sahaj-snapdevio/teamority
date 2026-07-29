@@ -5,6 +5,7 @@ import {
   ArrowLeftIcon,
   CalendarBlankIcon,
   CaretDownIcon,
+  CaretLeftIcon,
   CaretRightIcon,
   CheckIcon,
   ClipboardTextIcon,
@@ -124,9 +125,17 @@ import {
 } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { InviteMemberModal } from "@/components/workspace/invite-member-modal";
 import { flashDuplicatedTask } from "@/lib/duplicate-highlight";
 import { useSetTopbar } from "@/lib/topbar-context";
+import { useTaskNavigation } from "@/hooks/use-task-navigation";
+import { useTaskNavShortcut } from "@/hooks/use-task-nav-shortcut";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
 import { TaskDetailSkeleton } from "./task-detail-skeleton";
@@ -263,6 +272,32 @@ export function TaskDetailPage({
   const searchParams = useSearchParams();
   const fromView = searchParams.get("from");
   const fromSprintId = searchParams.get("sid");
+
+  // Previous/Next Task: walks the ordered task-id list the originating view
+  // (List/Board/Calendar/My Tasks/Search) stashed right before opening this
+  // task — see lib/task-nav-context.ts. No DB query, no extra fetch.
+  const taskNav = useTaskNavigation(taskId);
+  const buildTaskNavUrl = React.useCallback(
+    (id: string) => {
+      const targetWorkspaceId = taskNav.workspaceIdFor(id) ?? workspaceId;
+      const query = fromView
+        ? `?from=${fromView}${fromSprintId ? `&sid=${fromSprintId}` : ""}`
+        : "";
+      return `/${targetWorkspaceId}/task/${id}${query}`;
+    },
+    [taskNav, workspaceId, fromView, fromSprintId]
+  );
+  const goPrevTask = React.useCallback(() => {
+    if (taskNav.prevId) {
+      router.push(buildTaskNavUrl(taskNav.prevId));
+    }
+  }, [taskNav.prevId, buildTaskNavUrl, router]);
+  const goNextTask = React.useCallback(() => {
+    if (taskNav.nextId) {
+      router.push(buildTaskNavUrl(taskNav.nextId));
+    }
+  }, [taskNav.nextId, buildTaskNavUrl, router]);
+  useTaskNavShortcut(goPrevTask, goNextTask);
 
   const contextLabel = fromView === "sprint" ? "Sprint" : listName || "List";
   useSetTopbar({
@@ -444,18 +479,19 @@ export function TaskDetailPage({
     if (showSpinner) {
       setLoading(true);
     }
-    const [detail, mem, tags, attRes, pinRes, customFieldsRes] = await Promise.all([
-      getTaskDetail(workspaceId, spaceId, taskId),
-      getWorkspaceMembers(workspaceId),
-      getWorkspaceTags(workspaceId),
-      fetch(`/api/tasks/${taskId}/attachments`)
-        .then((r) => r.json())
-        .catch(() => ({ attachments: [] })),
-      fetch(`/api/tasks/${taskId}/pin`, { method: "GET" })
-        .then((r) => (r.ok ? r.json() : { pinned: false }))
-        .catch(() => ({ pinned: false })),
-      getCustomFieldsForTasks(workspaceId, spaceId, listId, [taskId]),
-    ]);
+    const [detail, mem, tags, attRes, pinRes, customFieldsRes] =
+      await Promise.all([
+        getTaskDetail(workspaceId, spaceId, taskId),
+        getWorkspaceMembers(workspaceId),
+        getWorkspaceTags(workspaceId),
+        fetch(`/api/tasks/${taskId}/attachments`)
+          .then((r) => r.json())
+          .catch(() => ({ attachments: [] })),
+        fetch(`/api/tasks/${taskId}/pin`, { method: "GET" })
+          .then((r) => (r.ok ? r.json() : { pinned: false }))
+          .catch(() => ({ pinned: false })),
+        getCustomFieldsForTasks(workspaceId, spaceId, listId, [taskId]),
+      ]);
     setData(detail && !("error" in detail) ? detail : null);
     if (mem && !("error" in mem)) {
       setMembers(
@@ -705,16 +741,30 @@ export function TaskDetailPage({
   // to the field's default) rather than persisting an explicit null.
   async function handleCustomFieldChange(fieldId: string, value: unknown) {
     if (value === null || value === undefined) {
-      const res = await deleteCustomFieldValue(workspaceId, spaceId, taskId, fieldId);
+      const res = await deleteCustomFieldValue(
+        workspaceId,
+        spaceId,
+        taskId,
+        fieldId
+      );
       if ("error" in res) {
         toast.error(res.error);
         return;
       }
       const field = customFields.find((f) => f.id === fieldId);
-      setCustomFieldValues((prev) => ({ ...prev, [fieldId]: field?.defaultValue ?? null }));
+      setCustomFieldValues((prev) => ({
+        ...prev,
+        [fieldId]: field?.defaultValue ?? null,
+      }));
       return;
     }
-    const res = await setCustomFieldValue(workspaceId, spaceId, taskId, fieldId, value);
+    const res = await setCustomFieldValue(
+      workspaceId,
+      spaceId,
+      taskId,
+      fieldId,
+      value
+    );
     if ("error" in res) {
       toast.error(res.error);
       return;
@@ -981,6 +1031,43 @@ export function TaskDetailPage({
             </span>
           </div>
           <div className="ml-auto flex items-center gap-1">
+            {taskNav.available && (
+              <TooltipProvider>
+                <div className="flex items-center gap-0.5 mr-1 pr-1 border-r">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="Previous task"
+                        disabled={!taskNav.prevId}
+                        onClick={goPrevTask}
+                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <CaretLeftIcon className="size-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Previous Task</TooltipContent>
+                  </Tooltip>
+                  <span className="px-0.5 text-xs tabular-nums text-muted-foreground select-none">
+                    {taskNav.position} / {taskNav.total}
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="Next task"
+                        disabled={!taskNav.nextId}
+                        onClick={goNextTask}
+                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <CaretRightIcon className="size-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Next Task</TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+            )}
             <button
               className={cn(
                 "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
@@ -1606,7 +1693,9 @@ export function TaskDetailPage({
                     disabled={!canEditNow}
                     field={field}
                     members={members}
-                    onChange={(value) => handleCustomFieldChange(field.id, value)}
+                    onChange={(value) =>
+                      handleCustomFieldChange(field.id, value)
+                    }
                     value={customFieldValues[field.id]}
                   />
                 </FieldRow>

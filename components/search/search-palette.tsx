@@ -69,6 +69,7 @@ import {
   getRecentSearches,
   type RecentSearch,
 } from "@/lib/recent-search";
+import { setTaskNavContext } from "@/lib/task-nav-context";
 import { cn } from "@/lib/utils";
 
 interface SearchPaletteProps {
@@ -237,6 +238,7 @@ export function SearchPalette({
     addRecentSearch(workspaceId, query, filters);
     await recordSearchVisit(workspaceId, "task", taskId);
     onClose();
+    setTaskNavContext({ taskIds: results?.tasks.map((x) => x.id) ?? [] });
     router.push(`/${workspaceId}/task/${taskId}`);
   }
 
@@ -742,7 +744,9 @@ export function SearchPalette({
                   <CheckSquareIcon className="size-4 shrink-0 text-muted-foreground" />
                 }
                 items={recentTasks}
-                onClear={recentTasks.length > 0 ? handleClearRecentlyOpened : undefined}
+                onClear={
+                  recentTasks.length > 0 ? handleClearRecentlyOpened : undefined
+                }
                 onSelect={navigateOpened}
                 title="Recently viewed tasks"
               />
