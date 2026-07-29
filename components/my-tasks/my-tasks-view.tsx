@@ -31,6 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { setTaskNavContext, type TaskNavContext } from "@/lib/task-nav-context";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -284,7 +285,7 @@ function buildGroups(tasks: MyTask[], groupBy: MyTasksGroupBy): Group[] {
 
 // ─── Task row ─────────────────────────────────────────────────────────────────
 
-function TaskRow({ task }: { task: MyTask }) {
+function TaskRow({ task, taskNav }: { task: MyTask; taskNav: TaskNavContext }) {
   const router = useRouter();
   const priority = PRIORITY_CONFIG[task.priority];
   const due = formatDue(task);
@@ -309,7 +310,10 @@ function TaskRow({ task }: { task: MyTask }) {
   return (
     <tr
       className="group/row border-b border-border/40 hover:bg-accent/30 cursor-pointer transition-colors"
-      onClick={() => router.push(`/${task.workspace.id}/task/${task.id}`)}
+      onClick={() => {
+        setTaskNavContext(taskNav);
+        router.push(`/${task.workspace.id}/task/${task.id}`);
+      }}
     >
       {/* Title + breadcrumb — max-w-xl caps how wide the text gets even on
           very wide screens, so titles ellipsize at a consistent length
@@ -414,7 +418,13 @@ function TaskRow({ task }: { task: MyTask }) {
 
 // ─── Task group ───────────────────────────────────────────────────────────────
 
-function TaskGroup({ group }: { group: Group }) {
+function TaskGroup({
+  group,
+  taskNav,
+}: {
+  group: Group;
+  taskNav: TaskNavContext;
+}) {
   const [collapsed, setCollapsed] = React.useState(false);
 
   return (
@@ -440,7 +450,10 @@ function TaskGroup({ group }: { group: Group }) {
           </button>
         </td>
       </tr>
-      {!collapsed && group.tasks.map((t) => <TaskRow key={t.id} task={t} />)}
+      {!collapsed &&
+        group.tasks.map((t) => (
+          <TaskRow key={t.id} task={t} taskNav={taskNav} />
+        ))}
     </>
   );
 }
@@ -485,6 +498,21 @@ export function MyTasksView(_props: MyTasksViewProps) {
     : tasks;
 
   const groups = buildGroups(filtered, groupBy);
+
+  // Previous/Next Task nav context: My Tasks is cross-workspace, so each
+  // task's own workspace travels alongside its id — handed to Task Detail
+  // so Prev/Next walks this same order without a DB query.
+  const taskNav = React.useMemo<TaskNavContext>(() => {
+    const taskIds: string[] = [];
+    const workspaceByTaskId: Record<string, string> = {};
+    for (const group of groups) {
+      for (const t of group.tasks) {
+        taskIds.push(t.id);
+        workspaceByTaskId[t.id] = t.workspace.id;
+      }
+    }
+    return { taskIds, workspaceByTaskId };
+  }, [groups]);
 
   return (
     <div className="p-6 space-y-5">
@@ -628,7 +656,7 @@ export function MyTasksView(_props: MyTasksViewProps) {
                       />
                     </tr>
                   )}
-                  <TaskGroup group={group} />
+                  <TaskGroup group={group} taskNav={taskNav} />
                 </React.Fragment>
               ))}
             </tbody>

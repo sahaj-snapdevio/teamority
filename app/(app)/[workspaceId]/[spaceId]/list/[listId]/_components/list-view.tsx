@@ -131,6 +131,7 @@ import {
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { filterTasks } from "@/lib/filters/task-filter";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
+import { setTaskNavContext } from "@/lib/task-nav-context";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
 
@@ -263,6 +264,7 @@ function PinnedSection({
   onSelect,
   visibleCustomFields,
   workspaceMembers,
+  taskNavIds,
 }: {
   tasks: Task[];
   workspaceId: string;
@@ -277,6 +279,7 @@ function PinnedSection({
   onSelect: (id: string, checked: boolean) => void;
   visibleCustomFields: CustomFieldRow[];
   workspaceMembers: WorkspaceMemberOption[];
+  taskNavIds: string[];
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
@@ -358,7 +361,10 @@ function PinnedSection({
                 isPersonallyPinned={personallyPinnedIds?.has(t.id)}
                 key={t.id}
                 listId={listId}
-                onOpen={() => router.push(`/${workspaceId}/task/${t.id}`)}
+                onOpen={() => {
+                  setTaskNavContext({ taskIds: taskNavIds });
+                  router.push(`/${workspaceId}/task/${t.id}`);
+                }}
                 onRefresh={() => router.refresh()}
                 onSelect={onSelect}
                 selected={selectedIds.has(t.id)}
@@ -620,6 +626,7 @@ function StatusGroup({
   sortControl,
   visibleCustomFields,
   workspaceMembers,
+  taskNavIds,
 }: {
   status: Status;
   tasks: Task[];
@@ -639,6 +646,7 @@ function StatusGroup({
   sortControl: SortControl;
   visibleCustomFields: CustomFieldRow[];
   workspaceMembers: WorkspaceMemberOption[];
+  taskNavIds: string[];
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
@@ -904,7 +912,10 @@ function StatusGroup({
                   isPersonallyPinned={personallyPinnedIds?.has(task.id)}
                   key={task.id}
                   listId={listId}
-                  onOpen={() => router.push(`/${workspaceId}/task/${task.id}`)}
+                  onOpen={() => {
+                    setTaskNavContext({ taskIds: taskNavIds });
+                    router.push(`/${workspaceId}/task/${task.id}`);
+                  }}
                   onRefresh={() => router.refresh()}
                   onSelect={onSelect}
                   selected={selectedIds.has(task.id)}
@@ -1610,34 +1621,34 @@ function BulkActionBar({
         {/* Pin / Unpin to the top of the list. Both are shown whenever the
             selection contains tasks in that state, so a mixed selection can be
             pinned and unpinned in either direction. */}
-        {canPinToList && (unpinnedSelectedIds.length > 0 ||
-          pinnedSelectedIds.length > 0) && (
-          <>
-            <div className="h-4 w-px bg-white/20 mx-1" />
-            {unpinnedSelectedIds.length > 0 && (
-              <button
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
-                disabled={busy}
-                onClick={() => void handleBulkListPin(true)}
-                type="button"
-              >
-                <PushPinIcon className="size-3.5" />
-                Pin ({unpinnedSelectedIds.length})
-              </button>
-            )}
-            {pinnedSelectedIds.length > 0 && (
-              <button
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
-                disabled={busy}
-                onClick={() => void handleBulkListPin(false)}
-                type="button"
-              >
-                <PushPinSlashIcon className="size-3.5" />
-                Unpin ({pinnedSelectedIds.length})
-              </button>
-            )}
-          </>
-        )}
+        {canPinToList &&
+          (unpinnedSelectedIds.length > 0 || pinnedSelectedIds.length > 0) && (
+            <>
+              <div className="h-4 w-px bg-white/20 mx-1" />
+              {unpinnedSelectedIds.length > 0 && (
+                <button
+                  className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+                  disabled={busy}
+                  onClick={() => void handleBulkListPin(true)}
+                  type="button"
+                >
+                  <PushPinIcon className="size-3.5" />
+                  Pin ({unpinnedSelectedIds.length})
+                </button>
+              )}
+              {pinnedSelectedIds.length > 0 && (
+                <button
+                  className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+                  disabled={busy}
+                  onClick={() => void handleBulkListPin(false)}
+                  type="button"
+                >
+                  <PushPinSlashIcon className="size-3.5" />
+                  Unpin ({pinnedSelectedIds.length})
+                </button>
+              )}
+            </>
+          )}
 
         <div className="h-4 w-px bg-white/20 mx-1" />
 
@@ -2070,6 +2081,28 @@ export function ListView({
     }
     return [];
   }, [processedTasks, groupBy, statuses, members, tasks]);
+
+  // Previous/Next Task nav context: the exact order tasks currently appear on
+  // screen top-to-bottom (Archived section when toggled on, then Pinned, then
+  // each group) — handed to Task Detail so Prev/Next walks this same order
+  // without a DB query. Recomputes whenever search/filter/sort/group/archived
+  // changes, so it always reflects what's actually visible.
+  const visibleOrderedTaskIds = React.useMemo(() => {
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    const push = (id: string) => {
+      if (!seen.has(id)) {
+        seen.add(id);
+        ids.push(id);
+      }
+    };
+    if (showArchived) {
+      archivedTasks?.forEach((t) => push(t.id));
+    }
+    pinnedTasks.forEach((t) => push(t.id));
+    groupedGroups.forEach((g) => g.tasks.forEach((t) => push(t.id)));
+    return ids;
+  }, [showArchived, archivedTasks, pinnedTasks, groupedGroups]);
 
   // First OPEN workflow status — the sensible default for tasks created outside
   // a status group (e.g. quick-add under a Priority / Assignee group). Never a
@@ -2508,44 +2541,44 @@ export function ListView({
               <div className="flex items-center gap-4 flex-wrap min-w-0">
                 <div className="flex items-center gap-4 flex-wrap">
                   {/* Search */}
-                <SearchInput
-                  className="w-64 focus:w-80"
-                  id="list-view-search"
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onClear={() => setSearchQuery("")}
-                  placeholder="Search tasks…"
-                  value={searchQuery}
-                />
+                  <SearchInput
+                    className="w-64 focus:w-80"
+                    id="list-view-search"
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onClear={() => setSearchQuery("")}
+                    placeholder="Search tasks…"
+                    value={searchQuery}
+                  />
 
-                {/* Filters — shared facet controls (same state + filter
+                  {/* Filters — shared facet controls (same state + filter
                     logic). Kept exactly as standalone toolbar buttons — the
                     Filters builder is an additional entry point onto this
                     same state, not a replacement for these. */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <FacetFilter
-                    label="Status"
-                    onChange={setStatusFilter}
-                    options={statusOptions}
-                    selected={statusFilter}
-                  />
-                  <FacetFilter
-                    label="Priority"
-                    onChange={setPriorityFilter}
-                    options={PRIORITY_OPTIONS}
-                    selected={priorityFilter}
-                  />
-                  {members.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
                     <FacetFilter
-                      label="Assignee"
-                      onChange={setAssigneeFilter}
-                      options={assigneeOptions}
-                      searchable
-                      selected={assigneeFilter}
+                      label="Status"
+                      onChange={setStatusFilter}
+                      options={statusOptions}
+                      selected={statusFilter}
                     />
-                  )}
-                </div>
+                    <FacetFilter
+                      label="Priority"
+                      onChange={setPriorityFilter}
+                      options={PRIORITY_OPTIONS}
+                      selected={priorityFilter}
+                    />
+                    {members.length > 0 && (
+                      <FacetFilter
+                        label="Assignee"
+                        onChange={setAssigneeFilter}
+                        options={assigneeOptions}
+                        searchable
+                        selected={assigneeFilter}
+                      />
+                    )}
+                  </div>
 
-                {/* One compact "Filters" entry for custom fields only —
+                  {/* One compact "Filters" entry for custom fields only —
                     Status/Priority/Assignee already have dedicated buttons
                     above, so they're deliberately excluded here to avoid
                     duplicating them. Custom fields are picked dynamically
@@ -2554,225 +2587,225 @@ export function ListView({
                     many custom fields a list has. Hidden entirely when there
                     are none — it would otherwise open onto an empty "No
                     filters yet" picker with nothing to add. */}
-                {filterFields.length > 0 && (
-                  <FilterBuilder
-                    fields={filterFields}
-                    isActive={isFilterFieldActive}
-                    onClear={clearFilterField}
-                    renderControl={renderFilterControl}
-                  />
-                )}
+                  {filterFields.length > 0 && (
+                    <FilterBuilder
+                      fields={filterFields}
+                      isActive={isFilterFieldActive}
+                      onClear={clearFilterField}
+                      renderControl={renderFilterControl}
+                    />
+                  )}
 
-                <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+                  <div className="mx-1 h-5 w-px shrink-0 bg-border" />
 
-                {/* Sort — kept alongside the clickable column headers because
+                  {/* Sort — kept alongside the clickable column headers because
                     the header row is desktop-only (`hidden md:flex`); on mobile
                     this dropdown is the only way to sort. It drives the same
                     `cycleSort` the headers do, and now shows the direction so
                     the two controls can never disagree or read ambiguously. */}
-                <Popover onOpenChange={setSortMenuOpen} open={sortMenuOpen}>
-                  <PopoverTrigger asChild>
-                    <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
-                      <ArrowsDownUpIcon className="size-3.5 text-gray-500" />
-                      Sort: {sortBy ? SORT_OPTION_LABEL[sortBy] : "None"}
-                      {sortBy &&
-                        (sortOrder === "asc" ? (
-                          <CaretUpIcon
-                            className="size-3 text-primary"
-                            weight="bold"
-                          />
-                        ) : (
-                          <CaretDownIcon
-                            className="size-3 text-primary"
-                            weight="bold"
-                          />
-                        ))}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="start"
-                    className="w-48 p-1 flex flex-col gap-0.5"
-                  >
-                    <button
-                      className={cn(
-                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                        !sortBy && "bg-accent text-foreground"
-                      )}
-                      onClick={() => {
-                        setSortBy(null);
-                        setSortOrder("asc");
-                        setSortMenuOpen(false);
-                      }}
+                  <Popover onOpenChange={setSortMenuOpen} open={sortMenuOpen}>
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
+                        <ArrowsDownUpIcon className="size-3.5 text-gray-500" />
+                        Sort: {sortBy ? SORT_OPTION_LABEL[sortBy] : "None"}
+                        {sortBy &&
+                          (sortOrder === "asc" ? (
+                            <CaretUpIcon
+                              className="size-3 text-primary"
+                              weight="bold"
+                            />
+                          ) : (
+                            <CaretDownIcon
+                              className="size-3 text-primary"
+                              weight="bold"
+                            />
+                          ))}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="w-48 p-1 flex flex-col gap-0.5"
                     >
-                      None
-                    </button>
-                    {SORT_OPTIONS.map(({ key, label }) => {
-                      const active = sortBy === key;
-                      return (
-                        <button
-                          className={cn(
-                            "flex items-center justify-between gap-2 px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                            active && "bg-accent text-foreground"
-                          )}
-                          key={key}
-                          onClick={() => {
-                            cycleSort(key);
-                            setSortMenuOpen(false);
-                          }}
-                        >
-                          <span>{label}</span>
-                          {active && (
-                            <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wide text-primary">
-                              {sortOrder === "asc" ? (
-                                <>
-                                  <CaretUpIcon
-                                    className="size-3"
-                                    weight="bold"
-                                  />
-                                  Asc
-                                </>
-                              ) : (
-                                <>
-                                  <CaretDownIcon
-                                    className="size-3"
-                                    weight="bold"
-                                  />
-                                  Desc
-                                </>
-                              )}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </PopoverContent>
-                </Popover>
+                      <button
+                        className={cn(
+                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                          !sortBy && "bg-accent text-foreground"
+                        )}
+                        onClick={() => {
+                          setSortBy(null);
+                          setSortOrder("asc");
+                          setSortMenuOpen(false);
+                        }}
+                      >
+                        None
+                      </button>
+                      {SORT_OPTIONS.map(({ key, label }) => {
+                        const active = sortBy === key;
+                        return (
+                          <button
+                            className={cn(
+                              "flex items-center justify-between gap-2 px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                              active && "bg-accent text-foreground"
+                            )}
+                            key={key}
+                            onClick={() => {
+                              cycleSort(key);
+                              setSortMenuOpen(false);
+                            }}
+                          >
+                            <span>{label}</span>
+                            {active && (
+                              <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wide text-primary">
+                                {sortOrder === "asc" ? (
+                                  <>
+                                    <CaretUpIcon
+                                      className="size-3"
+                                      weight="bold"
+                                    />
+                                    Asc
+                                  </>
+                                ) : (
+                                  <>
+                                    <CaretDownIcon
+                                      className="size-3"
+                                      weight="bold"
+                                    />
+                                    Desc
+                                  </>
+                                )}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </PopoverContent>
+                  </Popover>
 
-                {/* Group By */}
-                <Popover
-                  onOpenChange={setGroupByMenuOpen}
-                  open={groupByMenuOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
-                      <GearIcon className="size-3.5 text-gray-500" />
-                      Group By:{" "}
-                      {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="start"
-                    className="w-44 p-1 flex flex-col gap-0.5"
+                  {/* Group By */}
+                  <Popover
+                    onOpenChange={setGroupByMenuOpen}
+                    open={groupByMenuOpen}
                   >
-                    <button
-                      className={cn(
-                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                        groupBy === "status" && "bg-accent text-foreground"
-                      )}
-                      onClick={() => {
-                        setGroupBy("status");
-                        setGroupByMenuOpen(false);
-                      }}
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
+                        <GearIcon className="size-3.5 text-gray-500" />
+                        Group By:{" "}
+                        {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="w-44 p-1 flex flex-col gap-0.5"
                     >
-                      Status
-                    </button>
-                    <button
-                      className={cn(
-                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                        groupBy === "priority" && "bg-accent text-foreground"
-                      )}
-                      onClick={() => {
-                        setGroupBy("priority");
-                        setGroupByMenuOpen(false);
-                      }}
-                    >
-                      Priority
-                    </button>
-                    <button
-                      className={cn(
-                        "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                        groupBy === "assignee" && "bg-accent text-foreground"
-                      )}
-                      onClick={() => {
-                        setGroupBy("assignee");
-                        setGroupByMenuOpen(false);
-                      }}
-                    >
-                      Assignee
-                    </button>
-                  </PopoverContent>
-                </Popover>
+                      <button
+                        className={cn(
+                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                          groupBy === "status" && "bg-accent text-foreground"
+                        )}
+                        onClick={() => {
+                          setGroupBy("status");
+                          setGroupByMenuOpen(false);
+                        }}
+                      >
+                        Status
+                      </button>
+                      <button
+                        className={cn(
+                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                          groupBy === "priority" && "bg-accent text-foreground"
+                        )}
+                        onClick={() => {
+                          setGroupBy("priority");
+                          setGroupByMenuOpen(false);
+                        }}
+                      >
+                        Priority
+                      </button>
+                      <button
+                        className={cn(
+                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
+                          groupBy === "assignee" && "bg-accent text-foreground"
+                        )}
+                        onClick={() => {
+                          setGroupBy("assignee");
+                          setGroupByMenuOpen(false);
+                        }}
+                      >
+                        Assignee
+                      </button>
+                    </PopoverContent>
+                  </Popover>
 
-                {/* Columns — sectioned show/hide menu. Built-in columns are
+                  {/* Columns — sectioned show/hide menu. Built-in columns are
                     listed for context but aren't toggleable yet (no
                     show/hide support exists for them today); custom fields
                     are the only interactive section, via the same generic
                     {id,label}[] the hook/FacetOptionList already take — a
                     future PR can make the Built-in section interactive
                     without restructuring this menu. */}
-                {columnOptions.length > 0 && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button
-                        className={cn(
-                          "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
-                          visibleColumnIds.length > 0
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-                        )}
-                        type="button"
+                  {columnOptions.length > 0 && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={cn(
+                            "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
+                            visibleColumnIds.length > 0
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                          )}
+                          type="button"
+                        >
+                          <ColumnsIcon className="size-3.5 text-gray-500" />
+                          Columns
+                          {visibleColumnIds.length > 0 && (
+                            <span className="font-bold">
+                              ({visibleColumnIds.length})
+                            </span>
+                          )}
+                          <CaretDownIcon className="size-3 opacity-60" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        className="w-56 rounded-xl p-1.5"
                       >
-                        <ColumnsIcon className="size-3.5 text-gray-500" />
-                        Columns
-                        {visibleColumnIds.length > 0 && (
-                          <span className="font-bold">
-                            ({visibleColumnIds.length})
-                          </span>
-                        )}
-                        <CaretDownIcon className="size-3 opacity-60" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      align="start"
-                      className="w-56 rounded-xl p-1.5"
-                    >
-                      <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
-                        Built-in
-                      </p>
-                      {/* Read-only for now — no show/hide mechanism exists for
+                        <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Built-in
+                        </p>
+                        {/* Read-only for now — no show/hide mechanism exists for
                           built-in columns yet, so these are plain, non-
                           interactive rows rather than fake checkboxes. */}
-                      <div className="mb-1.5 space-y-0.5">
-                        {BUILT_IN_COLUMN_LABELS.map((label) => (
-                          <div
-                            className="px-2 py-1.5 text-xs text-muted-foreground/70"
-                            key={label}
-                          >
-                            {label}
-                          </div>
-                        ))}
-                      </div>
-                      <div className="my-1 h-px bg-border" />
-                      <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
-                        Custom Fields
-                      </p>
-                      <FacetOptionList
-                        clearLabel="Clear Selection"
-                        emptyText="No custom fields"
-                        maxListHeight="220px"
-                        onChange={setVisibleColumnIds}
-                        options={sortedColumnOptions.map((c) => ({
-                          value: c.id,
-                          label: c.label,
-                        }))}
-                        searchable
-                        searchPlaceholder="Search columns…"
-                        selected={visibleColumnIds}
-                        showClearDivider
-                      />
-                    </PopoverContent>
-                  </Popover>
-                )}
+                        <div className="mb-1.5 space-y-0.5">
+                          {BUILT_IN_COLUMN_LABELS.map((label) => (
+                            <div
+                              className="px-2 py-1.5 text-xs text-muted-foreground/70"
+                              key={label}
+                            >
+                              {label}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="my-1 h-px bg-border" />
+                        <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Custom Fields
+                        </p>
+                        <FacetOptionList
+                          clearLabel="Clear Selection"
+                          emptyText="No custom fields"
+                          maxListHeight="220px"
+                          onChange={setVisibleColumnIds}
+                          options={sortedColumnOptions.map((c) => ({
+                            value: c.id,
+                            label: c.label,
+                          }))}
+                          searchable
+                          searchPlaceholder="Search columns…"
+                          selected={visibleColumnIds}
+                          showClearDivider
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
 
                 {/* Secondary: Manage Custom Fields / Archived / Keyboard
@@ -2867,7 +2900,10 @@ export function ListView({
                   <div
                     className="group flex cursor-pointer items-center gap-3 px-4 py-2 transition-colors hover:bg-accent/30"
                     key={t.id}
-                    onClick={() => router.push(`/${workspaceId}/task/${t.id}`)}
+                    onClick={() => {
+                      setTaskNavContext({ taskIds: visibleOrderedTaskIds });
+                      router.push(`/${workspaceId}/task/${t.id}`);
+                    }}
                   >
                     <span className="text-2xs text-muted-foreground font-mono shrink-0 select-none">
                       #{t.seqNumber}
@@ -2909,6 +2945,7 @@ export function ListView({
               spaceId={spaceId}
               statuses={statuses}
               tasks={pinnedTasks}
+              taskNavIds={visibleOrderedTaskIds}
               visibleCustomFields={visibleCustomFields}
               workspaceId={workspaceId}
               workspaceMembers={members}
@@ -2940,6 +2977,7 @@ export function ListView({
                   orderIndex: 0,
                 }}
                 statuses={statuses}
+                taskNavIds={visibleOrderedTaskIds}
                 tasks={group.tasks}
                 visibleCustomFields={visibleCustomFields}
                 workspaceId={workspaceId}
@@ -2947,7 +2985,6 @@ export function ListView({
               />
             ))}
           </div>
-
         </div>
       </DndContext>
 

@@ -20,6 +20,10 @@ const SHORTCUT_GROUPS: {
       { keys: ["↑", "↓"], label: "Move between tasks" },
       { keys: ["J", "K"], label: "Move between tasks" },
       { keys: ["Enter"], label: "Open the focused task" },
+      {
+        keys: ["Alt", "←/→"],
+        label: "Previous / next task (inside Task Detail)",
+      },
     ],
   },
   {

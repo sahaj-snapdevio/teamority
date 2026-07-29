@@ -15,20 +15,34 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { getBacklogTasks, getSprints, addTaskToSprint, type BacklogTask, type BacklogList } from "@/app/actions/sprint";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  getBacklogTasks,
+  getSprints,
+  addTaskToSprint,
+  type BacklogTask,
+  type BacklogList,
+} from "@/app/actions/sprint";
+import { setTaskNavContext } from "@/lib/task-nav-context";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SprintOption = { id: string; name: string; status: string };
 
-const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  NONE:   { label: "—",      color: "text-gray-400",  icon: "😴" },
-  LOW:    { label: "Low",    color: "text-gray-500",  icon: "🦥" },
-  MEDIUM: { label: "Medium", color: "text-blue-500",  icon: "🔵" },
-  HIGH:   { label: "High",   color: "text-orange-500", icon: "🔶" },
-  URGENT: { label: "Urgent", color: "text-red-500",   icon: "🔴" },
+const PRIORITY_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: string }
+> = {
+  NONE: { label: "—", color: "text-gray-400", icon: "😴" },
+  LOW: { label: "Low", color: "text-gray-500", icon: "🦥" },
+  MEDIUM: { label: "Medium", color: "text-blue-500", icon: "🔵" },
+  HIGH: { label: "High", color: "text-orange-500", icon: "🔶" },
+  URGENT: { label: "Urgent", color: "text-red-500", icon: "🔴" },
 };
 
 // ─── Task Row ─────────────────────────────────────────────────────────────────
@@ -39,15 +53,18 @@ function BacklogTaskRow({
   spaceId,
   sprintId,
   onRefresh,
+  taskNavIds,
 }: {
   task: BacklogTask;
   workspaceId: string;
   spaceId: string;
   sprintId: string;
   onRefresh: () => void;
+  taskNavIds: string[];
 }) {
   const router = useRouter();
-  const priority = PRIORITY_CONFIG[task.priority ?? "NONE"] ?? PRIORITY_CONFIG.NONE;
+  const priority =
+    PRIORITY_CONFIG[task.priority ?? "NONE"] ?? PRIORITY_CONFIG.NONE;
 
   const [sprints, setSprints] = React.useState<SprintOption[]>([]);
   const [addOpen, setAddOpen] = React.useState(false);
@@ -56,7 +73,9 @@ function BacklogTaskRow({
   async function loadSprints() {
     const res = await getSprints(workspaceId, spaceId);
     if ("error" in res) return;
-    setSprints(res.sprints.filter((s) => s.status === "PLANNED" || s.status === "ACTIVE"));
+    setSprints(
+      res.sprints.filter((s) => s.status === "PLANNED" || s.status === "ACTIVE")
+    );
   }
 
   async function handleAddToSprint(sprintId: string, sprintName: string) {
@@ -75,13 +94,22 @@ function BacklogTaskRow({
   return (
     <div
       className="group flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent/40 cursor-pointer transition-colors"
-      onClick={() => router.push(`/${workspaceId}/task/${task.id}?from=sprint&sid=${sprintId}`)}
+      onClick={() => {
+        setTaskNavContext({ taskIds: taskNavIds });
+        router.push(
+          `/${workspaceId}/task/${task.id}?from=sprint&sid=${sprintId}`
+        );
+      }}
     >
       {/* Status dot */}
       {task.statusColor ? (
         <span
           className="h-2.5 w-2.5 shrink-0 rounded-full border-2"
-          style={{ borderColor: task.statusColor, backgroundColor: task.statusType === "CLOSED" ? task.statusColor : "transparent" }}
+          style={{
+            borderColor: task.statusColor,
+            backgroundColor:
+              task.statusType === "CLOSED" ? task.statusColor : "transparent",
+          }}
         />
       ) : (
         <span className="h-2.5 w-2.5 shrink-0 rounded-full border-2 border-gray-300" />
@@ -97,7 +125,12 @@ function BacklogTaskRow({
 
       {/* Priority */}
       {task.priority && task.priority !== "NONE" && (
-        <span className={cn("shrink-0 flex items-center gap-1 text-xs font-semibold", priority.color)}>
+        <span
+          className={cn(
+            "shrink-0 flex items-center gap-1 text-xs font-semibold",
+            priority.color
+          )}
+        >
           <span>{priority.icon}</span>
           <span className="hidden sm:inline">{priority.label}</span>
         </span>
@@ -144,7 +177,9 @@ function BacklogTaskRow({
           onClick={(e) => e.stopPropagation()}
         >
           {sprints.length === 0 ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">No active or planned sprints</p>
+            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              No active or planned sprints
+            </p>
           ) : (
             sprints.map((s) => (
               <button
@@ -154,7 +189,9 @@ function BacklogTaskRow({
               >
                 <LightningIcon className="size-3.5 shrink-0 text-violet-500" />
                 <span className="truncate">{s.name}</span>
-                <span className="ml-auto text-2xs text-muted-foreground capitalize">{s.status.toLowerCase()}</span>
+                <span className="ml-auto text-2xs text-muted-foreground capitalize">
+                  {s.status.toLowerCase()}
+                </span>
               </button>
             ))
           )}
@@ -172,12 +209,14 @@ function BacklogListGroup({
   spaceId,
   sprintId,
   onRefresh,
+  taskNavIds,
 }: {
   group: BacklogList;
   workspaceId: string;
   spaceId: string;
   sprintId: string;
   onRefresh: () => void;
+  taskNavIds: string[];
 }) {
   const [open, setOpen] = React.useState(true);
 
@@ -210,6 +249,7 @@ function BacklogListGroup({
               spaceId={spaceId}
               sprintId={sprintId}
               onRefresh={onRefresh}
+              taskNavIds={taskNavIds}
             />
           ))}
         </div>
@@ -227,7 +267,12 @@ interface BacklogViewProps {
   refreshKey?: number;
 }
 
-export function BacklogView({ workspaceId, spaceId, sprintId, refreshKey }: BacklogViewProps) {
+export function BacklogView({
+  workspaceId,
+  spaceId,
+  sprintId,
+  refreshKey,
+}: BacklogViewProps) {
   const [lists, setLists] = React.useState<BacklogList[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [internalRefresh, setInternalRefresh] = React.useState(0);
@@ -253,6 +298,10 @@ export function BacklogView({ workspaceId, spaceId, sprintId, refreshKey }: Back
   }
 
   const totalTasks = lists.reduce((acc, l) => acc + l.tasks.length, 0);
+  // Previous/Next Task nav context: each list group top-to-bottom, in the
+  // order the backlog renders them — handed to Task Detail so Prev/Next
+  // walks it without a DB query.
+  const visibleOrderedTaskIds = lists.flatMap((l) => l.tasks.map((t) => t.id));
 
   return (
     <div className="space-y-3">
@@ -277,8 +326,12 @@ export function BacklogView({ workspaceId, spaceId, sprintId, refreshKey }: Back
       ) : lists.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-10 text-center">
           <TrayIcon className="size-8 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">All tasks are in a sprint</p>
-          <p className="text-xs text-muted-foreground/70">Tasks not in any sprint will appear here</p>
+          <p className="text-sm text-muted-foreground">
+            All tasks are in a sprint
+          </p>
+          <p className="text-xs text-muted-foreground/70">
+            Tasks not in any sprint will appear here
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -290,6 +343,7 @@ export function BacklogView({ workspaceId, spaceId, sprintId, refreshKey }: Back
               spaceId={spaceId}
               sprintId={sprintId}
               onRefresh={handleRefresh}
+              taskNavIds={visibleOrderedTaskIds}
             />
           ))}
         </div>
