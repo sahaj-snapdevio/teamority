@@ -612,7 +612,7 @@ export default function InboxPage() {
             it to the far right, leaving empty space this reuses. */}
         <div className="flex items-center gap-2 border-b px-4 py-2 shrink-0">
           <SearchInput
-            className="h-8 flex-1"
+            className="h-8 min-w-0 flex-1"
             onChange={(e) => setSearchDraft(e.target.value)}
             onClear={() => setSearchDraft("")}
             placeholder="Search notifications..."
@@ -669,10 +669,14 @@ export default function InboxPage() {
           </Popover>
 
           {/* Pagination — Gmail-style "51–100 of 300" + Previous/Next, shown
-              only once there's more than one page's worth of results. */}
+              only once there's more than one page's worth of results. The
+              count text hides below the same @xl breakpoint the filter bar
+              collapses at (narrow column, e.g. an open task) — at that width
+              there isn't room for both, and the two compact arrow buttons
+              alone are still enough to page through. */}
           {totalCount > NOTIFICATIONS_PAGE_SIZE && (
-            <div className="ml-auto flex shrink-0 items-center gap-3 border-l pl-3">
-              <span className="text-xs text-muted-foreground tabular-nums">
+            <div className="ml-auto flex shrink-0 items-center gap-1 @xl:gap-3 border-l pl-3">
+              <span className="hidden text-xs text-muted-foreground tabular-nums @xl:inline">
                 {pageStart}–{pageEnd} of {totalCount}
               </span>
               <div className="flex items-center gap-1">

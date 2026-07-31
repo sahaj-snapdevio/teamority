@@ -23,8 +23,9 @@ export const workspace = pgTable("workspace", {
   inviteLinkRole: workspaceRoleEnum("invite_link_role").notNull().default("MEMBER"),
   taskSeq: integer("task_seq").notNull().default(0),
   status: workspaceStatusEnum("status").notNull().default("ACTIVE"),
+  // Accent color only — workspace-wide branding, admin-controlled. Light/dark/
+  // auto is a personal preference, not workspace state — see `user.appearanceMode`.
   theme: text("theme").notNull().default("forest"),
-  appearanceMode: text("appearance_mode").notNull().default("auto"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

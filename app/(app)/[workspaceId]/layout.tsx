@@ -1,9 +1,10 @@
 import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { ThemeProvider } from "@/components/theme/theme-provider";
 import { RealtimeProvider } from "@/components/realtime/realtime-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { WorkspaceShell } from "@/components/workspace/workspace-shell";
+import { ADMIN_ROLE } from "@/config/platform";
 import {
   channel,
   list,
@@ -11,10 +12,10 @@ import {
   spaceMember,
   sprint,
   task,
+  user,
   workspace,
   workspaceMember,
 } from "@/db/schema";
-import { ADMIN_ROLE } from "@/config/platform";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -44,50 +45,61 @@ export default async function WorkspaceLayout({
     notFound();
   }
 
-  const [ws, allMemberships, spaceIds, archivedSpaceIds, channels] =
-    await Promise.all([
-      db
-        .select({
-          id: workspace.id,
-          name: workspace.name,
-          logoEmoji: workspace.logoEmoji,
-          theme: workspace.theme,
-          appearanceMode: workspace.appearanceMode,
-        })
-        .from(workspace)
-        .where(
-          and(eq(workspace.id, workspaceId), eq(workspace.status, "ACTIVE"))
+  const [
+    ws,
+    currentUserRow,
+    allMemberships,
+    spaceIds,
+    archivedSpaceIds,
+    channels,
+  ] = await Promise.all([
+    db
+      .select({
+        id: workspace.id,
+        name: workspace.name,
+        logoEmoji: workspace.logoEmoji,
+        theme: workspace.theme,
+      })
+      .from(workspace)
+      .where(and(eq(workspace.id, workspaceId), eq(workspace.status, "ACTIVE")))
+      .limit(1)
+      .then((r) => r[0] ?? null),
+    // Appearance mode is personal, not workspace state — sourced from the
+    // signed-in user's own row, never from `workspace`.
+    db
+      .select({ appearanceMode: user.appearanceMode })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1)
+      .then((r) => r[0] ?? null),
+    db
+      .select({
+        workspaceId: workspaceMember.workspaceId,
+        name: workspace.name,
+        logoEmoji: workspace.logoEmoji,
+      })
+      .from(workspaceMember)
+      .innerJoin(workspace, eq(workspaceMember.workspaceId, workspace.id))
+      .where(
+        and(
+          eq(workspaceMember.userId, userId),
+          eq(workspaceMember.status, "ACTIVE"),
+          eq(workspace.status, "ACTIVE")
         )
-        .limit(1)
-        .then((r) => r[0] ?? null),
-      db
-        .select({
-          workspaceId: workspaceMember.workspaceId,
-          name: workspace.name,
-          logoEmoji: workspace.logoEmoji,
-        })
-        .from(workspaceMember)
-        .innerJoin(workspace, eq(workspaceMember.workspaceId, workspace.id))
-        .where(
-          and(
-            eq(workspaceMember.userId, userId),
-            eq(workspaceMember.status, "ACTIVE"),
-            eq(workspace.status, "ACTIVE")
-          )
-        )
-        .orderBy(asc(workspaceMember.createdAt)),
-      getAccessibleSpaceIds(userId, workspaceId),
-      getAccessibleSpaceIds(userId, workspaceId, true),
-      db
-        .select({
-          id: channel.id,
-          name: channel.name,
-          createdAt: channel.createdAt,
-        })
-        .from(channel)
-        .where(eq(channel.workspaceId, workspaceId))
-        .orderBy(asc(channel.createdAt)),
-    ]);
+      )
+      .orderBy(asc(workspaceMember.createdAt)),
+    getAccessibleSpaceIds(userId, workspaceId),
+    getAccessibleSpaceIds(userId, workspaceId, true),
+    db
+      .select({
+        id: channel.id,
+        name: channel.name,
+        createdAt: channel.createdAt,
+      })
+      .from(channel)
+      .where(eq(channel.workspaceId, workspaceId))
+      .orderBy(asc(channel.createdAt)),
+  ]);
 
   if (!ws) {
     notFound();
@@ -240,8 +252,9 @@ export default async function WorkspaceLayout({
     }
 
     for (const l of archivedListRows) {
-      if (!archivedListsBySpace[l.spaceId])
+      if (!archivedListsBySpace[l.spaceId]) {
         archivedListsBySpace[l.spaceId] = [];
+      }
       archivedListsBySpace[l.spaceId].push({
         id: l.id,
         name: l.name,
@@ -305,7 +318,9 @@ export default async function WorkspaceLayout({
       )
       .orderBy(asc(sprint.createdAt));
     for (const sp of sprintRows) {
-      if (!sprintsBySpace[sp.spaceId]) sprintsBySpace[sp.spaceId] = [];
+      if (!sprintsBySpace[sp.spaceId]) {
+        sprintsBySpace[sp.spaceId] = [];
+      }
       sprintsBySpace[sp.spaceId].push({
         id: sp.id,
         name: sp.name,
@@ -318,21 +333,14 @@ export default async function WorkspaceLayout({
 
   return (
     <ThemeProvider
-      initialAppearanceMode={ws.appearanceMode as "light" | "dark" | "auto"}
+      initialAppearanceMode={
+        (currentUserRow?.appearanceMode ?? "auto") as "light" | "dark" | "auto"
+      }
       initialTheme={ws.theme}
       workspaceId={workspaceId}
     >
       <RealtimeProvider workspaceId={workspaceId}>
         <WorkspaceShell
-          role={membership.role}
-          isPlatformAdmin={session.user.role === ADMIN_ROLE}
-          spaces={spaces.map((s) => ({
-            ...s,
-            lists: spaceListMap[s.id] ?? [],
-            archivedLists: archivedListsBySpace[s.id] ?? [],
-            canManageList: spaceCanManageMap[s.id] ?? isAdminOrOwner,
-            sprints: sprintsBySpace[s.id] ?? [],
-          }))}
           archivedSpaces={archivedSpaces.map((s) => ({
             ...s,
             lists: [],
@@ -342,6 +350,15 @@ export default async function WorkspaceLayout({
             sprintDateFormat: s.sprintDateFormat ?? "MM/DD",
           }))}
           channels={channels}
+          isPlatformAdmin={session.user.role === ADMIN_ROLE}
+          role={membership.role}
+          spaces={spaces.map((s) => ({
+            ...s,
+            lists: spaceListMap[s.id] ?? [],
+            archivedLists: archivedListsBySpace[s.id] ?? [],
+            canManageList: spaceCanManageMap[s.id] ?? isAdminOrOwner,
+            sprints: sprintsBySpace[s.id] ?? [],
+          }))}
           user={{
             name: session.user.name ?? null,
             email: session.user.email,
