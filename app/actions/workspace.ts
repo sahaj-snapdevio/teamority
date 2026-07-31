@@ -10,8 +10,8 @@ import { db } from "@/lib/db";
 import { enqueueEmail } from "@/lib/email";
 import { workspaceInviteTemplate } from "@/lib/email/templates/workspace-invite";
 import { env } from "@/lib/env";
-import { getWorkspaceMembership } from "@/lib/permissions";
 import { createNotifications } from "@/lib/notifications/create-notification";
+import { getWorkspaceMembership } from "@/lib/permissions";
 import { rateLimit } from "@/lib/rate-limit";
 import { refreshWorkspace } from "@/lib/realtime/refresh";
 
@@ -178,7 +178,9 @@ export async function joinViaLink(
   token: string
 ): Promise<{ workspaceId: string } | { error: string }> {
   const session = await requireSession();
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   // Rate limit token attempts per user to slow invite-link guessing.
   if (!rateLimit(`join-link:${session.user.id}`, 20, 60_000).ok) {
@@ -192,12 +194,11 @@ export async function joinViaLink(
     })
     .from(workspace)
     .where(
-      and(
-        eq(workspace.inviteLinkToken, token),
-        eq(workspace.status, "ACTIVE")
-      )
+      and(eq(workspace.inviteLinkToken, token), eq(workspace.status, "ACTIVE"))
     );
-  if (!ws) return { error: "This invite link is invalid or has been disabled." };
+  if (!ws) {
+    return { error: "This invite link is invalid or has been disabled." };
+  }
 
   // Already an active member → idempotent success, no duplicate row.
   const [existing] = await db
@@ -211,9 +212,13 @@ export async function joinViaLink(
       )
     )
     .limit(1);
-  if (existing) return { workspaceId: ws.id };
+  if (existing) {
+    return { workspaceId: ws.id };
+  }
 
-  const role: InviteLinkRole = INVITE_LINK_ROLES.includes(ws.inviteLinkRole as InviteLinkRole)
+  const role: InviteLinkRole = INVITE_LINK_ROLES.includes(
+    ws.inviteLinkRole as InviteLinkRole
+  )
     ? (ws.inviteLinkRole as InviteLinkRole)
     : "MEMBER";
 
@@ -304,7 +309,11 @@ export async function inviteMember(data: {
     console.log(`[invite] ${email} → ${inviteUrl}`);
   }
 
-  const { html, text } = await workspaceInviteTemplate({ inviterName, workspaceName, inviteUrl });
+  const { html, text } = await workspaceInviteTemplate({
+    inviterName,
+    workspaceName,
+    inviteUrl,
+  });
   await enqueueEmail({
     to: email,
     subject: `${inviterName} invited you to ${workspaceName}`,
@@ -406,7 +415,11 @@ export async function resendInvite(data: {
       if (env.NODE_ENV !== "production") {
         console.log(`[invite] ${member.email} → ${inviteUrl}`);
       }
-      const { html, text } = await workspaceInviteTemplate({ inviterName, workspaceName, inviteUrl });
+      const { html, text } = await workspaceInviteTemplate({
+        inviterName,
+        workspaceName,
+        inviteUrl,
+      });
       await enqueueEmail({
         to: member.email,
         subject: `${inviterName} invited you to ${workspaceName}`,
@@ -421,11 +434,13 @@ export async function resendInvite(data: {
   return { ok: true };
 }
 
-export async function acceptInvite(token: string): Promise<
-  { workspaceId: string } | { error: string }
-> {
+export async function acceptInvite(
+  token: string
+): Promise<{ workspaceId: string } | { error: string }> {
   const session = await requireSession();
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   // Rate limit token attempts per user to slow invite-token guessing.
   if (!rateLimit(`invite-accept:${session.user.id}`, 20, 60_000).ok) {
@@ -437,7 +452,9 @@ export async function acceptInvite(token: string): Promise<
     .from(workspaceMember)
     .where(eq(workspaceMember.inviteToken, token));
 
-  if (!invite) return { error: "Invalid or expired invitation" };
+  if (!invite) {
+    return { error: "Invalid or expired invitation" };
+  }
 
   // Idempotent short-circuit: this user already accepted this exact invite —
   // e.g. a duplicate/retry submit, or activatePendingInvites() beat us to it
@@ -445,13 +462,17 @@ export async function acceptInvite(token: string): Promise<
   if (invite.status === "ACTIVE" && invite.userId === session.user.id) {
     return { workspaceId: invite.workspaceId };
   }
-  if (invite.status !== "INVITED") return { error: "This invitation has already been used" };
-  if (invite.inviteExpiresAt && invite.inviteExpiresAt < new Date())
+  if (invite.status !== "INVITED") {
+    return { error: "This invitation has already been used" };
+  }
+  if (invite.inviteExpiresAt && invite.inviteExpiresAt < new Date()) {
     return { error: "This invitation has expired" };
+  }
 
   // Check email matches if invite was for a specific address
-  if (invite.email && invite.email !== session.user.email?.toLowerCase())
+  if (invite.email && invite.email !== session.user.email?.toLowerCase()) {
     return { error: "This invitation was sent to a different email address" };
+  }
 
   // Atomic transition — the status="INVITED" guard closes the SELECT/UPDATE
   // race (double-click, or a concurrent activatePendingInvites() accepting
@@ -509,19 +530,28 @@ export async function acceptInvite(token: string): Promise<
   return { workspaceId: invite.workspaceId };
 }
 
-export async function declineInvite(token: string): Promise<{ ok: true } | { error: string }> {
+export async function declineInvite(
+  token: string
+): Promise<{ ok: true } | { error: string }> {
   const session = await requireSession();
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const [invite] = await db
     .select()
     .from(workspaceMember)
     .where(eq(workspaceMember.inviteToken, token));
 
-  if (!invite) return { error: "Invalid or expired invitation" };
-  if (invite.status !== "INVITED") return { error: "This invitation has already been used" };
-  if (invite.email && invite.email !== session.user.email?.toLowerCase())
+  if (!invite) {
+    return { error: "Invalid or expired invitation" };
+  }
+  if (invite.status !== "INVITED") {
+    return { error: "This invitation has already been used" };
+  }
+  if (invite.email && invite.email !== session.user.email?.toLowerCase()) {
     return { error: "This invitation was sent to a different email address" };
+  }
 
   await db.delete(workspaceMember).where(eq(workspaceMember.id, invite.id));
 
@@ -541,10 +571,14 @@ export async function declineInvite(token: string): Promise<{ ok: true } | { err
  */
 export async function activatePendingInvites(): Promise<{ activated: number }> {
   const session = await requireSession();
-  if (!session) return { activated: 0 };
+  if (!session) {
+    return { activated: 0 };
+  }
 
   const email = session.user.email?.toLowerCase();
-  if (!email) return { activated: 0 };
+  if (!email) {
+    return { activated: 0 };
+  }
 
   const now = new Date();
 
@@ -561,7 +595,9 @@ export async function activatePendingInvites(): Promise<{ activated: number }> {
   let activated = 0;
   for (const invite of pending) {
     // Respect invite expiry, mirroring acceptInvite.
-    if (invite.inviteExpiresAt && invite.inviteExpiresAt < now) continue;
+    if (invite.inviteExpiresAt && invite.inviteExpiresAt < now) {
+      continue;
+    }
 
     // If the user is somehow already an active member of this workspace (e.g.
     // via a row under a different email), drop the redundant invite instead of
@@ -599,7 +635,9 @@ export async function activatePendingInvites(): Promise<{ activated: number }> {
       )
       .returning({ id: workspaceMember.id });
 
-    if (!updated) continue;
+    if (!updated) {
+      continue;
+    }
     activated++;
 
     // Notify the inviter that their invitation was accepted (mirrors acceptInvite).
@@ -858,8 +896,8 @@ export async function deleteWorkspace(data: {
         eq(workspaceMember.userId, session.user.id),
         eq(workspaceMember.status, "ACTIVE"),
         eq(workspace.status, "ACTIVE"),
-        ne(workspace.id, data.workspaceId),
-      ),
+        ne(workspace.id, data.workspaceId)
+      )
     )
     .orderBy(asc(workspaceMember.createdAt))
     .limit(1);
@@ -867,10 +905,12 @@ export async function deleteWorkspace(data: {
   return { ok: true, nextWorkspaceId: next?.id ?? null };
 }
 
+// Accent color only — this is shared workspace branding, admin-controlled.
+// Light/dark/auto is a personal preference; see `updateAppearanceMode` in
+// app/actions/profile.ts.
 export async function updateWorkspaceTheme(data: {
   workspaceId: string;
   theme: string;
-  appearanceMode: "light" | "dark" | "auto";
 }): Promise<{ ok: true } | { error: string }> {
   const session = await requireSession();
   if (!session) {
@@ -886,7 +926,6 @@ export async function updateWorkspaceTheme(data: {
     .update(workspace)
     .set({
       theme: data.theme,
-      appearanceMode: data.appearanceMode,
       updatedAt: new Date(),
     })
     .where(eq(workspace.id, data.workspaceId));

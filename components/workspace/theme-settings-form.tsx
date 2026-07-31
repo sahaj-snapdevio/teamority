@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import * as React from "react";
 import { useTheme } from "@/components/theme/theme-provider";
 import { Button } from "@/components/ui/button";
@@ -85,18 +85,14 @@ export const THEME_OPTIONS: ThemeOption[] = [
 export function ThemeSettingsForm() {
   const {
     currentTheme,
-    appearanceMode,
     setTheme,
-    setAppearance,
     saveThemeSettings,
     cancelThemeSettings,
     savedTheme,
-    savedAppearance,
   } = useTheme();
 
   const [saving, setSaving] = React.useState(false);
-  const hasChanges =
-    currentTheme !== savedTheme || appearanceMode !== savedAppearance;
+  const hasChanges = currentTheme !== savedTheme;
 
   async function handleSave() {
     setSaving(true);
@@ -107,95 +103,18 @@ export function ThemeSettingsForm() {
   return (
     <div className="space-y-8 max-w-4xl">
       <div>
-        <h2 className="text-base font-semibold leading-7">Workspace Themes</h2>
+        <h2 className="text-base font-semibold leading-7">Workspace Theme</h2>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
-          Customize the color scheme and appearance mode of your workspace.
-          Changes apply instantly as a preview.
+          Set the accent color every member sees in this workspace. Changes
+          apply instantly as a preview.{" "}
+          <span className="text-foreground/70">
+            Light/dark mode is a personal setting — each member sets their own
+            from their Profile page.
+          </span>
         </p>
       </div>
 
       <div className="border-t border-border pt-6 space-y-6">
-        {/* Appearance Mode */}
-        <div>
-          <h3 className="text-sm font-medium mb-3">Appearance</h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {/* Light Mode Card */}
-            <button
-              type="button"
-              className={cn(
-                "flex items-center gap-3 rounded-xl border p-4 text-left hover:bg-accent/50 transition-all focus:outline-none cursor-pointer",
-                appearanceMode === "light"
-                  ? "border-primary ring-2 ring-primary/20 bg-accent"
-                  : "border-border bg-card"
-              )}
-              onClick={() => setAppearance("light")}
-            >
-              <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg">
-                <SunIcon className="size-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">Light</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  Clean light interface
-                </p>
-              </div>
-              {appearanceMode === "light" && (
-                <CheckIcon className="size-4 text-primary shrink-0" />
-              )}
-            </button>
-
-            {/* Dark Mode Card */}
-            <button
-              type="button"
-              className={cn(
-                "flex items-center gap-3 rounded-xl border p-4 text-left hover:bg-accent/50 transition-all focus:outline-none cursor-pointer",
-                appearanceMode === "dark"
-                  ? "border-primary ring-2 ring-primary/20 bg-accent"
-                  : "border-border bg-card"
-              )}
-              onClick={() => setAppearance("dark")}
-            >
-              <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
-                <MoonIcon className="size-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">Dark</p>
-                <p className="text-xs text-muted-foreground truncate font-normal">
-                  Sleek dark interface
-                </p>
-              </div>
-              {appearanceMode === "dark" && (
-                <CheckIcon className="size-4 text-primary shrink-0" />
-              )}
-            </button>
-
-            {/* Auto / System Mode Card */}
-            <button
-              type="button"
-              className={cn(
-                "flex items-center gap-3 rounded-xl border p-4 text-left hover:bg-accent/50 transition-all focus:outline-none cursor-pointer",
-                appearanceMode === "auto"
-                  ? "border-primary ring-2 ring-primary/20 bg-accent"
-                  : "border-border bg-card"
-              )}
-              onClick={() => setAppearance("auto")}
-            >
-              <div className="p-2 bg-muted text-muted-foreground rounded-lg">
-                <MonitorIcon className="size-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">System</p>
-                <p className="text-xs text-muted-foreground truncate font-normal">
-                  Sync with OS preferences
-                </p>
-              </div>
-              {appearanceMode === "auto" && (
-                <CheckIcon className="size-4 text-primary shrink-0" />
-              )}
-            </button>
-          </div>
-        </div>
-
         {/* Accent Themes */}
         <div>
           <h3 className="text-sm font-medium mb-3">Accent Theme Color</h3>
@@ -204,7 +123,6 @@ export function ThemeSettingsForm() {
               const isSelected = currentTheme === theme.id;
               return (
                 <button
-                  type="button"
                   className={cn(
                     "flex flex-col items-center justify-center p-4 rounded-xl border text-center hover:bg-accent/50 transition-all focus:outline-none cursor-pointer gap-2",
                     isSelected
@@ -213,6 +131,7 @@ export function ThemeSettingsForm() {
                   )}
                   key={theme.id}
                   onClick={() => setTheme(theme.id)}
+                  type="button"
                 >
                   <div
                     className="size-8 rounded-full shadow-inner flex items-center justify-center border border-black/5"

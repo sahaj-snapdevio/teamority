@@ -3,6 +3,7 @@ import {
   AccountIdentityForms,
   DeleteAccountForm,
 } from "@/components/profile/account-forms";
+import { AppearanceSettingsForm } from "@/components/profile/appearance-settings-form";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { PasswordCard } from "@/components/profile/password-card";
 import {
@@ -19,8 +20,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { session as sessionTable, user } from "@/db/schema";
-import { requireSession } from "@/lib/authz";
 import { userHasPassword } from "@/lib/auth-password";
+import { requireSession } from "@/lib/authz";
 import { db } from "@/lib/db";
 
 export const metadata = {
@@ -80,17 +81,19 @@ export default async function ProfilePage({
           <CardContent>
             <AvatarUpload
               currentImageKey={freshUser.image ?? null}
-              name={freshUser.name ?? null}
               email={freshUser.email}
+              name={freshUser.name ?? null}
             />
           </CardContent>
         </Card>
 
         <AccountIdentityForms
+          callbackURL={`/${workspaceId}/profile`}
           email={freshUser.email}
           name={freshUser.name}
-          callbackURL={`/${workspaceId}/profile`}
         />
+
+        <AppearanceSettingsForm />
 
         <PasswordCard hasPassword={hasPassword} />
 
@@ -105,7 +108,7 @@ export default async function ProfilePage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild variant="secondary" size="sm">
+            <Button asChild size="sm" variant="secondary">
               <a download href="/api/account/export">
                 Download JSON export
               </a>

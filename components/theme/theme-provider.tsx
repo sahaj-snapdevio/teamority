@@ -2,18 +2,24 @@
 
 import * as React from "react";
 import { toast } from "sonner";
+import { updateAppearanceMode } from "@/app/actions/profile";
 import { updateWorkspaceTheme } from "@/app/actions/workspace";
 import {
   type AppearanceMode,
+  serializeThemeCookie,
   THEME_COOKIE,
   THEME_COOKIE_MAX_AGE,
-  serializeThemeCookie,
 } from "@/lib/theme";
 
 export interface ThemeContextType {
   appearanceMode: "light" | "dark" | "auto";
+  // Accent color (workspace-wide) and appearance (personal) are independent
+  // settings, saved/cancelled independently, even though they share one DOM
+  // application step and one cookie.
+  cancelAppearanceSettings: () => void;
   cancelThemeSettings: () => void;
   currentTheme: string;
+  saveAppearanceSettings: () => Promise<void>;
   savedAppearance: "light" | "dark" | "auto";
   savedTheme: string;
   saveThemeSettings: () => Promise<void>;
@@ -27,7 +33,9 @@ const ThemeContext = React.createContext<ThemeContextType | undefined>(
 
 interface ThemeProviderProps {
   children: React.ReactNode;
+  /** The current USER's own appearance preference (`user.appearanceMode`) — not workspace state. */
   initialAppearanceMode: "light" | "dark" | "auto";
+  /** The WORKSPACE's accent color (`workspace.theme`) — shared across every member. */
   initialTheme: string;
   workspaceId: string;
 }
@@ -117,13 +125,12 @@ export function ThemeProvider({
     setAppearanceModeState(mode);
   }, []);
 
-  // Permanent save
+  // Permanent save — accent color (workspace-wide, admin-only).
   const saveThemeSettings = React.useCallback(async () => {
     try {
       const res = await updateWorkspaceTheme({
         workspaceId,
         theme: currentTheme,
-        appearanceMode,
       });
 
       if (res && "error" in res) {
@@ -131,26 +138,47 @@ export function ThemeProvider({
         return;
       }
 
-      // Update baseline values
       setSavedTheme(currentTheme);
-      setSavedAppearance(appearanceMode);
-
       // Mirror the freshly-saved DB value so the next server render agrees.
       persistCookie(currentTheme, appearanceMode);
 
-      toast.success("Theme settings saved successfully");
+      toast.success("Theme color saved successfully");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to save theme settings");
+      toast.error("Failed to save theme color");
     }
   }, [workspaceId, currentTheme, appearanceMode, persistCookie]);
+
+  // Permanent save — appearance mode (personal, any user).
+  const saveAppearanceSettings = React.useCallback(async () => {
+    try {
+      const res = await updateAppearanceMode(appearanceMode);
+
+      if (res && "error" in res) {
+        toast.error(res.error);
+        return;
+      }
+
+      setSavedAppearance(appearanceMode);
+      persistCookie(currentTheme, appearanceMode);
+
+      toast.success("Appearance saved successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save appearance");
+    }
+  }, [appearanceMode, currentTheme, persistCookie]);
 
   // Revert preview back to saved baseline values
   const cancelThemeSettings = React.useCallback(() => {
     setCurrentThemeState(savedTheme);
+    toast.info("Changes discarded");
+  }, [savedTheme]);
+
+  const cancelAppearanceSettings = React.useCallback(() => {
     setAppearanceModeState(savedAppearance);
     toast.info("Changes discarded");
-  }, [savedTheme, savedAppearance]);
+  }, [savedAppearance]);
 
   return (
     <ThemeContext.Provider
@@ -160,7 +188,9 @@ export function ThemeProvider({
         setTheme,
         setAppearance,
         saveThemeSettings,
+        saveAppearanceSettings,
         cancelThemeSettings,
+        cancelAppearanceSettings,
         savedTheme,
         savedAppearance,
       }}

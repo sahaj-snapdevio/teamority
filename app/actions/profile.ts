@@ -48,6 +48,22 @@ export async function updateNameAction(
   return { success: "Name updated." };
 }
 
+// Light/dark/auto is personal, not workspace state — any signed-in user can
+// set their own, with no workspace-role check and no `refreshWorkspace` call
+// (unlike workspace mutations, this never needs to reach other users' clients).
+export async function updateAppearanceMode(
+  appearanceMode: "light" | "dark" | "auto"
+): Promise<{ ok: true } | { error: string }> {
+  const session = await requireSession();
+
+  await db
+    .update(user)
+    .set({ appearanceMode, updatedAt: new Date() })
+    .where(eq(user.id, session.user.id));
+
+  return { ok: true };
+}
+
 export async function revokeSessionAction(formData: FormData): Promise<void> {
   const current = await requireSession();
   const sessionId = String(formData.get("sessionId") ?? "");

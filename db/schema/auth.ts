@@ -7,6 +7,9 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   role: text("role").notNull().default("user"),
+  // Personal, not workspace-scoped: applies across every workspace this user
+  // opens. Accent color theme stays on `workspace` — that one's shared branding.
+  appearanceMode: text("appearance_mode").notNull().default("auto"),
   banned: boolean("banned").notNull().default(false),
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires", { withTimezone: true }),
