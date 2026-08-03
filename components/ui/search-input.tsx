@@ -28,7 +28,7 @@ export function SearchInput({ className, value, onChange, onClear, ...props }: S
         value={value}
         onChange={onChange}
         className={cn(
-          "h-8 rounded-lg border border-border bg-background pl-8 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all",
+          "input h-8 w-full rounded-lg border border-border bg-background pl-8 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all",
           hasValue ? "pr-7" : "pr-3",
           className,
         )}

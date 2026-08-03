@@ -76,7 +76,7 @@ interface ListContainerProps {
     color: string | null;
     description: string | null;
   };
-  members: { userId: string; name: string | null; email: string | null }[];
+  members: { userId: string; name: string | null; email: string | null; image: string | null }[];
   personallyPinnedIds: Set<string>;
   pinnedTasks: Task[];
   space: {

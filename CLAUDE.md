@@ -18,7 +18,7 @@ Full product specs live in `docs/`. Read the relevant doc before implementing an
 | ORM | Drizzle ORM |
 | Auth | Better Auth (with Admin Plugin) |
 | Styling | Tailwind CSS v4 |
-| UI Components | shadcn/ui |
+| UI Components | DaisyUI + hand-rolled primitives in `components/ui/`, positioned by a shared Floating UI-based overlay system |
 | Rich Text | Tiptap |
 | Emoji Picker | emoji-mart (`@emoji-mart/react` + `@emoji-mart/data`) |
 | State | SWR (server) + React state/context (client) |
@@ -41,7 +41,7 @@ app/                       ← Next.js App Router
 ├── api/                   ← API route handlers
 └── admin/                 ← platform admin panel (legacy — password-based login; see docs/admin-panel.md)
 components/
-├── ui/                    ← shadcn/ui primitives
+├── ui/                    ← UI primitives (DaisyUI + hand-rolled, see "UI Components" below)
 └── common/                ← shared app components
 config/                    ← platform config (branding, dev-database settings)
 db/
@@ -65,14 +65,16 @@ uploads/                   ← local file storage (STORAGE_DRIVER=local only), g
 ## Key Decisions & Conventions
 
 ### UI Components
-- **Always use shadcn/ui components** — never build custom UI primitives (calendars, dialogs, dropdowns, inputs, etc.).
-- If a shadcn component isn't installed yet, add it with `npx shadcn@latest add <component>`.
-- Custom components are only acceptable for app-specific composite UI that has no shadcn equivalent.
+- **Always use the primitives in `components/ui/`** — never hand-roll a one-off dialog, dropdown, select, or input for a feature.
+- Primitives use DaisyUI classes where DaisyUI has an equivalent (`btn`, `card`, `input`, `select`, `badge`, `alert`, `tabs`, `table`, `progress`, `avatar`, `textarea`), and a hand-rolled implementation otherwise (Dialog, Popover, DropdownMenu, Tooltip, Sheet, AlertDialog, Accordion, Switch, Checkbox, RadioGroup).
+- Every floating/overlay primitive shares one system: `components/ui/floating.tsx` (Floating UI-based portal, positioning, presence/exit-animation, dismiss-on-outside-click/Escape via the `overlayLayers` registry in `components/ui/overlay-stack.ts`) and `components/ui/overlay.tsx` (focus trap, scroll lock, return-focus). Reuse these hooks (`useFloatingPosition`, `useDismiss`, `usePresence`) for any new overlay — don't reimplement positioning or dismissal.
+- There is no CLI to generate a new primitive — add one by hand to `components/ui/`, following the pattern of the closest existing one.
+- Custom components are only acceptable for app-specific composite UI that has no primitive equivalent.
 
 ### Emoji Picker
-- **Library:** emoji-mart (`@emoji-mart/react` + `@emoji-mart/data`) — used because shadcn has no emoji-picker primitive.
+- **Library:** emoji-mart (`@emoji-mart/react` + `@emoji-mart/data`) — used because there's no built-in emoji-picker primitive.
 - **Where it's used:** `components/task/task-activity-feed.tsx` — inserting emoji into the Tiptap comment composer and choosing comment reaction emoji.
-- **Pattern:** dynamically import the picker (`dynamic(() => import("@emoji-mart/react"), { ssr: false })`), lazy-load `@emoji-mart/data`, render it inside a shadcn `Popover`, and pass `theme` based on the `.dark` class. Reuse this pattern for any new emoji picker — do not add a second emoji library.
+- **Pattern:** dynamically import the picker (`dynamic(() => import("@emoji-mart/react"), { ssr: false })`), lazy-load `@emoji-mart/data`, render it inside a `Popover` (`components/ui/popover.tsx`), and pass `theme` based on the `.dark` class. Reuse this pattern for any new emoji picker — do not add a second emoji library.
 
 ### Slash ("/") Command Menu
 - **Shared module:** `components/task/slash-command-menu.tsx` — exports `useSlashCommands`, `SlashCommandMenu`, `SlashCommandGrid`, `computeSlash`, and the `SlashCommand` type.
@@ -93,14 +95,14 @@ uploads/                   ← local file storage (STORAGE_DRIVER=local only), g
 - **Upload pipeline:** Sharp resizes to 256×256 WebP (quality 85) server-side before storing. Max raw upload: 2 MB.
 
 ### Confirmation Dialogs
-- **Never use `window.confirm()` or `confirm()`** — always use a shadcn `Dialog` with Cancel + destructive Delete buttons.
+- **Never use `window.confirm()` or `confirm()`** — always use the `Dialog` primitive (`components/ui/dialog.tsx`) with Cancel + destructive Delete buttons.
 - Pattern: add `deleteOpen` / `deleting` state, a `confirmDelete` async function, and render the Dialog alongside the triggering component.
 - The delete button sets `deleteOpen(true)`; `confirmDelete` does the actual deletion with a loading state.
 - Standard layout: centered `TrashIcon` in a red circle, bold title, muted description, full-width Cancel + Delete buttons side by side.
 
 ### UI Consistency
 - **Border radius:** All cards, modals, dialogs, popovers, and section containers must use `rounded-xl`. Buttons use `rounded-md`. Inputs use `rounded-md`. Never leave border radius missing on any surface.
-- **Shadcn components only** — do not use native HTML `<select>`, `<input type="checkbox">`, `<input type="date">`, etc. Always use the shadcn equivalent (Select, Checkbox, Calendar/DatePicker).
+- **Use the shared primitives only** — do not use native HTML `<select>`, `<input type="checkbox">`, `<input type="date">`, etc. Always use the equivalent primitive in `components/ui/` (Select, Checkbox, Calendar/DatePicker).
 - **Spacing:** Use consistent padding inside cards (`p-6` via `--card-spacing`). Section gaps use `space-y-6`.
 - Before shipping any UI, verify every interactive element and container has correct border radius, hover states, and focus rings matching the design system.
 

@@ -104,7 +104,7 @@ export function AvatarUpload({ currentImageKey, name, email }: AvatarUploadProps
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-sm transition-opacity hover:opacity-80 disabled:opacity-50"
+          className="absolute -bottom-1 -right-1 z-20 flex size-7 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-sm transition-opacity hover:opacity-80 disabled:opacity-50"
           title="Change avatar"
         >
           <CameraIcon className="size-3.5" weight="bold" />

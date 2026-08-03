@@ -52,6 +52,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { isOverlayOpen } from "@/components/ui/overlay-stack";
 import { Separator } from "@/components/ui/separator";
 import { CreateSpaceModal } from "@/components/workspace/create-space-modal";
 import { SpaceActionDialog } from "@/components/workspace/space-action-dialog";
@@ -295,6 +296,14 @@ export function WorkspaceShell({
   }
   function scheduleCloseProfileMenu() {
     if (profileCloseTimer.current) clearTimeout(profileCloseTimer.current);
+    // Swapping in the project picker makes the menu shorter, and it is
+    // bottom-anchored (side="top"), so its top edge drops — sliding the panel
+    // out from under a stationary cursor and firing a spurious mouseleave.
+    // Letting that schedule a close would reset the picker the user just
+    // opened, making the click look like it did nothing. The picker is entered
+    // by an explicit click, so keep it up until it's explicitly dismissed
+    // (Back, picking a project, Escape, or a click outside).
+    if (showProjectPicker) return;
     profileCloseTimer.current = setTimeout(() => {
       setProfileOpen(false);
       setShowProjectPicker(false);
@@ -320,11 +329,7 @@ export function WorkspaceShell({
             t.tagName === "TEXTAREA" ||
             t.tagName === "SELECT");
         if (typing) return;
-        if (
-          document.querySelector(
-            '[role="dialog"], [data-radix-popper-content-wrapper]'
-          )
-        ) {
+        if (isOverlayOpen()) {
           return;
         }
         e.preventDefault();
@@ -1281,7 +1286,13 @@ export function WorkspaceShell({
                     ) : (
                       <button
                         className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
-                        onClick={() => setShowProjectPicker(true)}
+                        onClick={() => {
+                          // openProfileMenu() cancels any close already
+                          // scheduled by a mouseleave in flight — without it
+                          // that timer still fires and resets the picker.
+                          openProfileMenu();
+                          setShowProjectPicker(true);
+                        }}
                       >
                         <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
                         <span className="flex-1 text-left">

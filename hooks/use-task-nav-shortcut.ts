@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { isOverlayOpen } from "@/components/ui/overlay-stack";
+
 /**
  * Alt+Left / Alt+Right → Previous/Next task in Task Detail. Mirrors the guard
  * logic in `use-create-task-shortcut.ts`:
@@ -41,11 +43,7 @@ export function useTaskNavShortcut(
       if (typing) {
         return;
       }
-      if (
-        document.querySelector(
-          '[role="dialog"], [data-radix-popper-content-wrapper]'
-        )
-      ) {
+      if (isOverlayOpen()) {
         return;
       }
       e.preventDefault();

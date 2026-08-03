@@ -240,7 +240,7 @@ Notifications          ->  /settings/notifications
 Sign out
 ```
 
-- Popover uses `<Popover>` (shadcn) anchored to the bottom of the sidebar
+- Popover uses `<Popover>` (`components/ui/popover.tsx`) anchored to the bottom of the sidebar
 - "Sign out" triggers Better Auth `signOut()` then redirects to `/sign-in`
 - In collapsed (icon-only) mode: only the avatar is shown; tooltip on hover reads the user's full name
 
@@ -290,7 +290,7 @@ Sign out
 
 ## Icons
 
-Use **Lucide React** (`lucide-react`) for all icons — it ships with shadcn/ui.
+Use **Phosphor Icons** (`@phosphor-icons/react`) for all icons.
 
 - Default size: `w-4 h-4` (16px)
 - Sidebar icons: `w-4 h-4`
@@ -303,7 +303,7 @@ Do not use multiple icon libraries.
 
 ## Toasts / Notifications
 
-Use shadcn/ui `Sonner` toast component.
+Use the `Sonner` toast component (`components/ui/sonner.tsx`, wrapping `sonner`).
 
 | Type | Color |
 |------|-------|

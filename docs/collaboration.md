@@ -334,7 +334,7 @@ Clicking a previewable attachment opens an in-app preview modal (`components/tas
 - **Video / audio** — native player with controls.
 - **Other types** — a fallback card with the file name and Download / Open-in-new-tab actions.
 - Every type has **Download** and **Open in new tab** in the toolbar; close via the X button or `Esc`.
-- The modal is a shadcn `Dialog` (`rounded-xl`, ~90vh × 95vw) following the design system.
+- The modal is a `Dialog` (`rounded-xl`, ~90vh × 95vw) following the design system.
 
 ### Limits (MVP)
 

@@ -117,6 +117,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { isOverlayOpen } from "@/components/ui/overlay-stack";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SearchInput } from "@/components/ui/search-input";
 import { useListColumnPreferences } from "@/hooks/use-list-column-preferences";
@@ -2182,11 +2183,7 @@ export function ListView({
 
       // Don't hijack keys while an overlay (dialog / popover / dropdown / select)
       // is open — let it own the keyboard.
-      if (
-        document.querySelector(
-          '[role="dialog"], [data-radix-popper-content-wrapper]'
-        )
-      ) {
+      if (isOverlayOpen()) {
         return;
       }
 
@@ -2912,7 +2909,7 @@ export function ListView({
                       {t.title}
                     </span>
                     <button
-                      className="hidden group-hover:flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
+                      className="invisible flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground transition-colors group-hover:visible hover:text-foreground cursor-pointer select-none"
                       onClick={async (e) => {
                         e.stopPropagation();
                         await unarchiveTask(workspaceId, spaceId, listId, t.id);

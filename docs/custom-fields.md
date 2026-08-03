@@ -65,7 +65,7 @@ Two distinct, separate removal paths — do not conflate them:
 
 `customFieldValue.fieldId` has `onDelete: "cascade"` (`db/schema/custom-field.ts`), so `deleteCustomFieldDefinition` only needs to delete the definition row — every value for it is removed automatically, no separate cleanup query.
 
-Delete requires a confirmation dialog (shadcn `Dialog`, not `window.confirm`) — see the "Confirmation Dialogs" pattern in the root `CLAUDE.md`. Copy:
+Delete requires a confirmation dialog (`Dialog`, not `window.confirm`) — see the "Confirmation Dialogs" pattern in the root `CLAUDE.md`. Copy:
 > Delete "{field name}"?
 > This will permanently delete the field and remove all stored values from every task. This action cannot be undone.
 

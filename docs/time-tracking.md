@@ -69,7 +69,7 @@ Every mutation that changes tracked time (`startTimer`, `stopTimer`, `logTime`) 
 One shared component, `components/task/task-time-tracking.tsx` (`TaskTimeTracking`), used by both the full task page's accordion section and the task drawer panel (`hideHeader` prop suppresses the built-in "Time Tracking" heading when a parent section already supplies one).
 
 - **Tracked Time total + Start/Stop control** — shows the sum of all completed entries plus, if a timer is running (by anyone), a live-ticking addition computed client-side from `now - start_time` each second. The caller's own Start/Stop button reflects only *their* running timer; if someone else's timer is running, the total still updates live but no Stop button is shown to the caller for it.
-- **Log Time** — opens a dialog to enter hours/minutes, a date (shadcn `Calendar` popover), and an optional description.
+- **Log Time** — opens a dialog to enter hours/minutes, a date (`Calendar` popover), and an optional description.
 - **History** — completed entries grouped by calendar day (`Today` / `Yesterday` / `MMM d, yyyy`), then by user within each day (collapsible, ordered by that user's total descending). Each session row shows a time range (`h:mm a – h:mm a`, or a single timestamp for a manual log where start equals end), duration, and an optional note. Only the entry's own author can delete it inline, and only while it's their own row.
 - **Card badge** — `components/task/tracked-time-badge.tsx` (`TrackedTimeBadge`) renders a small clock icon + `formatDuration` total on List/Board task cards, showing only **completed** tracked time (never counts a currently-running timer). Renders nothing if the total is zero.
 

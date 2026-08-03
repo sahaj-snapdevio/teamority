@@ -130,7 +130,7 @@ The landing page must feel like a modern SaaS product -- not a boilerplate. Key 
 
 **Layout:** `bg-[#f9fafb]`, centred. Section label + heading + subtext. Tab switcher (List / Board / My Tasks).
 
-**Tab bar:** shadcn `<Tabs>` with custom active style -- active tab gets indigo bg + white text. Inactive tabs are ghost with hover.
+**Tab bar:** `<Tabs>` with custom active style -- active tab gets indigo bg + white text. Inactive tabs are ghost with hover.
 
 **Tab panels:**
 Each tab panel is a card with a `border shadow-sm rounded-xl` and realistic mock content:

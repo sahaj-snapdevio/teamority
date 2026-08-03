@@ -106,7 +106,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -118,6 +118,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { isWithinAnyOpenLayer } from "@/components/ui/overlay-stack";
 import {
   Popover,
   PopoverContent,
@@ -188,6 +189,10 @@ function userInitials(name: string | null, email: string | null) {
       .slice(0, 2);
   }
   return (email ?? "?").slice(0, 2).toUpperCase();
+}
+
+function avatarSrc(key: string | null | undefined): string | undefined {
+  return key ? `/api/files/${key}` : undefined;
 }
 
 // ─── Field row (label + value in grid) ───────────────────────────────────────
@@ -450,11 +455,7 @@ export function TaskDetailPage({
       if (sectionsRef.current?.contains(target)) {
         return;
       }
-      if (
-        target.closest(
-          '[role="dialog"],[role="menu"],[data-radix-popper-content-wrapper]'
-        )
-      ) {
+      if (isWithinAnyOpenLayer(target)) {
         return;
       }
       setOpenSections((prev) => prev.filter(hasData));
@@ -1385,6 +1386,7 @@ export function TaskDetailPage({
                       key={a.userId}
                     >
                       <Avatar className="size-4">
+                        {a.image && <AvatarImage src={avatarSrc(a.image)} />}
                         <AvatarFallback className="text-[8px]">
                           {userInitials(a.name, a.email)}
                         </AvatarFallback>
@@ -1423,6 +1425,7 @@ export function TaskDetailPage({
                               onClick={() => handleToggleAssignee(m.userId)}
                             >
                               <Avatar className="size-6 shrink-0">
+                                {m.image && <AvatarImage src={avatarSrc(m.image)} />}
                                 <AvatarFallback className="text-2xs">
                                   {userInitials(m.name, m.email)}
                                 </AvatarFallback>

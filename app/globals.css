@@ -1,10 +1,98 @@
 ﻿@import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
 @source not "../docs/**";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Inlined from the "shadcn" CLI package's bundled tailwind.css (previously
+   `@import "shadcn/tailwind.css"`) so the app no longer depends on that
+   package now that shadcn/ui + radix-ui have been fully migrated to
+   DaisyUI/hand-rolled components. These custom variants are still load-
+   bearing: every overlay component (Dialog, Popover, DropdownMenu, Select,
+   Sheet, AlertDialog, Tooltip, Accordion) drives its open/closed/checked
+   animation classes off data-open:/data-closed:/data-checked:/etc, matching
+   a data-state or boolean data-* attribute each component sets itself. */
+@custom-variant data-open {
+  &:where([data-state="open"]),
+  &:where([data-open]:not([data-open="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-closed {
+  &:where([data-state="closed"]),
+  &:where([data-closed]:not([data-closed="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-checked {
+  &:where([data-state="checked"]),
+  &:where([data-checked]:not([data-checked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-unchecked {
+  &:where([data-state="unchecked"]),
+  &:where([data-unchecked]:not([data-unchecked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-selected {
+  &:where([data-selected="true"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-disabled {
+  &:where([data-disabled="true"]),
+  &:where([data-disabled]:not([data-disabled="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-active {
+  &:where([data-state="active"]),
+  &:where([data-active]:not([data-active="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-horizontal {
+  &:where([data-orientation="horizontal"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-vertical {
+  &:where([data-orientation="vertical"]) {
+    @slot;
+  }
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* DaisyUI is loaded with its built-in theme set disabled ("themes: false").
+   DaisyUI ships default themes literally named "black" and "forest", which
+   would collide with this app's own data-theme accent-color system
+   (lib/theme.ts THEME_IDS includes both names). Disabling built-in themes
+   means daisyUI's component CSS (.btn, .card, .input, etc) instead reads the
+   bridge variables (--color-base-100 and friends, --radius-field, --border,
+   --depth, --noise) defined below, mapped onto this app's existing tokens so
+   every daisyUI component renders with the exact current palette. */
+@plugin "daisyui" {
+  themes: false;
+}
 
 * {
   box-sizing: border-box;
@@ -51,6 +139,24 @@ body:has(.workspace-shell) {
 }
 
 @theme inline {
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height, auto);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height, auto);
+    }
+    to {
+      height: 0;
+    }
+  }
+
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
 
@@ -71,26 +177,11 @@ body:has(.workspace-shell) {
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-success-subtle: var(--success-subtle);
-  --color-success-light: var(--success-light);
   --color-warning: var(--warning);
 
-  /* Shadcn core */
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
-  --color-border: var(--border);
+  --color-border: var(--border-color);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -113,6 +204,28 @@ body:has(.workspace-shell) {
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* DaisyUI v5 bridge — mapped onto the existing tokens above so daisyUI's
+     component CSS (.btn/.card/.input/.badge/.alert/etc) renders with this
+     app's exact current palette instead of daisyUI's own shipped colors. */
+  --color-base-100: var(--background);
+  --color-base-200: var(--muted);
+  --color-base-300: var(--border-color);
+  --color-base-content: var(--foreground);
+  --color-primary-content: var(--primary-foreground);
+  --color-secondary-content: var(--secondary-foreground);
+  --color-accent-content: var(--accent-foreground);
+  --color-neutral: var(--secondary);
+  --color-neutral-content: var(--secondary-foreground);
+  --color-info: var(--info);
+  --color-info-content: #FFFFFF;
+  --color-success-content: var(--success-foreground);
+  --color-warning-content: #451A03;
+  --color-error: var(--destructive);
+  --color-error-content: #FFFFFF;
+  --radius-selector: var(--radius-sm);
+  --radius-field: var(--radius);
+  --radius-box: var(--radius-lg);
 }
 
 :root {
@@ -157,7 +270,6 @@ body:has(.workspace-shell) {
   --success:          #16A34A;
   --success-foreground: #14532D;
   --success-subtle:   #DCFCE7;
-  --success-light:    #4ADE80;
   --warning:          #D97706;
   --warning-muted:    #FEF3C7;
   --danger:           #DC2626;
@@ -165,7 +277,7 @@ body:has(.workspace-shell) {
   --info:             #2563EB;
   --info-muted:       #DBEAFE;
 
-  /* â”€â”€ Shadcn core tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* â”€â”€ Core design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --background: #FFFFFF;
   --foreground: #0F1117;
   --card:       #FFFFFF;
@@ -187,28 +299,24 @@ body:has(.workspace-shell) {
 
   --destructive: #DC2626;
 
-  --border: #E4E7EC;
+  --border-color: #E4E7EC;
   --input:  #E4E7EC;
   --ring:   #5B6BF8;
 
-  --chart-1: #5B6BF8;
-  --chart-2: #16A34A;
-  --chart-3: #D97706;
-  --chart-4: #DC2626;
-  --chart-5: #8B5CF6;
 
   /* Radius */
   --radius: 0.5rem;
 
-  /* â”€â”€ Sidebar tokens (for shadcn sidebar component) â”€â”€â”€â”€â”€ */
-  --sidebar:                  #1A1D23;
-  --sidebar-foreground:       #C9CDD6;
-  --sidebar-primary:          #5B6BF8;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent:           rgba(255,255,255,0.08);
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border:           rgba(255,255,255,0.08);
-  --sidebar-ring:             #5B6BF8;
+  /* DaisyUI v5 functional tokens — border-WIDTH (not color; see --border-color
+     above for this app's border-color token), plus depth/noise disabled to
+     match the app's existing flat button/card look (daisyUI's defaults add a
+     subtle skeuomorphic shading + grain texture we don't want here). */
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
 }
 
 .dark {
@@ -243,7 +351,6 @@ body:has(.workspace-shell) {
   --success:          #4ADE80;
   --success-foreground: #DCFCE7;
   --success-subtle:   #14532D;
-  --success-light:    #4ADE80;
   --warning:          #FCD34D;
   --warning-muted:    #451A03;
   --danger:           #F87171;
@@ -251,7 +358,7 @@ body:has(.workspace-shell) {
   --info:             #60A5FA;
   --info-muted:       #1E3A5F;
 
-  /* â”€â”€ Shadcn core tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* â”€â”€ Core design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --background: #161A20;
   --foreground: #F0F2F5;
   --card:       #1E2229;
@@ -273,25 +380,12 @@ body:has(.workspace-shell) {
 
   --destructive: #F87171;
 
-  --border: #272B33;
+  --border-color: #272B33;
   --input:  #272B33;
   --ring:   #6475FA;
 
-  --chart-1: #6475FA;
-  --chart-2: #4ADE80;
-  --chart-3: #FCD34D;
-  --chart-4: #F87171;
-  --chart-5: #A78BFA;
 
   /* â”€â”€ Sidebar tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  --sidebar:                  #0D0F12;
-  --sidebar-foreground:       #8B919E;
-  --sidebar-primary:          #6475FA;
-  --sidebar-primary-foreground: #F0F2F5;
-  --sidebar-accent:           rgba(255,255,255,0.07);
-  --sidebar-accent-foreground: #F0F2F5;
-  --sidebar-border:           rgba(255,255,255,0.07);
-  --sidebar-ring:             #6475FA;
 }
 
 /* ── Workspace colour themes ──────────────────────────────────────────────
@@ -308,10 +402,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.18 0.018 277);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.52 0.028 277);
-  --sidebar: oklch(0.15 0 0);
-  --sidebar-accent: oklch(0.20 0 0);
-  --sidebar-border: oklch(0.22 0 0);
-  --sidebar-primary: oklch(0.52 0.028 277);
   --accent: oklch(0.94 0.01 277);
   --accent-foreground: oklch(0.18 0.018 277);
   --secondary: oklch(0.95 0.01 277);
@@ -322,10 +412,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.56 0.21 250);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.66 0.18 250);
-  --sidebar: oklch(0.16 0.04 250);
-  --sidebar-accent: oklch(0.21 0.05 250);
-  --sidebar-border: oklch(0.23 0.05 250);
-  --sidebar-primary: oklch(0.66 0.18 250);
   --accent: oklch(0.95 0.025 250);
   --accent-foreground: oklch(0.38 0.12 250);
   --secondary: oklch(0.96 0.02 250);
@@ -336,10 +422,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.54 0.11 60);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.64 0.09 60);
-  --sidebar: oklch(0.18 0.03 60);
-  --sidebar-accent: oklch(0.23 0.04 60);
-  --sidebar-border: oklch(0.25 0.04 60);
-  --sidebar-primary: oklch(0.64 0.09 60);
   --accent: oklch(0.95 0.02 60);
   --accent-foreground: oklch(0.38 0.08 60);
   --secondary: oklch(0.96 0.01 60);
@@ -355,10 +437,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.38 0.07 163);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.48 0.09 163);
-  --sidebar: oklch(0.15 0.025 163);
-  --sidebar-accent: oklch(0.20 0.035 163);
-  --sidebar-border: oklch(0.22 0.035 163);
-  --sidebar-primary: oklch(0.48 0.09 163);
   --accent: oklch(0.95 0.018 163);
   --accent-foreground: oklch(0.36 0.07 163);
   --secondary: oklch(0.96 0.01 163);
@@ -369,10 +447,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.513 0.234 278);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.654 0.195 278);
-  --sidebar: oklch(0.175 0.042 278);
-  --sidebar-accent: oklch(0.23 0.05 278);
-  --sidebar-border: oklch(0.25 0.05 278);
-  --sidebar-primary: oklch(0.654 0.195 278);
   --accent: oklch(0.942 0.022 277);
   --accent-foreground: oklch(0.38 0.12 277);
   --secondary: oklch(0.955 0.018 277);
@@ -383,10 +457,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.54 0.15 160);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.64 0.13 160);
-  --sidebar: oklch(0.16 0.03 160);
-  --sidebar-accent: oklch(0.21 0.04 160);
-  --sidebar-border: oklch(0.23 0.04 160);
-  --sidebar-primary: oklch(0.64 0.13 160);
   --accent: oklch(0.95 0.02 160);
   --accent-foreground: oklch(0.36 0.08 160);
   --secondary: oklch(0.96 0.01 160);
@@ -397,10 +467,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.62 0.21 45);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.72 0.17 45);
-  --sidebar: oklch(0.18 0.03 45);
-  --sidebar-accent: oklch(0.23 0.04 45);
-  --sidebar-border: oklch(0.25 0.04 45);
-  --sidebar-primary: oklch(0.72 0.17 45);
   --accent: oklch(0.96 0.02 45);
   --accent-foreground: oklch(0.42 0.12 45);
   --secondary: oklch(0.97 0.01 45);
@@ -411,10 +477,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.61 0.22 350);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.71 0.18 350);
-  --sidebar: oklch(0.18 0.04 350);
-  --sidebar-accent: oklch(0.23 0.05 350);
-  --sidebar-border: oklch(0.25 0.05 350);
-  --sidebar-primary: oklch(0.71 0.18 350);
   --accent: oklch(0.96 0.03 350);
   --accent-foreground: oklch(0.42 0.14 350);
   --secondary: oklch(0.97 0.02 350);
@@ -425,10 +487,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.58 0.23 295);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.68 0.20 295);
-  --sidebar: oklch(0.18 0.04 295);
-  --sidebar-accent: oklch(0.23 0.05 295);
-  --sidebar-border: oklch(0.25 0.05 295);
-  --sidebar-primary: oklch(0.68 0.20 295);
   --accent: oklch(0.96 0.025 295);
   --accent-foreground: oklch(0.40 0.15 295);
   --secondary: oklch(0.97 0.02 295);
@@ -439,10 +497,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.52 0.16 180);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.62 0.13 180);
-  --sidebar: oklch(0.16 0.03 180);
-  --sidebar-accent: oklch(0.21 0.04 180);
-  --sidebar-border: oklch(0.23 0.04 180);
-  --sidebar-primary: oklch(0.62 0.13 180);
   --accent: oklch(0.95 0.02 180);
   --accent-foreground: oklch(0.35 0.10 180);
   --secondary: oklch(0.96 0.01 180);
@@ -453,10 +507,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.53 0.23 280);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.63 0.19 280);
-  --sidebar: oklch(0.18 0.04 280);
-  --sidebar-accent: oklch(0.23 0.05 280);
-  --sidebar-border: oklch(0.25 0.05 280);
-  --sidebar-primary: oklch(0.63 0.19 280);
   --accent: oklch(0.95 0.03 280);
   --accent-foreground: oklch(0.36 0.14 280);
   --secondary: oklch(0.96 0.02 280);
@@ -467,10 +517,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.94 0.012 277);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.6 0.04 277);
-  --sidebar: oklch(0.12 0 0);
-  --sidebar-accent: oklch(0.18 0 0);
-  --sidebar-border: oklch(0.20 0 0);
-  --sidebar-primary: oklch(0.94 0.012 277);
   --accent: oklch(0.23 0.02 277);
   --accent-foreground: oklch(0.94 0.012 277);
   --secondary: oklch(0.22 0.02 277);
@@ -481,10 +527,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.66 0.18 250);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.56 0.21 250);
-  --sidebar: oklch(0.12 0.03 250);
-  --sidebar-accent: oklch(0.18 0.04 250);
-  --sidebar-border: oklch(0.20 0.04 250);
-  --sidebar-primary: oklch(0.66 0.18 250);
   --accent: oklch(0.24 0.04 250);
   --accent-foreground: oklch(0.88 0.03 250);
   --secondary: oklch(0.22 0.03 250);
@@ -495,10 +537,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.64 0.09 60);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.54 0.11 60);
-  --sidebar: oklch(0.13 0.02 60);
-  --sidebar-accent: oklch(0.18 0.03 60);
-  --sidebar-border: oklch(0.20 0.03 60);
-  --sidebar-primary: oklch(0.64 0.09 60);
   --accent: oklch(0.23 0.02 60);
   --accent-foreground: oklch(0.88 0.02 60);
   --secondary: oklch(0.21 0.02 60);
@@ -509,10 +547,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.48 0.09 163);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.38 0.07 163);
-  --sidebar: oklch(0.11 0.018 163);
-  --sidebar-accent: oklch(0.17 0.025 163);
-  --sidebar-border: oklch(0.19 0.025 163);
-  --sidebar-primary: oklch(0.48 0.09 163);
   --accent: oklch(0.22 0.025 163);
   --accent-foreground: oklch(0.88 0.018 163);
   --secondary: oklch(0.20 0.018 163);
@@ -523,10 +557,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.654 0.195 278);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.513 0.234 278);
-  --sidebar: oklch(0.13 0.032 278);
-  --sidebar-accent: oklch(0.195 0.042 278);
-  --sidebar-border: oklch(0.22 0.045 278);
-  --sidebar-primary: oklch(0.654 0.195 278);
   --accent: oklch(0.255 0.038 277);
   --accent-foreground: oklch(0.88 0.025 277);
   --secondary: oklch(0.24 0.036 277);
@@ -537,10 +567,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.64 0.13 160);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.54 0.15 160);
-  --sidebar: oklch(0.12 0.02 160);
-  --sidebar-accent: oklch(0.18 0.03 160);
-  --sidebar-border: oklch(0.20 0.03 160);
-  --sidebar-primary: oklch(0.64 0.13 160);
   --accent: oklch(0.23 0.03 160);
   --accent-foreground: oklch(0.88 0.02 160);
   --secondary: oklch(0.21 0.02 160);
@@ -551,10 +577,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.72 0.17 45);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.62 0.21 45);
-  --sidebar: oklch(0.13 0.02 45);
-  --sidebar-accent: oklch(0.18 0.03 45);
-  --sidebar-border: oklch(0.20 0.03 45);
-  --sidebar-primary: oklch(0.72 0.17 45);
   --accent: oklch(0.25 0.04 45);
   --accent-foreground: oklch(0.92 0.03 45);
   --secondary: oklch(0.22 0.03 45);
@@ -565,10 +587,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.71 0.18 350);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.61 0.22 350);
-  --sidebar: oklch(0.13 0.03 350);
-  --sidebar-accent: oklch(0.18 0.04 350);
-  --sidebar-border: oklch(0.20 0.04 350);
-  --sidebar-primary: oklch(0.71 0.18 350);
   --accent: oklch(0.25 0.05 350);
   --accent-foreground: oklch(0.92 0.04 350);
   --secondary: oklch(0.22 0.04 350);
@@ -579,10 +597,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.68 0.20 295);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.58 0.23 295);
-  --sidebar: oklch(0.13 0.03 295);
-  --sidebar-accent: oklch(0.18 0.04 295);
-  --sidebar-border: oklch(0.20 0.04 295);
-  --sidebar-primary: oklch(0.68 0.20 295);
   --accent: oklch(0.25 0.04 295);
   --accent-foreground: oklch(0.90 0.03 295);
   --secondary: oklch(0.22 0.03 295);
@@ -593,10 +607,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.62 0.13 180);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.52 0.16 180);
-  --sidebar: oklch(0.12 0.02 180);
-  --sidebar-accent: oklch(0.18 0.03 180);
-  --sidebar-border: oklch(0.20 0.03 180);
-  --sidebar-primary: oklch(0.62 0.13 180);
   --accent: oklch(0.23 0.03 180);
   --accent-foreground: oklch(0.88 0.02 180);
   --secondary: oklch(0.21 0.02 180);
@@ -607,10 +617,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.63 0.19 280);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.53 0.23 280);
-  --sidebar: oklch(0.13 0.03 280);
-  --sidebar-accent: oklch(0.18 0.04 280);
-  --sidebar-border: oklch(0.20 0.04 280);
-  --sidebar-primary: oklch(0.63 0.19 280);
   --accent: oklch(0.24 0.05 280);
   --accent-foreground: oklch(0.88 0.04 280);
   --secondary: oklch(0.21 0.04 280);
@@ -664,7 +670,7 @@ body:has(.workspace-shell) {
   margin: 0.15rem 0;
 }
 .ProseMirror blockquote {
-  border-left: 3px solid var(--border);
+  border-left: 3px solid var(--border-color);
   padding-left: 1rem;
   color: var(--muted-foreground);
   margin: 0.5rem 0;
@@ -702,7 +708,7 @@ body:has(.workspace-shell) {
 }
 .ProseMirror hr {
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border-color);
   margin: 1rem 0;
 }
 
@@ -767,7 +773,7 @@ body:has(.workspace-shell) {
   --secondary-foreground: #5E6573;
   --accent:      rgba(23, 77, 56, 0.08);
   --accent-foreground: #174D38;
-  --border:      #E4E7EC;
+  --border-color: #E4E7EC;
   --input:       #E4E7EC;
   /* Brand green â€” matches landing page */
   --primary:           #174D38;

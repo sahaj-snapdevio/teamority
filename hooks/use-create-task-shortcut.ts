@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { isOverlayOpen } from "@/components/ui/overlay-stack";
+
 /**
  * Global "C" keyboard shortcut → open the Create Task popup, so a task can be
  * created from any task view without reaching for the mouse. Mirrors the guard
@@ -37,11 +39,7 @@ export function useCreateTaskShortcut(onTrigger: () => void, enabled = true) {
         return;
       }
       // Let an open overlay keep the keyboard (e.g. the Create modal itself).
-      if (
-        document.querySelector(
-          '[role="dialog"], [data-radix-popper-content-wrapper]'
-        )
-      ) {
+      if (isOverlayOpen()) {
         return;
       }
       e.preventDefault();
