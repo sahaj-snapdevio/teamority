@@ -75,7 +75,7 @@ app/                 Next.js App Router
 ├── (legal)/         Terms / Privacy (self-host templates)
 ├── (orbit)/ , admin/ admin panel
 └── api/             route handlers (incl. /api/health)
-components/          UI (ui/ = shadcn primitives, common/ = shared)
+components/          UI (ui/ = DaisyUI + hand-rolled primitives, common/ = shared)
 config/platform.ts   product name, logo, support email/domain (env-overridable)
 db/schema/           Drizzle tables (one file per domain)
 db/migrations/       generated SQL migrations

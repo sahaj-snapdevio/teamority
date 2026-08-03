@@ -16,7 +16,7 @@ import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { useParams } from "next/navigation";
 import { useSetTopbar } from "@/lib/topbar-context";
 
-// Half-hour slots for the daily-digest send time. A shadcn Select rather than
+// Half-hour slots for the daily-digest send time. A Select rather than
 // a native <input type="time"> — the app never uses native form controls.
 const DIGEST_TIMES = Array.from({ length: 48 }, (_, i) => {
   const hour = Math.floor(i / 2);

@@ -146,6 +146,7 @@ export default async function ListPage({ params }: ListPageProps) {
         userId: workspaceMember.userId,
         name: user.name,
         email: user.email,
+        image: user.image,
       })
       .from(workspaceMember)
       .leftJoin(user, eq(workspaceMember.userId, user.id))
@@ -344,7 +345,7 @@ export default async function ListPage({ params }: ListPageProps) {
 
   const members = memberRows
     .filter((m) => m.userId)
-    .map((m) => ({ userId: m.userId!, name: m.name, email: m.email }));
+    .map((m) => ({ userId: m.userId!, name: m.name, email: m.email, image: m.image }));
 
   return (
     <ListContainer

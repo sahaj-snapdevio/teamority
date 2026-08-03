@@ -11,6 +11,7 @@ import {
   quickMetaCreateFields,
 } from "@/components/task/quick-task-meta";
 import { Button } from "@/components/ui/button";
+import { isWithinAnyOpenLayer } from "@/components/ui/overlay-stack";
 
 interface QuickCreateTaskProps {
   className?: string;
@@ -64,11 +65,7 @@ export function QuickCreateTask({
       if (containerRef.current?.contains(target)) {
         return;
       }
-      if (
-        target.closest(
-          '[data-radix-popper-content-wrapper],[role="dialog"],[role="menu"],[role="listbox"]'
-        )
-      ) {
+      if (isWithinAnyOpenLayer(target)) {
         return;
       }
       close();

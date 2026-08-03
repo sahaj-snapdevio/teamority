@@ -1340,7 +1340,7 @@ function OpenSourceHighlightsSection() {
     },
     {
       value: "Modern Next.js Stack",
-      label: "Next.js, TypeScript, Tailwind, and shadcn/ui.",
+      label: "Next.js, TypeScript, Tailwind, and DaisyUI.",
       icon: Code2,
     },
   ];

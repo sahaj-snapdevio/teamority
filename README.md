@@ -31,7 +31,7 @@ Kanbanica is a self-hostable, ClickUp-style project management app. Teams organi
 - 🔔 **Notifications** — in-app, email digests, and Web Push
 - 🔐 **Two-level permissions** — workspace roles + per-project permissions, with guests
 - 🔑 **Flexible auth** — magic link, Google OAuth, or email + password — all on one account
-- 🎨 **Themeable UI** — light/dark, built on shadcn/ui + Tailwind CSS v4
+- 🎨 **Themeable UI** — light/dark, built on DaisyUI + Tailwind CSS v4
 - 🛠️ **Admin panel** — user, queue, and email visibility
 
 ## Screenshots
@@ -49,7 +49,7 @@ More captures (Board, List, Sprint, Task detail, mobile) are welcome — see
 | Language | TypeScript |
 | Database | PostgreSQL + Drizzle ORM |
 | Auth | Better Auth (magic link / Google OAuth) |
-| Styling | Tailwind CSS v4 + shadcn/ui |
+| Styling | Tailwind CSS v4 + DaisyUI |
 | Rich Text | Tiptap |
 | State | SWR (server) + React state/context (client) |
 | Real-time | Server-Sent Events (SSE) |

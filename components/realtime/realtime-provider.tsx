@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 import useSWR, { mutate } from "swr";
+import { isOverlayOpen } from "@/components/ui/overlay-stack";
 import { playNotificationSound } from "@/lib/notifications/sound";
 
 const soundPrefFetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -100,13 +101,10 @@ export function RealtimeProvider({
     ) {
       return true;
     }
-    // Specific shadcn/Radix overlays only (not a blanket [data-state="open"]):
-    // Dialog, Dropdown Menu, Select/Command/slash menu, Popover/Date-picker.
-    if (
-      document.querySelector(
-        '[role="dialog"],[role="menu"],[role="listbox"],[data-radix-popper-content-wrapper]'
-      )
-    ) {
+    // Any open overlay we control: Dialog, Sheet, AlertDialog, Popover,
+    // DropdownMenu, Select. Tooltips are excluded on purpose — a hover
+    // shouldn't stall refreshes.
+    if (isOverlayOpen()) {
       return true;
     }
     return false;

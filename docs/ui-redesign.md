@@ -290,7 +290,7 @@ Replace a plain `<h1>` with a structured header row:
 
 ### Buttons
 
-Upgrade all button variants. Remove the default shadcn ring focus style — replace with a cleaner outline.
+Upgrade all button variants. Remove the default ring focus style — replace with a cleaner outline.
 
 ```tsx
 // Primary
@@ -532,7 +532,7 @@ Each empty state needs a centered layout with: icon → heading → subtext → 
 
 ### Tooltips
 
-Use Radix `<Tooltip>` (via shadcn) with a consistent dark style:
+Use the `Tooltip` primitive (`components/ui/tooltip.tsx`) with a consistent dark style:
 
 ```tsx
 "bg-[#1A1D23] text-white text-xs px-2 py-1 rounded-md shadow-[--shadow-md]

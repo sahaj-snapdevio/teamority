@@ -47,7 +47,7 @@ interface EmojiPickerPopoverProps {
 }
 
 /**
- * A shadcn Popover wrapping the shared emoji-mart picker, for choosing a single
+ * A Popover wrapping the shared emoji-mart picker, for choosing a single
  * emoji icon (used by Projects/spaces). Reuses the established emoji-mart
  * pattern — do not add a second emoji library (see CLAUDE.md). The trigger shows
  * the current emoji or the fallback color dot; the menu offers a "Remove" action.

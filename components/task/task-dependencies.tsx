@@ -16,13 +16,13 @@ import {
   searchTasksForDependency,
 } from "@/app/actions/task-dependency";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+  Combobox,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxOption,
+  ComboboxOptions,
+} from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -393,40 +393,45 @@ function AddDependencyDialog({
           </RadioGroup>
         </div>
 
-        <Command className="rounded-md border" shouldFilter={false}>
-          <CommandInput
-            onValueChange={setQuery}
+        <Combobox<SearchResult | null>
+          immediate
+          onChange={(result) => {
+            if (result) handleSelect(result);
+          }}
+          value={null}
+        >
+          <ComboboxInput
+            autoFocus
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tasks (#42 or title)…"
             value={query}
           />
-          <CommandList>
-            <CommandEmpty>
-              {query.trim().length >= 2
-                ? "No matching tasks."
-                : "No recent tasks."}
-            </CommandEmpty>
+          <ComboboxOptions static>
+            {results.length === 0 && (
+              <ComboboxEmpty>
+                {query.trim().length >= 2
+                  ? "No matching tasks."
+                  : "No recent tasks."}
+              </ComboboxEmpty>
+            )}
             {results.length > 0 && (
-              <CommandGroup
+              <ComboboxGroup
                 heading={
                   query.trim().length < 2 ? "Recent tasks" : "Search results"
                 }
               >
                 {results.map((r) => (
-                  <CommandItem
-                    key={r.id}
-                    onSelect={() => handleSelect(r)}
-                    value={r.id}
-                  >
+                  <ComboboxOption key={r.id} value={r}>
                     <span className="shrink-0 font-mono text-xs text-muted-foreground">
                       #{r.seqNumber}
                     </span>
                     <span className="truncate">{r.title}</span>
-                  </CommandItem>
+                  </ComboboxOption>
                 ))}
-              </CommandGroup>
+              </ComboboxGroup>
             )}
-          </CommandList>
-        </Command>
+          </ComboboxOptions>
+        </Combobox>
       </DialogContent>
     </Dialog>
   );

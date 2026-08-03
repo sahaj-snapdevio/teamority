@@ -66,9 +66,9 @@ issues, **do not open a public issue** — see **[SECURITY.md](./SECURITY.md)**.
 
 ## Coding conventions (quick reference)
 
-- **UI:** use shadcn/ui primitives; don't hand-roll dialogs, selects, inputs, etc.
+- **UI:** use the primitives in `components/ui/` (DaisyUI + hand-rolled); don't hand-roll dialogs, selects, inputs, etc.
 - **Border radius:** cards/modals/popovers `rounded-xl`; buttons/inputs `rounded-md`.
-- **Confirmations:** use a shadcn `Dialog`, never `window.confirm()`.
+- **Confirmations:** use the `Dialog` primitive, never `window.confirm()`.
 - **Database:** Drizzle ORM; UUID ids; `createdAt`/`updatedAt` on every table; soft-delete via `isArchived`.
 - **Mutations:** every server action / route handler must call `refreshWorkspace(...)` after writing (see `docs/realtime.md`).
 

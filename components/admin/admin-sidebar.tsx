@@ -7,11 +7,9 @@ import {
   LayoutDashboard,
   Users,
   Building2,
-  TicketCheck,
   BarChart3,
   ScrollText,
   LogOut,
-  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
@@ -21,8 +19,6 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/workspaces", label: "Workspaces", icon: Building2 },
-  { href: "/admin/tickets", label: "Support Tickets", icon: TicketCheck },
-  { href: "/admin/help-center", label: "Help Center", icon: BookOpen },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/audit-log", label: "Audit Log", icon: ScrollText },
 ];
