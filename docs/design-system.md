@@ -224,7 +224,7 @@ Two fixed items are pinned at the very bottom of the sidebar, above the collapse
 
 | Item | Icon | Behaviour | Visible to |
 |------|------|-----------|------------|
-| **Workspace Settings** | `Settings` (Lucide) | Navigates to `/[workspaceId]/settings/general` | Owner and Admin only — hidden for Member/Guest |
+| **Workspace Settings** | `GearIcon` (Phosphor) | Navigates to `/[workspaceId]/settings/general` | Owner and Admin only — hidden for Member/Guest |
 | **User profile row** | User avatar (`w-6 h-6`) + name (truncated, open state only) | Opens a popover anchored to the row | All roles |
 
 **User profile popover** (opens upward, `min-w-[200px]`):

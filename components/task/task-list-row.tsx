@@ -1272,12 +1272,12 @@ export function TaskListRow({
         {...dragProps}
         className={cn(
           "group/row hidden md:flex items-center border-b border-border cursor-pointer text-foreground bg-card min-h-10 text-sm",
-          "outline-none focus:ring-2 focus:ring-inset focus:ring-primary/50 focus:relative focus:z-10",
+          "outline-none focus:ring-2 focus:ring-inset focus:ring-primary/50 focus:relative focus:z-[1]",
           isDragging
             ? "opacity-40 shadow-none border-dashed"
             : "transition-colors duration-150",
           highlighted
-            ? "bg-primary/10 ring-1 ring-inset ring-primary/30 relative z-10"
+            ? "bg-primary/10 ring-1 ring-inset ring-primary/30 relative z-[1]"
             : selected
               ? "bg-primary/5"
               : "hover:bg-accent/30"

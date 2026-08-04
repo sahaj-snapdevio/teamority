@@ -683,7 +683,7 @@ Work through these in order — each step builds on the previous.
 - Never use `font-bold` in the UI — `font-semibold` (600) is the maximum weight
 - Never animate `width`, `height`, or `transform` with CSS `transition-all` — always target the specific property
 - Never show a full-page loading spinner — use skeletons
-- Never use emoji as functional icons — use Lucide icons only
+- Never use emoji as functional icons — use Phosphor icons only
 - Never hardcode hex colors in components — always use CSS variables
 - Never create a new color that isn't in the token set
 

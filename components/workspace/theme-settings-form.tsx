@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon } from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react";
 import * as React from "react";
 import { useTheme } from "@/components/theme/theme-provider";
 import { Button } from "@/components/ui/button";

@@ -7,37 +7,37 @@ import {
   useTransform,
 } from "framer-motion";
 import {
-  AlertTriangle,
-  ArrowRight,
-  BadgeCheck,
-  BarChart3,
-  Bell,
-  CalendarDays,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  Code2,
-  Container,
-  Database,
-  Globe,
-  Kanban,
-  KeyRound,
-  LayoutList,
-  Menu,
-  MessageSquare,
-  MessagesSquare,
-  MoveHorizontal,
-  Search,
-  Server,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  TrendingUp,
-  Users,
-  X,
-  Zap,
-} from "lucide-react";
+  WarningIcon,
+  ArrowRightIcon,
+  SealCheckIcon,
+  ChartBarIcon,
+  BellIcon,
+  CalendarBlankIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  CaretRightIcon,
+  ClockIcon,
+  CodeIcon,
+  CubeIcon,
+  DatabaseIcon,
+  GlobeIcon,
+  KanbanIcon,
+  KeyIcon,
+  ListBulletsIcon,
+  ListIcon,
+  ChatIcon,
+  ChatsIcon,
+  ArrowsLeftRightIcon,
+  MagnifyingGlassIcon,
+  HardDrivesIcon,
+  ShieldCheckIcon,
+  SparkleIcon,
+  StarIcon,
+  TrendUpIcon,
+  UsersIcon,
+  XIcon,
+  LightningIcon,
+} from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
@@ -119,37 +119,37 @@ function Animate({
 
 const features = [
   {
-    icon: LayoutList,
+    icon: ListBulletsIcon,
     title: "Tasks & Subtasks",
     description:
       "Create tasks with rich descriptions, priorities, assignees, due dates, checklists, and nested subtasks. Everything your team needs in one place.",
   },
   {
-    icon: Zap,
+    icon: LightningIcon,
     title: "Sprints",
     description:
       "Run agile sprints with story points, burndown tracking, and automatic close logic. Keep your team moving in focused two-week cycles.",
   },
   {
-    icon: Kanban,
+    icon: KanbanIcon,
     title: "Multiple Views",
     description:
       "Switch between List, Board, and Calendar views. Each view gives your team a different lens on the same work — no duplicate data entry.",
   },
   {
-    icon: MessageSquare,
+    icon: ChatIcon,
     title: "Comments & Activity",
     description:
       "Threaded comments, @mentions, emoji reactions, and a full activity timeline on every task. Your entire conversation history, always in context.",
   },
   {
-    icon: Bell,
+    icon: BellIcon,
     title: "Smart Notifications",
     description:
       "In-app, email, and browser push notifications. Get alerted when tasks are assigned, comments are posted, or deadlines are approaching.",
   },
   {
-    icon: Search,
+    icon: MagnifyingGlassIcon,
     title: "Search & Filters",
     description:
       "Global search across all workspaces with Ctrl+K. Filter tasks by status, priority, assignee, due date, and tags — then save your filters.",
@@ -402,7 +402,7 @@ function Navbar() {
             Sign in
           </Link>
           <MaskButton href="/login" variant="primary" size="sm" pill>
-            Get Started Free <ArrowRight className="ml-1 size-3.5" />
+            Get Started Free <ArrowRightIcon className="ml-1 size-3.5" />
           </MaskButton>
         </div>
 
@@ -412,7 +412,7 @@ function Navbar() {
           className="rounded-md p-2 text-[#6b7280] hover:text-[#174D38] sm:hidden"
           onClick={() => setMobileOpen((v) => !v)}
         >
-          {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          {mobileOpen ? <XIcon className="size-5" /> : <ListIcon className="size-5" />}
         </button>
       </header>
 
@@ -1016,7 +1016,7 @@ function ProductShowcaseSection() {
             <div className="flex flex-1 min-h-0 bg-[#F2F2F2]">
               {/* Sidebar */}
               <div className="flex w-14 flex-col items-center gap-4 border-r border-[#CBCBCB] bg-white px-3.5 py-4 shrink-0">
-                {[LayoutList, Kanban, Bell, Search, Users].map((Icon, i) => (
+                {[ListBulletsIcon, KanbanIcon, BellIcon, MagnifyingGlassIcon, UsersIcon].map((Icon, i) => (
                   <div
                     className={cn(
                       "flex size-8 items-center justify-center rounded-md transition-colors",
@@ -1037,7 +1037,7 @@ function ProductShowcaseSection() {
                 <div className="flex items-center justify-between border-b border-[#CBCBCB]/60 bg-white px-5 py-3 shrink-0">
                   <div className="flex items-center gap-1 text-[#6b7280] text-xs">
                     <span>Engineering</span>
-                    <ChevronRight className="size-3" />
+                    <CaretRightIcon className="size-3" />
                     <span className="font-semibold text-[#174D38]">
                       {activeTabName}
                     </span>
@@ -1141,7 +1141,7 @@ function HeroSection() {
               size="lg"
               wrapperClassName="shadow-lg shadow-[#4D1717]/40"
             >
-              Get Started Free <ArrowRight className="ml-1.5 size-4" />
+              Get Started Free <ArrowRightIcon className="ml-1.5 size-4" />
             </MaskButton>
             <a
               href="#features"
@@ -1255,10 +1255,10 @@ function FeaturesSection() {
 function StatsSection() {
   const { ref, visible } = useInView();
   const stats = [
-    { value: "500+", label: "Teams onboard", icon: Users },
-    { value: "2M+", label: "Tasks completed", icon: CheckCircle2 },
-    { value: "99.9%", label: "Uptime guarantee", icon: TrendingUp },
-    { value: "20 min", label: "Average setup time", icon: Clock },
+    { value: "500+", label: "Teams onboard", icon: UsersIcon },
+    { value: "2M+", label: "Tasks completed", icon: CheckCircleIcon },
+    { value: "99.9%", label: "Uptime guarantee", icon: TrendUpIcon },
+    { value: "20 min", label: "Average setup time", icon: ClockIcon },
   ];
   return (
     <section className="relative overflow-hidden py-16 text-white">
@@ -1316,32 +1316,32 @@ function OpenSourceHighlightsSection() {
     {
       value: "MIT Licensed",
       label: "Free and open source — fork it, extend it, ship it.",
-      icon: BadgeCheck,
+      icon: SealCheckIcon,
     },
     {
       value: "Self-Hosted",
       label: "Own your data and infrastructure. No vendor lock-in.",
-      icon: Server,
+      icon: HardDrivesIcon,
     },
     {
       value: "Deploy with Docker",
       label: "Ships with Docker Compose — one command to run.",
-      icon: Container,
+      icon: CubeIcon,
     },
     {
       value: "Postgres + Drizzle",
       label: "A type-safe data layer with SQL-first migrations.",
-      icon: Database,
+      icon: DatabaseIcon,
     },
     {
       value: "Magic Link & Google OAuth",
       label: "Passwordless sign-in built in — no passwords to store.",
-      icon: KeyRound,
+      icon: KeyIcon,
     },
     {
       value: "Modern Next.js Stack",
       label: "Next.js, TypeScript, Tailwind, and DaisyUI.",
-      icon: Code2,
+      icon: CodeIcon,
     },
   ];
   return (
@@ -1392,7 +1392,7 @@ function OpenSourceHighlightsSection() {
 const bentoCards = [
   {
     span: "lg:col-span-2",
-    icon: Kanban,
+    icon: KanbanIcon,
     title: "A board that keeps up with you",
     description:
       "Drag cards across columns, reorder instantly, and watch status update in real time. No lag, no reloads — just flow.",
@@ -1400,21 +1400,21 @@ const bentoCards = [
   },
   {
     span: "",
-    icon: ShieldCheck,
+    icon: ShieldCheckIcon,
     title: "Permissions done right",
     description:
       "Workspace roles plus per-Space access. Invite guests to exactly what they need — nothing more.",
   },
   {
     span: "",
-    icon: Zap,
+    icon: LightningIcon,
     title: "Sprints with story points",
     description:
       "Plan, point, and close two-week cycles with an automatic burndown.",
   },
   {
     span: "lg:col-span-2",
-    icon: Globe,
+    icon: GlobeIcon,
     title: "Everything, searchable in a keystroke",
     description:
       "Hit Ctrl+K to jump to any task, list, or person across every workspace. Filter, save, and share views in seconds.",
@@ -1516,7 +1516,7 @@ function HowItWorksSection() {
                   {label}
                 </span>
                 {i < arr.length - 1 && (
-                  <ChevronRight className="size-4 text-[#9ca3af]" />
+                  <CaretRightIcon className="size-4 text-[#9ca3af]" />
                 )}
               </React.Fragment>
             ))}
@@ -1636,21 +1636,21 @@ function ViewsShowcaseSection() {
                 className="gap-1.5 rounded-md data-[state=active]:bg-[#174D38] data-[state=active]:text-white"
                 value="list"
               >
-                <LayoutList className="size-3.5" />
+                <ListBulletsIcon className="size-3.5" />
                 List
               </TabsTrigger>
               <TabsTrigger
                 className="gap-1.5 rounded-md data-[state=active]:bg-[#174D38] data-[state=active]:text-white"
                 value="board"
               >
-                <Kanban className="size-3.5" />
+                <KanbanIcon className="size-3.5" />
                 Board
               </TabsTrigger>
               <TabsTrigger
                 className="gap-1.5 rounded-md data-[state=active]:bg-[#174D38] data-[state=active]:text-white"
                 value="mytasks"
               >
-                <CalendarDays className="size-3.5" />
+                <CalendarBlankIcon className="size-3.5" />
                 My Tasks
               </TabsTrigger>
             </TabsList>
@@ -1693,9 +1693,9 @@ function ViewsShowcaseSection() {
                           )}
                         >
                           {done && (
-                            <Check
+                            <CheckIcon
                               className="size-2.5 text-white"
-                              strokeWidth={3}
+                              weight="bold"
                             />
                           )}
                         </div>
@@ -1865,28 +1865,28 @@ function ViewsShowcaseSection() {
 
 const comparisonFeatures = [
   {
-    icon: AlertTriangle,
+    icon: WarningIcon,
     title: "Eliminate Chaos",
     description:
       "No more scattered spreadsheets, overdue tasks, and missed deadlines.",
     color: "bg-red-100 text-red-600",
   },
   {
-    icon: Sparkles,
+    icon: SparkleIcon,
     title: "95% On-Time Delivery",
     description:
       `Teams using ${PRODUCT_NAME} complete 95% of tasks before their deadlines.`,
     color: "bg-emerald-100 text-emerald-600",
   },
   {
-    icon: BarChart3,
+    icon: ChartBarIcon,
     title: "Real-Time Dashboards",
     description:
       "Track team productivity, sprint progress, and project health at a glance.",
     color: "bg-[#4D1717]/25 text-[#174D38]",
   },
   {
-    icon: MessagesSquare,
+    icon: ChatsIcon,
     title: "Team Collaboration",
     description:
       "Built-in chat, comments, and activity feeds keep everyone in sync.",
@@ -2121,7 +2121,7 @@ function BeforeAfterSection() {
                   opacity: dividerOpacity,
                 }}
               >
-                <MoveHorizontal className="size-4 text-[#6b7280]" />
+                <ArrowsLeftRightIcon className="size-4 text-[#6b7280]" />
               </div>
 
               {/* Invisible range input for accessibility */}
@@ -2389,9 +2389,10 @@ function TestimonialsSection() {
                     {/* Star Rating */}
                     <div className="flex gap-0.5 text-emerald-400 mb-4">
                       {Array.from({ length: t.rating }).map((_, j) => (
-                        <Star
+                        <StarIcon
                           className="size-3.5 fill-emerald-400 text-emerald-400 drop-shadow-[0_0_3px_rgba(52,211,153,0.5)]"
                           key={j}
+                          weight="fill"
                         />
                       ))}
                     </div>
@@ -2592,7 +2593,7 @@ function CtaBanner() {
                 href="/login"
                 className="inline-flex h-11 items-center gap-1.5 rounded-md bg-white px-8 text-base font-semibold text-[#174D38] shadow-lg transition-colors hover:bg-[#F2F2F2]"
               >
-                Start for free <ArrowRight className="size-4" />
+                Start for free <ArrowRightIcon className="size-4" />
               </Link>
               <p className="mt-4 text-sm text-white/50">
                 Magic link sign-in · No passwords

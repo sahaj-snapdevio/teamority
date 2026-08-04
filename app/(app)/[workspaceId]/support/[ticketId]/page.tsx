@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,7 +88,7 @@ export default function TicketDetailPage({
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <div className="flex items-center gap-3">
         <Link href={`/${workspaceId}/support`} className="text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeftIcon className="h-4 w-4" />
         </Link>
         <div className="flex items-center gap-2">
           <span className="font-mono text-xs text-muted-foreground">{ticket.ticketNumber}</span>

@@ -3,24 +3,24 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ArrowLeft,
-  LayoutDashboard,
-  Users,
-  Building2,
-  BarChart3,
-  ScrollText,
-  LogOut,
-} from "lucide-react";
+  ArrowLeftIcon,
+  SquaresFourIcon,
+  UsersIcon,
+  BuildingsIcon,
+  ChartBarIcon,
+  ScrollIcon,
+  SignOutIcon,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import { PRODUCT_NAME } from "@/config/platform";
 
 const NAV_ITEMS = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/workspaces", label: "Workspaces", icon: Building2 },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/audit-log", label: "Audit Log", icon: ScrollText },
+  { href: "/admin", label: "Dashboard", icon: SquaresFourIcon },
+  { href: "/admin/users", label: "Users", icon: UsersIcon },
+  { href: "/admin/workspaces", label: "Workspaces", icon: BuildingsIcon },
+  { href: "/admin/analytics", label: "Analytics", icon: ChartBarIcon },
+  { href: "/admin/audit-log", label: "Audit Log", icon: ScrollIcon },
 ];
 
 interface AdminSidebarProps {
@@ -66,7 +66,7 @@ export function AdminSidebar({ email }: AdminSidebarProps) {
           href="/post-auth"
           className="mb-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-white"
         >
-          <ArrowLeft className="w-4 h-4 shrink-0" />
+          <ArrowLeftIcon className="w-4 h-4 shrink-0" />
           Back to app
         </Link>
         {NAV_ITEMS.map((item) => {
@@ -106,7 +106,7 @@ export function AdminSidebar({ email }: AdminSidebarProps) {
           onClick={handleSignOut}
           className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
         >
-          <LogOut className="w-4 h-4 shrink-0" />
+          <SignOutIcon className="w-4 h-4 shrink-0" />
           Sign out
         </button>
       </div>

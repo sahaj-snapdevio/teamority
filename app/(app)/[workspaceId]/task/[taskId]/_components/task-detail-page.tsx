@@ -17,24 +17,22 @@ import {
   FilePdfIcon,
   FlagIcon,
   GearIcon,
+  GitBranchIcon,
+  type Icon,
   LinkIcon,
+  ListChecksIcon,
   PaperclipIcon,
   PlusIcon,
   PushPinIcon,
   TagIcon,
+  TimerIcon,
   TrashIcon,
+  TreeStructureIcon,
   UserIcon,
   UserPlusIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { format } from "date-fns";
-import {
-  GitBranch,
-  ListChecks,
-  ListTree,
-  type LucideIcon,
-  Timer,
-} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
@@ -225,7 +223,7 @@ function SectionHeader({
   description,
   count,
 }: {
-  icon: LucideIcon;
+  icon: Icon;
   title: string;
   description: string;
   count: number;
@@ -1733,7 +1731,7 @@ export function TaskDetailPage({
                       <SectionHeader
                         count={subtasks?.length ?? 0}
                         description="Split this work into smaller tasks."
-                        icon={ListTree}
+                        icon={TreeStructureIcon}
                         title="Subtasks"
                       />
                     </AccordionTrigger>
@@ -1900,7 +1898,7 @@ export function TaskDetailPage({
                     <SectionHeader
                       count={blockedBy.length + blocks.length}
                       description="Link tasks that block or depend on this one."
-                      icon={GitBranch}
+                      icon={GitBranchIcon}
                       title="Dependencies"
                     />
                   </AccordionTrigger>
@@ -1925,7 +1923,7 @@ export function TaskDetailPage({
                     <SectionHeader
                       count={totalItems}
                       description="Break this task into small actionable steps."
-                      icon={ListChecks}
+                      icon={ListChecksIcon}
                       title="Checklist"
                     />
                   </AccordionTrigger>
@@ -2091,7 +2089,7 @@ export function TaskDetailPage({
                     <SectionHeader
                       count={timeEntries.length}
                       description="Track time spent on this task."
-                      icon={Timer}
+                      icon={TimerIcon}
                       title="Time Tracking"
                     />
                   </AccordionTrigger>

@@ -292,7 +292,7 @@ export function MembersManager({
 
           <div className="flex flex-wrap gap-2 pt-2">
             <div className="relative flex-1 min-w-44">
-              <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email"
                 value={search}

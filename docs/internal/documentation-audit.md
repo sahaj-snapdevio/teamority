@@ -37,7 +37,7 @@
 | Permission Model | Two-level: Workspace Role + Space Permission | All feature modules | Excellent |
 | Admin Panel | Platform admin: metrics, impersonation, force-delete | PostgreSQL, Better Auth Admin Plugin | Adequate -- impersonation mechanics missing |
 | Empty States | 16 states, Getting Started checklist, onboarding progress | PostgreSQL (UserOnboardingProgress) | Complete |
-| Design System | Color tokens, typography, spacing, components | Tailwind v4, shadcn/ui, Lucide React | Complete -- no `<LocalDate />` spec |
+| Design System | Color tokens, typography, spacing, components | Tailwind v4, shadcn/ui, Phosphor Icons | Complete -- no `<LocalDate />` spec |
 | Database Schema | Single Drizzle ORM source of truth, indexes, phase-gating | Drizzle ORM | Complete |
 | Development Plan | 19 phases from setup to launch | All features | Complete -- no phase durations or completion criteria |
 | Services | 12 infrastructure decisions | All services | Rewritten (was decisions-only stub) |
