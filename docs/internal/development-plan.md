@@ -83,7 +83,7 @@ Phase 20 ->  QA & Launch Prep
     @tiptap/react @tiptap/starter-kit \
     zustand swr \
     date-fns sharp \
-    lucide-react
+    @phosphor-icons/react
   pnpm add -D drizzle-kit @types/nodemailer tsx concurrently
   ```
 - [ ] Set up route groups in `src/app/`:
@@ -519,7 +519,7 @@ Phase 20 ->  QA & Launch Prep
 - [ ] `/[workspaceId]/settings/security` — invite link management
 - [ ] Danger zone: Delete workspace with confirmation modal
 - [ ] Transfer ownership modal
-- [ ] **Sidebar bottom — Workspace Settings icon** (`Settings` from Lucide): links to `/[workspaceId]/settings/general`; visible to Owner and Admin only (hidden for Member/Guest)
+- [ ] **Sidebar bottom — Workspace Settings icon** (`GearIcon` from Phosphor): links to `/[workspaceId]/settings/general`; visible to Owner and Admin only (hidden for Member/Guest)
 - [ ] **Sidebar bottom — User profile row**: avatar + name; clicking opens a popover with links to `/settings/account`, `/settings/sessions`, `/settings/notifications`, and a Sign Out action (see [design-system.md](../design-system.md) Sidebar Bottom Bar section)
 - [ ] **Themes settings** (`/[workspaceId]/settings/themes`):
   - [ ] Appearance picker: Light / Dark / System cards

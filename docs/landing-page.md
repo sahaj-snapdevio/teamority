@@ -97,7 +97,7 @@ The landing page must feel like a modern SaaS product -- not a boilerplate. Key 
 
 - White background, `border border-[#e5e7eb]`, `rounded-xl`, `p-6`, `shadow-sm`.
 - Hover: `shadow-md` + `border-indigo-200` + `translate-y-[-2px]` transition.
-- Icon container: `size-10 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500` with the Lucide icon in white inside.
+- Icon container: `size-10 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500` with the Phosphor icon in white inside.
 - Title: `text-base font-semibold`.
 - Description: `text-sm text-muted-foreground leading-relaxed`.
 
@@ -303,7 +303,7 @@ Rules:
 
 - No heavy animation libraries (no Framer Motion). Use CSS transitions + `tw-animate-css` only.
 - Hero app mock is pure HTML/CSS -- no images, no canvas.
-- All icons from `lucide-react` (tree-shaken, no icon sprite sheet).
+- All icons from `@phosphor-icons/react` (tree-shaken, no icon sprite sheet).
 - Dot/grid patterns are inline SVG data URIs -- zero network requests.
 
 ---

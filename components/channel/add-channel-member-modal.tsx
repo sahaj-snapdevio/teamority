@@ -132,7 +132,7 @@ export function AddChannelMemberModal({
 
           {/* Search */}
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+            <MagnifyingGlassIcon className="absolute left-2.5 top-2.5 z-10 size-4 text-muted-foreground" />
             <Input
               placeholder="Search by name or email…"
               value={search}

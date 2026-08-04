@@ -474,8 +474,8 @@ Fetch pinned tasks via SWR from `GET /api/workspaces/:workspaceId/pinned-tasks`.
 
 **Files:** Task row component, task card component, task detail panel
 
-- Task row: show `Pin` icon (Lucide) on hover, right side. Filled when pinned, outline when not.
-- Task detail header: always-visible `Pin` icon button.
+- Task row: show `PushPinIcon` (Phosphor) on hover, right side. Filled when pinned, outline when not.
+- Task detail header: always-visible `PushPinIcon` button.
 - On click: call `POST /api/tasks/:taskId/pin` or `DELETE /api/tasks/:taskId/pin`.
 - Optimistic update: toggle pin state immediately, revert on error.
 
@@ -510,7 +510,7 @@ Add a "Pinned" collapsible section at the very top of the list, above normal tas
 
 **File:** Board view task card component
 
-If `task.isPinnedToList === true`, show a small `Pin` icon (Lucide, `w-3 h-3`) in the top-right corner of the card. No position change — just the badge.
+If `task.isPinnedToList === true`, show a small `PushPinIcon` (Phosphor, `w-3 h-3`) in the top-right corner of the card. No position change — just the badge.
 
 **Status:** `[ ]`
 

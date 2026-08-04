@@ -12,7 +12,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("table w-full caption-bottom rounded-none text-sm", className)}
+        className={cn("table caption-bottom rounded-none text-sm", className)}
         {...props}
       />
     </div>
@@ -70,7 +70,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-12 px-3 first:pl-[var(--card-spacing,0.75rem)] last:pr-[var(--card-spacing,0.75rem)] text-left align-middle text-xs font-semibold tracking-ui whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0",
+        "h-12 px-3 first:pl-[var(--card-spacing,0.75rem)] last:pr-[var(--card-spacing,0.75rem)] text-left text-xs font-semibold tracking-ui whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -83,7 +83,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-3 first:pl-[var(--card-spacing,0.75rem)] last:pr-[var(--card-spacing,0.75rem)] align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "p-3 first:pl-[var(--card-spacing,0.75rem)] last:pr-[var(--card-spacing,0.75rem)] whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
