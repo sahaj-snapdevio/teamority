@@ -8,6 +8,7 @@ import {
   CaretRightIcon,
   CaretUpDownIcon,
   CaretUpIcon,
+  ChartPieSliceIcon,
   CheckCircleIcon,
   CheckIcon,
   ClockIcon,
@@ -20,6 +21,7 @@ import {
   ListIcon,
   LockSimpleIcon,
   MagnifyingGlassIcon,
+  PaletteIcon,
   PencilSimpleIcon,
   PlusIcon,
   PushPinIcon,
@@ -517,6 +519,14 @@ export function WorkspaceShell({
           <div className="space-y-0.5">
             {[
               {
+                href: `/${workspace.id}/overview`,
+                label: "Overview",
+                icon: (
+                  <ChartPieSliceIcon className="size-4 shrink-0" weight="fill" />
+                ),
+                badge: null,
+              },
+              {
                 href: `/${workspace.id}/notifications`,
                 label: "Inbox",
                 icon: <TrayIcon className="size-4 shrink-0" weight="fill" />,
@@ -664,7 +674,7 @@ export function WorkspaceShell({
                         </Link>
                         <div className="my-1 h-px bg-border" />
                         <button
-                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                           onClick={() =>
                             setSpaceAction({
                               id: s.id,
@@ -673,7 +683,7 @@ export function WorkspaceShell({
                             })
                           }
                         >
-                          <ArchiveIcon className="size-3.5 shrink-0" />
+                          <ArchiveIcon className="size-3.5 shrink-0 text-muted-foreground" />
                           Archive Project
                         </button>
                         <button
@@ -1308,6 +1318,14 @@ export function WorkspaceShell({
                   >
                     <BellIcon className="size-4 shrink-0 text-muted-foreground" />
                     Notification settings
+                  </Link>
+                  <Link
+                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                    href={`/${workspace.id}/theme`}
+                    onClick={() => setProfileOpen(false)}
+                  >
+                    <PaletteIcon className="size-4 shrink-0 text-muted-foreground" />
+                    Theme
                   </Link>
                   <button
                     type="button"

@@ -1,5 +1,6 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { broadcastDataChanged, type DataChangedMeta } from "@/lib/realtime/broadcast";
+import { workspaceOverviewCacheTag } from "@/lib/realtime/cache-tags";
 
 /**
  * The single "after a mutation" helper for the whole app.
@@ -30,6 +31,7 @@ export async function refreshWorkspace(
   } else {
     revalidatePath(`/${workspaceId}`, "layout");
   }
+  revalidateTag(workspaceOverviewCacheTag(workspaceId), "max");
 
   await broadcastDataChanged(workspaceId, meta);
 }

@@ -3,7 +3,6 @@ import {
   AccountIdentityForms,
   DeleteAccountForm,
 } from "@/components/profile/account-forms";
-import { AppearanceSettingsForm } from "@/components/profile/appearance-settings-form";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { PasswordCard } from "@/components/profile/password-card";
 import {
@@ -92,8 +91,6 @@ export default async function ProfilePage({
           email={freshUser.email}
           name={freshUser.name}
         />
-
-        <AppearanceSettingsForm />
 
         <PasswordCard hasPassword={hasPassword} />
 

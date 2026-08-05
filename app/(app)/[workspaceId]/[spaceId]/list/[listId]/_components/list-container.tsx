@@ -10,7 +10,7 @@ import {
   SquaresFourIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { useState, useTransition } from "react";
 import { archiveList, unarchiveList } from "@/app/actions/list";
@@ -35,6 +35,29 @@ import { CalendarView } from "./calendar-view";
 import { ListView } from "./list-view";
 
 type View = "list" | "board" | "calendar";
+
+// Remember the last-used List/Board/Calendar tab per list across reloads
+// (per-browser), same pattern as list-view/board-view's filter/sort prefs.
+// An explicit `?view=` in the URL (e.g. the task detail page's back button)
+// always wins over the saved preference, since that's a deliberate "return
+// to X" request rather than a fresh visit to the project.
+function viewPrefKey(listId: string) {
+  return `kanbanica:list-view-tab:${listId}`;
+}
+
+function loadViewPref(listId: string): View | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(viewPrefKey(listId));
+    return raw === "list" || raw === "board" || raw === "calendar"
+      ? raw
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 interface Status {
   color: string;
@@ -92,12 +115,12 @@ interface ListContainerProps {
 }
 
 const VIEWS: { key: View; label: string; icon: React.ReactNode }[] = [
-  { key: "list", label: "List", icon: <RowsIcon className="size-3.5" /> },
   {
     key: "board",
     label: "Board",
     icon: <SquaresFourIcon className="size-3.5" />,
   },
+  { key: "list", label: "List", icon: <RowsIcon className="size-3.5" /> },
   {
     key: "calendar",
     label: "Calendar",
@@ -123,10 +146,25 @@ export function ListContainer({
   personallyPinnedIds,
 }: ListContainerProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [view, setView] = useState<View>(
-    (searchParams.get("view") as View) ?? "list"
+    (searchParams.get("view") as View) ?? "board"
   );
+
+  // Restore the last-used tab for this list once mounted (skipped when the
+  // URL already carries an explicit `view`, e.g. arriving via the task
+  // detail page's back button — see viewPrefKey above).
+  React.useEffect(() => {
+    if (searchParams.get("view")) {
+      return;
+    }
+    const saved = loadViewPref(list.id);
+    if (saved) {
+      setView(saved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.id]);
 
   useSetTopbar({
     breadcrumbs: [
@@ -160,14 +198,14 @@ export function ListContainer({
                     )
                   }
                 >
-                  <GearIcon className="size-3.5 shrink-0 text-muted-foreground" />{" "}
+                  <GearIcon className="size-4 shrink-0 text-foreground/70" />{" "}
                   Settings
                 </button>
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                   onClick={() => setDuplicateOpen(true)}
                 >
-                  <CopyIcon className="size-3.5 shrink-0 text-muted-foreground" />{" "}
+                  <CopyIcon className="size-4 shrink-0 text-foreground/70" />{" "}
                   Duplicate
                 </button>
                 <div className="my-1 h-px bg-border" />
@@ -196,7 +234,8 @@ export function ListContainer({
                     }
                   }}
                 >
-                  <ArchiveIcon className="size-3.5 shrink-0" /> Archive List
+                  <ArchiveIcon className="size-4 shrink-0 text-foreground/70" />{" "}
+                  Archive List
                 </button>
               </>
             )}
@@ -227,6 +266,14 @@ export function ListContainer({
       setView(next);
       setPendingView(null);
     });
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", next);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    try {
+      window.localStorage.setItem(viewPrefKey(list.id), next);
+    } catch {
+      // ignore quota / disabled storage
+    }
   }
 
   // The tab title is server-rendered from the list/space name (`page.tsx`'s

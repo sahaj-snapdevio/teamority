@@ -15,9 +15,12 @@ Settings are accessed from two entry points in the sidebar bottom bar (see [desi
 
 **Profile popover links:**
 - Profile & Account -> `/settings/account`
+- Workspace settings (Owner/Admin only) -> `/[workspaceId]/settings/general`
+- Project settings → inline project picker (see below)
 - Sessions -> `/settings/sessions`
 - Notifications -> `/settings/notifications`
-- Project settings → inline project picker (see below)
+- Theme -> `/[workspaceId]/theme`
+- Keyboard shortcuts
 - Sign out
 
 **Project settings flow (sidebar profile popover → project picker):**
@@ -221,9 +224,13 @@ L-- Pending Invites section (collapsible)
 
 ---
 
-### 2.4 Themes — `/[workspaceId]/settings/themes`
+### 2.4 Theme — `/[workspaceId]/theme`
 
-**Access:** All workspace members (each user's theme choice is per-workspace)
+Reached via the "Theme" entry in the sidebar profile popover (not the Workspace Settings tabs) — it combines the workspace-wide accent color with the signed-in user's personal appearance mode on one page. This replaced two separate surfaces: the old Workspace Settings → Themes tab, and the Appearance card that used to live on the Profile page.
+
+**Access:**
+- Appearance (Light/Dark/System) — all workspace members; each user sets their own.
+- Accent Theme Color — only rendered for Owner/Admin; the `updateWorkspaceTheme` server action also enforces this server-side. Other members see just the Appearance section.
 
 **What it controls:**
 
@@ -347,7 +354,7 @@ L-- Add Members button -> inline search + permission picker
 | Workspace General | `/[workspaceId]/settings/general` |
 | Workspace Members | `/[workspaceId]/settings/members` |
 | Workspace Security | `/[workspaceId]/settings/security` |
-| Workspace Themes | `/[workspaceId]/settings/themes` |
+| Theme (accent + appearance) | `/[workspaceId]/theme` |
 | Space General | `/[workspaceId]/[spaceId]/settings/general` |
 | Space Members | `/[workspaceId]/[spaceId]/settings/members` |
 | Space Sprint Settings | `/[workspaceId]/[spaceId]/settings/sprints` |

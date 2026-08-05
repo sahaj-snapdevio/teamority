@@ -15,6 +15,7 @@ interface Status {
   name: string;
   color: string;
   type: "OPEN" | "ACTIVE" | "CLOSED";
+  dashboardCategory: "OPEN" | "WORKING" | "REVIEW" | "COMPLETED";
   orderIndex: number;
 }
 

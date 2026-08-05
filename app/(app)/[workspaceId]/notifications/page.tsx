@@ -148,6 +148,7 @@ export default function InboxPage() {
   const activeTab = (searchParams.get("filter") as Tab | null) ?? "all";
   const dateFilter = searchParams.get("date") ?? "";
   const workspaceFilter = searchParams.get("workspace") ?? "";
+  const actorFilter = searchParams.get("actor") ?? "";
   const eventFilter = searchParams.get("event") ?? "";
   const q = searchParams.get("q") ?? "";
 
@@ -201,6 +202,20 @@ export default function InboxPage() {
     [wsData]
   );
 
+  // Actors (users) who triggered a notification the user received — powers
+  // the User dropdown.
+  const { data: actorData } = useSWR<{
+    actors: { id: string; name: string | null; image: string | null }[];
+  }>("/api/me/notification-actors", fetcher);
+  const actorOptions: FacetOption[] = React.useMemo(
+    () =>
+      (actorData?.actors ?? []).map((a) => ({
+        value: a.id,
+        label: a.name ?? "Unknown",
+      })),
+    [actorData]
+  );
+
   // Gmail-style fixed pagination — one 50-row page fetched at a time, instead
   // of infinite scroll. `page` is local (not URL-synced, like Gmail); it
   // resets to 1 whenever a filter changes below.
@@ -218,6 +233,9 @@ export default function InboxPage() {
     if (workspaceFilter) {
       p.set("workspace", workspaceFilter);
     }
+    if (actorFilter) {
+      p.set("actor", actorFilter);
+    }
     if (eventFilter) {
       p.set("event", eventFilter);
     }
@@ -232,7 +250,7 @@ export default function InboxPage() {
     }
     p.set("page", String(page));
     return `/api/me/notifications?${p.toString()}`;
-  }, [activeTab, q, workspaceFilter, eventFilter, dateFilter, page]);
+  }, [activeTab, q, workspaceFilter, actorFilter, eventFilter, dateFilter, page]);
 
   const { data, isLoading, isValidating, mutate } =
     useSWR<NotificationsResponse>(url, fetcher, {
@@ -245,7 +263,7 @@ export default function InboxPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-run on filter change
   React.useEffect(() => {
     setPage(1);
-  }, [activeTab, q, workspaceFilter, eventFilter, dateFilter]);
+  }, [activeTab, q, workspaceFilter, actorFilter, eventFilter, dateFilter]);
 
   const notifications = data?.notifications ?? [];
   const unreadCount = data?.unreadCount ?? 0;
@@ -486,16 +504,25 @@ export default function InboxPage() {
   }
 
   const activeFilterCount =
-    (dateFilter ? 1 : 0) + (workspaceFilter ? 1 : 0) + (eventFilter ? 1 : 0);
+    (dateFilter ? 1 : 0) +
+    (workspaceFilter ? 1 : 0) +
+    (actorFilter ? 1 : 0) +
+    (eventFilter ? 1 : 0);
   const hasActiveFilters = activeFilterCount > 0 || q.length > 0;
 
   function clearFilters() {
     setSearchDraft("");
-    updateParams({ q: null, date: null, workspace: null, event: null });
+    updateParams({
+      q: null,
+      date: null,
+      workspace: null,
+      actor: null,
+      event: null,
+    });
   }
 
-  // Date / Workspace / Event dropdowns — shared by the desktop bar and the
-  // mobile filter sheet. Reuses the app-wide FacetFilter (single-select).
+  // Date / Workspace / User / Event dropdowns — shared by the desktop bar and
+  // the mobile filter sheet. Reuses the app-wide FacetFilter (single-select).
   const renderFilters = () => (
     <>
       <FacetFilter
@@ -511,6 +538,14 @@ export default function InboxPage() {
         options={workspaceOptions}
         searchable
         selected={workspaceFilter ? [workspaceFilter] : []}
+        single
+      />
+      <FacetFilter
+        label="User"
+        onChange={(next) => updateParams({ actor: next[0] ?? null })}
+        options={actorOptions}
+        searchable
+        selected={actorFilter ? [actorFilter] : []}
         single
       />
       <FacetFilter
@@ -757,13 +792,13 @@ export default function InboxPage() {
                         <p
                           className={cn(
                             "text-sm leading-snug",
-                            n.isRead ? "text-muted-foreground" : "font-medium"
+                            n.isRead ? "text-foreground/90" : "font-medium"
                           )}
                         >
                           {n.title}
                         </p>
                         {n.body && (
-                          <p className="mt-0.5 text-xs text-muted-foreground truncate italic">
+                          <p className="mt-0.5 text-xs text-(--text-secondary) truncate italic">
                             {n.body}
                           </p>
                         )}

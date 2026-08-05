@@ -9,15 +9,17 @@ import {
   FlagIcon,
   SquaresFourIcon,
   WarningIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import { format, isPast, isThisWeek, isToday, startOfDay } from "date-fns";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import {
   getMyTasks,
   type MyTask,
   type MyTasksGroupBy,
 } from "@/app/actions/my-tasks";
+import type { MyFocusKind } from "@/app/actions/workspace-overview";
 import { SpaceIcon } from "@/components/common/space-icon";
 import {
   Popover,
@@ -72,6 +74,56 @@ function formatDue(task: MyTask): { label: string; overdue: boolean } | null {
     return { label: format(d, "MMM d"), overdue: true };
   }
   return { label: format(d, "MMM d"), overdue: false };
+}
+
+// Narrows the list to one bucket from the Workspace Overview "My Focus
+// Today" widget, reached via `?focus=` — the same four buckets that widget
+// computes server-side (`getWorkspaceMyFocusTasks`), recomputed here
+// client-side over the already-fetched My Tasks list. "assigned" needs no
+// extra filtering — every task in this view is already assigned to the
+// current user.
+const FOCUS_LABELS: Record<MyFocusKind, string> = {
+  overdue: "Overdue Tasks",
+  dueToday: "Due Today",
+  review: "Waiting for Review",
+  assigned: "Assigned to Me",
+};
+
+function isReviewStatus(statusName: string): boolean {
+  return statusName.trim().toLowerCase() === "review";
+}
+
+function parseFocusParam(value: string | null): MyFocusKind | null {
+  return value === "overdue" ||
+    value === "dueToday" ||
+    value === "review" ||
+    value === "assigned"
+    ? value
+    : null;
+}
+
+function applyFocusFilter(
+  tasks: MyTask[],
+  focus: MyFocusKind | null
+): MyTask[] {
+  if (!focus || focus === "assigned") {
+    return tasks;
+  }
+  if (focus === "review") {
+    return tasks.filter((t) => isReviewStatus(t.status.name));
+  }
+  const today = startOfDay(new Date());
+  return tasks.filter((t) => {
+    if (t.status.type === "CLOSED") {
+      return false;
+    }
+    const due = t.dueDateEnd ?? t.dueDateStart;
+    if (!due) {
+      return false;
+    }
+    const d = startOfDay(new Date(due));
+    return focus === "overdue" ? d < today : isToday(d);
+  });
 }
 
 function groupByDueDate(tasks: MyTask[]): Group[] {
@@ -475,6 +527,10 @@ export function MyTasksView(_props: MyTasksViewProps) {
   const [groupBy, setGroupBy] = React.useState<MyTasksGroupBy>("due_date");
   const [showCompleted, setShowCompleted] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const focus = parseFocusParam(searchParams.get("focus"));
 
   const fetchTasks = React.useCallback(async () => {
     setLoading(true);
@@ -496,8 +552,9 @@ export function MyTasksView(_props: MyTasksViewProps) {
   const filtered = search.trim()
     ? tasks.filter((t) => t.title.toLowerCase().includes(search.toLowerCase()))
     : tasks;
+  const focused = applyFocusFilter(filtered, focus);
 
-  const groups = buildGroups(filtered, groupBy);
+  const groups = buildGroups(focused, groupBy);
 
   // Previous/Next Task nav context: My Tasks is cross-workspace, so each
   // task's own workspace travels alongside its id — handed to Task Detail
@@ -527,6 +584,16 @@ export function MyTasksView(_props: MyTasksViewProps) {
             ? "…"
             : `${tasks.length} task${tasks.length === 1 ? "" : "s"}`}
         </span>
+        {focus && (
+          <button
+            className="flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground hover:bg-accent/70 transition-colors cursor-pointer"
+            onClick={() => router.replace(pathname)}
+            type="button"
+          >
+            Focused: {FOCUS_LABELS[focus]}
+            <XIcon className="size-3" />
+          </button>
+        )}
       </div>
 
       {/* Toolbar */}
@@ -601,9 +668,11 @@ export function MyTasksView(_props: MyTasksViewProps) {
           <p className="text-sm font-medium text-muted-foreground">
             {search
               ? "No tasks match your search"
-              : showCompleted
-                ? "No tasks assigned to you"
-                : "You're all caught up!"}
+              : focus
+                ? `No tasks in "${FOCUS_LABELS[focus]}"`
+                : showCompleted
+                  ? "No tasks assigned to you"
+                  : "You're all caught up!"}
           </p>
           {!showCompleted && tasks.length === 0 && (
             <p className="text-xs text-muted-foreground/60">

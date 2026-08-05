@@ -1359,21 +1359,7 @@ export function TaskListRow({
             />
           ) : (
             <>
-              {/* Double-click renames in place (the row's single click still
-                  opens the task). The pencil beside it is the discoverable
-                  version of the same action for pointer + keyboard users —
-                  double-click alone isn't an affordance anyone can see. */}
-              <span
-                className="text-[13px] font-medium text-foreground truncate group-hover/row:text-primary transition-colors"
-                onDoubleClick={(e) => {
-                  if (!canEdit) {
-                    return;
-                  }
-                  e.stopPropagation();
-                  startRename();
-                }}
-                title={canEdit ? "Double-click to rename" : undefined}
-              >
+              <span className="text-[13px] font-medium text-foreground truncate group-hover/row:text-primary transition-colors">
                 {localTitle}
               </span>
               {canEdit && (

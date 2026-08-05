@@ -6,7 +6,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ActivityIcon, CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getSpaceActivity, type SpaceActivityEntry } from "@/app/actions/space-activity";
-import { formatDuration } from "@/lib/format-duration";
+import { describeEvent } from "@/lib/activity-descriptions";
 
 interface SpaceActivityFeedProps {
   workspaceId: string;
@@ -16,35 +16,6 @@ interface SpaceActivityFeedProps {
 function initials(name: string | null, email: string | null) {
   if (name) return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   return (email ?? "?").slice(0, 2).toUpperCase();
-}
-
-function describeEvent(eventType: string, meta: Record<string, unknown>): string {
-  switch (eventType) {
-    case "task_created": return "created this task";
-    case "task_duplicated": return meta.from_seq ? `duplicated this task from #${meta.from_seq}` : "duplicated this task";
-    case "title_changed": return `renamed to "${meta.to}"`;
-    case "status_changed": return `changed status → ${meta.to_status_name ?? meta.to}`;
-    case "priority_changed": return `changed priority to ${meta.to}`;
-    case "description_updated": return "updated the description";
-    case "assignee_added": return `assigned ${meta.user_name ?? "someone"}`;
-    case "assignee_removed": return `unassigned ${meta.user_name ?? "someone"}`;
-    case "due_date_set": return `set due date to ${meta.date}`;
-    case "due_date_changed": return `changed due date`;
-    case "due_date_removed": return "removed due date";
-    case "tag_added": return `added tag "${meta.tagName}"`;
-    case "tag_removed": return `removed tag "${meta.tagName}"`;
-    case "task_archived": return "archived this task";
-    case "task_unarchived": return "unarchived this task";
-    case "task_moved": return "moved this task";
-    case "time_logged": return `logged ${formatDuration(Number(meta.seconds))}`;
-    case "timer_started": return "started time tracking";
-    case "timer_stopped": return "stopped time tracking";
-    case "comment_added": return "commented";
-    case "attachment_uploaded": return `uploaded "${meta.file_name}"`;
-    case "subtask_created": return `added subtask "${meta.subtask_title}"`;
-    case "sprint_assigned": return `added to ${meta.sprint_name}`;
-    default: return eventType.replace(/_/g, " ");
-  }
 }
 
 export function SpaceActivityFeed({ workspaceId, spaceId }: SpaceActivityFeedProps) {

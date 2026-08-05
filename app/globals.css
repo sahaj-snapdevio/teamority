@@ -293,7 +293,7 @@ body:has(.workspace-shell) {
 
   --muted:          #F4F5F7;
   /* --muted-foreground: #9AA0AD; */
---muted-foreground: #5E6573;
+--muted-foreground: #94969a;
   --accent:          #EEF0FE;
   --accent-foreground: #4554E8;
 
@@ -545,7 +545,11 @@ body:has(.workspace-shell) {
 
 .dark[data-theme="forest"] {
   --primary: oklch(0.48 0.09 163);
-  --primary-foreground: oklch(0.155 0.018 277);
+  /* Unlike the other accents, forest's dark-mode primary stays a medium-dark
+     green (L 0.48) instead of being boosted past ~0.6 — dark text at that
+     lightness is unreadable, so this pairs with white text instead, same as
+     the light-mode forest block. */
+  --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.38 0.07 163);
   --accent: oklch(0.22 0.025 163);
   --accent-foreground: oklch(0.88 0.018 163);

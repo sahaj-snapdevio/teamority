@@ -3,6 +3,16 @@ import { space } from "./space";
 
 export const statusTypeEnum = pgEnum("status_type", ["OPEN", "ACTIVE", "CLOSED"]);
 
+// Independent of `statusTypeEnum` above — `type` drives Board/List column
+// grouping, `dashboardCategory` drives Workspace Overview analytics only.
+// Kept separate so custom statuses/workflows never change Board/List behavior.
+export const dashboardCategoryEnum = pgEnum("dashboard_category", [
+  "OPEN",
+  "WORKING",
+  "REVIEW",
+  "COMPLETED",
+]);
+
 export const list = pgTable(
   "list",
   {
@@ -34,6 +44,9 @@ export const listStatus = pgTable(
     name: text("name").notNull(),
     color: text("color").notNull(),
     type: statusTypeEnum("type").notNull(),
+    dashboardCategory: dashboardCategoryEnum("dashboard_category")
+      .notNull()
+      .default("OPEN"),
     orderIndex: integer("order_index").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

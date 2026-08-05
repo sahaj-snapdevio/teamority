@@ -28,6 +28,7 @@ export default async function ListStatusesSettingsPage({ params }: PageProps) {
       name: listStatus.name,
       color: listStatus.color,
       type: listStatus.type,
+      dashboardCategory: listStatus.dashboardCategory,
       orderIndex: listStatus.orderIndex,
     })
     .from(listStatus)

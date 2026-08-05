@@ -120,6 +120,13 @@ import {
 import { isOverlayOpen } from "@/components/ui/overlay-stack";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SearchInput } from "@/components/ui/search-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useListColumnPreferences } from "@/hooks/use-list-column-preferences";
 import {
   CUSTOM_FIELD_COLUMN_WIDTH_CLASS,
@@ -129,6 +136,10 @@ import {
   type CustomFieldFilters,
   isCustomFieldFilterActive,
 } from "@/lib/custom-fields/filters";
+import {
+  DASHBOARD_CATEGORY_OPTIONS,
+  type DashboardCategory,
+} from "@/lib/dashboard-category";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { filterTasks } from "@/lib/filters/task-filter";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
@@ -364,7 +375,7 @@ function PinnedSection({
                 listId={listId}
                 onOpen={() => {
                   setTaskNavContext({ taskIds: taskNavIds });
-                  router.push(`/${workspaceId}/task/${t.id}`);
+                  router.push(`/${workspaceId}/task/${t.id}?from=list`);
                 }}
                 onRefresh={() => router.refresh()}
                 onSelect={onSelect}
@@ -542,6 +553,7 @@ function QuickCreateRow({
       }
       setTitle("");
       setMeta(EMPTY_QUICK_META);
+      onOpenChange(false);
       router.refresh();
     } finally {
       setSaving(false);
@@ -623,6 +635,8 @@ function StatusGroup({
   statuses,
   addOpen,
   onAddOpenChange,
+  collapsed,
+  onCollapsedChange,
   createDefaults,
   sortControl,
   visibleCustomFields,
@@ -643,6 +657,8 @@ function StatusGroup({
   statuses: Status[];
   addOpen: boolean;
   onAddOpenChange: (v: boolean) => void;
+  collapsed: boolean;
+  onCollapsedChange: (v: boolean) => void;
   createDefaults: QuickCreateDefaults;
   sortControl: SortControl;
   visibleCustomFields: CustomFieldRow[];
@@ -650,13 +666,14 @@ function StatusGroup({
   taskNavIds: string[];
 }) {
   const router = useRouter();
-  const [collapsed, setCollapsed] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [renameOpen, setRenameOpen] = React.useState(false);
   const [newStatusOpen, setNewStatusOpen] = React.useState(false);
   const [renameName, setRenameName] = React.useState(status.name);
   const [newStatusName, setNewStatusName] = React.useState("");
   const [newStatusColor, setNewStatusColor] = React.useState("#6B7280");
+  const [newStatusCategory, setNewStatusCategory] =
+    React.useState<DashboardCategory>("OPEN");
   const [saving, setSaving] = React.useState(false);
 
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
@@ -706,6 +723,7 @@ function StatusGroup({
       name: newStatusName.trim(),
       color: newStatusColor,
       type: "OPEN",
+      dashboardCategory: newStatusCategory,
     });
     setSaving(false);
     if ("error" in res) {
@@ -714,6 +732,7 @@ function StatusGroup({
     }
     setNewStatusName("");
     setNewStatusColor("#6B7280");
+    setNewStatusCategory("OPEN");
     setNewStatusOpen(false);
     router.refresh();
   }
@@ -724,7 +743,7 @@ function StatusGroup({
         {/* Status Group Header */}
         <div
           className="group/header flex items-center gap-2.5 py-1.5 px-3 hover:bg-accent/30 transition-colors cursor-pointer select-none border-b border-border"
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => onCollapsedChange(!collapsed)}
         >
           {/* Arrow */}
           <div className="flex size-5 items-center justify-center rounded hover:bg-accent transition-colors shrink-0 text-muted-foreground group-hover/header:text-foreground">
@@ -803,7 +822,7 @@ function StatusGroup({
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent cursor-pointer text-left"
                   onClick={() => {
-                    setCollapsed((v) => !v);
+                    onCollapsedChange(!collapsed);
                     setMenuOpen(false);
                   }}
                 >
@@ -819,7 +838,10 @@ function StatusGroup({
 
             <button
               className="flex size-6 items-center justify-center rounded hover:bg-accent transition-colors cursor-pointer"
-              onClick={() => onAddOpenChange(true)}
+              onClick={() => {
+                onCollapsedChange(false);
+                onAddOpenChange(true);
+              }}
             >
               <PlusIcon className="size-3.5 text-muted-foreground" />
             </button>
@@ -915,7 +937,7 @@ function StatusGroup({
                   listId={listId}
                   onOpen={() => {
                     setTaskNavContext({ taskIds: taskNavIds });
-                    router.push(`/${workspaceId}/task/${task.id}`);
+                    router.push(`/${workspaceId}/task/${task.id}?from=list`);
                   }}
                   onRefresh={() => router.refresh()}
                   onSelect={onSelect}
@@ -1016,6 +1038,32 @@ function StatusGroup({
                   style={{ backgroundColor: color }}
                 />
               ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground shrink-0">
+                Dashboard category
+              </span>
+              <Select
+                onValueChange={(v) =>
+                  setNewStatusCategory(v as DashboardCategory)
+                }
+                value={newStatusCategory}
+              >
+                <SelectTrigger className="h-8 flex-1 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="p-1.5">
+                  {DASHBOARD_CATEGORY_OPTIONS.map((opt) => (
+                    <SelectItem
+                      className="text-xs"
+                      key={opt.value}
+                      value={opt.value}
+                    >
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -1692,6 +1740,7 @@ type ListViewPrefs = {
   assigneeFilter: string[];
   statusFilter: string[];
   customFieldFilters: CustomFieldFilters;
+  collapsedGroupIds: string[];
 };
 
 function listViewPrefsKey(listId: string) {
@@ -1806,6 +1855,12 @@ export function ListView({
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
   const [customFieldFilters, setCustomFieldFilters] =
     React.useState<CustomFieldFilters>({});
+  // Persisted alongside the other view prefs so collapsing a status group
+  // survives navigating into a task and back (the group's own local state
+  // would otherwise reset on remount).
+  const [collapsedGroupIds, setCollapsedGroupIds] = React.useState<
+    Set<string>
+  >(new Set());
 
   // Apply persisted view prefs after mount (avoids SSR/client hydration mismatch).
   // `prefsHydrated` gates the persist effect so we never overwrite saved prefs
@@ -1835,6 +1890,9 @@ export function ListView({
       if (p.customFieldFilters) {
         setCustomFieldFilters(p.customFieldFilters);
       }
+      if (p.collapsedGroupIds) {
+        setCollapsedGroupIds(new Set(p.collapsedGroupIds));
+      }
     }
     setPrefsHydrated(true);
   }, [listId]);
@@ -1855,6 +1913,7 @@ export function ListView({
           assigneeFilter,
           statusFilter,
           customFieldFilters,
+          collapsedGroupIds: [...collapsedGroupIds],
         })
       );
     } catch {
@@ -1870,7 +1929,20 @@ export function ListView({
     assigneeFilter,
     statusFilter,
     customFieldFilters,
+    collapsedGroupIds,
   ]);
+
+  function setGroupCollapsed(groupId: string, next: boolean) {
+    setCollapsedGroupIds((prev) => {
+      const nextSet = new Set(prev);
+      if (next) {
+        nextSet.add(groupId);
+      } else {
+        nextSet.delete(groupId);
+      }
+      return nextSet;
+    });
+  }
 
   // ─── Filters (built-in + custom fields) ────────────────────────────────────
   // Option lists shared between the standalone toolbar buttons above and the
@@ -2007,6 +2079,18 @@ export function ListView({
     sortBy,
     sortOrder,
   ]);
+
+  // Whether any filter narrows down the task set. When true, status/priority/
+  // assignee groups that end up with zero matching tasks are hidden from
+  // rendering (below) instead of showing as empty headers — otherwise a
+  // filter like "Status: Done" still renders every other (now-empty) status
+  // group above it, so the matching tasks appear buried at the bottom.
+  const hasActiveFilter =
+    statusFilter.length > 0 ||
+    priorityFilter.length > 0 ||
+    assigneeFilter.length > 0 ||
+    searchQuery.trim().length > 0 ||
+    Object.keys(customFieldFilters).length > 0;
 
   // ─── Group By logic ────────────────────────────────────────────────────────
   const groupedGroups = React.useMemo(() => {
@@ -2245,7 +2329,7 @@ export function ListView({
           const id = rows[idx].getAttribute("data-task-id");
           if (id) {
             e.preventDefault();
-            router.push(`/${workspaceId}/task/${id}`);
+            router.push(`/${workspaceId}/task/${id}?from=list`);
           }
           break;
         }
@@ -2899,7 +2983,7 @@ export function ListView({
                     key={t.id}
                     onClick={() => {
                       setTaskNavContext({ taskIds: visibleOrderedTaskIds });
-                      router.push(`/${workspaceId}/task/${t.id}`);
+                      router.push(`/${workspaceId}/task/${t.id}?from=list`);
                     }}
                   >
                     <span className="text-2xs text-muted-foreground font-mono shrink-0 select-none">
@@ -2951,16 +3035,21 @@ export function ListView({
 
           {/* Group Content Container */}
           <div className="flex flex-col gap-6">
-            {groupedGroups.map((group) => (
+            {(hasActiveFilter
+              ? groupedGroups.filter((group) => group.tasks.length > 0)
+              : groupedGroups
+            ).map((group) => (
               <StatusGroup
                 addOpen={openAddGroupId === group.id}
                 canEdit={canEdit}
                 canPinToList={canPinToList}
+                collapsed={collapsedGroupIds.has(group.id)}
                 createDefaults={quickCreateDefaultsFor(group.id)}
                 isAdmin={isAdmin}
                 key={group.id}
                 listId={listId}
                 onAddOpenChange={(v) => setOpenAddGroupId(v ? group.id : null)}
+                onCollapsedChange={(v) => setGroupCollapsed(group.id, v)}
                 onSelect={handleSelect}
                 personallyPinnedIds={personallyPinnedIds}
                 selectedIds={selectedIds}

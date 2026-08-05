@@ -293,16 +293,36 @@ export function RealtimeProvider({
     };
   }, [requestRefresh]);
 
-  // Flush a deferred refresh once the user becomes idle again.
+  // Flush a deferred refresh once the user becomes idle again. `focusout` is
+  // meant to catch "blurred the field they were typing in" — but it also
+  // fires the instant any Dialog/Sheet/Popover closes, because its focus trap
+  // synchronously returns focus to the trigger (`useReturnFocusOnClose` /
+  // `useFocusTrap` in components/ui/overlay.tsx). Flushing immediately on
+  // that meant closing an overlay with a refresh already queued behind it
+  // triggered `router.refresh()` in the very same frame the overlay
+  // disappeared — a full-page (sidebar included) flash that read as caused by
+  // the close click. A short settle delay only on this listener lets the
+  // close's own focus-restore and exit animation finish first, so a refresh
+  // (if still needed) lands against a settled page instead of overlapping it.
   React.useEffect(() => {
     const onMaybeIdle = () => attemptFlush();
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    const onFocusOutMaybeIdle = () => {
+      if (settleTimer) {
+        clearTimeout(settleTimer);
+      }
+      settleTimer = setTimeout(attemptFlush, 400);
+    };
     document.addEventListener("visibilitychange", onMaybeIdle);
     window.addEventListener("focus", onMaybeIdle);
-    document.addEventListener("focusout", onMaybeIdle);
+    document.addEventListener("focusout", onFocusOutMaybeIdle);
     return () => {
+      if (settleTimer) {
+        clearTimeout(settleTimer);
+      }
       document.removeEventListener("visibilitychange", onMaybeIdle);
       window.removeEventListener("focus", onMaybeIdle);
-      document.removeEventListener("focusout", onMaybeIdle);
+      document.removeEventListener("focusout", onFocusOutMaybeIdle);
     };
   }, [attemptFlush]);
 

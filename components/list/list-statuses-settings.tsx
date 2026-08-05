@@ -17,6 +17,10 @@ import {
   updateListStatus,
 } from "@/app/actions/list";
 import { Button } from "@/components/ui/button";
+import {
+  DASHBOARD_CATEGORY_OPTIONS,
+  type DashboardCategory,
+} from "@/lib/dashboard-category";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -81,6 +85,7 @@ interface Status {
   name: string;
   color: string;
   type: StatusType;
+  dashboardCategory: DashboardCategory;
   orderIndex: number;
 }
 
@@ -129,6 +134,7 @@ function AddRow({
 }) {
   const [name, setName] = React.useState("");
   const [color, setColor] = React.useState(DEFAULT_COLORS[type]);
+  const [dashboardCategory, setDashboardCategory] = React.useState<DashboardCategory>("OPEN");
   const [colorOpen, setColorOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -136,7 +142,7 @@ function AddRow({
   async function save() {
     if (!name.trim()) { setError("Name required"); return; }
     setLoading(true);
-    const res = await createListStatus(workspaceId, spaceId, listId, { name: name.trim(), color, type });
+    const res = await createListStatus(workspaceId, spaceId, listId, { name: name.trim(), color, type, dashboardCategory });
     setLoading(false);
     if ("error" in res) { setError(res.error); return; }
     onDone();
@@ -162,6 +168,19 @@ function AddRow({
           className="h-7 text-sm flex-1"
           disabled={loading}
         />
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground shrink-0">Dashboard category</span>
+        <Select value={dashboardCategory} onValueChange={(v) => setDashboardCategory(v as DashboardCategory)} disabled={loading}>
+          <SelectTrigger className="h-7 w-32 text-xs shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="p-1.5">
+            {DASHBOARD_CATEGORY_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
       <div className="flex gap-2">
@@ -194,6 +213,7 @@ function EditRow({
   const [name, setName] = React.useState(status.name);
   const [color, setColor] = React.useState(status.color);
   const [type, setType] = React.useState<StatusType>(status.type);
+  const [dashboardCategory, setDashboardCategory] = React.useState<DashboardCategory>(status.dashboardCategory);
   const [colorOpen, setColorOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -201,7 +221,7 @@ function EditRow({
   async function save() {
     if (!name.trim()) { setError("Name required"); return; }
     setLoading(true);
-    const res = await updateListStatus(workspaceId, spaceId, listId, status.id, { name: name.trim(), color, type });
+    const res = await updateListStatus(workspaceId, spaceId, listId, status.id, { name: name.trim(), color, type, dashboardCategory });
     setLoading(false);
     if ("error" in res) { setError(res.error); return; }
     onDone();
@@ -234,6 +254,19 @@ function EditRow({
             <SelectItem value="OPEN" className="text-xs">Not started</SelectItem>
             <SelectItem value="ACTIVE" className="text-xs">Active</SelectItem>
             <SelectItem value="CLOSED" className="text-xs">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground shrink-0">Dashboard category</span>
+        <Select value={dashboardCategory} onValueChange={(v) => setDashboardCategory(v as DashboardCategory)} disabled={loading}>
+          <SelectTrigger className="h-7 w-32 text-xs shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="p-1.5">
+            {DASHBOARD_CATEGORY_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

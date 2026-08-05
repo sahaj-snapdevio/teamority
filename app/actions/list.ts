@@ -78,20 +78,34 @@ async function getNextStatusOrderIndex(listId: string): Promise<number> {
 // ── Default statuses ───────────────────────────────────────────────────────
 
 const DEFAULT_STATUSES = [
-  { name: "Todo", color: "#6B7280", type: "OPEN" as const, orderIndex: 1000 },
+  {
+    name: "Todo",
+    color: "#6B7280",
+    type: "OPEN" as const,
+    dashboardCategory: "OPEN" as const,
+    orderIndex: 1000,
+  },
   {
     name: "In Progress",
     color: "#3B82F6",
     type: "ACTIVE" as const,
+    dashboardCategory: "WORKING" as const,
     orderIndex: 2000,
   },
   {
     name: "Review",
     color: "#F59E0B",
     type: "ACTIVE" as const,
+    dashboardCategory: "REVIEW" as const,
     orderIndex: 3000,
   },
-  { name: "Done", color: "#10B981", type: "CLOSED" as const, orderIndex: 4000 },
+  {
+    name: "Done",
+    color: "#10B981",
+    type: "CLOSED" as const,
+    dashboardCategory: "COMPLETED" as const,
+    orderIndex: 4000,
+  },
 ];
 
 // ── List CRUD ──────────────────────────────────────────────────────────────
@@ -651,7 +665,12 @@ export async function createListStatus(
   workspaceId: string,
   spaceId: string,
   listId: string,
-  data: { name: string; color: string; type: "OPEN" | "ACTIVE" | "CLOSED" }
+  data: {
+    name: string;
+    color: string;
+    type: "OPEN" | "ACTIVE" | "CLOSED";
+    dashboardCategory?: "OPEN" | "WORKING" | "REVIEW" | "COMPLETED";
+  }
 ): Promise<{ statusId: string } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
@@ -684,6 +703,7 @@ export async function createListStatus(
     name,
     color: data.color,
     type: data.type,
+    dashboardCategory: data.dashboardCategory ?? "OPEN",
     orderIndex,
   });
 
@@ -696,7 +716,12 @@ export async function updateListStatus(
   spaceId: string,
   listId: string,
   statusId: string,
-  data: { name?: string; color?: string; type?: "OPEN" | "ACTIVE" | "CLOSED" }
+  data: {
+    name?: string;
+    color?: string;
+    type?: "OPEN" | "ACTIVE" | "CLOSED";
+    dashboardCategory?: "OPEN" | "WORKING" | "REVIEW" | "COMPLETED";
+  }
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
@@ -728,6 +753,9 @@ export async function updateListStatus(
   }
   if (data.type !== undefined) {
     updates.type = data.type;
+  }
+  if (data.dashboardCategory !== undefined) {
+    updates.dashboardCategory = data.dashboardCategory;
   }
 
   await db
@@ -932,6 +960,7 @@ export async function getListStatuses(
       name: string;
       color: string;
       type: "OPEN" | "ACTIVE" | "CLOSED";
+      dashboardCategory: "OPEN" | "WORKING" | "REVIEW" | "COMPLETED";
       orderIndex: number;
     }[]
   | { error: string }
@@ -952,6 +981,7 @@ export async function getListStatuses(
       name: listStatus.name,
       color: listStatus.color,
       type: listStatus.type,
+      dashboardCategory: listStatus.dashboardCategory,
       orderIndex: listStatus.orderIndex,
     })
     .from(listStatus)
