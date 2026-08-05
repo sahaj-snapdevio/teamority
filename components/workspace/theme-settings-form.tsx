@@ -4,6 +4,13 @@ import { CheckIcon } from "@phosphor-icons/react";
 import * as React from "react";
 import { useTheme } from "@/components/theme/theme-provider";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface ThemeOption {
@@ -101,85 +108,75 @@ export function ThemeSettingsForm() {
   }
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      <div>
-        <h2 className="text-base font-semibold leading-7">Workspace Theme</h2>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+    <Card>
+      <CardHeader>
+        <CardTitle>Workspace Theme</CardTitle>
+        <CardDescription>
           Set the accent color every member sees in this workspace. Changes
-          apply instantly as a preview.{" "}
-          <span className="text-foreground/70">
-            Light/dark mode is a personal setting — each member sets their own
-            from their Profile page.
-          </span>
-        </p>
-      </div>
-
-      <div className="border-t border-border pt-6 space-y-6">
-        {/* Accent Themes */}
-        <div>
-          <h3 className="text-sm font-medium mb-3">Accent Theme Color</h3>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {THEME_OPTIONS.map((theme) => {
-              const isSelected = currentTheme === theme.id;
-              return (
-                <button
-                  className={cn(
-                    "flex flex-col items-center justify-center p-4 rounded-xl border text-center hover:bg-accent/50 transition-all focus:outline-none cursor-pointer gap-2",
-                    isSelected
-                      ? "border-primary ring-2 ring-primary/20 bg-accent"
-                      : "border-border bg-card"
-                  )}
-                  key={theme.id}
-                  onClick={() => setTheme(theme.id)}
-                  type="button"
+          apply instantly as a preview.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {THEME_OPTIONS.map((theme) => {
+            const isSelected = currentTheme === theme.id;
+            return (
+              <button
+                className={cn(
+                  "flex flex-col items-center justify-center p-4 rounded-xl border text-center hover:bg-accent/50 transition-all focus:outline-none cursor-pointer gap-2",
+                  isSelected
+                    ? "border-primary ring-2 ring-primary/20 bg-accent"
+                    : "border-border bg-card"
+                )}
+                key={theme.id}
+                onClick={() => setTheme(theme.id)}
+                type="button"
+              >
+                <div
+                  className="size-8 rounded-full shadow-inner flex items-center justify-center border border-black/5"
+                  style={{ backgroundColor: theme.bgPreview }}
                 >
-                  <div
-                    className="size-8 rounded-full shadow-inner flex items-center justify-center border border-black/5"
-                    style={{ backgroundColor: theme.bgPreview }}
-                  >
-                    {isSelected && (
-                      <CheckIcon className="size-4 text-white drop-shadow" />
-                    )}
-                  </div>
-                  <span className="text-xs font-semibold">{theme.name}</span>
-                </button>
-              );
-            })}
-          </div>
+                  {isSelected && (
+                    <CheckIcon className="size-4 text-white drop-shadow" />
+                  )}
+                </div>
+                <span className="text-xs font-semibold">{theme.name}</span>
+              </button>
+            );
+          })}
         </div>
-      </div>
 
-      {/* Floating/Bottom Action Bar */}
-      <div
-        className={cn(
-          "flex items-center justify-end gap-3 border-t border-border pt-4 transition-all duration-300",
-          hasChanges
-            ? "opacity-100 translate-y-0"
-            : "opacity-60 pointer-events-none"
-        )}
-      >
-        <span className="text-xs text-muted-foreground mr-auto">
-          {hasChanges ? "You have unsaved changes" : "All changes saved"}
-        </span>
-        <Button
-          className="text-xs"
-          disabled={!hasChanges || saving}
-          onClick={cancelThemeSettings}
-          size="sm"
-          variant="ghost"
+        <div
+          className={cn(
+            "flex items-center justify-end gap-3 border-t border-border pt-4 transition-all duration-300",
+            hasChanges
+              ? "opacity-100 translate-y-0"
+              : "opacity-60 pointer-events-none"
+          )}
         >
-          Cancel
-        </Button>
-        <Button
-          className="text-xs"
-          disabled={!hasChanges || saving}
-          onClick={handleSave}
-          size="sm"
-          variant="default"
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
-    </div>
+          <span className="text-xs text-muted-foreground mr-auto">
+            {hasChanges ? "You have unsaved changes" : "All changes saved"}
+          </span>
+          <Button
+            className="text-xs"
+            disabled={!hasChanges || saving}
+            onClick={cancelThemeSettings}
+            size="sm"
+            variant="ghost"
+          >
+            Cancel
+          </Button>
+          <Button
+            className="text-xs"
+            disabled={!hasChanges || saving}
+            onClick={handleSave}
+            size="sm"
+            variant="default"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

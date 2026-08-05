@@ -17,3 +17,4 @@ export * from "@/db/schema/notification";
 export * from "@/db/schema/search";
 export * from "@/db/schema/support";
 export * from "@/db/schema/channel";
+export * from "@/db/schema/workspace-overview-snapshot";

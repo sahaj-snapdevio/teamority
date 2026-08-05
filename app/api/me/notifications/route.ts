@@ -48,19 +48,25 @@ export async function GET(req: NextRequest) {
   // Advanced filters — all optional and combined with AND.
   const search = searchParams.get("q")?.trim();
   const workspaceFilter = searchParams.get("workspace");
+  const actorFilter = searchParams.get("actor");
   const event = searchParams.get("event");
   const after = searchParams.get("after");
   const before = searchParams.get("before");
 
   // `scopeConditions` = everything the user narrowed the Inbox down to
-  // (workspace / event / date / search), WITHOUT the All·Unread·Mentions tab.
-  // The tabs replace each other, so the unread count means "how many unread
-  // you'd see if you switched to the Unread tab with these same filters" —
-  // which is what the header badge and the Unread tab badge both show.
+  // (workspace / actor / event / date / search), WITHOUT the All·Unread·Mentions
+  // tab. The tabs replace each other, so the unread count means "how many
+  // unread you'd see if you switched to the Unread tab with these same
+  // filters" — which is what the header badge and the Unread tab badge both
+  // show.
   const scopeConditions: SQL[] = [eq(notification.recipientId, userId)];
 
   if (workspaceFilter) {
     scopeConditions.push(eq(notification.workspaceId, workspaceFilter));
+  }
+
+  if (actorFilter) {
+    scopeConditions.push(eq(notification.actorId, actorFilter));
   }
 
   if (event) {

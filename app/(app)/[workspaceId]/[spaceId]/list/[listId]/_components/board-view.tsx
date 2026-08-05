@@ -87,6 +87,13 @@ import {
 } from "@/components/ui/popover";
 import { SearchInput } from "@/components/ui/search-input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -95,6 +102,10 @@ import {
 import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
 import { useListColumnPreferences } from "@/hooks/use-list-column-preferences";
 import { taskUrl } from "@/lib/app-url";
+import {
+  DASHBOARD_CATEGORY_OPTIONS,
+  type DashboardCategory,
+} from "@/lib/dashboard-category";
 import { describeCustomFieldValue } from "@/lib/custom-fields/column-display";
 import {
   type CustomFieldFilters,
@@ -1629,6 +1640,35 @@ function Column({
   );
 }
 
+// ─── View persistence ────────────────────────────────────────────────────────
+// Remember Sort / Filters per list across reloads (per-browser), same pattern
+// as list-view's ListViewPrefs. Not URL/backend — a full named-views system is
+// out of scope.
+type BoardViewPrefs = {
+  sortBy: "name" | "priority" | null;
+  sortOrder: "asc" | "desc";
+  statusFilter: string[];
+  priorityFilter: string[];
+  assigneeFilter: string[];
+  customFieldFilters: CustomFieldFilters;
+};
+
+function boardViewPrefsKey(listId: string) {
+  return `kanbanica:board-view:${listId}`;
+}
+
+function loadBoardViewPrefs(listId: string): Partial<BoardViewPrefs> | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(boardViewPrefsKey(listId));
+    return raw ? (JSON.parse(raw) as Partial<BoardViewPrefs>) : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Board ────────────────────────────────────────────────────────────────────
 
 export function BoardView({
@@ -1668,6 +1708,8 @@ export function BoardView({
   const [newGroupOpen, setNewGroupOpen] = React.useState(false);
   const [newGroupName, setNewGroupName] = React.useState("");
   const [newGroupColor, setNewGroupColor] = React.useState("#6B7280");
+  const [newGroupCategory, setNewGroupCategory] =
+    React.useState<DashboardCategory>("OPEN");
   const [creatingGroup, setCreatingGroup] = React.useState(false);
   const [groupError, setGroupError] = React.useState("");
 
@@ -1691,6 +1733,7 @@ export function BoardView({
       name,
       color: newGroupColor,
       type: "OPEN",
+      dashboardCategory: newGroupCategory,
     });
     setCreatingGroup(false);
     if ("error" in res) {
@@ -1699,6 +1742,7 @@ export function BoardView({
     }
     setNewGroupName("");
     setNewGroupColor("#6B7280");
+    setNewGroupCategory("OPEN");
     setGroupError("");
     setNewGroupOpen(false);
     handleRefresh();
@@ -1730,6 +1774,66 @@ export function BoardView({
   const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([]);
   const [customFieldFilters, setCustomFieldFilters] =
     React.useState<CustomFieldFilters>({});
+
+  // Apply persisted view prefs after mount (avoids SSR/client hydration mismatch).
+  // `prefsHydrated` gates the persist effect so we never overwrite saved prefs
+  // with the defaults before they're loaded.
+  const [prefsHydrated, setPrefsHydrated] = React.useState(false);
+  React.useEffect(() => {
+    const p = loadBoardViewPrefs(list.id);
+    if (p) {
+      if (p.sortBy !== undefined) {
+        setSortBy(p.sortBy);
+      }
+      if (p.sortOrder) {
+        setSortOrder(p.sortOrder);
+      }
+      if (p.statusFilter) {
+        setStatusFilter(p.statusFilter);
+      }
+      if (p.priorityFilter) {
+        setPriorityFilter(p.priorityFilter);
+      }
+      if (p.assigneeFilter) {
+        setAssigneeFilter(p.assigneeFilter);
+      }
+      if (p.customFieldFilters) {
+        setCustomFieldFilters(p.customFieldFilters);
+      }
+    }
+    setPrefsHydrated(true);
+  }, [list.id]);
+
+  // Persist view prefs whenever they change (only after hydration).
+  React.useEffect(() => {
+    if (!prefsHydrated) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(
+        boardViewPrefsKey(list.id),
+        JSON.stringify({
+          sortBy,
+          sortOrder,
+          statusFilter,
+          priorityFilter,
+          assigneeFilter,
+          customFieldFilters,
+        })
+      );
+    } catch {
+      // ignore quota / disabled storage
+    }
+  }, [
+    prefsHydrated,
+    list.id,
+    sortBy,
+    sortOrder,
+    statusFilter,
+    priorityFilter,
+    assigneeFilter,
+    customFieldFilters,
+  ]);
 
   // ── Filters (built-in + custom fields) ────────────────────────────────────
   // Option lists shared between the standalone toolbar buttons above and the
@@ -2277,6 +2381,32 @@ export function BoardView({
                     type="button"
                   />
                 ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground shrink-0">
+                  Dashboard category
+                </span>
+                <Select
+                  onValueChange={(v) =>
+                    setNewGroupCategory(v as DashboardCategory)
+                  }
+                  value={newGroupCategory}
+                >
+                  <SelectTrigger className="h-8 flex-1 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="p-1.5">
+                    {DASHBOARD_CATEGORY_OPTIONS.map((opt) => (
+                      <SelectItem
+                        className="text-xs"
+                        key={opt.value}
+                        value={opt.value}
+                      >
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end gap-2">

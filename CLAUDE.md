@@ -205,6 +205,7 @@ uploads/                   ← local file storage (STORAGE_DRIVER=local only), g
 | Task | `docs/task.md` |
 | Subtask | `docs/subtask.md` |
 | Sprint | `docs/sprint.md` |
+| Workspace Overview | `docs/workspace-overview.md` |
 | Pinned Tasks | `docs/pinned-tasks.md` |
 | Views | `docs/views.md` |
 | Calendar View | `docs/calendar-view.md` |

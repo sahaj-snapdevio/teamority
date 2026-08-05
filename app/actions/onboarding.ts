@@ -12,10 +12,10 @@ import { PRODUCT_NAME } from "@/config/platform";
 import { getWorkspaceMembership } from "@/lib/permissions";
 
 const DEFAULT_STATUSES = [
-  { name: "Todo", color: "#9CA3AF", type: "OPEN" as const, orderIndex: 0 },
-  { name: "In Progress", color: "#3B82F6", type: "ACTIVE" as const, orderIndex: 1 },
-  { name: "Review", color: "#8B5CF6", type: "ACTIVE" as const, orderIndex: 2 },
-  { name: "Done", color: "#22C55E", type: "CLOSED" as const, orderIndex: 3 },
+  { name: "Todo", color: "#9CA3AF", type: "OPEN" as const, dashboardCategory: "OPEN" as const, orderIndex: 0 },
+  { name: "In Progress", color: "#3B82F6", type: "ACTIVE" as const, dashboardCategory: "WORKING" as const, orderIndex: 1 },
+  { name: "Review", color: "#8B5CF6", type: "ACTIVE" as const, dashboardCategory: "REVIEW" as const, orderIndex: 2 },
+  { name: "Done", color: "#22C55E", type: "CLOSED" as const, dashboardCategory: "COMPLETED" as const, orderIndex: 3 },
 ];
 
 async function getSessionUser() {

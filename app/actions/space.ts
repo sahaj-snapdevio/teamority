@@ -76,10 +76,10 @@ async function requireWorkspaceAdmin(userId: string, workspaceId: string) {
 }
 
 const DEFAULT_STATUSES = [
-  { name: "Todo", color: "#6B7280", type: "OPEN" as const, orderIndex: 0 },
-  { name: "In Progress", color: "#3B82F6", type: "ACTIVE" as const, orderIndex: 1 },
-  { name: "Review", color: "#F59E0B", type: "ACTIVE" as const, orderIndex: 2 },
-  { name: "Done", color: "#10B981", type: "CLOSED" as const, orderIndex: 3 },
+  { name: "Todo", color: "#6B7280", type: "OPEN" as const, dashboardCategory: "OPEN" as const, orderIndex: 0 },
+  { name: "In Progress", color: "#3B82F6", type: "ACTIVE" as const, dashboardCategory: "WORKING" as const, orderIndex: 1 },
+  { name: "Review", color: "#F59E0B", type: "ACTIVE" as const, dashboardCategory: "REVIEW" as const, orderIndex: 2 },
+  { name: "Done", color: "#10B981", type: "CLOSED" as const, dashboardCategory: "COMPLETED" as const, orderIndex: 3 },
 ];
 
 export async function createSpace(

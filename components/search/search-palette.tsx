@@ -505,9 +505,14 @@ export function SearchPalette({
               <XIcon className="size-5" />
             </button>
           )}
-          <kbd className="hidden h-6 items-center gap-1 rounded border bg-muted px-2 text-xs font-medium text-muted-foreground sm:inline-flex">
-            Esc
-          </kbd>
+          <button
+            aria-label="Close"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={onClose}
+            type="button"
+          >
+            <XIcon className="size-5" />
+          </button>
         </div>
 
         {/* Filter row — high-value facets inline; the rest behind "More filters".

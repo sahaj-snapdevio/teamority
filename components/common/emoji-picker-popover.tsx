@@ -1,14 +1,15 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { XIcon } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
+import * as React from "react";
+import { SpaceIcon } from "@/components/common/space-icon";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { SpaceIcon } from "@/components/common/space-icon";
 
 // Stable reference — emoji-mart's Picker re-indexes the entire emoji dataset
 // whenever its `data` prop identity changes, so this must stay a single shared
@@ -24,13 +25,13 @@ const EmojiPicker = dynamic(() => import("@emoji-mart/react"), {
       <div className="h-8 rounded-md bg-muted animate-pulse" />
       <div className="flex gap-1 pb-1 border-b border-border">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="size-7 rounded bg-muted animate-pulse" />
+          <div className="size-7 rounded bg-muted animate-pulse" key={i} />
         ))}
       </div>
       <div className="h-3 w-20 rounded bg-muted animate-pulse" />
       <div className="grid grid-cols-8 gap-1">
         {Array.from({ length: 40 }).map((_, i) => (
-          <div key={i} className="size-8 rounded bg-muted animate-pulse" />
+          <div className="size-8 rounded bg-muted animate-pulse" key={i} />
         ))}
       </div>
     </div>
@@ -38,12 +39,12 @@ const EmojiPicker = dynamic(() => import("@emoji-mart/react"), {
 });
 
 interface EmojiPickerPopoverProps {
-  /** Currently-selected emoji, or null when none is chosen. */
-  value: string | null;
-  onChange: (emoji: string | null) => void;
+  className?: string;
   /** Fallback dot color shown in the trigger when no emoji is set. */
   color?: string | null;
-  className?: string;
+  onChange: (emoji: string | null) => void;
+  /** Currently-selected emoji, or null when none is chosen. */
+  value: string | null;
 }
 
 /**
@@ -58,26 +59,31 @@ export function EmojiPickerPopover({
   color,
   className,
 }: EmojiPickerPopoverProps) {
+  const [open, setOpen] = React.useState(false);
+
   return (
-    <Popover>
+    <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <button
-          type="button"
           aria-label="Choose icon"
           className={cn(
             "flex size-10 items-center justify-center rounded-md border border-border bg-background transition-colors hover:bg-accent",
             className
           )}
+          type="button"
         >
-          <SpaceIcon emoji={value} color={color} size="md" />
+          <SpaceIcon color={color} emoji={value} size="md" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 border-0 shadow-lg" align="start">
+      <PopoverContent align="start" className="w-auto p-0 border-0 shadow-lg">
         {value && (
           <button
-            type="button"
-            onClick={() => onChange(null)}
             className="flex w-full items-center gap-1.5 border-b border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            onClick={() => {
+              onChange(null);
+              setOpen(false);
+            }}
+            type="button"
           >
             <XIcon className="size-3.5 shrink-0" />
             Remove icon
@@ -85,17 +91,20 @@ export function EmojiPickerPopover({
         )}
         <EmojiPicker
           data={loadEmojiData}
-          onEmojiSelect={(e: { native: string }) => onChange(e.native)}
+          maxFrequentRows={2}
+          onEmojiSelect={(e: { native: string }) => {
+            onChange(e.native);
+            setOpen(false);
+          }}
+          perLine={8}
+          previewPosition="none"
+          skinTonePosition="none"
           theme={
             typeof document !== "undefined" &&
             document.documentElement.classList.contains("dark")
               ? "dark"
               : "light"
           }
-          previewPosition="none"
-          skinTonePosition="none"
-          maxFrequentRows={2}
-          perLine={8}
         />
       </PopoverContent>
     </Popover>
