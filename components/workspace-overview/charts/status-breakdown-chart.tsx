@@ -60,7 +60,7 @@ export function StatusBreakdownChart({
   return (
     <Card id="status-breakdown">
       <CardHeader>
-        <CardTitle className="normal-case text-sm font-semibold tracking-normal">
+        <CardTitle className="normal-case text-lg font-semibold tracking-normal">
           Task Status Breakdown
         </CardTitle>
       </CardHeader>
@@ -114,7 +114,7 @@ export function StatusBreakdownChart({
                 )}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-semibold tabular-nums text-foreground">
+                <span className="text-xl font-bold tabular-nums tracking-tight text-foreground">
                   {total}
                 </span>
                 <span className="text-2xs text-muted-foreground">tasks</span>

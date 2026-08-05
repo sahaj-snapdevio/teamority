@@ -323,7 +323,7 @@ body:has(.workspace-shell) {
   /* â”€â”€ 3-layer surface system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --bg-app:      #0D0F12;
   --bg-surface:  #161A20;
-  --bg-elevated: #1E2229;
+  --bg-elevated: #242A33;
   --bg-sidebar:  #0D0F12;
   --bg-sidebar-item-hover:  rgba(255,255,255,0.05);
   --bg-sidebar-item-active: rgba(255,255,255,0.09);
@@ -361,27 +361,27 @@ body:has(.workspace-shell) {
   /* â”€â”€ Core design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --background: #161A20;
   --foreground: #F0F2F5;
-  --card:       #1E2229;
+  --card:       #242A33;
   --card-foreground: #F0F2F5;
-  --popover:    #1E2229;
+  --popover:    #242A33;
   --popover-foreground: #F0F2F5;
 
   --primary:          #6475FA;
   --primary-foreground: #0D0F12;
 
-  --secondary:          #1E2229;
+  --secondary:          #242A33;
   --secondary-foreground: #8B919E;
 
-  --muted:          #1E2229;
-  --muted-foreground: #545B68;
+  --muted:          #2B323D;
+  --muted-foreground: #7C8493;
 
   --accent:          #1E2140;
   --accent-foreground: #7585FB;
 
   --destructive: #F87171;
 
-  --border-color: #272B33;
-  --input:  #272B33;
+  --border-color: #333B47;
+  --input:  #333B47;
   --ring:   #6475FA;
 
 

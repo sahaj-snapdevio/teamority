@@ -9,6 +9,7 @@ import {
   getWorkspaceMyFocusTasks,
   getWorkspaceTasksByAssignee,
   getWorkspaceTasksByDeadline,
+  getWorkspaceTasksByPriority,
   getWorkspaceTasksByStatus,
   type MyFocusKind,
   type WorkspaceOverviewTaskRef,
@@ -21,13 +22,14 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { describeDeadline } from "@/lib/deadline-format";
-import { PRIORITY_CONFIG } from "@/lib/priority-config";
+import { PRIORITY_CONFIG, type Priority } from "@/lib/priority-config";
 
 export type DrilldownRequest =
   | { kind: "status"; statusType: DashboardCategory }
   | { kind: "deadline"; bucket: DeadlineBucket }
   | { kind: "assignee"; userId: string }
-  | { kind: "focus"; focusKind: MyFocusKind };
+  | { kind: "focus"; focusKind: MyFocusKind }
+  | { kind: "priority"; priority: Priority };
 
 // Text for the "View all …" footer link shown only for My Focus Today
 // drill-downs — it hands off to the full My Tasks list (§ MyTasksView),
@@ -73,13 +75,13 @@ function DrilldownRow({
       <span className="shrink-0">{cfg.icon}</span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-foreground/90">{task.title}</p>
-        <p className="truncate text-2xs text-muted-foreground">
+        <p className="truncate text-sm text-muted-foreground">
           {task.spaceName} · {task.listName}
         </p>
       </div>
       {deadline && (
         <span
-          className={`shrink-0 text-2xs tabular-nums ${deadline.overdue ? "text-destructive" : "text-muted-foreground"}`}
+          className={`shrink-0 text-sm tabular-nums ${deadline.overdue ? "text-destructive" : "text-muted-foreground"}`}
         >
           {deadline.text}
         </span>
@@ -111,7 +113,9 @@ export function TaskDrilldownSheet({
           ? getWorkspaceTasksByDeadline(workspaceId, request.bucket)
           : request.kind === "assignee"
             ? getWorkspaceTasksByAssignee(workspaceId, request.userId)
-            : getWorkspaceMyFocusTasks(workspaceId, request.focusKind);
+            : request.kind === "priority"
+              ? getWorkspaceTasksByPriority(workspaceId, request.priority)
+              : getWorkspaceMyFocusTasks(workspaceId, request.focusKind);
     void promise.then((res) => {
       setTasks("error" in res ? [] : res.tasks);
     });
@@ -121,7 +125,7 @@ export function TaskDrilldownSheet({
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="p-0">
         <SheetHeader className="border-b border-border p-5">
-          <SheetTitle className="normal-case text-base tracking-normal">
+          <SheetTitle className="normal-case text-lg font-semibold tracking-normal">
             {label} {tasks !== null && `(${tasks.length})`}
           </SheetTitle>
         </SheetHeader>

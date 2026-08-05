@@ -33,6 +33,7 @@ const SECTIONS: {
   emoji: string;
   label: string;
   labelClass: string;
+  dotClass: string;
   emptyLabel: string;
 }[] = [
   {
@@ -41,6 +42,7 @@ const SECTIONS: {
     emoji: "🔴",
     label: "Overdue",
     labelClass: "text-destructive",
+    dotClass: "bg-destructive",
     emptyLabel: "No overdue tasks 🎉",
   },
   {
@@ -49,6 +51,7 @@ const SECTIONS: {
     emoji: "🟡",
     label: "Today",
     labelClass: "text-warning",
+    dotClass: "bg-warning",
     emptyLabel: "Nothing due",
   },
   {
@@ -57,6 +60,7 @@ const SECTIONS: {
     emoji: "🟢",
     label: "Tomorrow",
     labelClass: "text-success",
+    dotClass: "bg-success",
     emptyLabel: "Nothing due tomorrow",
   },
   {
@@ -65,6 +69,7 @@ const SECTIONS: {
     emoji: "🔵",
     label: "Next 7 Days",
     labelClass: "text-info",
+    dotClass: "bg-info",
     emptyLabel: "Nothing else coming up",
   },
 ];
@@ -73,25 +78,27 @@ function DeadlineRow({
   workspaceId,
   task,
   bucketKey,
+  dotClass,
 }: {
   workspaceId: string;
   task: WorkspaceOverviewTaskRef;
   bucketKey: BucketKey;
+  dotClass: string;
 }) {
   const deadline = task.dueDate
     ? describeDeadline(new Date(task.dueDate))
     : null;
   return (
     <Link
-      className="flex items-start gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/30 transition-colors"
+      className="flex items-start gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-accent/30 transition-colors"
       href={`/${workspaceId}/task/${task.id}`}
     >
-      <span className="mt-1.5 size-1 shrink-0 rounded-full bg-muted-foreground/60" />
+      <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${dotClass}`} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-foreground/90">{task.title}</p>
+        <p className="truncate font-medium text-foreground/90">{task.title}</p>
         {deadline && (
           <p
-            className={`mt-0.5 text-2xs ${bucketKey === "overdue" ? "text-destructive" : "text-muted-foreground"}`}
+            className={`mt-0.5 text-xs ${bucketKey === "overdue" ? "text-destructive" : "text-muted-foreground"}`}
           >
             {deadline.text}
           </p>
@@ -118,7 +125,7 @@ export function UpcomingDeadlines({
   return (
     <Card id="upcoming-deadlines">
       <CardHeader>
-        <CardTitle className="normal-case text-sm font-semibold tracking-normal">
+        <CardTitle className="normal-case text-lg font-semibold tracking-normal">
           Upcoming Deadlines
         </CardTitle>
         {!isEmpty && (
@@ -139,14 +146,14 @@ export function UpcomingDeadlines({
             Nothing due soon 🎉
           </p>
         ) : (
-          <div className="max-h-80 space-y-4 overflow-y-auto">
+          <div className="max-h-80 space-y-5 overflow-y-auto">
             {SECTIONS.map((section) => {
               const { tasks, total } = deadlines[section.key];
               const remaining = total - tasks.length;
               return (
                 <div key={section.key}>
                   <p
-                    className={`mb-1 flex items-center gap-1.5 text-sm font-semibold ${section.labelClass}`}
+                    className={`mb-1.5 flex items-center gap-1.5 text-sm font-semibold ${section.labelClass}`}
                   >
                     <span>{section.emoji}</span>
                     {section.label}
@@ -155,14 +162,15 @@ export function UpcomingDeadlines({
                     )}
                   </p>
                   {total === 0 ? (
-                    <p className="px-1.5 py-1 text-xs text-muted-foreground/70">
+                    <p className="rounded-lg bg-muted/40 px-2.5 py-2 text-sm text-muted-foreground/70">
                       {section.emptyLabel}
                     </p>
                   ) : (
-                    <div className="space-y-0.5">
+                    <div className="space-y-0.5 rounded-lg bg-muted/40 p-1">
                       {tasks.map((t) => (
                         <DeadlineRow
                           bucketKey={section.key}
+                          dotClass={section.dotClass}
                           key={t.id}
                           task={t}
                           workspaceId={workspaceId}
@@ -170,7 +178,7 @@ export function UpcomingDeadlines({
                       ))}
                       {remaining > 0 && (
                         <button
-                          className="px-1.5 py-1 text-xs font-medium text-primary hover:underline cursor-pointer"
+                          className="px-2 py-1 text-xs font-medium text-primary hover:underline cursor-pointer"
                           onClick={() =>
                             openBucket(section.bucket, `${section.label} Tasks`)
                           }

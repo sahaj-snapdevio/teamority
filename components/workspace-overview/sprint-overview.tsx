@@ -16,8 +16,8 @@ export function SprintOverview({ workspaceId, sprints }: SprintOverviewProps) {
   return (
     <Card id="sprint-overview">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 normal-case text-sm font-semibold tracking-normal">
-          <GaugeIcon className="size-4 text-muted-foreground" />
+        <CardTitle className="flex items-center gap-2 normal-case text-lg font-semibold tracking-normal">
+          <GaugeIcon className="size-4.5 text-muted-foreground" />
           Sprint Overview
         </CardTitle>
       </CardHeader>
@@ -35,24 +35,21 @@ export function SprintOverview({ workspaceId, sprints }: SprintOverviewProps) {
                   {s.spaceName}
                 </span>
               </div>
-              <p className="mt-1 truncate text-sm font-semibold text-foreground">
+              <p className="mt-1 truncate text-base font-semibold text-foreground">
                 {s.name}
               </p>
 
-              <div className="mt-3 flex items-center gap-2">
-                <Progress
-                  className="h-1.5 flex-1"
-                  value={s.completionPercent}
-                />
-                <span className="w-9 shrink-0 text-right text-2xs tabular-nums text-muted-foreground">
+              <div className="mt-3 flex items-end justify-between gap-2">
+                <span className="text-2xl font-bold leading-none tracking-tight tabular-nums text-foreground">
                   {s.completionPercent}%
                 </span>
-              </div>
-
-              <div className="mt-2 flex items-center justify-between text-2xs text-muted-foreground">
-                <span>
+                <span className="shrink-0 text-xs text-muted-foreground">
                   {s.completedTasks}/{s.totalTasks} done
                 </span>
+              </div>
+              <Progress className="mt-2 h-2.5" value={s.completionPercent} />
+
+              <div className="mt-2.5 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
                   {s.daysRemaining === null
                     ? "No end date"
@@ -60,12 +57,10 @@ export function SprintOverview({ workspaceId, sprints }: SprintOverviewProps) {
                       ? "Ends today"
                       : `${s.daysRemaining} day${s.daysRemaining === 1 ? "" : "s"} left`}
                 </span>
+                {s.endDate && (
+                  <span>Ends {format(new Date(s.endDate), "MMM d")}</span>
+                )}
               </div>
-              {s.endDate && (
-                <p className="mt-0.5 text-2xs text-muted-foreground/70">
-                  Ends {format(new Date(s.endDate), "MMM d")}
-                </p>
-              )}
             </Link>
           ))}
         </div>

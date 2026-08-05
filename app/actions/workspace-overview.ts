@@ -896,6 +896,71 @@ export async function getWorkspaceTasksByStatus(
 }
 
 /**
+ * Drill-down behind the Priority Breakdown chart — every task at one
+ * priority level, workspace-wide. Not part of the cached aggregate above:
+ * it's an on-demand fetch triggered by a click, so it always reads fresh.
+ */
+export async function getWorkspaceTasksByPriority(
+  workspaceId: string,
+  priority: Priority
+): Promise<{ tasks: WorkspaceOverviewTaskRef[] } | { error: string }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
+
+  const accessibleSpaceIds = await getAccessibleSpaceIds(
+    session.user.id,
+    workspaceId
+  );
+  if (accessibleSpaceIds.length === 0) {
+    return { tasks: [] };
+  }
+
+  const rows = await db
+    .select({
+      id: task.id,
+      seqNumber: task.seqNumber,
+      title: task.title,
+      priority: task.priority,
+      dueDateStart: task.dueDateStart,
+      dueDateEnd: task.dueDateEnd,
+      listId: list.id,
+      listName: list.name,
+      spaceId: space.id,
+      spaceName: space.name,
+    })
+    .from(task)
+    .innerJoin(list, eq(task.listId, list.id))
+    .innerJoin(space, eq(list.spaceId, space.id))
+    .where(
+      and(
+        inArray(space.id, accessibleSpaceIds),
+        eq(task.isArchived, false),
+        eq(list.isArchived, false),
+        isNull(task.parentTaskId),
+        eq(task.priority, priority)
+      )
+    )
+    .orderBy(asc(task.dueDateEnd), asc(task.dueDateStart))
+    .limit(DRILLDOWN_LIMIT);
+
+  return {
+    tasks: rows.map((r) => ({
+      id: r.id,
+      seqNumber: r.seqNumber,
+      title: r.title,
+      priority: r.priority as Priority,
+      dueDate: r.dueDateEnd ?? r.dueDateStart,
+      spaceId: r.spaceId,
+      spaceName: r.spaceName,
+      listId: r.listId,
+      listName: r.listName,
+    })),
+  };
+}
+
+/**
  * Drill-down behind the Upcoming Deadlines widget — every task in one
  * deadline bucket (or `"all"` for the union, behind the card's "View All"),
  * workspace-wide, sorted the same way the widget's preview is. Also an
