@@ -146,15 +146,15 @@ function ActivityRow({
               entry.eventType,
               (entry.meta ?? {}) as Record<string, unknown>
             )}
-          </span>{" "}
-          <Link
-            className="font-medium text-foreground hover:underline"
-            href={`/${workspaceId}/task/${entry.taskId}`}
-          >
-            #{entry.taskSeq} {entry.taskTitle}
-          </Link>
+          </span>
         </p>
-        <p className="mt-0.5 text-2xs text-muted-foreground">
+        <Link
+          className="mt-1 block truncate text-sm font-semibold text-foreground hover:underline"
+          href={`/${workspaceId}/task/${entry.taskId}`}
+        >
+          #{entry.taskSeq} {entry.taskTitle}
+        </Link>
+        <p className="mt-1 text-xs text-muted-foreground">
           <span className="text-muted-foreground/70">{entry.spaceName} · </span>
           <span title={format(new Date(entry.createdAt), "PPpp")}>
             {formatDistanceToNow(new Date(entry.createdAt), {
@@ -210,7 +210,7 @@ function ActivityGroup({
               {run.entries.length === 1 ? "" : "s"}
             </span>
           </p>
-          <p className="mt-0.5 text-2xs text-muted-foreground">
+          <p className="mt-1 text-xs text-muted-foreground">
             <span title={format(new Date(latest.createdAt), "PPpp")}>
               {formatDistanceToNow(new Date(latest.createdAt), {
                 addSuffix: true,
@@ -249,7 +249,7 @@ export function RecentActivityFeed({
   return (
     <Card id="recent-activity">
       <CardHeader>
-        <CardTitle className="normal-case text-sm font-semibold tracking-normal">
+        <CardTitle className="normal-case text-lg font-semibold tracking-normal">
           Recent Activity
         </CardTitle>
       </CardHeader>
@@ -267,7 +267,7 @@ export function RecentActivityFeed({
               const runs = groupConsecutive(dateGroup.entries);
               return (
                 <div key={dateGroup.label}>
-                  <p className="mb-0.5 px-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                  <p className="mb-0.5 px-1.5 text-2xs font-semibold uppercase text-muted-foreground/70">
                     {dateGroup.label}
                   </p>
                   <div className="space-y-1">

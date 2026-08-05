@@ -85,8 +85,11 @@ function CreateTaskAction({
     <>
       <Popover onOpenChange={handleOpenPopover} open={popoverOpen}>
         <PopoverTrigger asChild>
-          <Button size="sm" variant="outline">
-            <PlusCircleIcon className="size-3.5" data-icon="inline-start" />
+          <Button size="default" variant="outline">
+            <PlusCircleIcon
+              className="size-4 text-primary"
+              data-icon="inline-start"
+            />
             Create Task
           </Button>
         </PopoverTrigger>
@@ -94,7 +97,7 @@ function CreateTaskAction({
           align="start"
           className="w-64 p-1.5 max-h-80 overflow-y-auto"
         >
-          <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+          <p className="px-2 py-1 text-2xs font-bold uppercase text-muted-foreground">
             {loadingStatuses ? "Loading…" : "Choose a list"}
           </p>
           {spaces === null ? (
@@ -182,9 +185,9 @@ function StartSprintAction({
     <>
       <Popover onOpenChange={setPopoverOpen} open={popoverOpen}>
         <PopoverTrigger asChild>
-          <Button size="sm" variant="outline">
+          <Button size="default" variant="outline">
             <LightningIcon
-              className="size-3.5"
+              className="size-4 text-success"
               data-icon="inline-start"
               weight="fill"
             />
@@ -195,7 +198,7 @@ function StartSprintAction({
           align="start"
           className="w-56 p-1.5 max-h-80 overflow-y-auto"
         >
-          <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+          <p className="px-2 py-1 text-2xs font-bold uppercase text-muted-foreground">
             Choose a project
           </p>
           {projects.length === 0 ? (
@@ -249,7 +252,7 @@ export function QuickActions({
   return (
     <Card className="p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold text-muted-foreground">
+        <span className="mr-1 text-sm font-medium text-muted-foreground">
           Quick Actions
         </span>
 
@@ -262,15 +265,25 @@ export function QuickActions({
 
         <Button
           onClick={() => setCreateProjectOpen(true)}
-          size="sm"
+          size="default"
           variant="outline"
         >
-          <FolderPlusIcon className="size-3.5" data-icon="inline-start" />
+          <FolderPlusIcon
+            className="size-4 text-info"
+            data-icon="inline-start"
+          />
           Create Project
         </Button>
 
-        <Button onClick={() => setInviteOpen(true)} size="sm" variant="outline">
-          <UserPlusIcon className="size-3.5" data-icon="inline-start" />
+        <Button
+          onClick={() => setInviteOpen(true)}
+          size="default"
+          variant="outline"
+        >
+          <UserPlusIcon
+            className="size-4 text-purple-500 dark:text-purple-400"
+            data-icon="inline-start"
+          />
           Invite Member
         </Button>
       </div>

@@ -89,7 +89,7 @@ const ACTIVITY_ICON: Record<string, string> = {
   task_created: "✨",
   task_duplicated: "📄",
   title_changed: "✏️",
-  status_changed: "🟢",
+  status_changed: "🔄",
   priority_changed: "🚩",
   description_updated: "📝",
   assignee_added: "👤",
@@ -129,7 +129,7 @@ const DEFAULT_ACTIVITY_ICON = "🔹";
 /**
  * Icon shown next to each Recent Activity row, keyed by `eventType`. A
  * `status_changed` row that lands on a COMPLETED-category status shows ✅
- * instead of the generic 🟢 — `toDashboardCategory` is only meaningful for
+ * instead of the generic 🔄 — `toDashboardCategory` is only meaningful for
  * that one event type, everything else ignores it.
  */
 export function activityIcon(

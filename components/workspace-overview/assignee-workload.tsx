@@ -47,7 +47,7 @@ export function AssigneeWorkload({
   return (
     <Card id="assignee-workload">
       <CardHeader>
-        <CardTitle className="normal-case text-sm font-semibold tracking-normal">
+        <CardTitle className="normal-case text-lg font-semibold tracking-normal">
           Team Workload
         </CardTitle>
       </CardHeader>
@@ -63,7 +63,7 @@ export function AssigneeWorkload({
               const levelConfig = WORKLOAD_LEVEL_CONFIG[level];
               return (
                 <button
-                  className="flex w-full items-center gap-3 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-accent/20 cursor-pointer"
+                  className="flex w-full items-start gap-3 rounded-md px-1.5 py-2 text-left transition-colors hover:bg-accent/20 cursor-pointer"
                   key={m.userId}
                   onClick={() =>
                     setDrilldown({
@@ -74,7 +74,7 @@ export function AssigneeWorkload({
                   type="button"
                 >
                   <UserAvatar
-                    className="shrink-0"
+                    className="mt-0.5 shrink-0"
                     email={m.email}
                     image={m.image}
                     name={m.name}
@@ -82,34 +82,32 @@ export function AssigneeWorkload({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm text-foreground/90">
+                      <span className="truncate text-sm font-medium text-foreground">
                         {m.name}
                       </span>
                       <span className="shrink-0 text-xs text-muted-foreground">
                         {levelConfig.emoji} {levelConfig.label}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-2xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {m.activeCount} active task
                       {m.activeCount === 1 ? "" : "s"}
                     </p>
-                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div
                         className={`h-full rounded-full transition-all ${completionBarColor(m.completionPercent, level === "heavy")}`}
                         style={{ width: `${m.completionPercent}%` }}
                       />
                     </div>
-                    <div className="mt-1 flex items-center gap-3 text-2xs text-muted-foreground">
-                      <span>
+                    <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                      <p>
                         {m.completedCount} / {m.assignedCount} completed
-                      </span>
+                      </p>
                       {m.overdueCount > 0 && (
-                        <span className="text-warning">
-                          {m.overdueCount} overdue
-                        </span>
+                        <p className="text-warning">{m.overdueCount} overdue</p>
                       )}
                       {m.averageAgeDays !== null && (
-                        <span>Average age {m.averageAgeDays}d</span>
+                        <p>Average age {m.averageAgeDays}d</p>
                       )}
                     </div>
                   </div>

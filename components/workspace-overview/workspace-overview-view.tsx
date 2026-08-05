@@ -26,7 +26,7 @@ interface WorkspaceOverviewViewProps {
 function OverviewSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-4">
         {[
           "total",
           "completed",
@@ -74,9 +74,11 @@ export function WorkspaceOverviewView({
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <ChartPieSliceIcon className="size-5 text-primary" weight="fill" />
-        <h1 className="text-lg font-semibold">Overview</h1>
+        <h1 className="text-[34px] font-bold tracking-normal text-foreground">
+          Overview
+        </h1>
       </div>
 
       {loading || !data ? (
@@ -112,11 +114,18 @@ export function WorkspaceOverviewView({
               breakdown={data.statusBreakdown}
               workspaceId={workspaceId}
             />
-            <PriorityBreakdownChart breakdown={data.priorityBreakdown} />
+            <PriorityBreakdownChart
+              breakdown={data.priorityBreakdown}
+              workspaceId={workspaceId}
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ProjectsTable projects={data.projects} workspaceId={workspaceId} />
+            <ProjectsTable
+              activeSprints={data.activeSprints}
+              projects={data.projects}
+              workspaceId={workspaceId}
+            />
             <AssigneeWorkload
               members={data.assigneeWorkload}
               workspaceId={workspaceId}

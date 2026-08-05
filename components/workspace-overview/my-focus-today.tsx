@@ -68,17 +68,17 @@ export function MyFocusToday({ focus, workspaceId }: MyFocusTodayProps) {
   return (
     <Card id="my-focus-today">
       <CardHeader>
-        <CardTitle className="normal-case text-sm font-semibold tracking-normal">
+        <CardTitle className="normal-case text-lg font-semibold tracking-normal">
           ⭐ My Focus Today
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {TILES.map((tile) => {
             const count = focus[tile.key];
             return (
               <button
-                className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-3 text-center transition-colors hover:border-foreground/15 hover:bg-accent/30 hover:shadow-sm cursor-pointer"
+                className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-3 text-center transition-colors hover:border-foreground/15 hover:bg-accent/30 cursor-pointer"
                 key={tile.key}
                 onClick={() =>
                   setDrilldown({
@@ -95,13 +95,13 @@ export function MyFocusToday({ focus, workspaceId }: MyFocusTodayProps) {
                       tile.dotClass
                     )}
                   />
-                  <span className="text-xs font-medium text-muted-foreground">
+                  <span className="text-sm font-medium text-muted-foreground">
                     {tile.label}
                   </span>
                 </span>
                 <span
                   className={cn(
-                    "text-2xl font-semibold tabular-nums",
+                    "text-4xl font-bold leading-none tracking-[-0.03em] tabular-nums",
                     count > 0 ? tile.countClass : "text-muted-foreground"
                   )}
                 >
