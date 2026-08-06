@@ -50,3 +50,24 @@ export function IntegrationStatusBadge({
     </span>
   );
 }
+
+/** Shown inside a card's expanded content when it's live via .env — explains
+ * why the fields below are blank and what happens if the admin saves anyway. */
+export const ENV_OVERRIDE_NOTE =
+  "This provider is currently working using values from .env — the database has nothing saved for it, so the fields below are blank. Saving a configuration here will create a database entry that takes over from .env for this provider.";
+
+/** Small provenance tag shown next to the status badge when a section is
+ * live only because .env supplies what the database doesn't — see
+ * IntegrationCard's `usingEnv` prop. */
+export function UsingEnvBadge({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-2xs font-medium text-info",
+        className
+      )}
+    >
+      Using .env
+    </span>
+  );
+}

@@ -9,10 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { IntegrationSettingsSummary } from "@/lib/integration-settings";
 import { IntegrationCard } from "./integration-card";
+import { ENV_OVERRIDE_NOTE } from "./integration-status-badge";
 
 type Google = IntegrationSettingsSummary["google"];
 
 const REDIRECT_URI_TEMPLATE = "{your_domain}/api/auth/callback/google";
+const RESTART_NOTE =
+  "Changes here take effect after the app restarts — the login page reads Google credentials once at server startup, not per request.";
 
 interface Props {
   /** Whether the currently *saved* credentials match what the running server
@@ -32,6 +35,10 @@ interface Props {
    * re-fetching. Unused on /orbit/integrations. */
   onSaved?: (configured: boolean) => void;
   open?: boolean;
+  /** Whether the *resolved* config (DB, falling back to .env) is usable —
+   * see isGoogleOAuthConfigured() (lib/integration-settings.ts). Defaults to
+   * false, which is correct for the setup wizard. */
+  resolvedConfigured?: boolean;
 }
 
 export function GoogleOAuthSettingsForm({
@@ -40,6 +47,7 @@ export function GoogleOAuthSettingsForm({
   open,
   onOpenChange,
   googleOAuthLive = false,
+  resolvedConfigured = false,
 }: Props) {
   const [clientId, setClientId] = useState(initial.clientId);
   const [clientSecret, setClientSecret] = useState("");
@@ -50,7 +58,9 @@ export function GoogleOAuthSettingsForm({
   const [removing, setRemoving] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const configured = !!(clientId && hasClientSecret);
+  const dbConfigured = !!(clientId && hasClientSecret);
+  const usingEnv = !dbConfigured && resolvedConfigured;
+  const effectivelyConfigured = dbConfigured || resolvedConfigured;
 
   async function copyRedirectUri() {
     await navigator.clipboard.writeText(REDIRECT_URI_TEMPLATE);
@@ -113,7 +123,7 @@ export function GoogleOAuthSettingsForm({
     <IntegrationCard
       description='Enables the "Continue with Google" button on sign-in.'
       icon={<GoogleLogoIcon className="size-4.5" />}
-      note="Changes here take effect after the app restarts — the login page reads Google credentials once at server startup, not per request."
+      note={usingEnv ? ENV_OVERRIDE_NOTE : RESTART_NOTE}
       onOpenChange={onOpenChange}
       onRemove={handleRemove}
       onSave={handleSave}
@@ -121,13 +131,14 @@ export function GoogleOAuthSettingsForm({
       removing={removing}
       saving={saving}
       status={
-        configured
+        effectivelyConfigured
           ? googleOAuthLive
             ? "configured"
             : "restart-required"
           : "not-configured"
       }
       title="Google OAuth"
+      usingEnv={usingEnv}
       value="google"
     >
       <div className="mb-4 space-y-1.5">

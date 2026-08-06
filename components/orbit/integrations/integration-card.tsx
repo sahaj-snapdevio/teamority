@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   type IntegrationStatus,
   IntegrationStatusBadge,
+  UsingEnvBadge,
 } from "./integration-status-badge";
 
 export type { IntegrationStatus };
@@ -37,6 +38,11 @@ interface Props {
   status: IntegrationStatus;
   testing?: boolean;
   title: string;
+  /** True when this section has nothing saved in the database but is live
+   * because .env supplies a usable config — shows a small "Using .env" tag
+   * next to the status badge and hides Remove (there's nothing in the DB to
+   * remove). */
+  usingEnv?: boolean;
   /** Accordion item id — must be unique among sibling cards sharing the same
    * `open`/`onOpenChange` state. */
   value: string;
@@ -57,6 +63,7 @@ export function IntegrationCard({
   saving,
   removing,
   testing,
+  usingEnv,
   open,
   onOpenChange,
   onSave,
@@ -90,6 +97,7 @@ export function IntegrationCard({
                   {title}
                 </h3>
                 <IntegrationStatusBadge status={status} />
+                {usingEnv && <UsingEnvBadge />}
               </div>
               <p className="mt-0.5 line-clamp-2 text-xs font-normal text-muted-foreground">
                 {description}
@@ -113,6 +121,7 @@ export function IntegrationCard({
 
             <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
               {(status === "configured" || status === "restart-required") &&
+              !usingEnv &&
               onRemove ? (
                 <Button
                   className="text-destructive hover:text-destructive"

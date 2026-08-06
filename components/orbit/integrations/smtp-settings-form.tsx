@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { IntegrationSettingsSummary } from "@/lib/integration-settings";
 import { IntegrationCard } from "./integration-card";
+import { ENV_OVERRIDE_NOTE } from "./integration-status-badge";
 
 type Smtp = IntegrationSettingsSummary["smtp"];
 
@@ -25,6 +26,11 @@ interface Props {
    * re-fetching. Unused on /orbit/integrations. */
   onSaved?: (configured: boolean) => void;
   open?: boolean;
+  /** Whether the *resolved* config (DB, falling back to .env) is usable —
+   * see isSmtpConfigured() (lib/integration-settings.ts). Defaults to false,
+   * which is correct for the setup wizard (nothing's booted yet to read
+   * .env against). */
+  resolvedConfigured?: boolean;
 }
 
 export function SmtpSettingsForm({
@@ -32,6 +38,7 @@ export function SmtpSettingsForm({
   onSaved,
   open,
   onOpenChange,
+  resolvedConfigured = false,
 }: Props) {
   const [host, setHost] = useState(initial.host);
   const [port, setPort] = useState(String(initial.port));
@@ -44,7 +51,9 @@ export function SmtpSettingsForm({
   const [testing, setTesting] = useState(false);
   const [testFailed, setTestFailed] = useState(false);
 
-  const configured = !!(host && user && from && hasPassword);
+  const dbConfigured = !!(host && user && from && hasPassword);
+  const usingEnv = !dbConfigured && resolvedConfigured;
+  const effectivelyConfigured = dbConfigured || resolvedConfigured;
 
   async function save(smtp: Record<string, unknown>, message: string) {
     const result = await saveIntegrationSettingsAction({ smtp });
@@ -138,6 +147,7 @@ export function SmtpSettingsForm({
     <IntegrationCard
       description="Send magic links, invites, and notification emails. Without it, emails are logged instead of delivered."
       icon={<EnvelopeSimpleIcon className="size-4.5" />}
+      note={usingEnv ? ENV_OVERRIDE_NOTE : undefined}
       onOpenChange={onOpenChange}
       onRemove={handleRemove}
       onSave={handleSave}
@@ -146,10 +156,15 @@ export function SmtpSettingsForm({
       removing={removing}
       saving={saving}
       status={
-        testFailed ? "failed" : configured ? "configured" : "not-configured"
+        testFailed
+          ? "failed"
+          : effectivelyConfigured
+            ? "configured"
+            : "not-configured"
       }
       testing={testing}
       title="Email (SMTP)"
+      usingEnv={usingEnv}
       value="smtp"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

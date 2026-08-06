@@ -12,7 +12,16 @@ interface Props {
   /** Whether the running process actually loaded the currently-saved Google
    * OAuth credentials at boot — see isGoogleOAuthLive() (lib/auth.ts). */
   googleOAuthLive: boolean;
+  /** Whether the *resolved* (DB, falling back to .env) config is usable for
+   * each section — lets a section read "Connected · Using .env" even when
+   * the DB-only form fields are blank. See isGoogleOAuthConfigured(),
+   * isSmtpConfigured(), isStorageConfiguredViaS3(), isWebPushConfigured()
+   * (lib/integration-settings.ts). */
+  googleResolvedConfigured: boolean;
   settings: IntegrationSettingsSummary;
+  smtpResolvedConfigured: boolean;
+  storageResolvedConfiguredViaS3: boolean;
+  webPushResolvedConfigured: boolean;
 }
 
 /** Groups the four provider cards into an admin-console-style page: section
@@ -20,7 +29,14 @@ interface Props {
  * at a time across the whole page (not just within a section). Each card
  * manages its own <Accordion> internally (see integration-card.tsx) — this
  * just controls it via `open`/`onOpenChange`. */
-export function IntegrationsConsole({ settings, googleOAuthLive }: Props) {
+export function IntegrationsConsole({
+  settings,
+  googleOAuthLive,
+  googleResolvedConfigured,
+  smtpResolvedConfigured,
+  storageResolvedConfiguredViaS3,
+  webPushResolvedConfigured,
+}: Props) {
   const [expanded, setExpanded] = useState<string | undefined>();
 
   function toggle(id: string) {
@@ -35,6 +51,7 @@ export function IntegrationsConsole({ settings, googleOAuthLive }: Props) {
           initial={settings.google}
           onOpenChange={toggle("google")}
           open={expanded === "google"}
+          resolvedConfigured={googleResolvedConfigured}
         />
       </ProviderGroup>
 
@@ -43,6 +60,7 @@ export function IntegrationsConsole({ settings, googleOAuthLive }: Props) {
           initial={settings.smtp}
           onOpenChange={toggle("smtp")}
           open={expanded === "smtp"}
+          resolvedConfigured={smtpResolvedConfigured}
         />
       </ProviderGroup>
 
@@ -51,6 +69,7 @@ export function IntegrationsConsole({ settings, googleOAuthLive }: Props) {
           initial={settings.storage}
           onOpenChange={toggle("storage")}
           open={expanded === "storage"}
+          resolvedConfiguredViaS3={storageResolvedConfiguredViaS3}
         />
       </ProviderGroup>
 
@@ -59,6 +78,7 @@ export function IntegrationsConsole({ settings, googleOAuthLive }: Props) {
           initial={settings.webPush}
           onOpenChange={toggle("webPush")}
           open={expanded === "webPush"}
+          resolvedConfigured={webPushResolvedConfigured}
         />
       </ProviderGroup>
     </div>
