@@ -206,7 +206,7 @@ async function _create(params: CreateNotificationParams) {
   // unconfigured self-host never accumulates undeliverable outbox rows.
   // `digest` recipients are picked up later by the digest worker straight from
   // the `notification` table; `off` recipients get nothing.
-  if (emailRecipients.length > 0 && isSmtpConfigured()) {
+  if (emailRecipients.length > 0 && (await isSmtpConfigured())) {
     await sendInstantEmails({
       recipientIds: emailRecipients,
       workspaceId,

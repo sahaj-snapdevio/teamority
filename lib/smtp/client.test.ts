@@ -1,75 +1,63 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { isSmtpConfigured, sendEmailViaSmtp } from "@/lib/smtp/client";
+import {
+  isSmtpConfigured,
+  sendEmailViaSmtp,
+  testSmtpConnection,
+} from "@/lib/smtp/client";
 
-const { envMock, createTransportMock, sendMailMock } = vi.hoisted(() => ({
-  envMock: {
-    SMTP_HOST: undefined as string | undefined,
-    SMTP_PORT: undefined as number | undefined,
-    SMTP_USER: undefined as string | undefined,
-    SMTP_PASS: undefined as string | undefined,
-    EMAIL_FROM: undefined as string | undefined,
-  },
-  createTransportMock: vi.fn(),
-  sendMailMock: vi.fn(),
+const { createTransportMock, sendMailMock, verifyMock, getSmtpSettingsMock } =
+  vi.hoisted(() => ({
+    createTransportMock: vi.fn(),
+    sendMailMock: vi.fn(),
+    verifyMock: vi.fn(),
+    getSmtpSettingsMock: vi.fn(),
+  }));
+
+vi.mock("@/lib/integration-settings", () => ({
+  getSmtpSettings: getSmtpSettingsMock,
+  isSmtpConfigured: async () => (await getSmtpSettingsMock()) !== null,
 }));
-
-vi.mock("@/lib/env", () => ({ env: envMock }));
 vi.mock("nodemailer", () => ({
   default: { createTransport: createTransportMock },
 }));
 
 function setConfigured() {
-  envMock.SMTP_HOST = "smtp.example.com";
-  envMock.SMTP_PORT = undefined;
-  envMock.SMTP_USER = "user";
-  envMock.SMTP_PASS = "pass";
-  envMock.EMAIL_FROM = "noreply@example.com";
+  getSmtpSettingsMock.mockResolvedValue({
+    host: "smtp.example.com",
+    port: 587,
+    user: "user",
+    pass: "pass",
+    from: "noreply@example.com",
+  });
 }
 
 function setUnconfigured() {
-  envMock.SMTP_HOST = undefined;
-  envMock.SMTP_PORT = undefined;
-  envMock.SMTP_USER = undefined;
-  envMock.SMTP_PASS = undefined;
-  envMock.EMAIL_FROM = undefined;
+  getSmtpSettingsMock.mockResolvedValue(null);
 }
 
 beforeEach(() => {
-  setUnconfigured();
   createTransportMock.mockReset();
   sendMailMock.mockReset();
-  createTransportMock.mockReturnValue({ sendMail: sendMailMock });
+  verifyMock.mockReset();
+  getSmtpSettingsMock.mockReset();
+  setUnconfigured();
+  createTransportMock.mockReturnValue({
+    sendMail: sendMailMock,
+    verify: verifyMock,
+  });
   sendMailMock.mockResolvedValue({ messageId: "msg-1" });
+  verifyMock.mockResolvedValue(true);
 });
 
 describe("isSmtpConfigured", () => {
-  it("is true only when host, user, pass, and from are all set", () => {
+  it("is true when getSmtpSettings resolves a config", async () => {
     setConfigured();
-    expect(isSmtpConfigured()).toBe(true);
+    expect(await isSmtpConfigured()).toBe(true);
   });
 
-  it("is false when SMTP_HOST is missing", () => {
-    setConfigured();
-    envMock.SMTP_HOST = undefined;
-    expect(isSmtpConfigured()).toBe(false);
-  });
-
-  it("is false when SMTP_USER is missing", () => {
-    setConfigured();
-    envMock.SMTP_USER = undefined;
-    expect(isSmtpConfigured()).toBe(false);
-  });
-
-  it("is false when SMTP_PASS is missing", () => {
-    setConfigured();
-    envMock.SMTP_PASS = undefined;
-    expect(isSmtpConfigured()).toBe(false);
-  });
-
-  it("is false when EMAIL_FROM is missing", () => {
-    setConfigured();
-    envMock.EMAIL_FROM = undefined;
-    expect(isSmtpConfigured()).toBe(false);
+  it("is false when getSmtpSettings resolves null", async () => {
+    setUnconfigured();
+    expect(await isSmtpConfigured()).toBe(false);
   });
 });
 
@@ -99,7 +87,7 @@ describe("sendEmailViaSmtp — not configured (dev mode)", () => {
 });
 
 describe("sendEmailViaSmtp — configured", () => {
-  it("creates a transport from env and sends via nodemailer", async () => {
+  it("creates a transport from the resolved settings and sends via nodemailer", async () => {
     setConfigured();
     const result = await sendEmailViaSmtp({
       to: "a@b.com",
@@ -163,5 +151,39 @@ describe("sendEmailViaSmtp — configured", () => {
     });
     expect(result.id).toMatch(/^smtp_/);
     expect(result.status).toBe("sent");
+  });
+});
+
+describe("testSmtpConnection", () => {
+  const input = {
+    host: "smtp.example.com",
+    port: 587,
+    user: "user",
+    pass: "pass",
+  };
+
+  it("returns ok when the transporter verifies successfully", async () => {
+    const result = await testSmtpConnection(input);
+    expect(createTransportMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: "smtp.example.com",
+        port: 587,
+        auth: { user: "user", pass: "pass" },
+      })
+    );
+    expect(verifyMock).toHaveBeenCalled();
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("returns the error message when verify() rejects", async () => {
+    verifyMock.mockRejectedValue(new Error("Invalid login"));
+    const result = await testSmtpConnection(input);
+    expect(result).toEqual({ error: "Invalid login" });
+  });
+
+  it("falls back to a generic message for a non-Error rejection", async () => {
+    verifyMock.mockRejectedValue("boom");
+    const result = await testSmtpConnection(input);
+    expect(result).toEqual({ error: "Could not connect to the SMTP server." });
   });
 });

@@ -1,25 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  CheckCircleIcon,
+  EnvelopeIcon,
+  PaperPlaneTiltIcon,
+  SignInIcon,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
-import { EnvelopeIcon, PaperPlaneTiltIcon, CheckCircleIcon, SignInIcon } from "@phosphor-icons/react";
+import { z } from "zod";
 import { GoogleIcon } from "@/components/common/google-icon";
-import { authClient } from "@/lib/auth-client";
-import { authErrorMessage } from "@/lib/auth-errors";
-import type { AuthMethods } from "@/lib/auth-config";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/common/password-input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
+import { authClient } from "@/lib/auth-client";
+import type { AuthMethods } from "@/lib/auth-config";
+import { authErrorMessage } from "@/lib/auth-errors";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -56,9 +68,14 @@ function useLoginForm(methods: AuthMethods) {
     form.clearErrors("root");
     setGoogleLoading(true);
     try {
-      await authClient.signIn.social({ provider: "google", callbackURL: "/post-auth" });
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/post-auth",
+      });
     } catch {
-      form.setError("root", { message: "Failed to sign in with Google. Please try again." });
+      form.setError("root", {
+        message: "Failed to sign in with Google. Please try again.",
+      });
       setGoogleLoading(false);
     }
   }
@@ -73,15 +90,22 @@ function useLoginForm(methods: AuthMethods) {
     }
 
     setMagicLoading(true);
-    const { error } = await authClient.signIn.magicLink({ email, callbackURL: "/post-auth" });
+    const { error } = await authClient.signIn.magicLink({
+      email,
+      callbackURL: "/post-auth",
+    });
     setMagicLoading(false);
 
     if (error) {
-      form.setError("root", { message: authErrorMessage(error.code, error.message) });
+      form.setError("root", {
+        message: authErrorMessage(error.code, error.message),
+      });
       return;
     }
     setSent(true);
-    toast.success("Magic link sent!", { description: "Check your inbox to sign in." });
+    toast.success("Magic link sent!", {
+      description: "Check your inbox to sign in.",
+    });
   }
 
   async function onSubmit({ email, password }: FormData) {
@@ -100,32 +124,72 @@ function useLoginForm(methods: AuthMethods) {
 
     const { error } = await authClient.signIn.email({ email, password });
     if (error) {
-      form.setError("root", { message: authErrorMessage(error.code, error.message) });
+      form.setError("root", {
+        message: authErrorMessage(error.code, error.message),
+      });
       return;
     }
     router.push("/post-auth");
     router.refresh();
   }
 
-  return { sent, setSent, googleLoading, magicLoading, busy, form, isSubmitting, isValid, handleGoogleSignIn, sendMagicLink, onSubmit };
+  return {
+    sent,
+    setSent,
+    googleLoading,
+    magicLoading,
+    busy,
+    form,
+    isSubmitting,
+    isValid,
+    handleGoogleSignIn,
+    sendMagicLink,
+    onSubmit,
+  };
 }
 
 function TermsNotice({ className = "" }: { className?: string }) {
   return (
     <p className={`text-center text-muted-foreground text-xs ${className}`}>
       By signing in you agree to our{" "}
-      <a href="/terms" className="underline underline-offset-4 hover:text-foreground transition-colors">Terms of Service</a>{" "}
+      <a
+        className="underline underline-offset-4 hover:text-foreground transition-colors"
+        href="/terms"
+      >
+        Terms of Service
+      </a>{" "}
       and{" "}
-      <a href="/privacy" className="underline underline-offset-4 hover:text-foreground transition-colors">Privacy Policy</a>.
+      <a
+        className="underline underline-offset-4 hover:text-foreground transition-colors"
+        href="/privacy"
+      >
+        Privacy Policy
+      </a>
+      .
     </p>
   );
 }
 
 // ── Flat (inline) form — used inside the modal page layout ─────────────────────
 
-export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMethods }) {
-  const { sent, setSent, googleLoading, magicLoading, busy, form, isSubmitting, isValid, handleGoogleSignIn, sendMagicLink, onSubmit } =
-    useLoginForm(methods);
+export function LoginFormFlat({
+  methods = DEFAULT_METHODS,
+}: {
+  methods?: AuthMethods;
+}) {
+  const {
+    sent,
+    setSent,
+    googleLoading,
+    magicLoading,
+    busy,
+    form,
+    isSubmitting,
+    isValid,
+    handleGoogleSignIn,
+    sendMagicLink,
+    onSubmit,
+  } = useLoginForm(methods);
 
   const passwordEnabled = methods.passwordSignup;
 
@@ -136,15 +200,23 @@ export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMet
           <CheckCircleIcon className="size-6 text-primary" weight="duotone" />
         </div>
         <div className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Check your inbox</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
+            Check your inbox
+          </h2>
           <p className="text-sm leading-relaxed text-foreground/70">
             We sent a sign-in link to{" "}
-            <span className="font-semibold text-foreground">{form.getValues("email")}</span>.
+            <span className="font-semibold text-foreground">
+              {form.getValues("email")}
+            </span>
+            .
           </p>
         </div>
         <p className="text-muted-foreground text-xs">
           {"Didn't receive it? "}
-          <button onClick={() => setSent(false)} className="underline underline-offset-4 hover:text-foreground transition-colors">
+          <button
+            className="underline underline-offset-4 hover:text-foreground transition-colors"
+            onClick={() => setSent(false)}
+          >
             Try again
           </button>
         </p>
@@ -157,34 +229,51 @@ export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMet
       {methods.google && (
         <>
           <Button
-            type="button"
-            variant="outline"
             className="w-full gap-2 rounded-lg h-11 text-foreground border-input disabled:opacity-60"
             disabled={busy}
             onClick={handleGoogleSignIn}
+            type="button"
+            variant="outline"
           >
-            {googleLoading ? <Spinner className="size-4" /> : <GoogleIcon className="size-4" />}
+            {googleLoading ? (
+              <Spinner className="size-4" />
+            ) : (
+              <GoogleIcon className="size-4" />
+            )}
             {googleLoading ? "Connecting…" : "Continue with Google"}
           </Button>
 
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-muted-foreground text-xs">or continue with email</span>
+            <span className="text-muted-foreground text-xs">
+              or continue with email
+            </span>
             <Separator className="flex-1" />
           </div>
         </>
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-semibold text-foreground">Email address</FormLabel>
+                <FormLabel className="text-sm font-semibold text-foreground">
+                  Email address
+                </FormLabel>
                 <FormControl>
-                  <Input type="email" autoComplete="email" placeholder="you@example.com" className="h-11 rounded-lg text-foreground font-medium" {...field} />
+                  <Input
+                    autoComplete="email"
+                    className="h-11 rounded-lg text-foreground font-medium"
+                    placeholder="you@example.com"
+                    type="email"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -198,9 +287,14 @@ export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMet
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel className="text-sm font-semibold text-foreground">Password</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-foreground">
+                      Password
+                    </FormLabel>
                     {methods.passwordReset && (
-                      <Link href="/forgot-password" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors">
+                      <Link
+                        className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+                        href="/forgot-password"
+                      >
                         Forgot password?
                       </Link>
                     )}
@@ -208,8 +302,8 @@ export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMet
                   <FormControl>
                     <PasswordInput
                       autoComplete="current-password"
-                      placeholder="Enter your password"
                       className="h-11 rounded-lg text-foreground font-medium"
+                      placeholder="Enter your password"
                       {...field}
                       value={field.value ?? ""}
                     />
@@ -222,34 +316,49 @@ export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMet
 
           {form.formState.errors.root && (
             <Alert variant="destructive">
-              <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+              <AlertDescription>
+                {form.formState.errors.root.message}
+              </AlertDescription>
             </Alert>
           )}
 
           <Button
-            type="submit"
-            disabled={!isValid || busy}
             className="w-full gap-2 h-11 rounded-lg text-sm font-semibold shadow-sm disabled:opacity-100 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+            disabled={!isValid || busy}
+            type="submit"
           >
             {isSubmitting ? (
-              <><Spinner className="size-4" />{passwordEnabled ? "Signing in…" : "Sending…"}</>
+              <>
+                <Spinner className="size-4" />
+                {passwordEnabled ? "Signing in…" : "Sending…"}
+              </>
             ) : passwordEnabled ? (
-              <><SignInIcon className="size-4" />Sign in</>
+              <>
+                <SignInIcon className="size-4" />
+                Sign in
+              </>
             ) : (
-              <><PaperPlaneTiltIcon className="size-4" />Send magic link</>
+              <>
+                <PaperPlaneTiltIcon className="size-4" />
+                Send magic link
+              </>
             )}
           </Button>
 
           {/* Magic link stays available as a secondary path when passwords are on. */}
           {passwordEnabled && methods.magicLink && (
             <Button
-              type="button"
-              variant="ghost"
               className="w-full gap-2 h-10 rounded-lg text-sm font-medium"
               disabled={busy}
               onClick={sendMagicLink}
+              type="button"
+              variant="ghost"
             >
-              {magicLoading ? <Spinner className="size-4" /> : <PaperPlaneTiltIcon className="size-4" />}
+              {magicLoading ? (
+                <Spinner className="size-4" />
+              ) : (
+                <PaperPlaneTiltIcon className="size-4" />
+              )}
               {magicLoading ? "Sending…" : "Email me a magic link instead"}
             </Button>
           )}
@@ -259,7 +368,10 @@ export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMet
       {passwordEnabled && (
         <p className="text-center text-sm text-foreground/70">
           {"Don't have an account? "}
-          <Link href="/signup" className="font-semibold text-foreground underline underline-offset-4 hover:opacity-80 transition-opacity">
+          <Link
+            className="font-semibold text-foreground underline underline-offset-4 hover:opacity-80 transition-opacity"
+            href="/signup"
+          >
             Sign up
           </Link>
         </p>
@@ -272,8 +384,22 @@ export function LoginFormFlat({ methods = DEFAULT_METHODS }: { methods?: AuthMet
 
 // ── Card-wrapped form — used standalone if needed ──────────────────────────────
 
-export function LoginForm({ methods = DEFAULT_METHODS }: { methods?: AuthMethods }) {
-  const { sent, setSent, googleLoading, busy, form, isSubmitting, isValid, handleGoogleSignIn, onSubmit } = useLoginForm(methods);
+export function LoginForm({
+  methods = DEFAULT_METHODS,
+}: {
+  methods?: AuthMethods;
+}) {
+  const {
+    sent,
+    setSent,
+    googleLoading,
+    busy,
+    form,
+    isSubmitting,
+    isValid,
+    handleGoogleSignIn,
+    onSubmit,
+  } = useLoginForm(methods);
   const passwordEnabled = methods.passwordSignup;
 
   if (sent) {
@@ -287,12 +413,18 @@ export function LoginForm({ methods = DEFAULT_METHODS }: { methods?: AuthMethods
             <h2 className="font-semibold text-lg">Check your inbox</h2>
             <p className="text-muted-foreground text-sm">
               We sent a sign-in link to{" "}
-              <span className="font-medium text-foreground">{form.getValues("email")}</span>.
+              <span className="font-medium text-foreground">
+                {form.getValues("email")}
+              </span>
+              .
             </p>
           </div>
           <p className="text-muted-foreground text-xs">
             {"Didn't receive it? "}
-            <button onClick={() => setSent(false)} className="underline underline-offset-4 hover:text-foreground transition-colors">
+            <button
+              className="underline underline-offset-4 hover:text-foreground transition-colors"
+              onClick={() => setSent(false)}
+            >
               Try again
             </button>
           </p>
@@ -310,52 +442,103 @@ export function LoginForm({ methods = DEFAULT_METHODS }: { methods?: AuthMethods
         <div>
           <h2 className="text-xl font-bold">Sign in</h2>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {passwordEnabled ? "Enter your email and password to continue." : "Enter your email and we'll send you a magic link."}
+            {passwordEnabled
+              ? "Enter your email and password to continue."
+              : "Enter your email and we'll send you a magic link."}
           </p>
         </div>
         {methods.google && (
           <>
-            <Button type="button" variant="outline" className="w-full gap-2" disabled={busy} onClick={handleGoogleSignIn}>
-              {googleLoading ? <Spinner className="size-4" /> : <GoogleIcon className="size-4" />}
+            <Button
+              className="w-full gap-2"
+              disabled={busy}
+              onClick={handleGoogleSignIn}
+              type="button"
+              variant="outline"
+            >
+              {googleLoading ? (
+                <Spinner className="size-4" />
+              ) : (
+                <GoogleIcon className="size-4" />
+              )}
               Continue with Google
             </Button>
             <div className="flex items-center gap-3">
               <Separator className="flex-1" />
-              <span className="text-muted-foreground text-xs">or continue with email</span>
+              <span className="text-muted-foreground text-xs">
+                or continue with email
+              </span>
               <Separator className="flex-1" />
             </div>
           </>
         )}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField control={form.control} name="email" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email address</FormLabel>
-                <FormControl><Input type="email" autoComplete="email" placeholder="you@example.com" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            {passwordEnabled && (
-              <FormField control={form.control} name="password" render={({ field }) => (
+          <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Email address</FormLabel>
                   <FormControl>
-                    <PasswordInput autoComplete="current-password" placeholder="Enter your password" {...field} value={field.value ?? ""} />
+                    <Input
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      type="email"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
+            {passwordEnabled && (
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <PasswordInput
+                        autoComplete="current-password"
+                        placeholder="Enter your password"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
             {form.formState.errors.root && (
-              <Alert variant="destructive"><AlertDescription>{form.formState.errors.root.message}</AlertDescription></Alert>
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {form.formState.errors.root.message}
+                </AlertDescription>
+              </Alert>
             )}
-            <Button type="submit" disabled={!isValid || busy} className="w-full gap-2">
+            <Button
+              className="w-full gap-2"
+              disabled={!isValid || busy}
+              type="submit"
+            >
               {isSubmitting ? (
-                <><Spinner className="size-4" />{passwordEnabled ? "Signing in…" : "Sending…"}</>
+                <>
+                  <Spinner className="size-4" />
+                  {passwordEnabled ? "Signing in…" : "Sending…"}
+                </>
               ) : passwordEnabled ? (
-                <><SignInIcon className="size-4" />Sign in</>
+                <>
+                  <SignInIcon className="size-4" />
+                  Sign in
+                </>
               ) : (
-                <><PaperPlaneTiltIcon className="size-4" />Send magic link</>
+                <>
+                  <PaperPlaneTiltIcon className="size-4" />
+                  Send magic link
+                </>
               )}
             </Button>
           </form>

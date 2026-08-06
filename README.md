@@ -92,10 +92,10 @@ Three login methods, all producing the same session and the same user record —
 | Method | Needs | Enabled |
 |--------|-------|---------|
 | **Magic link** | SMTP (in production) | always |
-| **Google OAuth** | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | when both are set |
+| **Google OAuth** | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` — set in `.env` or from Settings → Integrations | when both are set |
 | **Email + password** | nothing | sign-in always; self-serve sign-up needs `ALLOW_PASSWORD_SIGNUP=true` |
 
-Every screen renders only the methods you actually configured. In production the app refuses to start unless at least one of them is available, so login can't silently break.
+Every screen renders only the methods you actually configured. With none configured the app still boots (so `/setup` is always reachable to configure one in the browser), but it logs a warning — see [Integrations](#integrations) below.
 
 **Signup behaviour depends on whether SMTP is configured** — this is the part that catches people out:
 
@@ -106,12 +106,22 @@ Passwords are 8–128 characters. `/signup` and `/forgot-password` return **404*
 
 Full reference: **[docs/authentication.md](./docs/authentication.md)**.
 
+## Integrations
+
+Only `DATABASE_URL`, `APP_SECRET`, and `APP_URL` are required in `.env`. Everything else — SMTP, Google OAuth, S3/R2 storage, Web Push — is optional and can be set up **from inside the app** instead of hand-editing `.env`: during first-run setup (`/setup`'s "Configure services" step) or any time after from **Settings → Integrations**. A database-stored value always takes priority over `.env`; leaving `.env` values in place is a safe fallback (existing `.env`-only deployments keep working unchanged).
+
+- SMTP, S3/R2 storage, and Web Push changes apply immediately, no restart.
+- Google OAuth is the one exception — it's read once at process start, so a saved change needs a restart to activate.
+- Secrets (SMTP password, OAuth client secret, storage access keys, VAPID private key) are encrypted at rest; they're never sent back to the browser after saving.
+
+Full reference: **[docs/integrations.md](./docs/integrations.md)**.
+
 ## Self-Hosting
 
 Deploy Kanbanica for your team with Docker Compose (Postgres + app + worker, one command). See the full production guide: **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
 ```bash
-cp .env.example .env   # configure DATABASE_URL, APP_SECRET, APP_URL + a login method
+cp .env.example .env   # configure DATABASE_URL, APP_SECRET, APP_URL — everything else is optional
 docker compose up -d --build
 ```
 
@@ -123,14 +133,15 @@ docker compose -f docker-compose.yml -f docker-compose.external-db.yml up -d
 
 Any PostgreSQL 16+ reachable over the network works (company cluster, RDS, Neon, Supabase, Railway, Render, DigitalOcean, …) — there's no provider-specific code. See [DEPLOYMENT.md → external PostgreSQL](./DEPLOYMENT.md#using-an-external-postgresql).
 
-**Email:** magic-link login works with **any SMTP provider** (Resend recommended, or Brevo/Postmark/SES/…) — configure it via env vars; see [DEPLOYMENT.md → Production email](./DEPLOYMENT.md#production-email-smtp). Each deployment uses its own credentials; nothing is committed.
+**Email:** magic-link login works with **any SMTP provider** (Resend recommended, or Brevo/Postmark/SES/…) — configure it via env vars or from Settings → Integrations after your first boot; see [DEPLOYMENT.md → Production email](./DEPLOYMENT.md#production-email-smtp). Each deployment uses its own credentials; nothing is committed.
 
-**Credential setup:** need help configuring Google OAuth, SMTP, Web Push, S3, or Cloudflare R2? Step-by-step guides (where to click, which values to copy, how to verify it worked) live in **[`docs/credentials/`](./docs/credentials/)**.
+**Credential setup:** need help configuring Google OAuth, SMTP, Web Push, S3, or Cloudflare R2? Step-by-step guides (where to click, which values to copy, how to verify it worked) live in **[`docs/credentials/`](./docs/credentials/)** — the same values can go in `.env` or into Settings → Integrations, whichever you prefer.
 
 ## Documentation
 
 - [SETUP.md](./SETUP.md) — local development, start to finish
 - [DEPLOYMENT.md](./DEPLOYMENT.md) — self-hosting with Docker
+- [docs/integrations.md](./docs/integrations.md) — configuring SMTP/OAuth/storage/push from `.env` vs. Settings → Integrations
 - [`docs/credentials/`](./docs/credentials/) — step-by-step setup for Google OAuth, SMTP, Web Push, S3, and Cloudflare R2
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the system fits together
 - [CLAUDE.md](./CLAUDE.md) — conventions and key decisions

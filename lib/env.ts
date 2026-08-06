@@ -34,7 +34,10 @@ const envSchema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
   SMTP_HOST: optionalString,
-  SMTP_PORT: z.preprocess((v) => (v ? Number(v) : undefined), z.number().optional()),
+  SMTP_PORT: z.preprocess(
+    (v) => (v ? Number(v) : undefined),
+    z.number().optional()
+  ),
   SMTP_USER: optionalString,
   SMTP_PASS: optionalString,
   EMAIL_FROM: optionalString,
@@ -114,32 +117,8 @@ function resolveAppUrl(): string {
 
 export const env = { ...parsedEnv, APP_URL: resolveAppUrl() };
 
-// In production, require at least one way for a user to OBTAIN an account so
-// login cannot silently break: full SMTP (magic-link delivery), Google OAuth,
-// or self-serve password sign-up. Password sign-IN alone doesn't count — with
-// none of these, an operator could only ever provision users via `create:admin`.
-// In development, magic links are logged to the console, so no provider is
-// required. Skipped during `next build` (no runtime env yet) — the check runs
-// when the server boots.
-if (
-  env.NODE_ENV === "production" &&
-  process.env.NEXT_PHASE !== "phase-production-build"
-) {
-  const smtpConfigured = !!(
-    env.SMTP_HOST &&
-    env.SMTP_USER &&
-    env.SMTP_PASS &&
-    env.EMAIL_FROM
-  );
-  const googleConfigured = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
-
-  if (!smtpConfigured && !googleConfigured && !env.ALLOW_PASSWORD_SIGNUP) {
-    throw new Error(
-      "No authentication provider configured. In production you must set one of: " +
-        "SMTP (SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_FROM) so magic links can be " +
-        "delivered; Google OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET); or " +
-        "ALLOW_PASSWORD_SIGNUP=true to enable email + password registration. " +
-        "Without one of these, users cannot sign up or log in."
-    );
-  }
-}
+// No "at least one auth provider" check here (SMTP/Google/ALLOW_PASSWORD_SIGNUP
+// can now also come from the DB, which this eager, env-only parse can't see —
+// see lib/integration-settings.ts). A deployment with none configured still
+// boots fine: the first admin's password always works, and /setup or Settings
+// → Integrations can configure one from the browser.

@@ -20,7 +20,7 @@ export default async function LoginPage({
   const session = await getCurrentSession();
   if (session) redirect("/post-auth");
 
-  const methods = getAuthMethods();
+  const methods = await getAuthMethods();
   // Better Auth redirects OAuth callback failures here (see `onAPIError`).
   const { error } = await searchParams;
 

@@ -1,11 +1,14 @@
 import { env } from "@/lib/env";
-import { isSmtpConfigured } from "@/lib/smtp/client";
+import {
+  isGoogleOAuthConfigured,
+  isSmtpConfigured,
+} from "@/lib/integration-settings";
 
 /**
- * Which authentication methods this deployment actually has configured.
- *
- * The login UI is env-gated server-side (see `lib/auth.ts`), so the client must
- * be told what to render — otherwise a self-host without Google shows a Google
+ * Which authentication methods this deployment actually has configured
+ * (DB config first, `.env` fallback per field — see lib/integration-settings.ts).
+ * The login UI is server-gated (`lib/auth.ts`), so the client must be told
+ * what to render — otherwise a self-host without Google shows a Google
  * button that can only ever fail.
  */
 export type AuthMethods = {
@@ -24,12 +27,15 @@ export type AuthMethods = {
   requiresEmailVerification: boolean;
 };
 
-export function getAuthMethods(): AuthMethods {
-  const smtp = isSmtpConfigured();
+export async function getAuthMethods(): Promise<AuthMethods> {
+  const [google, smtp] = await Promise.all([
+    isGoogleOAuthConfigured(),
+    isSmtpConfigured(),
+  ]);
   return {
-    google: !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
-    // In development magic links are printed to the console by `sendMagicLink`,
-    // so they remain usable without SMTP.
+    google,
+    // In development magic links are printed to the console, so they remain
+    // usable without SMTP.
     magicLink: smtp || env.NODE_ENV !== "production",
     passwordSignup: env.ALLOW_PASSWORD_SIGNUP,
     passwordReset: smtp,

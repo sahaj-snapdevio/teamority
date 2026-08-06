@@ -7,21 +7,19 @@ const {
   deleteWhereSpy,
   sendNotificationMock,
   setVapidDetailsMock,
-  envMock,
+  getWebPushSettingsMock,
 } = vi.hoisted(() => ({
   selectMock: vi.fn(),
   deleteMock: vi.fn(),
   deleteWhereSpy: vi.fn(),
   sendNotificationMock: vi.fn(),
   setVapidDetailsMock: vi.fn(),
-  envMock: {
-    VAPID_PUBLIC_KEY: undefined as string | undefined,
-    VAPID_PRIVATE_KEY: undefined as string | undefined,
-    VAPID_SUBJECT: undefined as string | undefined,
-  },
+  getWebPushSettingsMock: vi.fn(),
 }));
 
-vi.mock("@/lib/env", () => ({ env: envMock }));
+vi.mock("@/lib/integration-settings", () => ({
+  getWebPushSettings: getWebPushSettingsMock,
+}));
 vi.mock("@/lib/db", () => ({ db: { select: selectMock, delete: deleteMock } }));
 vi.mock("web-push", () => ({
   default: {
@@ -51,15 +49,15 @@ function queueSubscriptions(result: unknown[]) {
 }
 
 function setConfigured() {
-  envMock.VAPID_PUBLIC_KEY = "pub-key";
-  envMock.VAPID_PRIVATE_KEY = "priv-key";
-  envMock.VAPID_SUBJECT = "mailto:test@example.com";
+  getWebPushSettingsMock.mockResolvedValue({
+    publicKey: "pub-key",
+    privateKey: "priv-key",
+    subject: "mailto:test@example.com",
+  });
 }
 
 function setUnconfigured() {
-  envMock.VAPID_PUBLIC_KEY = undefined;
-  envMock.VAPID_PRIVATE_KEY = undefined;
-  envMock.VAPID_SUBJECT = undefined;
+  getWebPushSettingsMock.mockResolvedValue(null);
 }
 
 const sub1 = {
@@ -82,6 +80,8 @@ beforeEach(() => {
   deleteMock.mockReset();
   deleteWhereSpy.mockReset();
   sendNotificationMock.mockReset();
+  setVapidDetailsMock.mockReset();
+  getWebPushSettingsMock.mockReset();
   setConfigured();
   deleteMock.mockImplementation((table: unknown) => ({
     where: (cond: unknown) => {

@@ -12,7 +12,67 @@ import { magicLinkTemplate } from "@/lib/email/templates/magic-link";
 import { passwordResetTemplate } from "@/lib/email/templates/password-reset";
 import { verifyEmailTemplate } from "@/lib/email/templates/verify-email";
 import { env } from "@/lib/env";
-import { isSmtpConfigured } from "@/lib/smtp/client";
+import {
+  getGoogleOAuthSettings,
+  isSmtpConfigured,
+} from "@/lib/integration-settings";
+
+// Top-level await: resolved once, the first time this module is imported in
+// a given server process, then baked into the betterAuth() singleton below
+// for the process's lifetime. Google OAuth credentials changed later via
+// Settings → Integrations therefore only take effect after an app restart —
+// see docs/integrations.md. SMTP, storage, and Web Push all read their
+// settings per-call instead and apply changes live; Google is the one
+// exception because Better Auth builds `socialProviders` once, synchronously,
+// right here.
+//
+// Never let this throw: `next build`'s page-data-collection phase imports
+// this module against a placeholder DATABASE_URL with no real Postgres to
+// query — and at real runtime, a DB hiccup on the very first request that
+// imports this module shouldn't take the whole server down. Either way,
+// falling back to "Google not configured" is the same failure mode as the
+// env vars simply being unset, and self-heals on the next restart.
+let googleOAuth: Awaited<ReturnType<typeof getGoogleOAuthSettings>> = null;
+try {
+  googleOAuth = await getGoogleOAuthSettings();
+} catch (error) {
+  console.warn(
+    "[auth] Could not resolve Google OAuth settings at startup — Google sign-in disabled until next restart.",
+    error
+  );
+}
+let smtpConfiguredAtBoot = false;
+try {
+  smtpConfiguredAtBoot = await isSmtpConfigured();
+} catch (error) {
+  console.warn(
+    "[auth] Could not resolve SMTP settings at startup — treating as unconfigured until next restart.",
+    error
+  );
+}
+
+/**
+ * Whether the Google OAuth credentials currently saved match what this
+ * process loaded at boot (into `googleOAuth` above) — Settings →
+ * Integrations uses this to show "Connected" only once a restart has
+ * actually picked up the latest values, instead of always showing "Restart
+ * required" for a saved (but never-restarted-into) config.
+ */
+export async function isGoogleOAuthLive(): Promise<boolean> {
+  let current: Awaited<ReturnType<typeof getGoogleOAuthSettings>> = null;
+  try {
+    current = await getGoogleOAuthSettings();
+  } catch {
+    return false;
+  }
+  if (!(current && googleOAuth)) {
+    return current === googleOAuth;
+  }
+  return (
+    current.clientId === googleOAuth.clientId &&
+    current.clientSecret === googleOAuth.clientSecret
+  );
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -27,14 +87,7 @@ export const auth = betterAuth({
   secret: env.APP_SECRET,
   baseURL: env.APP_URL,
   socialProviders: {
-    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
-      ? {
-          google: {
-            clientId: env.GOOGLE_CLIENT_ID,
-            clientSecret: env.GOOGLE_CLIENT_SECRET,
-          },
-        }
-      : {}),
+    ...(googleOAuth ? { google: googleOAuth } : {}),
   },
   emailAndPassword: {
     enabled: true,
@@ -47,7 +100,7 @@ export const auth = betterAuth({
     // otherwise an SMTP-less self-host could never sign in. A verified user is
     // also what lets Better Auth implicitly link a Google account onto the same
     // row later (it requires `emailVerified` on the local user).
-    requireEmailVerification: isSmtpConfigured(),
+    requireEmailVerification: smtpConfiguredAtBoot,
     // A reset means the old password may be compromised — kill every existing
     // session for that user. (Password *changes* pass `revokeOtherSessions`
     // per-request from the profile card, keeping the current session alive.)

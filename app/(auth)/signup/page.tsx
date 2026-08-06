@@ -19,7 +19,7 @@ export default async function SignupPage({
   const session = await getCurrentSession();
   if (session) redirect("/post-auth");
 
-  const methods = getAuthMethods();
+  const methods = await getAuthMethods();
   // Registration is an explicit opt-in (ALLOW_PASSWORD_SIGNUP). When it's off
   // the route must not exist — the server rejects /sign-up/email regardless.
   if (!methods.passwordSignup) notFound();
