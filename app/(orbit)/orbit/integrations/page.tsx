@@ -1,7 +1,13 @@
 import { OrbitPageHeader } from "@/components/admin/orbit-page-header";
 import { IntegrationsConsole } from "@/components/orbit/integrations/integrations-console";
 import { isGoogleOAuthLive } from "@/lib/auth";
-import { getIntegrationSettingsSummary } from "@/lib/integration-settings";
+import {
+  getIntegrationSettingsSummary,
+  isGoogleOAuthConfigured,
+  isSmtpConfigured,
+  isStorageConfiguredViaS3,
+  isWebPushConfigured,
+} from "@/lib/integration-settings";
 
 export const metadata = {
   title: "Integrations",
@@ -11,9 +17,20 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function OrbitIntegrationsPage() {
-  const [settings, googleOAuthLive] = await Promise.all([
+  const [
+    settings,
+    googleOAuthLive,
+    googleResolvedConfigured,
+    smtpResolvedConfigured,
+    storageResolvedConfiguredViaS3,
+    webPushResolvedConfigured,
+  ] = await Promise.all([
     getIntegrationSettingsSummary(),
     isGoogleOAuthLive(),
+    isGoogleOAuthConfigured(),
+    isSmtpConfigured(),
+    isStorageConfiguredViaS3(),
+    isWebPushConfigured(),
   ]);
 
   return (
@@ -26,7 +43,11 @@ export default async function OrbitIntegrationsPage() {
       <div className="max-w-5xl">
         <IntegrationsConsole
           googleOAuthLive={googleOAuthLive}
+          googleResolvedConfigured={googleResolvedConfigured}
           settings={settings}
+          smtpResolvedConfigured={smtpResolvedConfigured}
+          storageResolvedConfiguredViaS3={storageResolvedConfiguredViaS3}
+          webPushResolvedConfigured={webPushResolvedConfigured}
         />
       </div>
     </div>

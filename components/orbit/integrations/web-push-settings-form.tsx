@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { IntegrationSettingsSummary } from "@/lib/integration-settings";
 import { IntegrationCard } from "./integration-card";
+import { ENV_OVERRIDE_NOTE } from "./integration-status-badge";
 
 type WebPush = IntegrationSettingsSummary["webPush"];
 
@@ -22,6 +23,10 @@ interface Props {
    * re-fetching. Unused on /orbit/integrations. */
   onSaved?: (configured: boolean) => void;
   open?: boolean;
+  /** Whether the *resolved* config (DB, falling back to .env) is usable —
+   * see isWebPushConfigured() (lib/integration-settings.ts). Defaults to
+   * false, which is correct for the setup wizard. */
+  resolvedConfigured?: boolean;
 }
 
 export function WebPushSettingsForm({
@@ -29,6 +34,7 @@ export function WebPushSettingsForm({
   onSaved,
   open,
   onOpenChange,
+  resolvedConfigured = false,
 }: Props) {
   const [publicKey, setPublicKey] = useState(initial.publicKey);
   const [subject, setSubject] = useState(initial.subject);
@@ -37,7 +43,9 @@ export function WebPushSettingsForm({
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
-  const configured = !!(publicKey && subject && hasPrivateKey);
+  const dbConfigured = !!(publicKey && subject && hasPrivateKey);
+  const usingEnv = !dbConfigured && resolvedConfigured;
+  const effectivelyConfigured = dbConfigured || resolvedConfigured;
 
   async function save(webPush: Record<string, unknown>, message: string) {
     const result = await saveIntegrationSettingsAction({ webPush });
@@ -95,14 +103,16 @@ export function WebPushSettingsForm({
     <IntegrationCard
       description="Browser/desktop push notifications. Generate a key pair with `npx web-push generate-vapid-keys`."
       icon={<BellIcon className="size-4.5" />}
+      note={usingEnv ? ENV_OVERRIDE_NOTE : undefined}
       onOpenChange={onOpenChange}
       onRemove={handleRemove}
       onSave={handleSave}
       open={open}
       removing={removing}
       saving={saving}
-      status={configured ? "configured" : "not-configured"}
+      status={effectivelyConfigured ? "configured" : "not-configured"}
       title="Web Push"
+      usingEnv={usingEnv}
       value="webPush"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import type { IntegrationSettingsSummary } from "@/lib/integration-settings";
 import { IntegrationCard } from "./integration-card";
+import { ENV_OVERRIDE_NOTE } from "./integration-status-badge";
 
 type Storage = IntegrationSettingsSummary["storage"];
 type Driver = Storage["driver"];
@@ -33,6 +34,11 @@ interface Props {
    * re-fetching. Unused on /orbit/integrations. */
   onSaved?: (configured: boolean) => void;
   open?: boolean;
+  /** Whether the *resolved* s3/r2 config (DB, falling back to .env) is
+   * usable — see isStorageConfiguredViaS3() (lib/integration-settings.ts).
+   * Defaults to false, which is correct for the setup wizard. Local disk
+   * doesn't need this: it's always usable with zero setup. */
+  resolvedConfiguredViaS3?: boolean;
 }
 
 export function StorageSettingsForm({
@@ -40,6 +46,7 @@ export function StorageSettingsForm({
   onSaved,
   open,
   onOpenChange,
+  resolvedConfiguredViaS3 = false,
 }: Props) {
   const [driver, setDriver] = useState<Driver>(initial.driver);
   const [endpoint, setEndpoint] = useState(initial.endpoint);
@@ -55,11 +62,14 @@ export function StorageSettingsForm({
   const [testing, setTesting] = useState(false);
   const [testFailed, setTestFailed] = useState(false);
 
-  // "Configured" means actually usable, not just "driver switched away from
-  // local" — an s3/r2 driver with no bucket or credentials yet can't connect.
-  const configured =
+  // Local disk works with zero setup, so it counts as "configured" on its
+  // own; an s3/r2 driver additionally needs a bucket + credentials before
+  // it's actually usable — either saved here or resolved via .env.
+  const dbConfiguredS3 =
     driver !== "local" &&
     !!(bucket && accessKeyId && (hasSecretAccessKey || secretAccessKey));
+  const usingEnv = !dbConfiguredS3 && resolvedConfiguredViaS3;
+  const configured = driver === "local" || dbConfiguredS3 || usingEnv;
 
   async function handleTest() {
     setTesting(true);
@@ -124,6 +134,7 @@ export function StorageSettingsForm({
     <IntegrationCard
       description="Where avatars and task attachments are stored. Local disk needs no setup but requires a persistent Docker volume; S3/R2 survive host loss and work across replicas."
       icon={<CloudIcon className="size-4.5" />}
+      note={usingEnv ? ENV_OVERRIDE_NOTE : undefined}
       onOpenChange={onOpenChange}
       onSave={handleSave}
       onTest={handleTest}
@@ -134,6 +145,7 @@ export function StorageSettingsForm({
       }
       testing={testing}
       title="File Storage"
+      usingEnv={usingEnv}
       value="storage"
     >
       <div className="space-y-1.5">

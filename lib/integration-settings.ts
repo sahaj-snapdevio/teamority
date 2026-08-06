@@ -122,6 +122,18 @@ export async function getStorageSettings(): Promise<StorageSettings> {
   return { driver: "local" };
 }
 
+/** True only for a fully usable s3/r2 config (bucket + both keys resolved) —
+ * local disk doesn't need this check since it always works with zero setup.
+ * Used to detect a section that's live via .env even though the DB row (or
+ * the relevant DB fields) is empty — see getIntegrationSettingsSummary(). */
+export async function isStorageConfiguredViaS3(): Promise<boolean> {
+  const settings = await getStorageSettings();
+  return (
+    settings.driver !== "local" &&
+    !!(settings.bucket && settings.accessKeyId && settings.secretAccessKey)
+  );
+}
+
 export interface WebPushSettings {
   privateKey: string;
   publicKey: string;
@@ -143,6 +155,10 @@ export async function getWebPushSettings(): Promise<WebPushSettings | null> {
     return null;
   }
   return { publicKey, subject, privateKey };
+}
+
+export async function isWebPushConfigured(): Promise<boolean> {
+  return (await getWebPushSettings()) !== null;
 }
 
 export interface IntegrationSettingsSummary {
