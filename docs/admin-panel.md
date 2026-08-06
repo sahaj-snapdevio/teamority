@@ -6,7 +6,8 @@
 >   redirected here after login (`app/post-auth/page.tsx`) and the in-app "Admin
 >   Panel" button links here (`components/scaffold/app-shell.tsx`). It uses
 >   session-based auth (`requireAdmin`, `lib/authz.ts`) and covers overview,
->   users, queues, and email.
+>   users, queues, email, and **integrations** (`/orbit/integrations` — SMTP,
+>   Google OAuth, and storage config; see [docs/integrations.md](./integrations.md)).
 > - **`/admin`** (`app/admin/`) holds most feature pages (workspaces, tickets,
 >   help center, analytics, audit log), has its own **password-based** login
 >   (`/admin/login`, used by `scripts/create-admin.ts`), and is reached via the
@@ -16,7 +17,10 @@
 > `/admin/login` provides password auth, **neither surface can be safely removed
 > or redirected without breaking navigation or admin login.** Consolidating them
 > is a deliberate refactor tracked as future work — do not delete either surface
-> in the meantime. The spec below documents the `/admin` feature set.
+> in the meantime. `AdminSidebar` now renders a different nav list per surface
+> (`pathname.startsWith("/orbit")`), fixing a previous gap where `/orbit/*` pages
+> had no sidebar entries at all — see `components/admin/admin-sidebar.tsx`. The
+> spec below documents the `/admin` feature set.
 
 ## Overview
 

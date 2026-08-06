@@ -14,7 +14,7 @@ export default async function ForgotPasswordPage() {
   // Needs both: password auth must be on (otherwise nobody has a password to
   // reset), and SMTP must exist — without it `sendEmailViaSmtp` only
   // console-logs, so the flow would silently do nothing.
-  const methods = getAuthMethods();
+  const methods = await getAuthMethods();
   if (!methods.passwordSignup || !methods.passwordReset) notFound();
 
   return (

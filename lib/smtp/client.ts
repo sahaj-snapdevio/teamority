@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { env } from "@/lib/env";
+import { getSmtpSettings, isSmtpConfigured } from "@/lib/integration-settings";
 
 export interface SmtpSendInput {
   html: string;
@@ -14,14 +14,46 @@ export interface SmtpSendResult {
   status: string;
 }
 
-export function isSmtpConfigured() {
-  return !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && env.EMAIL_FROM);
+export interface SmtpTestInput {
+  host: string;
+  pass: string;
+  port: number;
+  user: string;
+}
+
+export { isSmtpConfigured };
+
+/** Opens (and immediately closes) a connection to verify SMTP credentials
+ * work, without sending an email — backs the "Test Connection" button on
+ * Settings → Integrations. */
+export async function testSmtpConnection(
+  input: SmtpTestInput
+): Promise<{ ok: true } | { error: string }> {
+  const transporter = nodemailer.createTransport({
+    host: input.host,
+    port: input.port,
+    auth: { user: input.user, pass: input.pass },
+    connectionTimeout: 8000,
+  });
+
+  try {
+    await transporter.verify();
+    return { ok: true };
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Could not connect to the SMTP server.",
+    };
+  }
 }
 
 export async function sendEmailViaSmtp(
   input: SmtpSendInput
 ): Promise<SmtpSendResult> {
-  if (!isSmtpConfigured()) {
+  const smtp = await getSmtpSettings();
+  if (!smtp) {
     console.log("[email:dev]", {
       subject: input.subject,
       text: input.text,
@@ -34,16 +66,16 @@ export async function sendEmailViaSmtp(
   }
 
   const transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT ?? 587,
+    host: smtp.host,
+    port: smtp.port,
     auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASS,
+      user: smtp.user,
+      pass: smtp.pass,
     },
   });
 
   const info = await transporter.sendMail({
-    from: env.EMAIL_FROM,
+    from: smtp.from,
     to: Array.isArray(input.to) ? input.to.join(", ") : input.to,
     subject: input.subject,
     html: input.html,

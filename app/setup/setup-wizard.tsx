@@ -3,10 +3,14 @@
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  BellIcon,
   CheckIcon,
+  CloudIcon,
   DesktopIcon,
+  EnvelopeSimpleIcon,
   EyeIcon,
   EyeSlashIcon,
+  GoogleLogoIcon,
   MoonIcon,
   RocketLaunchIcon,
   SpinnerGapIcon,
@@ -15,6 +19,11 @@ import {
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { createFirstAdmin } from "@/app/actions/setup";
+import { GoogleOAuthSettingsForm } from "@/components/orbit/integrations/google-oauth-settings-form";
+import { IntegrationConfigCard } from "@/components/orbit/integrations/integration-config-card";
+import { SmtpSettingsForm } from "@/components/orbit/integrations/smtp-settings-form";
+import { StorageSettingsForm } from "@/components/orbit/integrations/storage-settings-form";
+import { WebPushSettingsForm } from "@/components/orbit/integrations/web-push-settings-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { THEME_OPTIONS } from "@/components/workspace/theme-settings-form";
 import { PRODUCT_NAME } from "@/config/platform";
 import { authClient } from "@/lib/auth-client";
+import type { IntegrationSettingsSummary } from "@/lib/integration-settings";
 import {
   type AppearanceMode,
   DEFAULT_APPEARANCE,
@@ -34,6 +44,24 @@ import { cn } from "@/lib/utils";
 
 const MIN_PASSWORD_LENGTH = 8;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Nothing in integration_settings has ever been saved yet at this point in a
+// first-run wizard — no need to fetch current values like /orbit/integrations
+// does, every field starts blank.
+const EMPTY_INTEGRATION_SETTINGS: IntegrationSettingsSummary = {
+  smtp: { host: "", port: 587, user: "", from: "", hasPassword: false },
+  google: { clientId: "", hasClientSecret: false },
+  storage: {
+    driver: "local",
+    endpoint: "",
+    region: "",
+    bucket: "",
+    publicUrl: "",
+    accessKeyId: "",
+    hasSecretAccessKey: false,
+  },
+  webPush: { publicKey: "", subject: "", hasPrivateKey: false },
+};
 
 const APPEARANCE_OPTIONS: {
   value: AppearanceMode;
@@ -62,10 +90,10 @@ function applyTheme(theme: string, appearance: AppearanceMode) {
   document.cookie = `${THEME_COOKIE}=${serializeThemeCookie({ theme, appearance })}; path=/; max-age=${THEME_COOKIE_MAX_AGE}; SameSite=Lax`;
 }
 
-function Stepper({ step }: { step: 1 | 2 | 3 }) {
+function Stepper({ step }: { step: 1 | 2 | 3 | 4 }) {
   return (
     <div className="mb-8 flex items-center justify-center gap-2">
-      {[1, 2, 3].map((n, i) => (
+      {[1, 2, 3, 4].map((n, i) => (
         <React.Fragment key={n}>
           <div
             className={cn(
@@ -77,7 +105,7 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
           >
             {n < step ? <CheckIcon className="size-4" weight="bold" /> : n}
           </div>
-          {i < 2 && (
+          {i < 3 && (
             <div
               className={cn("h-px w-10", n < step ? "bg-primary" : "bg-border")}
             />
@@ -91,7 +119,9 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
 export function SetupWizard() {
   const router = useRouter();
 
-  const [step, setStep] = React.useState<"theme" | "account" | "done">("theme");
+  const [step, setStep] = React.useState<
+    "theme" | "account" | "services" | "done"
+  >("theme");
   const [theme, setThemeState] = React.useState(DEFAULT_THEME);
   const [appearance, setAppearanceState] =
     React.useState<AppearanceMode>(DEFAULT_APPEARANCE);
@@ -103,6 +133,27 @@ export function SetupWizard() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+
+  const [openIntegration, setOpenIntegration] = React.useState<
+    "smtp" | "google" | "storage" | "webPush" | null
+  >(null);
+  const [smtpConfigured, setSmtpConfigured] = React.useState(false);
+  const [googleConfigured, setGoogleConfigured] = React.useState(false);
+  const [storageConfigured, setStorageConfigured] = React.useState(false);
+  const [webPushConfigured, setWebPushConfigured] = React.useState(false);
+
+  function handleSaved(setConfigured: (configured: boolean) => void) {
+    return (configured: boolean) => {
+      setConfigured(configured);
+      setOpenIntegration(null);
+    };
+  }
+
+  React.useEffect(() => {
+    if (step === "done") {
+      router.push("/post-auth");
+    }
+  }, [step, router]);
 
   function pickTheme(next: string) {
     setThemeState(next);
@@ -140,7 +191,6 @@ export function SetupWizard() {
       return;
     }
 
-    setStep("done");
     const signIn = await authClient.signIn.email({
       email: email.trim().toLowerCase(),
       password,
@@ -149,11 +199,12 @@ export function SetupWizard() {
       router.push("/login");
       return;
     }
-    router.push("/post-auth");
+    setSubmitting(false);
+    setStep("services");
   }
 
-  const stepNumber: 1 | 2 | 3 =
-    step === "theme" ? 1 : step === "account" ? 2 : 3;
+  const stepNumber: 1 | 2 | 3 | 4 =
+    step === "theme" ? 1 : step === "account" ? 2 : step === "services" ? 3 : 4;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 p-4">
@@ -349,6 +400,105 @@ export function SetupWizard() {
             </form>
           )}
 
+          {step === "services" && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h1 className="text-xl font-bold">Configure services</h1>
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  These integrations are optional. You can also configure them
+                  later from Settings → Integrations. Your admin password works
+                  fine either way.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <IntegrationConfigCard
+                  description="Send magic links, invites, and notification emails."
+                  icon={<EnvelopeSimpleIcon className="size-4.5" />}
+                  onOpenChange={(open) =>
+                    setOpenIntegration(open ? "smtp" : null)
+                  }
+                  open={openIntegration === "smtp"}
+                  status={smtpConfigured ? "configured" : "not-configured"}
+                  title="Email (SMTP)"
+                >
+                  <SmtpSettingsForm
+                    initial={EMPTY_INTEGRATION_SETTINGS.smtp}
+                    onSaved={handleSaved(setSmtpConfigured)}
+                  />
+                </IntegrationConfigCard>
+
+                <IntegrationConfigCard
+                  description='Enables the "Continue with Google" button on sign-in.'
+                  icon={<GoogleLogoIcon className="size-4.5" />}
+                  onOpenChange={(open) =>
+                    setOpenIntegration(open ? "google" : null)
+                  }
+                  open={openIntegration === "google"}
+                  status={
+                    googleConfigured ? "restart-required" : "not-configured"
+                  }
+                  title="Google OAuth"
+                >
+                  <GoogleOAuthSettingsForm
+                    initial={EMPTY_INTEGRATION_SETTINGS.google}
+                    onSaved={handleSaved(setGoogleConfigured)}
+                  />
+                </IntegrationConfigCard>
+
+                <IntegrationConfigCard
+                  description="Where avatars and task attachments are stored."
+                  icon={<CloudIcon className="size-4.5" />}
+                  onOpenChange={(open) =>
+                    setOpenIntegration(open ? "storage" : null)
+                  }
+                  open={openIntegration === "storage"}
+                  status={storageConfigured ? "configured" : "not-configured"}
+                  title="File Storage"
+                >
+                  <StorageSettingsForm
+                    initial={EMPTY_INTEGRATION_SETTINGS.storage}
+                    onSaved={handleSaved(setStorageConfigured)}
+                  />
+                </IntegrationConfigCard>
+
+                <IntegrationConfigCard
+                  description="Browser and desktop push notifications."
+                  icon={<BellIcon className="size-4.5" />}
+                  onOpenChange={(open) =>
+                    setOpenIntegration(open ? "webPush" : null)
+                  }
+                  open={openIntegration === "webPush"}
+                  status={webPushConfigured ? "configured" : "not-configured"}
+                  title="Web Push"
+                >
+                  <WebPushSettingsForm
+                    initial={EMPTY_INTEGRATION_SETTINGS.webPush}
+                    onSaved={handleSaved(setWebPushConfigured)}
+                  />
+                </IntegrationConfigCard>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-border pt-6">
+                <Button
+                  className="gap-2"
+                  onClick={() => setStep("done")}
+                  type="button"
+                  variant="ghost"
+                >
+                  Skip for now
+                </Button>
+                <Button
+                  className="gap-2"
+                  onClick={() => setStep("done")}
+                  type="button"
+                >
+                  Continue <ArrowRightIcon className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
           {step === "done" && (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
               <SpinnerGapIcon className="size-8 animate-spin text-muted-foreground" />
@@ -356,7 +506,7 @@ export function SetupWizard() {
                 Setting up your workspace…
               </h1>
               <p className="text-sm text-muted-foreground">
-                Administrator created successfully. Signing you in…
+                Redirecting to your dashboard…
               </p>
             </div>
           )}

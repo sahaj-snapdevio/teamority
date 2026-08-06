@@ -169,6 +169,13 @@
       "when": 1785915538672,
       "tag": "0023_wealthy_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1785995426526,
+      "tag": "0024_quick_sunspot",
+      "breakpoints": true
     }
   ]
 }

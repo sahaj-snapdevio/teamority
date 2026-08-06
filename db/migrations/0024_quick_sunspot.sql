@@ -1,0 +1,21 @@
+CREATE TABLE "integration_settings" (
+	"id" text PRIMARY KEY DEFAULT 'default' NOT NULL,
+	"smtp_host" text,
+	"smtp_port" integer,
+	"smtp_user" text,
+	"smtp_pass_encrypted" text,
+	"email_from" text,
+	"google_client_id" text,
+	"google_client_secret_encrypted" text,
+	"storage_driver" text,
+	"storage_endpoint" text,
+	"storage_region" text,
+	"storage_bucket" text,
+	"storage_public_url" text,
+	"storage_access_key_id" text,
+	"storage_secret_access_key_encrypted" text,
+	"vapid_public_key" text,
+	"vapid_subject" text,
+	"vapid_private_key_encrypted" text,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);

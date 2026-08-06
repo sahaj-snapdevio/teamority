@@ -16,7 +16,7 @@ export default async function ResetPasswordPage({
 }) {
   // No session redirect here: `revokeSessionsOnPasswordReset` means a valid
   // reset link should still work if the user happens to be signed in elsewhere.
-  const methods = getAuthMethods();
+  const methods = await getAuthMethods();
   if (!methods.passwordSignup || !methods.passwordReset) notFound();
 
   const { token, error } = await searchParams;

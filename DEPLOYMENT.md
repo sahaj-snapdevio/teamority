@@ -21,7 +21,7 @@ The stack runs as three long-lived services plus a one-shot migration step:
 
 - A Linux server with **Docker** and the **Docker Compose plugin** (`docker compose version`).
 - A **domain** pointed at the server (e.g. `tasks.yourcompany.com`).
-- **An authentication provider** (see step 3) — SMTP, Google OAuth, or `ALLOW_PASSWORD_SIGNUP=true`. **One is required in production**; without any, users can't log in and the app refuses to start.
+- **An authentication provider** — SMTP, Google OAuth, or `ALLOW_PASSWORD_SIGNUP=true`, configured either in `.env` (see step 3) **or from inside the app** after first boot (Settings → Integrations, or the `/setup` wizard's "Configure services" step — see [docs/integrations.md](./docs/integrations.md)). At least one is needed for anyone besides the first admin to sign in, but the app boots and `/setup` is always reachable even with none configured — it warns instead of refusing to start.
 
 ---
 
@@ -59,7 +59,15 @@ POSTGRES_DB=kanbanica
 
 > Bringing your own database instead? See [Using an external PostgreSQL](#using-an-external-postgresql) — you set `DATABASE_URL` and skip the three `POSTGRES_*` variables entirely.
 
-### At least one authentication provider (required in production)
+### At least one authentication provider (recommended — `.env` or in-app)
+
+> SMTP, Google OAuth, and object storage no longer need to live in `.env` at
+> all — set them once here to bring the instance up, or skip them and
+> configure everything from the browser after your first boot (`/setup`'s
+> "Configure services" step, or Settings → Integrations at any time after).
+> Database-stored config takes priority over `.env`; `.env` remains the
+> fallback for existing deployments and advanced setups. See
+> [docs/integrations.md](./docs/integrations.md).
 
 **Option A — SMTP** (enables magic-link login). See
 [Production email (SMTP)](#production-email-smtp) below for provider choices and
@@ -84,11 +92,11 @@ Full walkthrough (Google Cloud Console, exact redirect URI, common mistakes): [d
 
 **Option C — Email + password** (no external service at all): set `ALLOW_PASSWORD_SIGNUP=true`.
 
-> If you configure **none of the three**, the app will exit on startup with a clear error — by design, so you never ship a silently broken login.
+> If you configure **none of the three** anywhere (`.env` or in-app) once real users exist, the app logs a warning instead of refusing to start — your admin account still works, but nobody new can join until you configure one.
 
 ### Optional
 
-- **File storage** — defaults to `STORAGE_DRIVER=local` (persisted in the `uploads` Docker volume). For object storage set `STORAGE_DRIVER=s3` (or `r2`) and the `S3_*` variables. Full walkthroughs: [docs/credentials/storage-s3.md](./docs/credentials/storage-s3.md) / [docs/credentials/cloudflare-r2.md](./docs/credentials/cloudflare-r2.md).
+- **File storage** — defaults to `STORAGE_DRIVER=local` (persisted in the `uploads` Docker volume). For object storage set `STORAGE_DRIVER=s3` (or `r2`) and the `S3_*` variables, or configure it in-app via Settings → Integrations. Full walkthroughs: [docs/credentials/storage-s3.md](./docs/credentials/storage-s3.md) / [docs/credentials/cloudflare-r2.md](./docs/credentials/cloudflare-r2.md).
 - **Web Push (browser/desktop notifications)** — set the runtime `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` (`npx web-push generate-vapid-keys`) on the **app and worker**. That's all — the client fetches the public key at runtime from `/api/push/vapid-public-key`, so it works on **any** deployment (bare `pnpm build && pnpm start`, PM2, Vercel/Railway/Render/Coolify, Docker) with **no build-time key and no rebuild when keys rotate**. `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is optional/legacy (a build-time fallback). Requires HTTPS (behind Cloudflare, use SSL mode **Full (strict)**); `/sw.js` is served `no-cache` so CDNs/browsers never keep a stale service worker. Full walkthrough: [docs/credentials/web-push-vapid.md](./docs/credentials/web-push-vapid.md).
 
 ### Environment variable reference
@@ -101,13 +109,13 @@ Complete list of variables. Most are validated by `lib/env.ts`; `NEXT_PUBLIC_SHO
 | `APP_SECRET` | ✅ always | — | Better Auth signing secret; 32+ chars (`openssl rand -hex 32`). |
 | `APP_URL` | ✅ always | — | Public URL; used for auth, invite links, email content, file URLs. **Runtime** — change it and restart, no rebuild. (`NEXT_PUBLIC_APP_URL` is the deprecated old name and still works.) |
 | `NODE_ENV` | — | `development` | Set to `production` in prod (compose/images already do). |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | ⚠️ prod: one login method | `SMTP_PORT=587` | Magic-link + notification email. Unset in dev → emails logged to console. **Also switches signup email-verification on** — see [Authentication](#authentication). |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | ⚠️ prod: one login method | — | Optional Google OAuth login. |
-| `ALLOW_PASSWORD_SIGNUP` | ⚠️ prod: one login method | `false` | Allow visitors to register at `/signup` with email + password. Off = invite-only. |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | optional | `SMTP_PORT=587` | Magic-link + notification email. Unset in dev → emails logged to console. **Also switches signup email-verification on** — see [Authentication](#authentication). Configurable in-app instead (Settings → Integrations); a saved in-app value there takes priority and applies with no restart. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | optional | — | Optional Google OAuth login. Configurable in-app instead (Settings → Integrations); a saved in-app value there takes priority but needs a restart to activate. |
+| `ALLOW_PASSWORD_SIGNUP` | optional | `false` | Allow visitors to register at `/signup` with email + password. Off = invite-only. |
 | `AUTO_PROMOTE_FIRST_ADMIN` | optional | `false` | Auto-promote the first user to sign in to platform admin instead of using the `/setup` wizard — see [§5 Create your first admin](#5-create-your-first-admin). |
 | `EMAIL_WEBHOOK_SECRET` | optional | — | Auth for the SMTP provider delivery webhook. |
-| `STORAGE_DRIVER` | optional | `local` | `local` (./uploads volume) or `s3` / `r2`. |
-| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | needed if `STORAGE_DRIVER=s3\|r2` | MinIO-style defaults | Object-storage credentials. `S3_ENDPOINT` for R2/MinIO; omit for AWS S3. |
+| `STORAGE_DRIVER` | optional | `local` | `local` (./uploads volume) or `s3` / `r2`. Configurable in-app instead (Settings → Integrations); a saved in-app value there takes priority and applies with no restart. |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | needed if `STORAGE_DRIVER=s3\|r2` and not configured in-app | MinIO-style defaults | Object-storage credentials. `S3_ENDPOINT` for R2/MinIO; omit for AWS S3. |
 | `S3_PUBLIC_URL` | optional | — | CDN/public origin for serving stored files. |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` / `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | optional | — | Web Push (`npx web-push generate-vapid-keys`). |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | optional | `support@kanbanica.com` | Override the support email shown in the UI. **Client.** |

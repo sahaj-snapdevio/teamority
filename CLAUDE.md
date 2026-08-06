@@ -115,6 +115,14 @@ uploads/                   ← local file storage (STORAGE_DRIVER=local only), g
 - Better Auth handles sessions. Use `auth.api.getSession()` server-side.
 - All API routes check session first, return 401 if missing.
 
+### Integrations (Service Configuration)
+- **What moved out of `.env`:** SMTP, Google OAuth, S3/R2 storage, and Web Push (VAPID) are now optional, DB-backed settings, configurable from Settings → Integrations (`/orbit/integrations`) or the `/setup` wizard's "Configure services" step — not just `.env`. Only `DATABASE_URL`, `APP_SECRET`, and `APP_URL` remain required.
+- **Structure:** a single-row table (`integration_settings`, `db/schema/integration-settings.ts`), one column per field (`smtpHost`, `googleClientId`, `storageDriver`, `vapidPublicKey`, …, `*Encrypted` alongside each secret) — not a generic provider registry. `lib/integration-settings.ts` is the one file with a getter per concern (`getSmtpSettings()`, `getGoogleOAuthSettings()`, `getStorageSettings()`, `getWebPushSettings()`, `getIntegrationSettingsSummary()`). One form component per concern under `components/orbit/integrations/`, all sharing `IntegrationCard`. One server action, `saveIntegrationSettingsAction()` (`app/actions/integrations.ts`), taking a partial section-keyed body.
+- **Resolution order, per field (everywhere, no exceptions):** DB column (if non-empty) → `.env` var → unconfigured. An existing `.env`-only deployment (the single row never written) behaves identically to before this system existed. No `enabled` flag — a section is "configured" simply by having its required fields present.
+- **Encryption:** secret fields (SMTP password, OAuth client secret, storage access/secret keys, VAPID private key) are AES-256-GCM encrypted at rest (`lib/crypto.ts`'s generic `encryptSecret()`/`decryptSecret()`), keyed off `APP_SECRET` — never a second required env var. Secrets are never sent back to the client after saving — only a `has<Field>: boolean`.
+- **Restart-required exception:** only Google OAuth — `lib/auth.ts` resolves it via a top-level `await getGoogleOAuthSettings()`, baked into the `betterAuth({...})` singleton once per process. SMTP, storage, and Web Push all resolve fresh per call/request — a saved change applies immediately, no restart.
+- Full spec: `docs/integrations.md`.
+
 ### Database
 - Drizzle ORM. Schema files in `db/schema/`, migrations in `db/migrations/`.
 - All IDs are UUIDs (generated via `crypto.randomUUID()` before insert).
@@ -217,6 +225,7 @@ uploads/                   ← local file storage (STORAGE_DRIVER=local only), g
 | Custom Fields | `docs/custom-fields.md` |
 | Permissions | `docs/permission-model.md` |
 | Settings | `docs/settings.md` |
+| Integrations | `docs/integrations.md` |
 | Admin Panel | `docs/admin-panel.md` |
 | Empty States | `docs/empty-states.md` |
 | Design System | `docs/design-system.md` |

@@ -10,17 +10,28 @@ import {
   ChartBarIcon,
   ScrollIcon,
   SignOutIcon,
+  EnvelopeIcon,
+  StackIcon,
+  PlugsIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import { PRODUCT_NAME } from "@/config/platform";
 
-const NAV_ITEMS = [
+const ADMIN_NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: SquaresFourIcon },
   { href: "/admin/users", label: "Users", icon: UsersIcon },
   { href: "/admin/workspaces", label: "Workspaces", icon: BuildingsIcon },
   { href: "/admin/analytics", label: "Analytics", icon: ChartBarIcon },
   { href: "/admin/audit-log", label: "Audit Log", icon: ScrollIcon },
+];
+
+const ORBIT_NAV_ITEMS = [
+  { href: "/orbit", label: "Overview", icon: SquaresFourIcon },
+  { href: "/orbit/users", label: "Users", icon: UsersIcon },
+  { href: "/orbit/email", label: "Email", icon: EnvelopeIcon },
+  { href: "/orbit/queues", label: "Queues", icon: StackIcon },
+  { href: "/orbit/integrations", label: "Integrations", icon: PlugsIcon },
 ];
 
 interface AdminSidebarProps {
@@ -30,10 +41,14 @@ interface AdminSidebarProps {
 export function AdminSidebar({ email }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const isOrbit = pathname.startsWith("/orbit");
+  const navItems = isOrbit ? ORBIT_NAV_ITEMS : ADMIN_NAV_ITEMS;
 
   async function handleSignOut() {
     await authClient.signOut();
-    router.push("/admin/login");
+    // /orbit uses a Better Auth session; /admin uses the legacy password
+    // login — sending an orbit admin to /admin/login would be a dead end.
+    router.push(isOrbit ? "/login" : "/admin/login");
   }
 
   return (
@@ -69,11 +84,11 @@ export function AdminSidebar({ email }: AdminSidebarProps) {
           <ArrowLeftIcon className="w-4 h-4 shrink-0" />
           Back to app
         </Link>
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
-            item.href === "/admin"
-              ? pathname === "/admin"
+            item.href === "/admin" || item.href === "/orbit"
+              ? pathname === item.href
               : pathname.startsWith(item.href);
           return (
             <Link

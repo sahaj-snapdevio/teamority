@@ -175,11 +175,14 @@ Create a workspace, add a project, and start making tasks.
 
 Everything below is optional — the app works fully without it in local development. Each has a step-by-step guide (creating the account, generating credentials, verifying it works, troubleshooting) in **[`docs/credentials/`](./docs/credentials/)** — the summaries below are just the quick version.
 
+> All four of these can also be configured **from inside the app** instead of `.env` — Settings → Integrations, or the `/setup` wizard's "Configure services" step. A value saved there always takes priority over `.env`. SMTP, storage, and Web Push apply immediately; Google OAuth is the one exception that needs a restart. See **[docs/integrations.md](./docs/integrations.md)**.
+
 ### Real email (SMTP)
 Without SMTP, emails (including magic links) are logged to the terminal instead
 of sent — which is all you need for local development. To send real email, fill
-these in `.env`. Kanbanica works with **any SMTP provider** (Resend recommended,
-or Brevo, Postmark, Amazon SES, SMTP2GO, …):
+these in `.env` (or configure them in Settings → Integrations instead — no
+restart needed either way). Kanbanica works with **any SMTP provider** (Resend
+recommended, or Brevo, Postmark, Amazon SES, SMTP2GO, …):
 
 ```
 SMTP_HOST=...
@@ -189,17 +192,17 @@ SMTP_PASS=...
 EMAIL_FROM=you@yourdomain.com
 ```
 
-Restart `pnpm dev` after editing `.env`. Full walkthrough (provider choices,
+Restart `pnpm dev` after editing `.env` (not needed if you configure it via Settings → Integrations instead). Full walkthrough (provider choices,
 domain verification, SPF/DKIM/DMARC, troubleshooting): **[docs/credentials/smtp.md](./docs/credentials/smtp.md)**.
 
 ### Google sign-in
-Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` to enable "Sign in with Google". Leave blank to use magic links only. Full walkthrough (Google Cloud Console setup, exact redirect URI, common mistakes): **[docs/credentials/google-oauth.md](./docs/credentials/google-oauth.md)**.
+Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env`, or in Settings → Integrations, to enable "Sign in with Google" — either way needs a restart to activate. Leave blank to use magic links only. Full walkthrough (Google Cloud Console setup, exact redirect URI, common mistakes): **[docs/credentials/google-oauth.md](./docs/credentials/google-oauth.md)**.
 
 ### Cloud file storage (S3 / Cloudflare R2)
-By default, uploads are stored in the local `./uploads/` folder. For production, set `STORAGE_DRIVER=s3` (or `r2`) and the `S3_*` credentials in `.env`. Full walkthroughs: **[docs/credentials/storage-s3.md](./docs/credentials/storage-s3.md)** / **[docs/credentials/cloudflare-r2.md](./docs/credentials/cloudflare-r2.md)**.
+By default, uploads are stored in the local `./uploads/` folder. For production, set `STORAGE_DRIVER=s3` (or `r2`) and the `S3_*` credentials in `.env`, or configure the same fields in Settings → Integrations — no restart needed either way. Full walkthroughs: **[docs/credentials/storage-s3.md](./docs/credentials/storage-s3.md)** / **[docs/credentials/cloudflare-r2.md](./docs/credentials/cloudflare-r2.md)**.
 
 ### Web Push notifications
-Set the `VAPID_*` keys in `.env` to enable browser push notifications. Full walkthrough: **[docs/credentials/web-push-vapid.md](./docs/credentials/web-push-vapid.md)**.
+Set the `VAPID_*` keys in `.env`, or in Settings → Integrations, to enable browser push notifications — no restart needed either way. Full walkthrough: **[docs/credentials/web-push-vapid.md](./docs/credentials/web-push-vapid.md)**.
 
 ---
 
