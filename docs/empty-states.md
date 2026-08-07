@@ -1,4 +1,4 @@
-﻿# Empty States & Onboarding Checklist
+# Empty States & Onboarding Checklist
 
 ## Overview
 
@@ -25,7 +25,7 @@ This is the most important empty state in the product — it directly combats fi
 
 ```
 +----------------------------------------------------------+
-|  ðŸ‘‹ Welcome to Kanbanica, [First Name]!                  |
+|  👋 Welcome to Kanbanica, [First Name]!                  |
 |                                                          |
 |  Here's how to get started:                              |
 |                                                          |
@@ -58,7 +58,7 @@ L----------------------------------------------------------+
 - Checklist is shown **pinned above the task list** inside the first List, only for the workspace creator
 - Each item auto-checks as the user completes it — no manual ticking
 - Progress bar fills as items are completed
-- Once all 6 items are done: checklist collapses with a congratulations message: `"You're all set! ðŸŽ‰ You've covered the basics."` then fades out after 3 seconds
+- Once all 6 items are done: checklist collapses with a congratulations message: `"You're all set! 🎉 You've covered the basics."` then fades out after 3 seconds
 - `[Dismiss checklist]` link hides it permanently (stored in `UserOnboardingProgress.dismissed_at`)
 - Checklist is only shown to the user who created the workspace — teammates who join later do not see it
 - Checklist persists across sessions until dismissed or completed
@@ -90,7 +90,7 @@ When a List has no tasks (freshly created, or all tasks have been deleted/moved)
 
 The first List is **never blank**. On onboarding completion, a single demo welcome task is auto-created inside it:
 
-- **Title:** `"ðŸ‘‹ Welcome to [Workspace Name] — click here to see how a task works"`
+- **Title:** `"👋 Welcome to [Workspace Name] — click here to see how a task works"`
 - **Description:** Pre-filled with a short walkthrough: *"This is a task. You can set a status, assign it to someone, add a due date, and leave comments. Try editing this task or create your own below."*
 - **Status:** First open status of the List
 - **Assignee:** The workspace creator (auto-assigned)
@@ -105,7 +105,7 @@ This gives the user something interactive to click on immediately — they learn
 ```
 +------------------------------------+
 |                                    |
-|         ðŸ“‹                         |
+|         📋                         |
 |                                    |
 |    This list has no tasks yet      |
 |    Add your first task to          |
@@ -130,7 +130,7 @@ L------------------------------------+
 **Case A — List has tasks but none match current filters:**
 
 ```
-|         ðŸ”                         |
+|         🔍                         |
 |   No tasks match your filters      |
 |   Try adjusting or clearing        |
 |   the active filters               |
@@ -141,7 +141,7 @@ L------------------------------------+
 **Case B — List has no tasks at all:**
 
 ```
-|         ðŸ“‹                         |
+|         📋                         |
 |   No tasks in this board yet       |
 |   Tasks you add will appear here   |
 |   as cards in their status column  |
@@ -152,7 +152,7 @@ L------------------------------------+
 **Case C — Sprint is active but no tasks have been added to it:**
 
 ```
-|         ðŸƒ                         |
+|         🏃                         |
 |   No tasks in this sprint yet      |
 |   Add tasks from the backlog to    |
 |   define your sprint scope         |
@@ -165,7 +165,7 @@ L------------------------------------+
 ## 4. Empty Calendar View (no tasks with due dates)
 
 ```
-|         ðŸ“…                         |
+|         📅                         |
 |   No tasks scheduled this month    |
 |   Tasks with a due date will       |
 |   appear on the calendar           |
@@ -198,7 +198,7 @@ Shown in the Sprint panel when all List tasks are assigned to sprints.
 Shown in the Sprint panel when no sprints have been created for this List.
 
 ```
-|         ðŸ                         |
+|         🏁                         |
 |   No sprints yet                   |
 |   Sprints let you time-box work    |
 |   into focused iterations          |
@@ -217,7 +217,7 @@ Shown in the Sprint panel when no sprints have been created for this List.
 Shown when the logged-in user has no tasks assigned to them across the workspace.
 
 ```
-|         ðŸ‘¤                         |
+|         👤                         |
 |   You have no tasks yet            |
 |   Tasks assigned to you across     |
 |   all Spaces will appear here      |
@@ -235,7 +235,7 @@ Shown when the logged-in user has no tasks assigned to them across the workspace
 When a Space is created but has no Lists inside it (edge case — normally a default List is auto-created, but the user may have deleted it).
 
 ```
-|         ðŸ“                         |
+|         📁                         |
 |   This Space has no Lists yet      |
 |   Lists are where tasks live —     |
 |   create one to get started        |
@@ -247,10 +247,12 @@ When a Space is created but has no Lists inside it (edge case — normally a def
 
 ## 9. Empty Folder (no Lists)
 
+> **Not currently applicable.** Folder is post-MVP and not implemented (see `docs/folder.md`) — this empty state doesn't exist in the shipped UI yet. Kept here as the design reference for when Folder ships.
+
 When a Folder has been created but no Lists have been added to it.
 
 ```
-|         ðŸ“‚                         |
+|         📂                         |
 |   This folder is empty             |
 |   Add a List to start organizing   |
 |   tasks inside this folder         |
@@ -265,7 +267,7 @@ When a Folder has been created but no Lists have been added to it.
 When the user's notification inbox is empty.
 
 ```
-|         ðŸ””                         |
+|         🔔                         |
 |   You're all caught up!            |
 |   Notifications from task updates, |
 |   mentions, and comments           |
@@ -282,7 +284,7 @@ No CTA needed — this is a positive state. Headline should feel like a success,
 When global search (Ctrl+K) returns no matches for the query.
 
 ```
-|         ðŸ”                         |
+|         🔍                         |
 |   No results for "[query]"         |
 |   Try a different keyword,         |
 |   or search by task ID e.g. #42    |
@@ -317,7 +319,7 @@ Minimal — the creation event itself satisfies "not blank". No CTA needed.
 When a task has no comments.
 
 ```
-|         ðŸ’¬                         |
+|         💬                         |
 |   No comments yet                  |
 |   Be the first to leave a comment  |
 |   Use @ to mention a teammate      |
@@ -350,7 +352,7 @@ When a task has **none** of subtasks, checklists, or dependencies, the detail pa
 When the user has no support tickets submitted.
 
 ```
-|         ðŸŽ«                         |
+|         🎫                         |
 |   No support tickets yet           |
 |   Having an issue or a question?   |
 |   We're here to help               |
@@ -366,7 +368,7 @@ When the user has no support tickets submitted.
 When the user filters the Feature Requests board and nothing matches.
 
 ```
-|         ðŸ’¡                         |
+|         💡                         |
 |   No feature requests found        |
 |   for this filter                  |
 |                                    |

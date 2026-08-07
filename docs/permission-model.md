@@ -265,19 +265,14 @@ All permission checks happen **server-side on every request**. The frontend hide
 
 ### Codebase Location and Authn/Authz Boundary
 
-**File:** `src/lib/permissions.ts`
-This is where `canPerformAction`, `requireSpaceMembershipAndPermission`, `getAccessibleSpaceIds`, and `hasPermissionLevel` all live. Do not inline permission logic in route handlers or server actions.
+**File:** `lib/permissions.ts`
+This is where `hasPermissionLevel`, `getSpacePermission`, `requireSpacePermission`, `getWorkspaceMembership`, `getAccessibleSpaceIds`, `canAccessSpace`, and the convenience wrappers `requireEditAccess` / `requireViewAccess` all live. Do not inline permission logic in route handlers or server actions.
 
-**Next.js Middleware (`src/middleware.ts`) handles authentication only -- not authorization:**
-- Checks session presence (`auth.api.getSession`)
-- Redirects unauthenticated users to `/sign-in`
-- Does NOT check workspace roles or space permissions (it has no route context for that)
+**There is no Next.js middleware file (`middleware.ts`) in this project.** Both authentication and authorization happen inline, per-route:
+- Every API route handler and server action calls `auth.api.getSession({ headers: await headers() })` as its first line and returns `401`/`{ error: "Unauthorized" }` if there's no session — see `docs/authentication.md`'s "Auth pattern" section.
+- Right after that, it calls `requireSpacePermission()` (or a wrapper like `requireEditAccess`) with the specific resource and required permission level, returning `403 Forbidden` (or `404` for a private Space with no access, to avoid leaking existence) if the check fails.
 
-**Route handlers and server actions handle authorization:**
-- After middleware passes the request through, the route handler calls `requireSpaceMembershipAndPermission()` with the specific resource and required permission level
-- Returns `403 Forbidden` if the check fails
-
-Never push authorization logic into middleware -- it runs on every request without knowledge of the specific resource being accessed.
+Never rely on a shared middleware layer for authorization — each route/action is responsible for its own session and permission checks.
 
 ---
 

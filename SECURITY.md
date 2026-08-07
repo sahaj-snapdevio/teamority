@@ -1,5 +1,7 @@
 # Security Policy
 
+> ⚠️ **TODO before publishing:** no monitored security contact is configured yet — see "Reporting a vulnerability" below. Enable GitHub Private Vulnerability Reporting and/or add a real contact address before treating this repository as public/open-source-ready.
+
 ## Supported versions
 
 Kanbanica is pre-1.0 and under active development. Security fixes are applied to

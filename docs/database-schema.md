@@ -227,7 +227,8 @@ export const listStatus = pgTable("list_status", {
 Schema file: `db/schema/task.ts`
 
 ```ts
-import { pgEnum, pgTable, text, timestamp, boolean, integer, json, index } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, timestamp, boolean, integer, json, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { list } from "./list";
 import { listStatus } from "./list";
 import { workspace } from "./workspace";
@@ -317,16 +318,24 @@ export const taskDescriptionSnapshot = pgTable("task_description_snapshot", {
   savedAt: timestamp("saved_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const timeLog = pgTable("time_log", {
+// Time Tracking — seconds-based `timeEntry` (schema file: db/schema/time-tracking.ts).
+// The original minutes-based `time_log` table shown here in earlier drafts of
+// this doc was removed; see docs/time-tracking.md for the full feature spec.
+export const timeEntry = pgTable("time_entry", {
   id: text("id").primaryKey(),
   taskId: text("task_id").notNull().references(() => task.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").notNull().references(() => workspace.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull(),
-  durationMinutes: integer("duration_minutes").notNull(),
-  note: text("note"),
-  loggedAt: timestamp("logged_at", { withTimezone: true }).notNull().defaultNow(),
+  startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+  endTime: timestamp("end_time", { withTimezone: true }),
+  durationSeconds: integer("duration_seconds"),
+  description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
-  index("time_log_task_id_idx").on(t.taskId),
+  index("time_entry_task_id_idx").on(t.taskId),
+  // At most one running timer per user (endTime null = running).
+  uniqueIndex("time_entry_one_running_uq").on(t.userId).where(sql`end_time is null`),
 ]);
 ```
 

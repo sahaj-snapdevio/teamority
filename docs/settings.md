@@ -14,14 +14,15 @@ Settings are accessed from two entry points in the sidebar bottom bar (see [desi
 | User avatar / name row | All authenticated users | Profile popover -> links below |
 
 **Profile popover links:**
-- Profile & Account -> `/settings/account`
+- Profile & Account -> `/[workspaceId]/profile` (also covers Sessions — see § 1.2)
 - Workspace settings (Owner/Admin only) -> `/[workspaceId]/settings/general`
 - Project settings → inline project picker (see below)
-- Sessions -> `/settings/sessions`
-- Notifications -> `/settings/notifications`
+- Notifications -> `/[workspaceId]/notifications/settings`
 - Theme -> `/[workspaceId]/theme`
 - Keyboard shortcuts
 - Sign out
+
+(An earlier draft of this doc used non-workspace-scoped paths like `/settings/account` — every route in this app is workspace-scoped under `/[workspaceId]/...`, per CLAUDE.md's "Routing" convention; the paths above reflect what's actually implemented.)
 
 **Project settings flow (sidebar profile popover → project picker):**
 
@@ -40,7 +41,9 @@ This is a two-step inline replace pattern (not a nested flyout) implemented insi
 
 Personal settings are scoped to the logged-in user and are workspace-independent.
 
-### 1.1 Profile & Account — `/settings/account`
+### 1.1 Profile & Account — `/[workspaceId]/profile`
+
+> There's also an older `/dashboard/profile` route (`app/dashboard/*`, a separate `AppShell` scaffold) backed by the same `app/actions/profile.ts` actions — it isn't part of the primary `(app)/[workspaceId]` navigation (`workspace-shell.tsx` links to `/[workspaceId]/profile`), but hasn't been removed. Treat `/[workspaceId]/profile` as canonical.
 
 **Access:** All authenticated users
 
@@ -83,7 +86,7 @@ Personal settings are scoped to the logged-in user and are workspace-independent
    - `notification` (recipientId)
    - `userNotificationPreference`, `userEmailPreference`, `mutedEntity`, `pushSubscription`
    - `userSearchHistory`, `savedFilter`, `userOnboardingProgress`
-   - `taskAssignee`, `taskWatcher`, `timeLog`, `commentReaction`
+   - `taskAssignee`, `taskWatcher`, `timeEntry`, `commentReaction`
    - `spaceMember`, `workspaceMember`, `channelMember`
    - `session`, `account`, `user` (auth records last)
 4. Redirect to `/login`.
@@ -97,7 +100,9 @@ Personal settings are scoped to the logged-in user and are workspace-independent
 
 ---
 
-### 1.2 Sessions — `/settings/sessions`
+### 1.2 Sessions — same page as § 1.1, `/[workspaceId]/profile`
+
+Sessions are not a separate route — the Sessions card (`SessionsCard`) renders on the same profile page as Account, alongside the Password card.
 
 **Access:** All authenticated users
 
@@ -114,7 +119,7 @@ Personal settings are scoped to the logged-in user and are workspace-independent
 
 ---
 
-### 1.3 Notification Preferences — `/settings/notifications`
+### 1.3 Notification Preferences — `/[workspaceId]/notifications/settings`
 
 **Access:** All authenticated users
 
@@ -348,9 +353,8 @@ L-- Add Members button -> inline search + permission picker
 
 | Page | Route |
 |---|---|
-| Profile & Account | `/settings/account` |
-| Sessions | `/settings/sessions` |
-| Notifications | `/settings/notifications` |
+| Profile & Account (incl. Sessions) | `/[workspaceId]/profile` |
+| Notifications | `/[workspaceId]/notifications/settings` |
 | Workspace General | `/[workspaceId]/settings/general` |
 | Workspace Members | `/[workspaceId]/settings/members` |
 | Workspace Security | `/[workspaceId]/settings/security` |

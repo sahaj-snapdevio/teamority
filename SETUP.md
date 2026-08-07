@@ -165,7 +165,9 @@ You should now have:
 |------------|------------|---------|
 | `pnpm db:local` (database) | `pnpm dev` (app + worker) | <http://localhost:3000> |
 
-Create a workspace, add a project, and start making tasks.
+Create a workspace, add a project, and start making tasks. Invite teammates from **Workspace Settings → Members** (`/[workspaceId]/settings/members`, Owner/Admin only) — by email invite or a shareable invite link.
+
+**Learn the core concepts:** [docs/workspace.md](./docs/workspace.md), [docs/space.md](./docs/space.md) (Projects), [docs/list.md](./docs/list.md), [docs/views.md](./docs/views.md) (List/Board/Calendar), and [docs/sprint.md](./docs/sprint.md) cover the main building blocks. The full list is in [CLAUDE.md](./CLAUDE.md)'s "Feature Docs" table.
 
 **To start again next time:** run `pnpm db:local` in one terminal and `pnpm dev` in another. (You do **not** need to repeat `pnpm install` or `pnpm db:migrate` unless dependencies or migrations changed.)
 

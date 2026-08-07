@@ -154,7 +154,7 @@ Both this limiter and `lib/rate-limit.ts` are **in-memory**, so they are per-pro
 
 ### Sign out all devices
 
-- Available from `/settings/sessions`
+- Available from `/[workspaceId]/profile`
 - Revokes all active sessions across all devices
 - User is signed out of the current device too
 - Useful after a suspected account compromise
@@ -167,7 +167,7 @@ Users can view and manage all active sessions on their account.
 
 ### Access
 
-- `/settings/sessions`
+- `/[workspaceId]/profile`
 
 ### Session list
 
@@ -196,15 +196,14 @@ Each active session shows:
 
 ## 4. Account Settings
 
-Available at `/settings/account`
+Available at `/[workspaceId]/profile` (workspace-scoped route; profile, password, and session management are all on this one page — see `app/(app)/[workspaceId]/profile/page.tsx`).
 
 ### Profile
 
 - Update Full Name
 - Update Avatar:
-  - Upload a photo (JPEG, PNG, WebP — max 2MB, min 100Ã—100px)
-  - If no photo is uploaded: initials fallback is shown automatically — first + last initial of the user's name, on a deterministic background color derived from the user's `id`
-  - See [avatar-system.md](./avatar-system.md) for the full avatar spec (sizes, color palette, stacking, greyed-out state, workspace avatars)
+  - Upload a photo (JPEG, PNG, WebP, or GIF — max 2MB raw upload, resized server-side to 256×256)
+  - If no photo is uploaded: initials fallback is shown automatically (see [avatar-system.md](./avatar-system.md) for exactly how initials are derived and its "Implementation status" note on what's actually shipped)
 - Email address (read-only — cannot be changed in MVP)
 
 ### Danger Zone
@@ -346,8 +345,8 @@ Better Auth exposes a unified handler at `/api/auth/[...all]` in Next.js. These 
 | Forgot Password | `/forgot-password` | Unauthenticated — **404 unless SMTP is configured** |
 | Reset Password | `/reset-password?token=` | Unauthenticated — renders an "expired link" state on `?error=` |
 | Onboarding | `/onboarding` | Authenticated (new user only) |
-| Account Settings | `/settings/account` | Authenticated |
-| Session Management | `/settings/sessions` | Authenticated |
+| Account Settings | `/[workspaceId]/profile` | Authenticated |
+| Session Management | `/[workspaceId]/profile` (same page) | Authenticated |
 
 Each auth screen renders only the providers this deployment actually has — `getAuthMethods()` (`lib/auth-config.ts`) is read server-side and passed down, so a self-host without Google never shows a Google button that can only fail. OAuth callback failures redirect to `/login?error=…` (`onAPIError.errorURL`) and are rendered through `authErrorMessage()` (`lib/auth-errors.ts`).
 
@@ -460,7 +459,7 @@ L-----------------------------------------+
 ## Business Rules
 
 1. Email addresses are unique across the platform — one account per email.
-2. Magic link is the only authentication method — no passwords, no OAuth providers.
+2. Magic link is always available; Email + Password and Google OAuth are additional, independently-configurable methods (see the provider table above) — all three converge on the same `session`/`user` rows.
 3. First magic link use for an unknown email auto-creates the account — sign up and sign in are the same flow.
 4. Magic link tokens are single-use and expire in 15 minutes — a used or expired link cannot be re-used.
 5. If a new magic link is requested while a previous one is still valid, the old token is invalidated.
@@ -474,112 +473,49 @@ L-----------------------------------------+
 
 ## Implementation Notes
 
-### Auth Pattern -- API Routes
+### Auth pattern — API routes and server actions
 
-Every `/api/` route handler must authenticate at the top before any business logic. Use a shared helper so the pattern is never inlined differently across routes:
+Every API route handler and server action calls `auth.api.getSession({ headers: await headers() })` as its first line and returns/responds `Unauthorized` immediately if there's no session — there's no separate shared wrapper for this, it's inlined the same way at the top of each handler. Example (`app/api/me/notifications/[id]/read/route.ts`):
 
 ```typescript
-// src/lib/api/auth-helpers.ts
+import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
-import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
-import { NextResponse } from 'next/server'
+export async function PATCH(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-export async function getSessionOrUnauthorized() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return { session: null, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  }
-  return { session, response: null }
+  // permission check, then business logic
 }
 ```
 
-Usage in every API route:
+Server actions follow the same order but return `{ error: string }` instead of a `NextResponse` (`app/actions/task.ts`'s `createTask`):
 
 ```typescript
-// src/app/api/tasks/[taskId]/route.ts
+export async function createTask(workspaceId: string, spaceId: string, listId: string | null, data: { /* ... */ }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return { error: "Unauthorized" };
 
-export async function GET(req: Request, { params }: { params: { taskId: string } }) {
-  const { session, response } = await getSessionOrUnauthorized()
-  if (response) return response  // 401 early return
+  const err = await requireEditAccess(session.user.id, workspaceId, spaceId);
+  if (err) return err;
 
-  // Permission check after session check
-  const canAccess = await checkSpacePermission(session.user.id, params.taskId)
-  if (!canAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  // Business logic here
+  // business logic
 }
 ```
 
 Rules:
-- Session missing -> `401 Unauthorized`
-- Session present but insufficient permission -> `403 Forbidden`
-- Never expose internal error messages -- always `{ error: string }` with a generic message
+- Session missing -> `401 Unauthorized` (routes) / `{ error: "Unauthorized" }` (actions)
+- Permission check is always the second step, right after the session check
+- Never expose internal error messages -- always a generic `{ error: string }`
 
-### Auth Pattern -- Server Actions
+### Permission helpers (`lib/permissions.ts`)
 
-Server actions use the same `auth.api.getSession()` call but return `{ error: string }` instead of a `NextResponse`:
+The two-level permission check (workspace role + space permission) lives in `lib/permissions.ts`, not inlined per-action:
 
-```typescript
-// src/server/tasks.ts
-
-export async function updateTaskStatus(taskId: string, statusId: string) {
-  // 1. Auth check -- always first
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return { error: 'Unauthorized' }
-
-  // 2. Permission check
-  const allowed = await requireSpaceMembershipAndPermission(session.user.id, taskId, 'EDIT')
-  if (!allowed) return { error: 'Forbidden' }
-
-  // 3. Business logic inside try/catch
-  try {
-    await db.task.update({ where: { id: taskId }, data: { statusId } })
-    return { success: true }
-  } catch (err) {
-    console.error('updateTaskStatus failed', { taskId, statusId, err })
-    return { error: 'Something went wrong' }
-  }
-}
-```
-
-Rules:
-- `auth.api.getSession()` is always the first line -- never deeper in the function
-- Permission check is always the second step -- before any DB read that is not needed for the check itself
-- All server actions return `{ error: string }` on failure -- never throw to the client
-- The inner `console.error` logs the real error; the outer return shows a safe generic message
-- Never return raw DB errors or stack traces -- they leak schema details
-
-### `requireSpaceMembershipAndPermission` Helper
-
-Centralises the two-level permission check (workspace role + space permission) so it is never inlined differently across actions:
-
-```typescript
-// src/lib/permissions.ts
-
-export async function requireSpaceMembershipAndPermission(
-  userId: string,
-  spaceId: string,
-  requiredPermission: 'VIEW' | 'COMMENT' | 'EDIT' | 'FULL_ACCESS'
-): Promise<boolean> {
-  const member = await db.spaceMember.findFirst({
-    where: { userId, spaceId },
-    include: { workspaceMember: true }
-  })
-
-  if (!member) return false
-
-  // Workspace Owner and Admin bypass space-level checks
-  if (['OWNER', 'ADMIN'].includes(member.workspaceMember.role)) return true
-
-  return hasPermissionLevel(member.permission, requiredPermission)
-}
-
-function hasPermissionLevel(actual: string, required: string): boolean {
-  const order = ['VIEW', 'COMMENT', 'EDIT', 'FULL_ACCESS']
-  return order.indexOf(actual) >= order.indexOf(required)
-}
-```
+- `hasPermissionLevel(permission, minLevel)` — compares `"view" | "edit" | "full_access"` against a minimum.
+- `getSpacePermission(userId, workspaceId, spaceId)` — returns the user's effective level (`"full_access"` for workspace Owner/Admin regardless of `SpaceMember`, otherwise looks up the `SpaceMember` row), or `null` if they have no access.
+- `requireSpacePermission(userId, workspaceId, spaceId, minLevel)` — returns `{ error, status }` (404 for a private space with no access, to avoid leaking existence; 403 otherwise) or `null` if access is granted. Convenience wrappers like `requireEditAccess` build on this for a specific level.
 
 See [permission-model.md](./permission-model.md) for the full permission matrix.
 
@@ -587,8 +523,7 @@ See [permission-model.md](./permission-model.md) for the full permission matrix.
 
 ## Out of Scope (MVP)
 
-- Password-based authentication
-- OAuth (Google, GitHub, etc.) — can be added post-MVP if there is user demand
+- Additional OAuth providers beyond Google (e.g. GitHub) — can be added post-MVP if there is user demand
 - Two-factor authentication (2FA)
 - SSO / SAML
 - Account email change

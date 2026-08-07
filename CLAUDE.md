@@ -111,7 +111,7 @@ uploads/                   ← local file storage (STORAGE_DRIVER=local only), g
 - Route shape: `/[workspaceId]/[spaceId]/list/[listId]` or `/[workspaceId]/[spaceId]/sprint/[sprintId]`
 
 ### Auth
-- Magic link only — no passwords, no OAuth.
+- Magic link is always available. Email + Password (sign-in always, sign-up opt-in via `ALLOW_PASSWORD_SIGNUP=true`) and Google OAuth (when `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are set) are additional, independently-configurable methods — all three converge on the same `session`/`user` rows. See `docs/authentication.md`.
 - Better Auth handles sessions. Use `auth.api.getSession()` server-side.
 - All API routes check session first, return 401 if missing.
 
@@ -153,7 +153,7 @@ uploads/                   ← local file storage (STORAGE_DRIVER=local only), g
 ### Account Deletion
 - **Block if sole owner**: before deleting, check `workspaceMember` for any workspace where this user is the only ACTIVE OWNER. If found, return an error telling them to transfer ownership first.
 - **Storage cleanup**: delete the avatar file from storage (`storage.delete(user.image)`) before the DB transaction. Non-fatal — proceed even if it fails.
-- **Full transaction order**: `notification` → `userNotificationPreference` / `userEmailPreference` / `mutedEntity` / `pushSubscription` → `userSearchHistory` / `savedFilter` / `userOnboardingProgress` → `taskAssignee` / `taskWatcher` / `timeLog` / `commentReaction` → `spaceMember` / `workspaceMember` / `channelMember` → `session` / `account` / `user`.
+- **Full transaction order**: `notification` → `userNotificationPreference` / `userEmailPreference` / `mutedEntity` / `pushSubscription` → `userSearchHistory` / `savedFilter` / `userOnboardingProgress` → `taskAssignee` / `taskWatcher` / `timeEntry` / `commentReaction` → `spaceMember` / `workspaceMember` / `channelMember` → `session` / `account` / `user`.
 - **Comments & activity logs are NOT deleted** — `comment.authorId` and `activityLog.userId` are plain `text` columns with no FK constraint, so orphaned values are safe. Queries use `.leftJoin(user, ...)` which returns `null` for deleted users. Fallback: `authorName ?? "Deleted User"` and `name ?? "Deleted User"` in the mapping layer.
 - See full spec in `docs/settings.md` § 1.1a.
 

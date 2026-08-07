@@ -23,21 +23,9 @@ Provide a date-grid visualization of tasks within a List, allowing users to see 
 
 ## Technical Design
 
-### SSR Safety (Critical)
+### Client rendering
 
-dnd-kit accesses the browser's `window` object on import and will crash Next.js App Router's server-side render. The entire Calendar component and all dnd-kit imports MUST use dynamic import:
-
-```typescript
-// src/app/(app)/[workspaceId]/[spaceId]/list/[listId]/calendar/page.tsx
-import dynamic from 'next/dynamic'
-
-const CalendarView = dynamic(
-  () => import('@/components/calendar/calendar-view'),
-  { ssr: false }
-)
-```
-
-This same pattern is required for Board View. Both views must never be imported directly in a server component.
+`CalendarView` and `BoardView` (`app/(app)/[workspaceId]/[spaceId]/list/[listId]/_components/calendar-view.tsx` / `board-view.tsx`) are plain `"use client"` components using dnd-kit directly, statically imported into `list-container.tsx` — no `dynamic(..., { ssr: false })` wrapper is used or needed. An earlier draft of this doc assumed dnd-kit would crash on SSR and required that wrapper; that assumption didn't hold in practice for the dnd-kit/Next.js versions actually used, and the shipped code works without it.
 
 ### Date Handling
 
@@ -67,6 +55,7 @@ Actual layout (differs from the original plan, which proposed a separate `/calen
 ```
 app/(app)/[workspaceId]/[spaceId]/list/[listId]/_components/
   calendar-view.tsx        <- the view, rendered as a tab inside list-container.tsx
+  calendar-view-mobile.tsx <- mobile-specific rendering, used from calendar-view.tsx
   list-container.tsx       <- view switcher (List / Board / Calendar)
 ```
 
@@ -132,11 +121,9 @@ None.
 - [ ] Dragging from unscheduled sidebar sets `dueDateEnd`
 - [ ] Calendar respects active list filters
 - [ ] Weekly/monthly toggle persists to `UserListViewPreference`
-- [ ] No SSR crash from dnd-kit (all calendar components wrapped in `dynamic({ ssr: false })`)
 
 ---
 
 ## Implementation Notes
 
-- The `dynamic({ ssr: false })` wrapper (see SSR Safety above) is non-negotiable for any dnd-kit-based component — do not remove it.
 - `calendar` is a valid `UserListViewPreference.view` value alongside `list` and `board`.

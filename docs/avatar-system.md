@@ -4,6 +4,15 @@
 
 Every user and workspace in Kanbanica is represented visually with an avatar. Avatars appear across the entire product — task assignee chips, comments, activity log, notifications, member lists, and more. A consistent, well-defined avatar system prevents blank circles and broken images throughout the UI.
 
+> **Implementation status:** this document was written as a design spec before the feature was built, and parts of it describe behavior that was never implemented as written. What actually shipped, per `components/common/user-avatar.tsx` and `components/ui/avatar.tsx`:
+> - Sizes are `xs` (20px) / `sm` (24px) / `md` (32px) / `lg` (40px) only — there is no `xl` size.
+> - The initials fallback uses the **first letter of every word** in the name (joined, then truncated to 2 characters), not specifically "first + last word" — e.g. `"Mary Jane Watson"` → `MJ`, not `MW`. If there's no name, it falls back to the first 2 characters of the email.
+> - There is **no deterministic color-hash palette** — the fallback uses a single muted background color (`bg-muted`) for every user, not a per-user color derived from `user.id`.
+> - **Workspaces have no uploaded-logo image or initials fallback** — a workspace's visual identity is an optional emoji only (`workspace.logoEmoji`, picked from a fixed set in `components/workspace/general-settings-form.tsx`), with no `logoUrl` field and no rounded-square/circle distinction to speak of.
+> - There is no dedicated "greyed-out removed member" avatar state, "Deleted User" grey-circle icon avatar, or "system/automated event" avatar icon in the current UI — a deleted user is represented as plain text (`"Deleted User"`) wherever their name would otherwise appear (see `app/actions/comment.ts`, `app/actions/task.ts`), not as a special avatar graphic.
+>
+> The sections below are kept for historical/design-intent reference. Treat the **Upload Rules** and **Implementation Notes** sections' storage details as outdated (Kanbanica uploads go through the `files-sdk` abstraction, not a direct R2 client — see `docs/settings.md` and `CLAUDE.md`'s "User Avatars" section for what's actually implemented); the rest of this file has not been fully re-verified against the shipped UI.
+
 ---
 
 ## 1. User Avatar
@@ -81,11 +90,11 @@ Avatars appear at different sizes depending on context. All sizes use the same c
 
 | Size | Pixels | Used in |
 |------|--------|---------|
-| `xs` | 20Ã—20 | Activity log inline, notification list |
-| `sm` | 24Ã—24 | Task card assignee chips, comment header, checklist item assignee |
-| `md` | 32Ã—32 | Task detail panel sidebar, member list rows, mention dropdown |
-| `lg` | 40Ã—40 | Profile settings page, workspace member table |
-| `xl` | 64Ã—64 | Account settings page header |
+| `xs` | 20×20 | Activity log inline, notification list |
+| `sm` | 24×24 | Task card assignee chips, comment header, checklist item assignee |
+| `md` | 32×32 | Task detail panel sidebar, member list rows, mention dropdown |
+| `lg` | 40×40 | Profile settings page, workspace member table |
+| `xl` | 64×64 | Account settings page header |
 
 **Font size for initials scales with avatar size:**
 
@@ -204,12 +213,12 @@ Activity log entries and notifications triggered by the system (not by a specifi
 
 | Rule | Value |
 |------|-------|
-| Accepted formats | JPEG, PNG, WebP, GIF (static only — no animated GIFs) |
-| Max file size | 2 MB |
-| Min dimensions | 100Ã—100 px |
-| Storage | S3-compatible storage — same bucket as task attachments, under `/avatars/` prefix |
-| Processing | Resized server-side to max 256Ã—256 px before storing — no oversized originals kept |
-| Old avatar | Previous avatar file is deleted from S3 storage when a new one is uploaded |
+| Accepted formats | JPEG, PNG, WebP, GIF (validated by MIME type; no explicit check that an accepted GIF is non-animated) |
+| Max file size | 2 MB raw upload |
+| Min dimensions | Not enforced |
+| Storage | Same `files-sdk` storage adapter as every other upload (`lib/storage.ts`), key `avatars/{userId}/{uuid}.webp` |
+| Processing | Resized server-side to 256×256 (`sharp`, `fit: cover`), converted to WebP quality 85 — no oversized originals kept |
+| Old avatar | Previous avatar file is deleted from storage (best-effort) before the new one is uploaded |
 
 ---
 
@@ -265,7 +274,7 @@ L-- ...
 2. Avatar background color is derived from `user.id`, not the name — color is stable even if the user changes their name.
 3. The same color palette and hash function must be used on both client and server to ensure consistent rendering.
 4. Workspace avatars use a rounded square shape; user avatars use a full circle — this distinction is consistent everywhere.
-5. Uploaded avatars are resized server-side to max 256Ã—256 px before storage — raw originals are never kept.
+5. Uploaded avatars are resized server-side to max 256×256 px before storage — raw originals are never kept.
 6. Old avatar files are deleted from S3 storage when replaced — no orphaned files accumulate.
 8. Greyed-out avatars (removed members) preserve the original color and initials — they are just rendered at 40% opacity.
 9. `+N` overflow chips use a neutral grey, not a palette color — they are not avatars, they are counters.
@@ -275,78 +284,22 @@ L-- ...
 
 ## Implementation Notes
 
-### Server-Side Resize -- Use `sharp`
+### Server-side resize — `sharp`, via the `files-sdk` storage abstraction
 
-`sharp` is the standard Node.js image processing library. It uses native `libvips` bindings and is significantly faster than alternatives (`jimp`, `canvas`).
+Avatar uploads go through the same `files-sdk` storage adapter as every other file in the app (`lib/storage.ts`) — not a direct S3/R2 client call. `sharp` resizes to 256×256 WebP (quality 85) before the buffer is handed to `storage`. See `app/api/user/avatar/route.ts` for the actual upload handler, and `CLAUDE.md`'s "User Avatars" section for the summary:
 
-```typescript
-// src/lib/avatars/upload-avatar.ts
-import sharp from 'sharp'
+- **Local dev:** the `fs` adapter stores the file under `./uploads/` and serves it via `/api/files/[...key]`.
+- **Production:** the same code stores to S3/R2/GCS depending on the `STORAGE_DRIVER` env var (or the DB-backed Integration Settings) — no app code changes.
 
-export async function processAndUploadAvatar(
-  file: Buffer,
-  mimeType: string,
-  userId: string
-): Promise<string> {
-  // Resize to max 256x256, convert to WebP for storage efficiency
-  const processed = await sharp(file)
-    .resize(256, 256, { fit: 'cover', position: 'centre' })
-    .webp({ quality: 85 })
-    .toBuffer()
+The DB stores the **storage key** (not a full URL or a raw R2 key) in `user.image`. `UserAvatar` (`components/common/user-avatar.tsx`) converts it to a servable URL internally via `/api/files/${image}`; other call sites use the local `avatarSrc(key)` helper. Never use `user.image` directly as an `<img src>`.
 
-  const key = `avatars/users/${userId}.webp`
+### Delete ordering on avatar replace
 
-  await r2Client.send(new PutObjectCommand({
-    Bucket: env.R2_BUCKET_NAME,
-    Key: key,
-    Body: processed,
-    ContentType: 'image/webp',
-  }))
+`app/api/user/avatar/route.ts` deletes the previous avatar from storage first (best-effort — failures are swallowed), then uploads and stores the new one under a fresh key (`avatars/{userId}/{uuid}.webp`, unlike the "same key, overwrite" scheme described above), and only then updates `user.image` in the DB. Removing an avatar (`DELETE`) deletes the storage file first, then clears `user.image`.
 
-  return key  // store r2Key, not a URL -- generate presigned GET URL on demand
-}
-```
+### Serving avatar URLs
 
-**Why `sharp`:** Handles JPEG, PNG, WebP, GIF input; outputs WebP at ~30% smaller file size than JPEG at equivalent quality; non-blocking (uses libuv worker threads).
-
-**`sharp` requires native binaries** -- must be installed in the same OS/arch as the deployment target. In Docker, install on the target image. With Vercel, `sharp` is supported natively.
-
-### R2 Key Convention for Avatars
-
-```
-avatars/users/{userId}.webp         <- user avatar (always overwritten on re-upload)
-avatars/workspaces/{workspaceId}.webp  <- workspace logo
-```
-
-Avatars overwrite the same key on re-upload -- no uuid suffix needed (unlike task attachments). This means:
-- Old file is automatically replaced in R2
-- No orphaned files accumulate
-- DB record stores `r2Key` (e.g. `avatars/users/abc-123.webp`), NOT a full URL
-
-### Delete Ordering on Avatar Replace
-
-When a user uploads a new avatar:
-1. Upload new file to R2 (same key -- overwrites the old one atomically)
-2. Update `User.image` in DB with the new `r2Key` (or a presigned URL generated on demand)
-
-No explicit delete step needed -- R2 overwrites the key. This is the one case where the R2-before-DB delete rule does not apply because no delete occurs.
-
-When a user removes their avatar (reverts to initials):
-1. Delete the R2 object first
-2. Set `User.image = null` in DB only after R2 delete succeeds
-
-### Serving Avatar URLs
-
-Store `r2Key` in the DB, not a full URL. Generate a presigned GET URL on demand when serialising user/workspace objects in API responses:
-
-```typescript
-// Add to user serialisation
-const avatarUrl = user.image
-  ? await getAttachmentUrl(user.image)  // reuse the same helper from collaboration.ts
-  : null
-```
-
-Presigned URL expiry: 1 hour (same as attachments).
+Generate the serving URL on demand — never persist a URL. For `UserAvatar`, that's `/api/files/${image}`; elsewhere, call the local `avatarSrc(key)` helper. Do not use presigned URLs with a fixed expiry — URLs are computed per request, not cached.
 
 ---
 

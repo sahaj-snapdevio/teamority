@@ -399,7 +399,7 @@ TaskAttachment
 +-- task_id             (foreign key -> Task)
 +-- uploaded_by         (foreign key -> User)
 +-- file_name           (string)
-+-- file_url            (string — S3 / R2 URL)
++-- file_url            (string — storage key, not a full URL; resolved on demand via files-sdk. See docs/collaboration.md § File Attachments)
 +-- file_size           (integer — bytes)
 +-- mime_type           (string)
 L-- created_at          (timestamp)
