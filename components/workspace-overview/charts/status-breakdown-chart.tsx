@@ -18,7 +18,7 @@ interface StatusBreakdownChartProps {
 // success/info/purple state (purple matches "Waiting for Review" in
 // components/workspace-overview/my-focus-today.tsx).
 const STATUS_COLOR: Record<string, string> = {
-  OPEN: "var(--muted-foreground)",
+  OPEN: "color-mix(in oklab, var(--base-content) 60%, transparent)",
   WORKING: "var(--info)",
   REVIEW: "#a855f7",
   COMPLETED: "var(--success)",
@@ -66,7 +66,7 @@ export function StatusBreakdownChart({
       </CardHeader>
       <CardContent>
         {total === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
+          <p className="py-10 text-center text-sm text-base-content/60">
             No tasks yet
           </p>
         ) : (
@@ -78,7 +78,7 @@ export function StatusBreakdownChart({
                   cy="18"
                   fill="none"
                   r={RADIUS}
-                  stroke="var(--muted)"
+                  stroke="var(--base-200)"
                   strokeWidth="4"
                 />
                 {segments.map((s) =>
@@ -114,10 +114,10 @@ export function StatusBreakdownChart({
                 )}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-bold tabular-nums tracking-tight text-foreground">
+                <span className="text-xl font-bold tabular-nums tracking-tight text-base-content">
                   {total}
                 </span>
-                <span className="text-2xs text-muted-foreground">tasks</span>
+                <span className="text-2xs text-base-content/60">tasks</span>
               </div>
             </div>
 
@@ -126,7 +126,7 @@ export function StatusBreakdownChart({
                 <button
                   className={cn(
                     "flex w-full items-center justify-between gap-2 rounded-md px-1.5 py-1 text-left text-sm transition-colors cursor-pointer",
-                    hovered === s.type && "bg-accent/40"
+                    hovered === s.type && "bg-base-200/40"
                   )}
                   key={s.type}
                   onClick={() => openDrilldown(s.type, s.label)}
@@ -139,11 +139,11 @@ export function StatusBreakdownChart({
                       className="size-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: STATUS_COLOR[s.type] }}
                     />
-                    <span className="truncate text-foreground/80">
+                    <span className="truncate text-base-content/80">
                       {s.label}
                     </span>
                   </div>
-                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                  <span className="shrink-0 tabular-nums text-base-content/60">
                     {s.count} · {Math.round(s.pct)}%
                   </span>
                 </button>

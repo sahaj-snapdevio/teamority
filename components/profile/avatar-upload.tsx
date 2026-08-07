@@ -104,7 +104,7 @@ export function AvatarUpload({ currentImageKey, name, email }: AvatarUploadProps
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="absolute -bottom-1 -right-1 z-20 flex size-9 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-sm transition-opacity hover:opacity-80 disabled:opacity-50 sm:size-7"
+          className="absolute -bottom-1 -right-1 z-20 flex size-9 items-center justify-center rounded-full border-2 border-base-100 bg-primary text-primary-content shadow-sm transition-opacity hover:opacity-80 disabled:opacity-50 sm:size-7"
           title="Change avatar"
         >
           <CameraIcon className="size-4 sm:size-3.5" weight="bold" />
@@ -113,7 +113,7 @@ export function AvatarUpload({ currentImageKey, name, email }: AvatarUploadProps
 
       <div className="min-w-0 space-y-1.5">
         <p className="text-sm font-medium">Profile photo</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-base-content/60">
           JPEG, PNG, WebP or GIF · max 2 MB
         </p>
         <div className="flex flex-wrap items-center gap-2">
@@ -132,7 +132,7 @@ export function AvatarUpload({ currentImageKey, name, email }: AvatarUploadProps
               type="button"
               size="sm"
               variant="ghost"
-              className="h-8 text-xs text-destructive hover:text-destructive sm:h-7"
+              className="h-8 text-xs text-error hover:text-error sm:h-7"
               onClick={handleRemove}
               disabled={removing}
             >

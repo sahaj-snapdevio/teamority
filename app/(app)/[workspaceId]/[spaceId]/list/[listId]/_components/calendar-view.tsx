@@ -375,7 +375,7 @@ export function CalendarView({
             the view already sits below the List/Board/Calendar tabs with the
             container's own gap, so a `py-*` here stacked a second gap on top and
             pushed the calendar down relative to the List/Board toolbars. */}
-          <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 pb-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 border-b border-base-300 px-4 pb-2 shrink-0">
             {/* Wrapped in a sized container rather than putting `w-full` only on
               the input: SearchInput's own root is a plain (non-flex) div, so a
               percentage width on the input alone can't expand it to fill the
@@ -425,7 +425,7 @@ export function CalendarView({
             <div className="ml-auto flex items-center gap-1">
               <button
                 aria-label="Previous month"
-                className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="flex size-8 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                 onClick={() => goToMonth(subMonths(viewDate, 1))}
                 type="button"
               >
@@ -436,7 +436,7 @@ export function CalendarView({
               </div>
               <button
                 aria-label="Next month"
-                className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="flex size-8 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                 onClick={() => goToMonth(addMonths(viewDate, 1))}
                 type="button"
               >
@@ -454,12 +454,12 @@ export function CalendarView({
           </div>
 
           {/* Weekday header */}
-          <div className="grid grid-cols-7 border-b border-border text-2xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
+          <div className="grid grid-cols-7 border-b border-base-300 text-2xs font-semibold uppercase tracking-wider text-base-content/60 shrink-0">
             {WEEKDAYS.map((d, i) => (
               <div
                 className={cn(
                   "px-2 py-1.5",
-                  (i === 0 || i === 6) && "bg-muted/30 dark:bg-muted/10"
+                  (i === 0 || i === 6) && "bg-base-200/30 dark:bg-base-200/10"
                 )}
                 key={d}
               >
@@ -624,9 +624,9 @@ function DayCell({
   return (
     <div
       className={cn(
-        "group relative min-h-36 border-b border-r border-border p-1.5 transition-colors",
-        weekend && "bg-muted/30 dark:bg-muted/10",
-        !inMonth && "bg-muted/20 text-muted-foreground/60",
+        "group relative min-h-36 border-b border-r border-base-300 p-1.5 transition-colors",
+        weekend && "bg-base-200/30 dark:bg-base-200/10",
+        !inMonth && "bg-base-200/20 text-base-content/60",
         isOver && "bg-primary/5 ring-1 ring-inset ring-primary/40"
       )}
       ref={setNodeRef}
@@ -634,9 +634,9 @@ function DayCell({
       <div className="mb-1 flex items-center justify-between">
         <button
           className={cn(
-            "flex size-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent",
-            today && "bg-primary font-semibold text-primary-foreground",
-            !today && !inMonth && "text-muted-foreground/60"
+            "flex size-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-base-200",
+            today && "bg-primary font-semibold text-primary-content",
+            !today && !inMonth && "text-base-content/60"
           )}
           disabled={!canEdit}
           onClick={onCreate}
@@ -647,7 +647,7 @@ function DayCell({
         </button>
         {canEdit && (
           <button
-            className="flex items-center gap-0.5 rounded px-1 text-2xs text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100"
+            className="flex items-center gap-0.5 rounded px-1 text-2xs text-base-content/60 opacity-0 transition-opacity hover:text-base-content group-hover:opacity-100 group-focus-within:opacity-100"
             onClick={onCreate}
             type="button"
           >
@@ -660,8 +660,8 @@ function DayCell({
       <div className="space-y-1">
         {isPending ? (
           <>
-            <div className="h-5 animate-pulse rounded bg-muted" />
-            <div className="h-5 w-2/3 animate-pulse rounded bg-muted" />
+            <div className="h-5 animate-pulse rounded bg-base-200" />
+            <div className="h-5 w-2/3 animate-pulse rounded bg-base-200" />
           </>
         ) : (
           <>
@@ -797,7 +797,7 @@ function MorePopover({
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="w-full rounded px-1.5 py-0.5 text-left text-2xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="w-full rounded px-1.5 py-0.5 text-left text-2xs font-medium text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
           type="button"
         >
           +{overflow} more
@@ -843,7 +843,7 @@ export function TaskRow({
   return (
     <button
       className={cn(
-        "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent",
+        "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-base-200",
         done && "opacity-60",
         className
       )}
@@ -859,7 +859,7 @@ export function TaskRow({
         {task.title}
       </span>
       {status && (
-        <span className="flex shrink-0 items-center gap-1 text-2xs text-muted-foreground">
+        <span className="flex shrink-0 items-center gap-1 text-2xs text-base-content/60">
           <span
             className="size-2 rounded-full"
             style={{ backgroundColor: status.color }}

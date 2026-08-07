@@ -118,7 +118,7 @@ function ActivityRow({
 }) {
   return (
     <div
-      className={`flex items-start gap-2.5 rounded-md px-1.5 py-2 hover:bg-accent/20 transition-colors ${indented ? "pl-8" : ""}`}
+      className={`flex items-start gap-2.5 rounded-md px-1.5 py-2 hover:bg-base-200/20 transition-colors ${indented ? "pl-8" : ""}`}
     >
       {!indented && (
         <UserAvatar
@@ -141,7 +141,7 @@ function ActivityRow({
           <span aria-hidden="true">
             {activityIcon(entry.eventType, entry.toDashboardCategory)}
           </span>{" "}
-          <span className="text-muted-foreground">
+          <span className="text-base-content/60">
             {describeEvent(
               entry.eventType,
               (entry.meta ?? {}) as Record<string, unknown>
@@ -149,13 +149,13 @@ function ActivityRow({
           </span>
         </p>
         <Link
-          className="mt-1 block truncate text-sm font-semibold text-foreground hover:underline"
+          className="mt-1 block truncate text-sm font-semibold text-base-content hover:underline"
           href={`/${workspaceId}/task/${entry.taskId}`}
         >
           #{entry.taskSeq} {entry.taskTitle}
         </Link>
-        <p className="mt-1 text-xs text-muted-foreground">
-          <span className="text-muted-foreground/70">{entry.spaceName} · </span>
+        <p className="mt-1 text-xs text-base-content/60">
+          <span className="text-base-content/70">{entry.spaceName} · </span>
           <span title={format(new Date(entry.createdAt), "PPpp")}>
             {formatDistanceToNow(new Date(entry.createdAt), {
               addSuffix: true,
@@ -186,7 +186,7 @@ function ActivityGroup({
   return (
     <div>
       <button
-        className="flex w-full items-start gap-2.5 rounded-md px-1.5 py-2 text-left hover:bg-accent/20 transition-colors cursor-pointer"
+        className="flex w-full items-start gap-2.5 rounded-md px-1.5 py-2 text-left hover:bg-base-200/20 transition-colors cursor-pointer"
         onClick={() => setExpanded((v) => !v)}
         type="button"
       >
@@ -205,12 +205,12 @@ function ActivityGroup({
             <span aria-hidden="true">
               {activityIcon(run.eventType, run.entries[0].toDashboardCategory)}
             </span>{" "}
-            <span className="text-muted-foreground">
+            <span className="text-base-content/60">
               {verb} {run.entries.length} task
               {run.entries.length === 1 ? "" : "s"}
             </span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-base-content/60">
             <span title={format(new Date(latest.createdAt), "PPpp")}>
               {formatDistanceToNow(new Date(latest.createdAt), {
                 addSuffix: true,
@@ -219,9 +219,9 @@ function ActivityGroup({
           </p>
         </div>
         {expanded ? (
-          <CaretDownIcon className="mt-1 size-3 shrink-0 text-muted-foreground" />
+          <CaretDownIcon className="mt-1 size-3 shrink-0 text-base-content/60" />
         ) : (
-          <CaretRightIcon className="mt-1 size-3 shrink-0 text-muted-foreground" />
+          <CaretRightIcon className="mt-1 size-3 shrink-0 text-base-content/60" />
         )}
       </button>
       {expanded && (
@@ -256,8 +256,8 @@ export function RecentActivityFeed({
       <CardContent>
         {entries.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <ActivityIcon className="size-8 text-muted-foreground/20" />
-            <p className="text-sm text-muted-foreground">
+            <ActivityIcon className="size-8 text-base-content/20" />
+            <p className="text-sm text-base-content/60">
               No activity in the last 30 days
             </p>
           </div>
@@ -267,7 +267,7 @@ export function RecentActivityFeed({
               const runs = groupConsecutive(dateGroup.entries);
               return (
                 <div key={dateGroup.label}>
-                  <p className="mb-0.5 px-1.5 text-2xs font-semibold uppercase text-muted-foreground/70">
+                  <p className="mb-0.5 px-1.5 text-2xs font-semibold uppercase text-base-content/70">
                     {dateGroup.label}
                   </p>
                   <div className="space-y-1">

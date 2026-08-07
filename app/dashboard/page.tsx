@@ -66,7 +66,7 @@ export default async function DashboardPage() {
             >
               {freshUser?.emailVerified ? "Verified" : "Magic-link ready"}
             </Badge>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-base-content/60 text-sm">
               Magic-link login is wired through Better Auth and the email
               outbox.
             </p>
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
             >
               {freshUser?.role ?? "user"}
             </Badge>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-base-content/60 text-sm">
               Promote admins with <code>pnpm make:admin user@example.com</code>.
             </p>
           </CardContent>
@@ -97,7 +97,7 @@ export default async function DashboardPage() {
             <CardDescription>Replace this with your own product UI.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-muted-foreground text-sm">
+            <p className="text-base-content/60 text-sm">
               Replace this dashboard with your application logic while keeping
               the auth/admin/worker backbone.
             </p>

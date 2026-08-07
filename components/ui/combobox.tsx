@@ -32,7 +32,7 @@ function Combobox<TValue>({
     <div
       data-slot="combobox"
       className={cn(
-        "flex flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground",
+        "flex flex-col overflow-hidden rounded-md border bg-elevated text-base-content",
         className
       )}
     >
@@ -98,11 +98,11 @@ function ComboboxGroup({
   return (
     <div
       data-slot="combobox-group"
-      className={cn("overflow-hidden p-1.5 text-foreground", className)}
+      className={cn("overflow-hidden p-1.5 text-base-content", className)}
       {...props}
     >
       {heading && (
-        <div className="px-3 py-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+        <div className="px-3 py-2 text-xs font-semibold tracking-wider text-base-content/60 uppercase">
           {heading}
         </div>
       )}
@@ -124,7 +124,7 @@ function ComboboxOption<TValue>({
       className={(bag) =>
         cn(
           "relative flex cursor-default items-center gap-2 rounded-md px-3 py-2 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
-          bag.focus && "bg-muted text-foreground",
+          bag.focus && "bg-base-200 text-base-content",
           className
         )
       }

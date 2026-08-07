@@ -1,7 +1,24 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  type DragOverEvent,
+  DragOverlay,
+  type DragStartEvent,
+  PointerSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   ArchiveIcon,
   CaretDownIcon,
@@ -10,78 +27,30 @@ import {
   DotsThreeIcon,
   FunnelIcon,
   LightningIcon,
-  MagnifyingGlassIcon,
   PencilSimpleIcon,
   PlusIcon,
   RowsIcon,
   SquaresFourIcon,
-  TrayIcon,
   TrashIcon,
+  TrayIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-  useDroppable,
-  type DragStartEvent,
-  type DragOverEvent,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { SearchInput } from "@/components/ui/search-input";
-import {
-  useRealtimeRefetch,
-  useRealtimePause,
-} from "@/components/realtime/realtime-provider";
-import {
-  TaskListRow,
-  type TaskListRowProps,
-} from "@/components/task/task-list-row";
-import { SpaceIcon } from "@/components/common/space-icon";
-import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
-import {
-  PRIORITY_CONFIG,
-  userInitials,
-  avatarSrc,
-} from "@/lib/priority-config";
-import { setTaskNavContext } from "@/lib/task-nav-context";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { toast } from "sonner";
-import { useSWRConfig } from "swr";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+  createListStatus,
+  getWorkspaceLists,
+  updateListStatus,
+} from "@/app/actions/list";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  getActiveSprintView,
-  getArchivedTasksForSprint,
   addTaskToSprint,
-  getSprints,
   bulkMoveTasksToSprint,
   bulkRemoveTasksFromSprint,
+  getActiveSprintView,
+  getArchivedTasksForSprint,
+  getSprints,
 } from "@/app/actions/sprint";
 import {
   archiveTask,
@@ -94,62 +63,93 @@ import {
   unarchiveTask,
   updateTaskStatus,
 } from "@/app/actions/task";
-import { toastWithUndo } from "@/lib/undo-toast";
+import { SpaceIcon } from "@/components/common/space-icon";
 import {
-  createListStatus,
-  getWorkspaceLists,
-  updateListStatus,
-} from "@/app/actions/list";
+  useRealtimePause,
+  useRealtimeRefetch,
+} from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
+import {
+  TaskListRow,
+  type TaskListRowProps,
+} from "@/components/task/task-list-row";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { SearchInput } from "@/components/ui/search-input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
+import {
+  avatarSrc,
+  PRIORITY_CONFIG,
+  userInitials,
+} from "@/lib/priority-config";
 import { STATUS_PRESET_COLORS } from "@/lib/status-colors";
+import { setTaskNavContext } from "@/lib/task-nav-context";
+import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Status {
+  color: string;
   id: string;
   name: string;
-  color: string;
-  type: "OPEN" | "ACTIVE" | "CLOSED";
   orderIndex: number;
+  type: "OPEN" | "ACTIVE" | "CLOSED";
 }
 
 interface SprintTask {
+  assignees: { userId: string; name: string; image: string | null }[];
+  dueDateEnd: Date | null;
+  dueDateStart: Date | null;
   id: string;
-  title: string;
-  seqNumber: number;
-  priority: string | null;
-  statusId: string | null;
   listId: string | null;
   orderIndex: number;
-  dueDateStart: Date | null;
-  dueDateEnd: Date | null;
-  statusName: string | null;
+  priority: string | null;
+  seqNumber: number;
   statusColor: string | null;
+  statusId: string | null;
+  statusName: string | null;
   statusType: "OPEN" | "ACTIVE" | "CLOSED" | null;
   tags: { id: string; name: string; color: string }[];
-  assignees: { userId: string; name: string; image: string | null }[];
+  title: string;
 }
 
 interface SprintInfo {
+  endDate: Date | null;
+  goal: string | null;
   id: string;
   name: string;
-  goal: string | null;
   startDate: Date | null;
-  endDate: Date | null;
   status: "PLANNED" | "ACTIVE" | "CLOSED";
 }
 
 interface SprintListViewProps {
-  workspaceId: string;
-  spaceId: string;
-  listId?: string;
-  statuses?: Status[];
-  isAdmin?: boolean;
   canEdit?: boolean;
+  isAdmin?: boolean;
+  listId?: string;
   members?: { userId: string; name: string | null; email: string | null }[];
-  tags?: { id: string; name: string; color: string }[];
   refreshKey?: number;
+  spaceId: string;
+  statuses?: Status[];
+  tags?: { id: string; name: string; color: string }[];
+  workspaceId: string;
 }
 
 type SprintOption = {
@@ -197,7 +197,9 @@ function QuickCreateRow({
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 0);
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
   }, [open]);
 
   // Close the quick-create row when the user clicks anywhere outside of it.
@@ -205,10 +207,16 @@ function QuickCreateRow({
   // one quick-create row is ever open at a time. An in-flight save is left
   // untouched so the submit isn't interrupted.
   React.useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     function handlePointerDown(e: PointerEvent) {
-      if (saving) return;
-      if (wrapperRef.current?.contains(e.target as Node)) return;
+      if (saving) {
+        return;
+      }
+      if (wrapperRef.current?.contains(e.target as Node)) {
+        return;
+      }
       onOpenChange(false);
       setTitle("");
     }
@@ -228,7 +236,9 @@ function QuickCreateRow({
         title: trimmed,
         statusId,
       });
-      if ("error" in res) return;
+      if ("error" in res) {
+        return;
+      }
       await addTaskToSprint(workspaceId, spaceId, sprintId, res.taskId);
       setTitle("");
       onCreated();
@@ -241,8 +251,8 @@ function QuickCreateRow({
   if (!open) {
     return (
       <button
+        className="flex w-full items-center gap-2 border-b border-base-300 pl-10 pr-4 py-2 text-sm text-base-content/60 hover:text-base-content hover:bg-base-200/20 transition-colors"
         onClick={() => onOpenChange(true)}
-        className="flex w-full items-center gap-2 border-b border-border pl-10 pr-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors"
       >
         <PlusIcon className="size-3.5 shrink-0" />
         Add Task
@@ -251,13 +261,14 @@ function QuickCreateRow({
   }
 
   return (
-    <div ref={wrapperRef} className="border-b border-border py-1.5 pl-10 pr-4">
-      <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-background px-2 py-1.5 ring-1 ring-primary/20">
+    <div
+      className="border-b border-base-300 py-1.5 pl-10 pr-4"
+      ref={wrapperRef}
+    >
+      <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-base-100 px-2 py-1.5 ring-1 ring-primary/20">
         <input
-          ref={inputRef}
-          type="text"
-          placeholder="Task title…"
-          value={title}
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/50"
+          disabled={saving}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -269,22 +280,24 @@ function QuickCreateRow({
               setTitle("");
             }
           }}
-          disabled={saving}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+          placeholder="Task title…"
+          ref={inputRef}
+          type="text"
+          value={title}
         />
         <button
-          onClick={() => void submit()}
+          className="rounded px-2 py-0.5 text-xs font-medium bg-primary text-primary-content hover:bg-primary/90 disabled:opacity-40 transition-colors shrink-0"
           disabled={saving || !title.trim()}
-          className="rounded px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors shrink-0"
+          onClick={() => void submit()}
         >
           {saving ? "…" : "Add"}
         </button>
         <button
+          className="text-xs text-base-content/60 hover:text-base-content shrink-0"
           onClick={() => {
             onOpenChange(false);
             setTitle("");
           }}
-          className="text-xs text-muted-foreground hover:text-foreground shrink-0"
         >
           Esc
         </button>
@@ -315,9 +328,9 @@ function SortableSprintListRow(
   return (
     <TaskListRow
       {...props}
+      dragProps={{ ...attributes, ...listeners }}
       dragRef={setNodeRef}
       dragStyle={{ transform: CSS.Transform.toString(transform), transition }}
-      dragProps={{ ...attributes, ...listeners }}
       isDragging={isDragging}
     />
   );
@@ -393,7 +406,9 @@ function StatusGroup({
   }
 
   async function handleCreateStatus() {
-    if (!newStatusName.trim()) return;
+    if (!newStatusName.trim()) {
+      return;
+    }
     setSaving(true);
     const res = await createListStatus(workspaceId, spaceId, listId ?? "", {
       name: newStatusName.trim(),
@@ -428,14 +443,14 @@ function StatusGroup({
       <div>
         {/* Group header */}
         <div
+          className="group/header flex flex-wrap items-center gap-2.5 py-1.5 px-3 hover:bg-base-200/40 transition-colors cursor-pointer select-none border-b border-base-300"
           onClick={() => setCollapsed((v) => !v)}
-          className="group/header flex flex-wrap items-center gap-2.5 py-1.5 px-3 hover:bg-accent/40 transition-colors cursor-pointer select-none border-b border-border"
         >
-          <div className="flex size-5 items-center justify-center rounded hover:bg-accent transition-colors shrink-0 text-muted-foreground group-hover/header:text-foreground/70">
+          <div className="flex size-5 items-center justify-center rounded hover:bg-base-200 transition-colors shrink-0 text-base-content/60 group-hover/header:text-base-content/70">
             {collapsed ? (
-              <CaretRightIcon weight="fill" className="size-3" />
+              <CaretRightIcon className="size-3" weight="fill" />
             ) : (
-              <CaretDownIcon weight="fill" className="size-3" />
+              <CaretDownIcon className="size-3" weight="fill" />
             )}
           </div>
 
@@ -454,7 +469,7 @@ function StatusGroup({
             {status.name}
           </span>
 
-          <span className="text-xs text-muted-foreground font-semibold tabular-nums">
+          <span className="text-xs text-base-content/60 font-semibold tabular-nums">
             {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
           </span>
 
@@ -462,69 +477,69 @@ function StatusGroup({
             className="ml-2 flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/header:opacity-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+            <Popover onOpenChange={setMenuOpen} open={menuOpen}>
               <PopoverTrigger asChild>
-                <button className="flex size-6 items-center justify-center rounded hover:bg-accent transition-colors">
+                <button className="flex size-6 items-center justify-center rounded hover:bg-base-200 transition-colors">
                   <DotsThreeIcon
-                    className="size-4.5 text-muted-foreground"
+                    className="size-4.5 text-base-content/60"
                     weight="bold"
                   />
                 </button>
               </PopoverTrigger>
               <PopoverContent
                 align="start"
-                side="bottom"
                 className="w-48 p-1 mt-1"
+                side="bottom"
               >
-                <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">
+                <p className="px-2 py-1 text-xs font-semibold text-base-content/60">
                   Group options
                 </p>
                 <button
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                   onClick={() => {
                     setMenuOpen(false);
                     setRenameName(status.name);
                     setRenameOpen(true);
                   }}
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
                 >
-                  <PencilSimpleIcon className="size-3.5 text-muted-foreground shrink-0" />
+                  <PencilSimpleIcon className="size-3.5 text-base-content/60 shrink-0" />
                   Rename
                 </button>
                 <button
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                   onClick={() => {
                     setMenuOpen(false);
                     setNewStatusOpen(true);
                   }}
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
                 >
-                  <PlusIcon className="size-3.5 text-muted-foreground shrink-0" />
+                  <PlusIcon className="size-3.5 text-base-content/60 shrink-0" />
                   New status
                 </button>
                 <div className="h-px bg-border my-1" />
                 <button
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                   onClick={() => {
                     setCollapsed((v) => !v);
                     setMenuOpen(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
                 >
                   {collapsed ? (
-                    <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+                    <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
                   ) : (
-                    <CaretDownIcon className="size-3.5 text-muted-foreground shrink-0" />
+                    <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />
                   )}
                   {collapsed ? "Expand group" : "Collapse group"}
                 </button>
               </PopoverContent>
             </Popover>
             <button
-              className="flex size-6 items-center justify-center rounded hover:bg-accent transition-colors"
+              className="flex size-6 items-center justify-center rounded hover:bg-base-200 transition-colors"
               onClick={() => {
                 setCollapsed(false);
                 setQuickCreateOpen(true);
               }}
             >
-              <PlusIcon className="size-3.5 text-muted-foreground" />
+              <PlusIcon className="size-3.5 text-base-content/60" />
             </button>
           </div>
         </div>
@@ -533,139 +548,141 @@ function StatusGroup({
         {!collapsed && (
           <div className="overflow-x-auto">
             <div className="min-w-160">
-            {/* Column headers with select-all */}
-            <div className="flex items-center">
-              <div className="w-0.75 self-stretch shrink-0" />
-              <div
-                className="flex w-14 shrink-0 items-center justify-center py-2 pl-2 cursor-pointer"
-                onClick={toggleAll}
+              {/* Column headers with select-all */}
+              <div className="flex items-center">
+                <div className="w-0.75 self-stretch shrink-0" />
+                <div
+                  className="flex w-14 shrink-0 items-center justify-center py-2 pl-2 cursor-pointer"
+                  onClick={toggleAll}
+                >
+                  <div
+                    className={cn(
+                      "flex size-4 items-center justify-center rounded border transition-colors",
+                      allSelected
+                        ? "border-primary bg-primary text-primary-content"
+                        : someSelected
+                          ? "border-primary bg-primary/20"
+                          : "border-base-300 hover:border-primary/50"
+                    )}
+                  >
+                    {allSelected && (
+                      <CheckIcon className="size-2.5" weight="bold" />
+                    )}
+                    {someSelected && !allSelected && (
+                      <div className="size-1.5 rounded-sm bg-primary" />
+                    )}
+                  </div>
+                </div>
+                <div className="flex-1 py-2 pr-4 pl-1 text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  Name
+                </div>
+                <div className="w-36 shrink-0 py-2 px-4 text-2xs font-bold text-gray-400 uppercase tracking-wider text-center">
+                  Assignee
+                </div>
+                <div className="w-28 shrink-0 py-2 px-4 text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  Due date
+                </div>
+                <div className="w-32 shrink-0 py-2 px-4 text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  Priority
+                </div>
+                <div className="w-48 shrink-0" />
+              </div>
+
+              <SortableContext
+                items={tasks.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
               >
                 <div
                   className={cn(
-                    "flex size-4 items-center justify-center rounded border transition-colors",
-                    allSelected
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : someSelected
-                        ? "border-primary bg-primary/20"
-                        : "border-border hover:border-primary/50"
+                    "flex flex-col transition-colors min-h-1",
+                    isOver && "bg-base-200/20"
                   )}
+                  ref={setDropRef}
                 >
-                  {allSelected && (
-                    <CheckIcon className="size-2.5" weight="bold" />
-                  )}
-                  {someSelected && !allSelected && (
-                    <div className="size-1.5 rounded-sm bg-primary" />
-                  )}
+                  {tasks.map((task) => (
+                    <SortableSprintListRow
+                      canEdit={canEdit}
+                      excludeSprintId={sprintId}
+                      isAdmin={isAdmin}
+                      key={task.id}
+                      onAfterDuplicate={async (newTaskId) => {
+                        await addTaskToSprint(
+                          workspaceId,
+                          spaceId,
+                          sprintId,
+                          newTaskId
+                        );
+                      }}
+                      onMoveToBacklog={async () => {
+                        const res = await bulkRemoveTasksFromSprint(
+                          workspaceId,
+                          spaceId,
+                          sprintId,
+                          [task.id]
+                        );
+                        if ("error" in res) {
+                          toast.error(res.error);
+                          return;
+                        }
+                        onRefresh();
+                      }}
+                      onOpen={() => {
+                        setTaskNavContext({ taskIds: taskNavIds });
+                        router.push(
+                          `/${workspaceId}/task/${task.id}?from=sprint&sid=${sprintId}`
+                        );
+                      }}
+                      onRefresh={onRefresh}
+                      onSelect={onSelect}
+                      selected={selectedIds.has(task.id)}
+                      spaceId={spaceId}
+                      statusColor={status.color}
+                      statuses={statuses}
+                      task={task}
+                      workspaceId={workspaceId}
+                    />
+                  ))}
                 </div>
-              </div>
-              <div className="flex-1 py-2 pr-4 pl-1 text-2xs font-bold text-gray-400 uppercase tracking-wider">
-                Name
-              </div>
-              <div className="w-36 shrink-0 py-2 px-4 text-2xs font-bold text-gray-400 uppercase tracking-wider text-center">
-                Assignee
-              </div>
-              <div className="w-28 shrink-0 py-2 px-4 text-2xs font-bold text-gray-400 uppercase tracking-wider">
-                Due date
-              </div>
-              <div className="w-32 shrink-0 py-2 px-4 text-2xs font-bold text-gray-400 uppercase tracking-wider">
-                Priority
-              </div>
-              <div className="w-48 shrink-0" />
-            </div>
+              </SortableContext>
 
-            <SortableContext
-              items={tasks.map((t) => t.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div
-                ref={setDropRef}
-                className={cn(
-                  "flex flex-col transition-colors min-h-1",
-                  isOver && "bg-accent/20"
-                )}
-              >
-                {tasks.map((task) => (
-                  <SortableSprintListRow
-                    key={task.id}
-                    task={task}
-                    statusColor={status.color}
-                    workspaceId={workspaceId}
-                    spaceId={spaceId}
-                    excludeSprintId={sprintId}
-                    statuses={statuses}
-                    isAdmin={isAdmin}
-                    canEdit={canEdit}
-                    selected={selectedIds.has(task.id)}
-                    onSelect={onSelect}
-                    onOpen={() => {
-                      setTaskNavContext({ taskIds: taskNavIds });
-                      router.push(
-                        `/${workspaceId}/task/${task.id}?from=sprint&sid=${sprintId}`
-                      );
-                    }}
-                    onRefresh={onRefresh}
-                    onAfterDuplicate={async (newTaskId) => {
-                      await addTaskToSprint(
-                        workspaceId,
-                        spaceId,
-                        sprintId,
-                        newTaskId
-                      );
-                    }}
-                    onMoveToBacklog={async () => {
-                      const res = await bulkRemoveTasksFromSprint(
-                        workspaceId,
-                        spaceId,
-                        sprintId,
-                        [task.id]
-                      );
-                      if ("error" in res) {
-                        toast.error(res.error);
-                        return;
-                      }
-                      onRefresh();
-                    }}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-
-            <QuickCreateRow
-              open={quickCreateOpen}
-              onOpenChange={setQuickCreateOpen}
-              workspaceId={workspaceId}
-              spaceId={spaceId}
-              listId={listId}
-              sprintId={sprintId}
-              statusId={status.id}
-              onCreated={onRefresh}
-            />
+              <QuickCreateRow
+                listId={listId}
+                onCreated={onRefresh}
+                onOpenChange={setQuickCreateOpen}
+                open={quickCreateOpen}
+                spaceId={spaceId}
+                sprintId={sprintId}
+                statusId={status.id}
+                workspaceId={workspaceId}
+              />
             </div>
           </div>
         )}
       </div>
 
       {/* Rename status dialog */}
-      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+      <Dialog onOpenChange={setRenameOpen} open={renameOpen}>
         <DialogContent className="sm:max-w-xs">
           <DialogHeader>
             <DialogTitle>Rename status</DialogTitle>
           </DialogHeader>
           <Input
-            value={renameName}
+            autoFocus
             onChange={(e) => setRenameName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") void handleRename();
+              if (e.key === "Enter") {
+                void handleRename();
+              }
             }}
-            autoFocus
+            value={renameName}
           />
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setRenameOpen(false)}>
+            <Button onClick={() => setRenameOpen(false)} variant="ghost">
               Cancel
             </Button>
             <Button
-              onClick={() => void handleRename()}
               disabled={saving || !renameName.trim()}
+              onClick={() => void handleRename()}
             >
               Save
             </Button>
@@ -674,44 +691,46 @@ function StatusGroup({
       </Dialog>
 
       {/* New status dialog */}
-      <Dialog open={newStatusOpen} onOpenChange={setNewStatusOpen}>
+      <Dialog onOpenChange={setNewStatusOpen} open={newStatusOpen}>
         <DialogContent className="sm:max-w-xs">
           <DialogHeader>
             <DialogTitle>New status</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Input
-              placeholder="Status name"
-              value={newStatusName}
+              autoFocus
               onChange={(e) => setNewStatusName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") void handleCreateStatus();
+                if (e.key === "Enter") {
+                  void handleCreateStatus();
+                }
               }}
-              autoFocus
+              placeholder="Status name"
+              value={newStatusName}
             />
             <div className="flex flex-wrap gap-2">
               {STATUS_PRESET_COLORS.map((color) => (
                 <button
-                  key={color}
-                  onClick={() => setNewStatusColor(color)}
                   className={cn(
                     "size-6 rounded-full border-2 transition-transform",
                     newStatusColor === color
-                      ? "border-foreground scale-110"
+                      ? "border-base-content scale-110"
                       : "border-transparent"
                   )}
+                  key={color}
+                  onClick={() => setNewStatusColor(color)}
                   style={{ backgroundColor: color }}
                 />
               ))}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setNewStatusOpen(false)}>
+            <Button onClick={() => setNewStatusOpen(false)} variant="ghost">
               Cancel
             </Button>
             <Button
-              onClick={() => void handleCreateStatus()}
               disabled={saving || !newStatusName.trim()}
+              onClick={() => void handleCreateStatus()}
             >
               Create
             </Button>
@@ -757,11 +776,15 @@ function BulkActionBar({
   const [loadingLists, setLoadingLists] = React.useState(false);
 
   async function loadSprints() {
-    if (sprints !== null) return;
+    if (sprints !== null) {
+      return;
+    }
     setLoadingSprints(true);
     const res = await getSprints(workspaceId, spaceId);
     setLoadingSprints(false);
-    if ("error" in res) return;
+    if ("error" in res) {
+      return;
+    }
     setSprints(
       res.sprints.filter(
         (s) => s.status !== "CLOSED" && s.id !== currentSprintId
@@ -770,11 +793,15 @@ function BulkActionBar({
   }
 
   async function loadLists() {
-    if (listSpaces !== null) return;
+    if (listSpaces !== null) {
+      return;
+    }
     setLoadingLists(true);
     const res = await getWorkspaceLists(workspaceId, listId ?? "");
     setLoadingLists(false);
-    if ("error" in res) return;
+    if ("error" in res) {
+      return;
+    }
     setListSpaces(res.spaces);
   }
 
@@ -795,7 +822,7 @@ function BulkActionBar({
       return;
     }
     toast.success(
-      `Moved ${res.moved} task${res.moved !== 1 ? "s" : ""} to ${targetListName}`
+      `Moved ${res.moved} task${res.moved === 1 ? "" : "s"} to ${targetListName}`
     );
     onClear();
     onRefresh();
@@ -835,7 +862,7 @@ function BulkActionBar({
       return;
     }
     toast.success(
-      `Moved ${res.moved} task${res.moved !== 1 ? "s" : ""} to ${sprintName}`
+      `Moved ${res.moved} task${res.moved === 1 ? "" : "s"} to ${sprintName}`
     );
     onClear();
     onRefresh();
@@ -892,35 +919,35 @@ function BulkActionBar({
 
   return (
     <>
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <Dialog onOpenChange={setDeleteOpen} open={deleteOpen}>
         <DialogContent className="sm:max-w-xs text-center">
           <div className="flex flex-col items-center gap-3 pt-2">
-            <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
-              <TrashIcon className="size-6 text-destructive" weight="fill" />
+            <div className="flex size-12 items-center justify-center rounded-full bg-error/10">
+              <TrashIcon className="size-6 text-error" weight="fill" />
             </div>
             <div>
               <DialogTitle className="text-base font-bold">
                 Delete {count} Task{count > 1 ? "s" : ""}
               </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-base-content/60 mt-1">
                 This action cannot be undone.
               </p>
             </div>
           </div>
           <div className="flex gap-2 mt-2">
             <Button
-              variant="outline"
               className="flex-1"
-              onClick={() => setDeleteOpen(false)}
               disabled={busy}
+              onClick={() => setDeleteOpen(false)}
+              variant="outline"
             >
               Cancel
             </Button>
             <Button
-              variant="destructive"
               className="flex-1"
-              onClick={confirmBulkDelete}
               disabled={busy}
+              onClick={confirmBulkDelete}
+              variant="destructive"
             >
               Delete
             </Button>
@@ -932,8 +959,8 @@ function BulkActionBar({
           {count} task{count > 1 ? "s" : ""} selected
         </span>
         <button
-          onClick={onClear}
           className="flex size-6 shrink-0 items-center justify-center rounded hover:bg-white/10 transition-colors mr-2"
+          onClick={onClear}
         >
           <XIcon className="size-3.5 text-white/70" />
         </button>
@@ -942,19 +969,19 @@ function BulkActionBar({
         <Popover>
           <PopoverTrigger asChild>
             <button
-              disabled={busy}
               className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+              disabled={busy}
             >
               <span className="size-2 rounded-full bg-white/60" />
               Status
             </button>
           </PopoverTrigger>
-          <PopoverContent align="center" side="top" className="w-48 p-1 mb-1">
+          <PopoverContent align="center" className="w-48 p-1 mb-1" side="top">
             {statuses.map((s) => (
               <button
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                 key={s.id}
                 onClick={() => handleBulkStatus(s.id)}
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
               >
                 <span
                   className="size-2.5 rounded-full shrink-0"
@@ -977,8 +1004,8 @@ function BulkActionBar({
         >
           <PopoverTrigger asChild>
             <button
-              disabled={busy}
               className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+              disabled={busy}
             >
               <CaretDownIcon className="size-3.5" />
               Move
@@ -986,36 +1013,36 @@ function BulkActionBar({
           </PopoverTrigger>
           <PopoverContent
             align="center"
-            side="top"
             className="w-56 p-1 mb-1 max-h-72 overflow-y-auto"
+            side="top"
           >
             {/* Sprint section */}
-            <p className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <p className="px-2 py-1 text-xs font-semibold text-base-content/60 uppercase tracking-wide">
               Sprint
             </p>
             {loadingSprints && (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              <p className="px-2 py-1.5 text-xs text-base-content/60">
                 Loading…
               </p>
             )}
             {!loadingSprints && sprints?.length === 0 && (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              <p className="px-2 py-1.5 text-xs text-base-content/60">
                 No other sprints available
               </p>
             )}
             {!loadingSprints &&
               sprints?.map((s) => (
                 <button
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                   key={s.id}
                   onClick={() => handleMoveToSprint(s.id, s.name)}
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
                 >
                   <LightningIcon
                     className={cn(
                       "size-3.5 shrink-0",
                       s.status === "ACTIVE"
                         ? "text-primary"
-                        : "text-muted-foreground"
+                        : "text-base-content/60"
                     )}
                     weight="fill"
                   />
@@ -1025,7 +1052,7 @@ function BulkActionBar({
                       "text-2xs font-medium px-1.5 py-0.5 rounded-full shrink-0",
                       s.status === "ACTIVE"
                         ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
+                        : "bg-base-200 text-base-content/60"
                     )}
                   >
                     {s.status === "ACTIVE" ? "Active" : "Planned"}
@@ -1037,34 +1064,34 @@ function BulkActionBar({
             <div className="h-px bg-border my-1" />
 
             {/* List section */}
-            <p className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <p className="px-2 py-1 text-xs font-semibold text-base-content/60 uppercase tracking-wide">
               List
             </p>
             {loadingLists && (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              <p className="px-2 py-1.5 text-xs text-base-content/60">
                 Loading…
               </p>
             )}
             {!loadingLists && listSpaces?.length === 0 && (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              <p className="px-2 py-1.5 text-xs text-base-content/60">
                 No other lists available
               </p>
             )}
             {!loadingLists &&
               listSpaces?.map((sp) => (
                 <div key={sp.id}>
-                  <p className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground">
+                  <p className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-base-content/60">
                     <SpaceIcon
-                      emoji={sp.logoEmoji}
                       color={sp.color ?? "#6B7280"}
+                      emoji={sp.logoEmoji}
                     />
                     {sp.name}
                   </p>
                   {sp.lists.map((l) => (
                     <button
+                      className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-sm hover:bg-base-200"
                       key={l.id}
                       onClick={() => handleMoveToList(l.id, l.name)}
-                      className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-sm hover:bg-accent"
                     >
                       <span
                         className="size-2 rounded-full shrink-0"
@@ -1082,9 +1109,9 @@ function BulkActionBar({
 
         {/* Move to Backlog */}
         <button
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
           disabled={busy}
           onClick={handleMoveToBacklog}
-          className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
         >
           <TrayIcon className="size-3.5" />
           Backlog
@@ -1094,9 +1121,9 @@ function BulkActionBar({
 
         {/* Archive */}
         <button
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
           disabled={busy}
           onClick={handleBulkArchive}
-          className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
         >
           <ArchiveIcon className="size-3.5" />
           Archive
@@ -1104,9 +1131,9 @@ function BulkActionBar({
 
         {isAdmin && (
           <button
+            className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-50"
             disabled={busy}
             onClick={() => setDeleteOpen(true)}
-            className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-50"
           >
             <TrashIcon className="size-3.5" />
             Delete
@@ -1145,7 +1172,7 @@ function SprintBoardCardContent({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-3 shadow-sm",
+        "rounded-lg border bg-elevated p-3 shadow-sm",
         isDragging && "opacity-40 shadow-none border-dashed",
         overlay && "shadow-xl rotate-1 cursor-grabbing",
         !isDragging &&
@@ -1153,7 +1180,9 @@ function SprintBoardCardContent({
           "hover:shadow-md transition-shadow cursor-pointer"
       )}
       onClick={() => {
-        if (isDragging || overlay) return;
+        if (isDragging || overlay) {
+          return;
+        }
         setTaskNavContext({ taskIds: taskNavIds });
         router.push(
           `/${workspaceId}/task/${task.id}?from=sprint&sid=${sprintId}`
@@ -1164,15 +1193,15 @@ function SprintBoardCardContent({
         {...dragListeners}
         className={cn(!overlay && "cursor-grab active:cursor-grabbing")}
       >
-        <p className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2">
+        <p className="text-[13px] font-medium text-base-content leading-snug select-none line-clamp-2">
           {task.title}
         </p>
         {task.tags.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {task.tags.map((tag) => (
               <span
-                key={tag.id}
                 className="rounded-full px-1.5 py-0.5 text-2xs font-medium"
+                key={tag.id}
                 style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
               >
                 {tag.name}
@@ -1181,7 +1210,7 @@ function SprintBoardCardContent({
           </div>
         )}
         <div className="mt-2 flex items-center justify-between gap-2">
-          <span className="font-mono text-2xs text-muted-foreground shrink-0">
+          <span className="font-mono text-2xs text-base-content/60 shrink-0">
             #{task.seqNumber}
           </span>
           <div className="flex items-center gap-2 min-w-0">
@@ -1200,20 +1229,20 @@ function SprintBoardCardContent({
               <div className="flex -space-x-1.5 ml-auto">
                 {task.assignees.slice(0, 3).map((a) => (
                   <Avatar
+                    className="size-7 border-2 border-base-100"
                     key={a.userId}
-                    className="size-7 border-2 border-background"
                     title={a.name}
                   >
                     {a.image && (
-                      <AvatarImage src={avatarSrc(a.image)} alt={a.name} />
+                      <AvatarImage alt={a.name} src={avatarSrc(a.image)} />
                     )}
-                    <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+                    <AvatarFallback className="text-xs font-semibold bg-primary text-primary-content">
                       {userInitials(a.name)}
                     </AvatarFallback>
                   </Avatar>
                 ))}
                 {task.assignees.length > 3 && (
-                  <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground">
+                  <div className="flex size-7 items-center justify-center rounded-full border-2 border-base-100 bg-base-200 text-xs font-medium text-base-content/60">
                     +{task.assignees.length - 3}
                   </div>
                 )}
@@ -1257,12 +1286,12 @@ function SprintBoardCard({
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <SprintBoardCardContent
-        task={task}
-        workspaceId={workspaceId}
-        sprintId={sprintId}
-        isDragging={isDragging}
         dragListeners={listeners}
+        isDragging={isDragging}
+        sprintId={sprintId}
+        task={task}
         taskNavIds={taskNavIds}
+        workspaceId={workspaceId}
       />
     </div>
   );
@@ -1282,10 +1311,10 @@ function SprintBoardStaticCard({
   return (
     <div className="opacity-80">
       <SprintBoardCardContent
-        task={task}
-        workspaceId={workspaceId}
         sprintId={sprintId}
+        task={task}
         taskNavIds={taskNavIds}
+        workspaceId={workspaceId}
       />
     </div>
   );
@@ -1317,7 +1346,7 @@ function SprintBoardColumn({
           className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
           style={{ backgroundColor: status.color }}
         />
-        <span className="flex-1 font-semibold text-sm uppercase tracking-wide text-foreground/80">
+        <span className="flex-1 font-semibold text-sm uppercase tracking-wide text-base-content/80">
           {status.name}
         </span>
         <span
@@ -1334,11 +1363,11 @@ function SprintBoardColumn({
         strategy={verticalListSortingStrategy}
       >
         <div
-          ref={setNodeRef}
           className={cn(
             "flex flex-col gap-2 rounded-lg p-1 transition-all flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border",
             tasks.length === 0 && "min-h-8"
           )}
+          ref={setNodeRef}
           style={
             isOver
               ? { boxShadow: `inset 0 0 0 2px ${status.color}` }
@@ -1348,10 +1377,10 @@ function SprintBoardColumn({
           {tasks.map((t) => (
             <SprintBoardCard
               key={t.id}
-              task={t}
-              workspaceId={workspaceId}
               sprintId={sprintId}
+              task={t}
               taskNavIds={taskNavIds}
+              workspaceId={workspaceId}
             />
           ))}
         </div>
@@ -1377,11 +1406,11 @@ function NoStatusColumn({
       style={{ backgroundColor: "#94a3b814" }}
     >
       <div className="flex items-center gap-2 px-1 py-1">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-muted-foreground/40 shrink-0" />
-        <span className="flex-1 font-semibold text-sm uppercase tracking-wide text-foreground/80">
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-base-content/40 shrink-0" />
+        <span className="flex-1 font-semibold text-sm uppercase tracking-wide text-base-content/80">
           No Status
         </span>
-        <span className="rounded-full px-2 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
+        <span className="rounded-full px-2 py-0.5 text-xs font-semibold bg-base-200 text-base-content/60">
           {tasks.length}
         </span>
       </div>
@@ -1389,10 +1418,10 @@ function NoStatusColumn({
         {tasks.map((t) => (
           <SprintBoardStaticCard
             key={t.id}
-            task={t}
-            workspaceId={workspaceId}
             sprintId={sprintId}
+            task={t}
             taskNavIds={taskNavIds}
+            workspaceId={workspaceId}
           />
         ))}
       </div>
@@ -1454,7 +1483,9 @@ export function SprintListView({
 
   const refreshArchived = React.useCallback(async () => {
     const result = await getArchivedTasksForSprint(workspaceId, spaceId);
-    if (!("error" in result)) setArchivedTasks(result.tasks);
+    if (!("error" in result)) {
+      setArchivedTasks(result.tasks);
+    }
   }, [workspaceId, spaceId]);
 
   async function handleToggleArchived() {
@@ -1469,17 +1500,24 @@ export function SprintListView({
   function handleSelect(id: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
       return next;
     });
   }
 
   const fetchData = React.useCallback(async () => {
-    if (!initialLoadedRef.current) setLoading(true);
+    if (!initialLoadedRef.current) {
+      setLoading(true);
+    }
     try {
       const res = await getActiveSprintView(workspaceId, spaceId);
-      if ("error" in res) return;
+      if ("error" in res) {
+        return;
+      }
       setSprintInfo(res.sprint);
       setTasks(res.tasks as SprintTask[]);
       setFetchedStatuses((res.statuses ?? []) as Status[]);
@@ -1528,23 +1566,33 @@ export function SprintListView({
   }
 
   function onDragOver({ active, over }: DragOverEvent) {
-    if (!over) return;
+    if (!over) {
+      return;
+    }
     const activeId = active.id as string;
     const overId = over.id as string;
-    if (activeId === overId) return;
+    if (activeId === overId) {
+      return;
+    }
     const activeTask = boardTasks.find((t) => t.id === activeId);
-    if (!activeTask) return;
+    if (!activeTask) {
+      return;
+    }
     const overStatus =
       effectiveStatuses.find((s) => s.id === overId)?.id ??
       boardTasks.find((t) => t.id === overId)?.statusId;
-    if (!overStatus) return;
+    if (!overStatus) {
+      return;
+    }
 
     if (overStatus === activeTask.statusId) {
       // Same column — reorder positions optimistically
       setBoardTasks((prev) => {
         const oldIndex = prev.findIndex((t) => t.id === activeId);
         const newIndex = prev.findIndex((t) => t.id === overId);
-        if (oldIndex === -1 || newIndex === -1) return prev;
+        if (oldIndex === -1 || newIndex === -1) {
+          return prev;
+        }
         return arrayMove(prev, oldIndex, newIndex);
       });
     } else {
@@ -1560,10 +1608,14 @@ export function SprintListView({
   async function onDragEnd({ active, over }: DragEndEvent) {
     setActiveDragTask(null);
     endDrag();
-    if (!over) return;
+    if (!over) {
+      return;
+    }
     const activeId = active.id as string;
     const activeTask = boardTasks.find((t) => t.id === activeId);
-    if (!activeTask) return;
+    if (!activeTask) {
+      return;
+    }
     const finalStatus = activeTask.statusId;
     const originalStatus = tasks.find((t) => t.id === activeId)?.statusId;
 
@@ -1575,7 +1627,9 @@ export function SprintListView({
       const originalIds = tasks
         .filter((t) => t.statusId === originalStatus)
         .map((t) => t.id);
-      if (columnTaskIds.join(",") === originalIds.join(",")) return;
+      if (columnTaskIds.join(",") === originalIds.join(",")) {
+        return;
+      }
       const res = await reorderTasksById(workspaceId, spaceId, columnTaskIds);
       if ("error" in res) {
         setBoardTasks(tasks);
@@ -1607,15 +1661,18 @@ export function SprintListView({
       if (
         searchQuery.trim() &&
         !t.title.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      ) {
         return false;
-      if (statusFilter.length && !statusFilter.includes(t.statusId ?? ""))
+      }
+      if (statusFilter.length && !statusFilter.includes(t.statusId ?? "")) {
         return false;
+      }
       if (
         priorityFilter.length &&
         !priorityFilter.includes(t.priority ?? "NONE")
-      )
+      ) {
         return false;
+      }
       if (assigneeFilter.length) {
         const hasUnassigned = assigneeFilter.includes("unassigned");
         const userIds = assigneeFilter.filter((a) => a !== "unassigned");
@@ -1623,7 +1680,9 @@ export function SprintListView({
         const matchUnassigned = hasUnassigned && assigneeIds.length === 0;
         const matchUser =
           userIds.length > 0 && assigneeIds.some((id) => userIds.includes(id));
-        if (!matchUnassigned && !matchUser) return false;
+        if (!matchUnassigned && !matchUser) {
+          return false;
+        }
       }
       return true;
     },
@@ -1636,8 +1695,12 @@ export function SprintListView({
   );
 
   const effectiveStatuses = React.useMemo(() => {
-    if (statuses.length > 0) return statuses;
-    if (fetchedStatuses.length > 0) return fetchedStatuses;
+    if (statuses.length > 0) {
+      return statuses;
+    }
+    if (fetchedStatuses.length > 0) {
+      return fetchedStatuses;
+    }
     const seen = new Set<string>();
     const derived: Status[] = [];
     for (const t of tasks) {
@@ -1665,10 +1728,16 @@ export function SprintListView({
   // ── Board grouping ────────────────────────────────────────────────────────
   const boardTasksByStatus = React.useMemo(() => {
     const map = new Map<string, SprintTask[]>();
-    for (const s of effectiveStatuses) map.set(s.id, []);
+    for (const s of effectiveStatuses) {
+      map.set(s.id, []);
+    }
     for (const t of boardTasks) {
-      if (!matchesFilters(t)) continue;
-      if (t.statusId && map.has(t.statusId)) map.get(t.statusId)!.push(t);
+      if (!matchesFilters(t)) {
+        continue;
+      }
+      if (t.statusId && map.has(t.statusId)) {
+        map.get(t.statusId)!.push(t);
+      }
     }
     return map;
   }, [boardTasks, effectiveStatuses, matchesFilters]);
@@ -1700,19 +1769,19 @@ export function SprintListView({
   // ── Loading skeleton ──────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/20">
+      <div className="rounded-xl border bg-elevated overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b bg-base-200/20">
           <Skeleton className="size-3.5 rounded" />
           <Skeleton className="size-3.5 rounded" />
           <Skeleton className="h-4 w-32 rounded" />
           <Skeleton className="h-3.5 w-20 rounded" />
           <Skeleton className="ml-auto h-6 w-16 rounded" />
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-muted/20">
+        <div className="flex items-center gap-2 px-4 py-2 bg-base-200/20">
           <Skeleton className="size-3 rounded" />
           <Skeleton className="h-5 w-24 rounded-full" />
         </div>
-        <div className="flex items-center gap-4 border-b border-border/60 bg-muted/40 pl-10 pr-4 py-2">
+        <div className="flex items-center gap-4 border-b border-base-300/60 bg-base-200/40 pl-10 pr-4 py-2">
           <Skeleton className="h-3 w-16 rounded" />
           <Skeleton className="ml-auto h-3 w-16 rounded" />
           <Skeleton className="h-3 w-14 rounded" />
@@ -1720,8 +1789,8 @@ export function SprintListView({
         </div>
         {Array.from({ length: 4 }).map((_, i) => (
           <div
+            className="flex items-center gap-3 border-b border-base-300/40 py-2.5 pl-10 pr-3"
             key={i}
-            className="flex items-center gap-3 border-b border-border/40 py-2.5 pl-10 pr-3"
           >
             <Skeleton className="h-4 w-6 rounded" />
             <Skeleton className="h-4 max-w-65 flex-1 rounded" />
@@ -1739,7 +1808,7 @@ export function SprintListView({
   // ── No active sprint ──────────────────────────────────────────────────────
   if (!sprintInfo) {
     return (
-      <div className="rounded-xl border bg-card flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
+      <div className="rounded-xl border bg-elevated flex flex-col items-center gap-2 py-16 text-center text-base-content/60">
         <LightningIcon className="size-8 opacity-30" />
         <p className="text-sm font-medium">No active sprint</p>
         <p className="text-xs opacity-70">
@@ -1753,36 +1822,36 @@ export function SprintListView({
   return (
     <>
       <CreateTaskModal
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        workspaceId={workspaceId}
-        spaceId={spaceId}
-        listId={createListId || listId || ""}
-        statuses={effectiveStatuses}
         canManage={canEdit || isAdmin}
+        listId={createListId || listId || ""}
         onCreated={async (taskId) => {
           if (sprintInfo?.id) {
             await addTaskToSprint(workspaceId, spaceId, sprintInfo.id, taskId);
           }
           void fetchData();
         }}
+        onOpenChange={setCreateOpen}
+        open={createOpen}
+        spaceId={spaceId}
+        statuses={effectiveStatuses}
+        workspaceId={workspaceId}
       />
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           {/* View toggle */}
-          <div className="flex items-center rounded-lg border border-border overflow-hidden">
+          <div className="flex items-center rounded-lg border border-base-300 overflow-hidden">
             {(["list", "board"] as const).map((v) => (
               <button
-                key={v}
-                onClick={() => setView(v)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer select-none",
                   view === v
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70 hover:bg-accent/50"
+                    ? "bg-primary text-primary-content"
+                    : "text-base-content/70 hover:bg-base-200/50"
                 )}
+                key={v}
+                onClick={() => setView(v)}
               >
                 {v === "list" ? (
                   <RowsIcon className="size-3.5" />
@@ -1796,18 +1865,18 @@ export function SprintListView({
 
           {/* Search */}
           <SearchInput
-            placeholder="Search tasks…"
-            value={searchQuery}
+            className="w-44 focus:w-56"
             onChange={(e) => setSearchQuery(e.target.value)}
             onClear={() => setSearchQuery("")}
-            className="w-44 focus:w-56"
+            placeholder="Search tasks…"
+            value={searchQuery}
           />
 
           {/* Filter Popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/50 transition-colors cursor-pointer select-none">
-                <FunnelIcon className="size-3.5 text-muted-foreground" />
+              <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/50 transition-colors cursor-pointer select-none">
+                <FunnelIcon className="size-3.5 text-base-content/60" />
                 Filters
                 {hasActiveFilters && (
                   <span className="ml-1 size-2 rounded-full bg-primary" />
@@ -1817,62 +1886,66 @@ export function SprintListView({
             <PopoverContent align="start" className="w-64 p-3 space-y-4">
               {/* Status filter */}
               <div>
-                <p className="mb-1.5 text-2xs font-bold text-muted-foreground uppercase tracking-wide">
+                <p className="mb-1.5 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
                   Status
                 </p>
                 <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
                   {effectiveStatuses.map((s) => (
-                    <label
+                    <div
+                      className="flex items-center gap-2 py-0.5 hover:bg-base-200/50 rounded"
                       key={s.id}
-                      className="flex items-center gap-2 text-xs text-foreground/80 cursor-pointer py-0.5 hover:bg-accent/50 rounded"
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={statusFilter.includes(s.id)}
-                        onChange={(e) => {
+                        id={`status-filter-${s.id}`}
+                        onCheckedChange={(checked) => {
                           setStatusFilter((prev) =>
-                            e.target.checked
+                            checked
                               ? [...prev, s.id]
                               : prev.filter((id) => id !== s.id)
                           );
                         }}
-                        className="rounded border-input text-primary focus:ring-primary size-3.5"
                       />
-                      <span className="truncate">{s.name}</span>
-                    </label>
+                      <Label
+                        className="truncate text-xs text-base-content/80 cursor-pointer"
+                        htmlFor={`status-filter-${s.id}`}
+                      >
+                        {s.name}
+                      </Label>
+                    </div>
                   ))}
                 </div>
               </div>
 
               {/* Priority filter */}
               <div>
-                <p className="mb-1.5 text-2xs font-bold text-muted-foreground uppercase tracking-wide">
+                <p className="mb-1.5 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
                   Priority
                 </p>
                 <div className="flex flex-col gap-1">
                   {["URGENT", "HIGH", "MEDIUM", "LOW", "NONE"].map((p) => (
-                    <label
+                    <div
+                      className="flex items-center gap-2 py-0.5 hover:bg-base-200/50 rounded"
                       key={p}
-                      className="flex items-center gap-2 text-xs text-foreground/80 cursor-pointer py-0.5 hover:bg-accent/50 rounded"
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={priorityFilter.includes(p)}
-                        onChange={(e) => {
+                        id={`priority-filter-${p}`}
+                        onCheckedChange={(checked) => {
                           setPriorityFilter((prev) =>
-                            e.target.checked
-                              ? [...prev, p]
-                              : prev.filter((v) => v !== p)
+                            checked ? [...prev, p] : prev.filter((v) => v !== p)
                           );
                         }}
-                        className="rounded border-input text-primary focus:ring-primary size-3.5"
                       />
-                      <span>
+                      <Label
+                        className="text-xs text-base-content/80 cursor-pointer"
+                        htmlFor={`priority-filter-${p}`}
+                      >
                         {p === "NONE"
                           ? "No Priority"
                           : p.charAt(0) + p.slice(1).toLowerCase()}
-                      </span>
-                    </label>
+                      </Label>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1880,70 +1953,82 @@ export function SprintListView({
               {/* Assignee filter */}
               {members.length > 0 && (
                 <div>
-                  <p className="mb-1.5 text-2xs font-bold text-muted-foreground uppercase tracking-wide">
+                  <p className="mb-1.5 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
                     Assignee
                   </p>
                   <div className="flex flex-col gap-1 max-h-36 overflow-y-auto">
-                    <label className="flex items-center gap-2 text-xs text-foreground/80 cursor-pointer py-0.5 hover:bg-accent/50 rounded">
-                      <input
-                        type="checkbox"
+                    <div className="flex items-center gap-2 py-0.5 hover:bg-base-200/50 rounded">
+                      <Checkbox
                         checked={assigneeFilter.includes("unassigned")}
-                        onChange={(e) => {
+                        id="assignee-filter-unassigned"
+                        onCheckedChange={(checked) => {
                           setAssigneeFilter((prev) =>
-                            e.target.checked
+                            checked
                               ? [...prev, "unassigned"]
                               : prev.filter((v) => v !== "unassigned")
                           );
                         }}
-                        className="rounded border-input text-primary focus:ring-primary size-3.5"
                       />
-                      <span>Unassigned</span>
-                    </label>
-                    {members.map((m) => (
-                      <label
-                        key={m.userId}
-                        className="flex items-center gap-2 text-xs text-foreground/80 cursor-pointer py-0.5 hover:bg-accent/50 rounded"
+                      <Label
+                        className="text-xs text-base-content/80 cursor-pointer"
+                        htmlFor="assignee-filter-unassigned"
                       >
-                        <input
-                          type="checkbox"
+                        Unassigned
+                      </Label>
+                    </div>
+                    {members.map((m) => (
+                      <div
+                        className="flex items-center gap-2 py-0.5 hover:bg-base-200/50 rounded"
+                        key={m.userId}
+                      >
+                        <Checkbox
                           checked={assigneeFilter.includes(m.userId)}
-                          onChange={(e) => {
+                          id={`assignee-filter-${m.userId}`}
+                          onCheckedChange={(checked) => {
                             setAssigneeFilter((prev) =>
-                              e.target.checked
+                              checked
                                 ? [...prev, m.userId]
                                 : prev.filter((id) => id !== m.userId)
                             );
                           }}
-                          className="rounded border-input text-primary focus:ring-primary size-3.5"
                         />
-                        <span className="truncate">{m.name || m.email}</span>
-                      </label>
+                        <Label
+                          className="truncate text-xs text-base-content/80 cursor-pointer"
+                          htmlFor={`assignee-filter-${m.userId}`}
+                        >
+                          {m.name || m.email}
+                        </Label>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
 
               {/* Archived tasks */}
-              <div className="border-t border-border pt-3">
-                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5 hover:bg-accent/30 rounded">
-                  <input
-                    type="checkbox"
+              <div className="border-t border-base-300 pt-3">
+                <div className="flex items-center gap-2 py-0.5 hover:bg-base-200/30 rounded">
+                  <Checkbox
                     checked={showArchived}
-                    onChange={() => void handleToggleArchived()}
-                    className="rounded border-input text-primary focus:ring-primary size-3.5"
+                    id="show-archived-filter"
+                    onCheckedChange={() => void handleToggleArchived()}
                   />
-                  <span>Show archived tasks</span>
-                </label>
+                  <Label
+                    className="text-xs text-base-content cursor-pointer"
+                    htmlFor="show-archived-filter"
+                  >
+                    Show archived tasks
+                  </Label>
+                </div>
               </div>
 
               {/* Clear all */}
               <button
+                className="w-full py-1 text-center text-red-500 hover:bg-red-50 rounded text-xs font-semibold transition-colors cursor-pointer"
                 onClick={() => {
                   setPriorityFilter([]);
                   setAssigneeFilter([]);
                   setStatusFilter([]);
                 }}
-                className="w-full py-1 text-center text-red-500 hover:bg-red-50 rounded text-xs font-semibold transition-colors cursor-pointer"
               >
                 Clear Filters
               </button>
@@ -1953,8 +2038,8 @@ export function SprintListView({
 
         {/* Create Task button */}
         <button
+          className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-content hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
         >
           <PlusIcon className="size-3.5" weight="bold" />
           Create Task
@@ -1962,38 +2047,40 @@ export function SprintListView({
       </div>
 
       {view === "list" ? (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="rounded-xl border bg-elevated overflow-hidden">
           {/* Sprint header */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/20">
+          <div className="flex items-center gap-2 px-4 py-3 border-b bg-base-200/20">
             <button
-              onClick={() => setSprintCollapsed((v) => !v)}
               className="flex items-center gap-2 flex-1 text-left min-w-0"
+              onClick={() => setSprintCollapsed((v) => !v)}
             >
               {sprintCollapsed ? (
-                <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+                <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
               ) : (
-                <CaretDownIcon className="size-3.5 text-muted-foreground shrink-0" />
+                <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />
               )}
               <LightningIcon
                 className="size-3.5 text-primary shrink-0"
                 weight="fill"
               />
-              <span className="min-w-0 truncate text-sm font-semibold">{sprintInfo.name}</span>
-              <span className="text-xs text-muted-foreground shrink-0">
+              <span className="min-w-0 truncate text-sm font-semibold">
+                {sprintInfo.name}
+              </span>
+              <span className="text-xs text-base-content/60 shrink-0">
                 ({formatDateRange(sprintInfo.startDate, sprintInfo.endDate)})
               </span>
             </button>
             <Badge
-              variant="outline"
               className={cn(
                 "shrink-0 text-xs px-2 py-1 rounded uppercase tracking-wide",
                 sprintInfo.status === "ACTIVE" &&
                   "border-primary/30 text-primary bg-primary/10",
                 sprintInfo.status === "PLANNED" &&
-                  "border-border text-muted-foreground bg-muted",
+                  "border-base-300 text-base-content/60 bg-base-200",
                 sprintInfo.status === "CLOSED" &&
-                  "border-border text-muted-foreground bg-muted"
+                  "border-base-300 text-base-content/60 bg-base-200"
               )}
+              variant="outline"
             >
               {sprintInfo.status}
             </Badge>
@@ -2003,31 +2090,31 @@ export function SprintListView({
           {!sprintCollapsed && (
             <div>
               <DndContext
-                id="sprint-list-dnd"
-                sensors={sensors}
                 collisionDetection={closestCenter}
-                onDragStart={onDragStart}
-                onDragOver={onDragOver}
-                onDragEnd={onDragEnd}
+                id="sprint-list-dnd"
                 onDragCancel={onDragCancel}
+                onDragEnd={onDragEnd}
+                onDragOver={onDragOver}
+                onDragStart={onDragStart}
+                sensors={sensors}
               >
                 {effectiveStatuses.map((status, i) => (
                   <React.Fragment key={status.id}>
                     {i > 0 && <div className="h-2" />}
                     <StatusGroup
+                      canEdit={canEdit}
+                      isAdmin={isAdmin}
+                      listId={listId}
+                      onRefresh={fetchData}
+                      onSelect={handleSelect}
+                      selectedIds={selectedIds}
+                      spaceId={spaceId}
+                      sprintId={sprintInfo.id}
                       status={status}
+                      statuses={effectiveStatuses}
+                      taskNavIds={visibleOrderedTaskIds}
                       tasks={boardTasksByStatus.get(status.id) ?? []}
                       workspaceId={workspaceId}
-                      spaceId={spaceId}
-                      listId={listId}
-                      sprintId={sprintInfo.id}
-                      statuses={effectiveStatuses}
-                      isAdmin={isAdmin}
-                      canEdit={canEdit}
-                      selectedIds={selectedIds}
-                      onSelect={handleSelect}
-                      onRefresh={fetchData}
-                      taskNavIds={visibleOrderedTaskIds}
                     />
                   </React.Fragment>
                 ))}
@@ -2035,36 +2122,22 @@ export function SprintListView({
               {noStatusListTasks.length > 0 && (
                 <div>
                   {effectiveStatuses.length > 0 && <div className="h-2" />}
-                  <div className="border-b border-border px-3 py-1.5 flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider border bg-muted text-muted-foreground border-border">
-                      <span className="size-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+                  <div className="border-b border-base-300 px-3 py-1.5 flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider border bg-base-200 text-base-content/60 border-base-300">
+                      <span className="size-1.5 rounded-full bg-base-content/40 shrink-0" />
                       No Status
                     </span>
-                    <span className="text-xs text-muted-foreground font-semibold tabular-nums">
+                    <span className="text-xs text-base-content/60 font-semibold tabular-nums">
                       {noStatusListTasks.length}{" "}
                       {noStatusListTasks.length === 1 ? "task" : "tasks"}
                     </span>
                   </div>
                   {noStatusListTasks.map((t) => (
                     <TaskListRow
-                      key={t.id}
-                      task={t}
-                      statusColor="#94a3b8"
-                      workspaceId={workspaceId}
-                      spaceId={spaceId}
-                      excludeSprintId={sprintInfo.id}
-                      statuses={effectiveStatuses}
-                      isAdmin={isAdmin}
                       canEdit={canEdit}
-                      selected={selectedIds.has(t.id)}
-                      onSelect={handleSelect}
-                      onOpen={() => {
-                        setTaskNavContext({ taskIds: visibleOrderedTaskIds });
-                        router.push(
-                          `/${workspaceId}/task/${t.id}?from=sprint&sid=${sprintInfo.id}`
-                        );
-                      }}
-                      onRefresh={fetchData}
+                      excludeSprintId={sprintInfo.id}
+                      isAdmin={isAdmin}
+                      key={t.id}
                       onAfterDuplicate={async (newTaskId) => {
                         await addTaskToSprint(
                           workspaceId,
@@ -2086,6 +2159,20 @@ export function SprintListView({
                         }
                         fetchData();
                       }}
+                      onOpen={() => {
+                        setTaskNavContext({ taskIds: visibleOrderedTaskIds });
+                        router.push(
+                          `/${workspaceId}/task/${t.id}?from=sprint&sid=${sprintInfo.id}`
+                        );
+                      }}
+                      onRefresh={fetchData}
+                      onSelect={handleSelect}
+                      selected={selectedIds.has(t.id)}
+                      spaceId={spaceId}
+                      statusColor="#94a3b8"
+                      statuses={effectiveStatuses}
+                      task={t}
+                      workspaceId={workspaceId}
                     />
                   ))}
                 </div>
@@ -2093,13 +2180,13 @@ export function SprintListView({
 
               {/* Archived tasks section */}
               {showArchived && (
-                <div className="mt-6 border border-border rounded-xl overflow-hidden bg-muted/20">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 text-xs font-bold text-muted-foreground uppercase tracking-wide border-b border-border select-none">
+                <div className="mt-6 border border-base-300 rounded-xl overflow-hidden bg-base-200/20">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-base-200/50 text-xs font-bold text-base-content/60 uppercase tracking-wide border-b border-base-300 select-none">
                     <ArchiveIcon className="size-4" />
                     Archived ({archivedTasks.length})
                   </div>
                   {archivedTasks.length === 0 && (
-                    <div className="px-4 py-6 text-center text-xs text-muted-foreground italic">
+                    <div className="px-4 py-6 text-center text-xs text-base-content/60 italic">
                       {archivedLoading
                         ? "Loading archived tasks…"
                         : "No archived tasks"}
@@ -2108,17 +2195,18 @@ export function SprintListView({
                   <div className="divide-y divide-border">
                     {archivedTasks.map((t) => (
                       <div
+                        className="group flex items-center gap-3 px-4 py-2 hover:bg-base-200/30 transition-colors"
                         key={t.id}
-                        className="group flex items-center gap-3 px-4 py-2 hover:bg-accent/30 transition-colors"
                       >
-                        <span className="text-2xs text-muted-foreground font-mono shrink-0 select-none">
+                        <span className="text-2xs text-base-content/60 font-mono shrink-0 select-none">
                           #{t.seqNumber}
                         </span>
-                        <span className="flex-1 text-[13px] text-muted-foreground font-medium line-through truncate">
+                        <span className="flex-1 text-[13px] text-base-content/60 font-medium line-through truncate">
                           {t.title}
                         </span>
                         {canEdit && (
                           <button
+                            className="flex items-center gap-1.5 rounded-lg border border-base-300 bg-base-100 px-2.5 py-1 text-2xs font-semibold text-base-content/60 hover:text-base-content transition-colors cursor-pointer select-none sm:hidden sm:group-hover:flex"
                             onClick={async () => {
                               await unarchiveTask(
                                 workspaceId,
@@ -2143,9 +2231,8 @@ export function SprintListView({
                                 ]);
                               });
                             }}
-                            className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none sm:hidden sm:group-hover:flex"
                           >
-                            <ArchiveIcon className="size-3.5 text-muted-foreground" />
+                            <ArchiveIcon className="size-3.5 text-base-content/60" />
                             Unarchive
                           </button>
                         )}
@@ -2159,28 +2246,33 @@ export function SprintListView({
         </div>
       ) : (
         <DndContext
-          id="sprint-board-dnd"
-          sensors={sensors}
           collisionDetection={closestCenter}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDragEnd={onDragEnd}
+          id="sprint-board-dnd"
           onDragCancel={onDragCancel}
+          onDragEnd={onDragEnd}
+          onDragOver={onDragOver}
+          onDragStart={onDragStart}
+          sensors={sensors}
         >
           {/* Sprint header row */}
           <div className="flex items-center gap-2 mb-3 px-1">
-            <LightningIcon className="size-3.5 shrink-0 text-primary" weight="fill" />
-            <span className="min-w-0 truncate text-sm font-semibold">{sprintInfo.name}</span>
-            <span className="shrink-0 text-xs text-muted-foreground">
+            <LightningIcon
+              className="size-3.5 shrink-0 text-primary"
+              weight="fill"
+            />
+            <span className="min-w-0 truncate text-sm font-semibold">
+              {sprintInfo.name}
+            </span>
+            <span className="shrink-0 text-xs text-base-content/60">
               ({formatDateRange(sprintInfo.startDate, sprintInfo.endDate)})
             </span>
             <Badge
-              variant="outline"
               className={cn(
                 "shrink-0 text-xs px-2 py-1 rounded uppercase tracking-wide",
                 sprintInfo.status === "ACTIVE" &&
                   "border-primary/30 text-primary bg-primary/10"
               )}
+              variant="outline"
             >
               {sprintInfo.status}
             </Badge>
@@ -2191,19 +2283,19 @@ export function SprintListView({
             {effectiveStatuses.map((status) => (
               <SprintBoardColumn
                 key={status.id}
+                sprintId={sprintInfo.id}
                 status={status}
+                taskNavIds={visibleOrderedTaskIds}
                 tasks={boardTasksByStatus.get(status.id) ?? []}
                 workspaceId={workspaceId}
-                sprintId={sprintInfo.id}
-                taskNavIds={visibleOrderedTaskIds}
               />
             ))}
             {noStatusBoardTasks.length > 0 && (
               <NoStatusColumn
-                tasks={noStatusBoardTasks}
-                workspaceId={workspaceId}
                 sprintId={sprintInfo.id}
                 taskNavIds={visibleOrderedTaskIds}
+                tasks={noStatusBoardTasks}
+                workspaceId={workspaceId}
               />
             )}
           </div>
@@ -2211,10 +2303,10 @@ export function SprintListView({
           <DragOverlay>
             {activeDragTask && (
               <SprintBoardCardContent
+                overlay
+                sprintId={sprintInfo.id}
                 task={activeDragTask}
                 workspaceId={workspaceId}
-                sprintId={sprintInfo.id}
-                overlay
               />
             )}
           </DragOverlay>
@@ -2224,15 +2316,15 @@ export function SprintListView({
       {selectedIds.size > 0 && (
         <BulkActionBar
           count={selectedIds.size}
-          selectedIds={selectedIds}
-          statuses={effectiveStatuses}
-          workspaceId={workspaceId}
-          spaceId={spaceId}
-          listId={listId}
           currentSprintId={sprintInfo.id}
           isAdmin={isAdmin}
+          listId={listId}
           onClear={() => setSelectedIds(new Set())}
           onRefresh={fetchData}
+          selectedIds={selectedIds}
+          spaceId={spaceId}
+          statuses={effectiveStatuses}
+          workspaceId={workspaceId}
         />
       )}
     </>

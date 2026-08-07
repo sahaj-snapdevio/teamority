@@ -33,10 +33,10 @@ export function AuthShell({
         </div>
 
         <div className="mb-7">
-          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-foreground">
+          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-base-content">
             {title}
           </h1>
-          <p className="mt-1 text-sm leading-relaxed text-foreground/70">
+          <p className="mt-1 text-sm leading-relaxed text-base-content/70">
             {description}
           </p>
         </div>

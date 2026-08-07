@@ -121,7 +121,7 @@ export function CreateSprintModal({
           {/* Sprint Name */}
           <div className="space-y-1.5">
             <Label htmlFor="sprint-name">
-              Sprint Name <span className="text-destructive">*</span>
+              Sprint Name <span className="text-error">*</span>
             </Label>
             <Input
               id="sprint-name"
@@ -137,7 +137,7 @@ export function CreateSprintModal({
           <div className="space-y-1.5">
             <Label htmlFor="sprint-goal">
               Goal{" "}
-              <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+              <span className="text-xs font-normal text-base-content/60">(optional)</span>
             </Label>
             <Textarea
               id="sprint-goal"
@@ -148,23 +148,23 @@ export function CreateSprintModal({
               rows={2}
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground text-right">{goal.length}/200</p>
+            <p className="text-xs text-base-content/60 text-right">{goal.length}/200</p>
           </div>
 
           {/* Start Date + End Date */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>
-                Start Date <span className="text-destructive">*</span>
+                Start Date <span className="text-error">*</span>
               </Label>
               <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="flex h-10 w-full items-center gap-2 rounded-md border border-input px-3 text-sm transition-colors hover:bg-accent"
+                    className="flex h-10 w-full items-center gap-2 rounded-md border border-base-300 px-3 text-sm transition-colors hover:bg-base-200"
                   >
-                    <CalendarBlankIcon className="size-3.5 text-muted-foreground shrink-0" />
-                    <span className={startDate ? "text-foreground" : "text-muted-foreground"}>
+                    <CalendarBlankIcon className="size-3.5 text-base-content/60 shrink-0" />
+                    <span className={startDate ? "text-base-content" : "text-base-content/60"}>
                       {startDate ? format(startDate, "MMM d, yyyy") : "Pick a date"}
                     </span>
                   </button>
@@ -180,7 +180,7 @@ export function CreateSprintModal({
                 </PopoverContent>
               </Popover>
               {sprintStartDay !== null && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-base-content/60">
                   Starts on {DAY_NAMES[sprintStartDay]}s
                 </p>
               )}
@@ -188,20 +188,20 @@ export function CreateSprintModal({
 
             <div className="space-y-1.5">
               <Label>End Date</Label>
-              <div className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm">
-                <CalendarBlankIcon className="size-3.5 text-muted-foreground shrink-0" />
-                <span className={endDate ? "text-foreground" : "text-muted-foreground"}>
+              <div className="flex h-10 w-full items-center gap-2 rounded-md border border-base-300 bg-base-200/40 px-3 text-sm">
+                <CalendarBlankIcon className="size-3.5 text-base-content/60 shrink-0" />
+                <span className={endDate ? "text-base-content" : "text-base-content/60"}>
                   {endDate ? format(endDate, "MMM d, yyyy") : `${durationWeeks}w from start`}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-base-content/60">
                 {durationWeeks} {durationWeeks === 1 ? "week" : "weeks"} duration
               </p>
             </div>
           </div>
 
           {/* Settings hint */}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-base-content/60">
             Duration and start day are set in{" "}
             {onOpenSettings ? (
               <button
@@ -212,14 +212,14 @@ export function CreateSprintModal({
                 Sprint Settings
               </button>
             ) : (
-              <span className="text-foreground font-medium">Sprint Settings</span>
+              <span className="text-base-content font-medium">Sprint Settings</span>
             )}
             .
           </p>
 
           {/* Error */}
           {error && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
               {error}
             </p>
           )}

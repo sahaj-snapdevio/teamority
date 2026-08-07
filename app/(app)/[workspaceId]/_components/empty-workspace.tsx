@@ -15,13 +15,13 @@ export function EmptyWorkspace({ workspaceName }: { workspaceName: string }) {
 
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="flex size-14 items-center justify-center rounded-xl bg-accent text-muted-foreground">
+      <div className="flex size-14 items-center justify-center rounded-xl bg-base-200 text-base-content/60">
         <FolderOpenIcon className="size-7" />
       </div>
-      <h2 className="mt-5 text-lg font-semibold text-foreground">
+      <h2 className="mt-5 text-lg font-semibold text-base-content">
         No projects yet
       </h2>
-      <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
+      <p className="mt-1.5 max-w-sm text-sm text-base-content/60">
         You haven&rsquo;t been added to any projects in {workspaceName}. Ask a
         workspace owner or admin to add you to a project to get started.
       </p>

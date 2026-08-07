@@ -107,7 +107,7 @@ export function SprintSettingsForm({
       <section className="space-y-4">
         <div>
           <h2 className="text-sm font-semibold">Schedule</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Control when and how long sprints run.</p>
+          <p className="text-sm text-base-content/60 mt-0.5">Control when and how long sprints run.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -148,7 +148,7 @@ export function SprintSettingsForm({
       <section className="space-y-4">
         <div>
           <h2 className="text-sm font-semibold">Naming</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Define how sprints are named and how dates display.</p>
+          <p className="text-sm text-base-content/60 mt-0.5">Define how sprints are named and how dates display.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -176,7 +176,7 @@ export function SprintSettingsForm({
                 {DATE_FORMATS.map((f) => (
                   <SelectItem key={f.value} value={f.value}>
                     <span>{f.label}</span>
-                    <span className="ml-2 text-muted-foreground text-xs">{f.example}</span>
+                    <span className="ml-2 text-base-content/60 text-xs">{f.example}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -184,11 +184,11 @@ export function SprintSettingsForm({
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-base-content/60">
           Name preview:{" "}
-          <span className="font-medium text-foreground">{namePreview}</span>
+          <span className="font-medium text-base-content">{namePreview}</span>
           {", "}
-          <span className="font-medium text-foreground">{namePreview2}</span>
+          <span className="font-medium text-base-content">{namePreview2}</span>
           {", …"}
         </p>
       </section>
@@ -199,15 +199,15 @@ export function SprintSettingsForm({
       <section className="space-y-4">
         <div>
           <h2 className="text-sm font-semibold">Automations</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Automate sprint lifecycle actions.</p>
+          <p className="text-sm text-base-content/60 mt-0.5">Automate sprint lifecycle actions.</p>
         </div>
 
-        <div className="space-y-0 divide-y divide-border rounded-md border border-border">
+        <div className="space-y-0 divide-y divide-border rounded-md border border-base-300">
           {/* Auto-mark done */}
           <div className="flex items-start justify-between gap-4 p-4">
             <div>
               <p className="text-sm font-medium">Auto-mark sprint as done</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-base-content/60 mt-0.5">
                 Automatically close the sprint when its end date passes
               </p>
             </div>
@@ -218,7 +218,7 @@ export function SprintSettingsForm({
           <div className="flex items-start justify-between gap-4 p-4">
             <div>
               <p className="text-sm font-medium">Auto-create next sprint</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-base-content/60 mt-0.5">
                 When a sprint is completed, automatically create the next one
               </p>
             </div>
@@ -230,10 +230,10 @@ export function SprintSettingsForm({
 
           {/* Move incomplete — sub-option */}
           {autoCreateNext && (
-            <div className="flex items-start justify-between gap-4 py-3 pl-6 pr-4 bg-muted/30 sm:pl-10">
+            <div className="flex items-start justify-between gap-4 py-3 pl-6 pr-4 bg-base-200/30 sm:pl-10">
               <div>
                 <p className="text-sm font-medium">Move incomplete tasks to next sprint</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Unfinished tasks carry over automatically</p>
+                <p className="text-xs text-base-content/60 mt-0.5">Unfinished tasks carry over automatically</p>
               </div>
               <Switch checked={autoMoveIncomplete} onCheckedChange={setAutoMoveIncomplete} />
             </div>
@@ -243,7 +243,7 @@ export function SprintSettingsForm({
           <div className="flex items-start justify-between gap-4 p-4">
             <div>
               <p className="text-sm font-medium">Auto-archive old sprints</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-base-content/60 mt-0.5">
                 Keep the sidebar clean by archiving completed sprints
               </p>
             </div>
@@ -254,8 +254,8 @@ export function SprintSettingsForm({
           </div>
 
           {archiveEnabled && (
-            <div className="flex flex-wrap items-center gap-3 py-3 pl-6 pr-4 bg-muted/30 sm:pl-10">
-              <p className="text-sm text-muted-foreground shrink-0">Keep last</p>
+            <div className="flex flex-wrap items-center gap-3 py-3 pl-6 pr-4 bg-base-200/30 sm:pl-10">
+              <p className="text-sm text-base-content/60 shrink-0">Keep last</p>
               <Input
                 type="number"
                 min={1}
@@ -264,7 +264,7 @@ export function SprintSettingsForm({
                 onChange={(e) => setAutoArchiveAfterN(Math.max(1, Math.min(20, Number(e.target.value))))}
                 className="w-16 h-8 text-center"
               />
-              <p className="text-sm text-muted-foreground shrink-0">sprints visible</p>
+              <p className="text-sm text-base-content/60 shrink-0">sprints visible</p>
             </div>
           )}
         </div>

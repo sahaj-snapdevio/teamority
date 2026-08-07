@@ -126,21 +126,21 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
           <CheckCircleIcon className="size-6 text-primary" weight="duotone" />
         </div>
         <div className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight text-foreground">
+          <h2 className="text-xl font-bold tracking-tight text-base-content">
             Check your inbox
           </h2>
-          <p className="text-sm leading-relaxed text-foreground/70">
+          <p className="text-sm leading-relaxed text-base-content/70">
             We sent a verification link to{" "}
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-base-content">
               {form.getValues("email")}
             </span>
             . Click it to finish setting up your account.
           </p>
         </div>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-base-content/60 text-xs">
           Already have an account?{" "}
           <Link
-            className="underline underline-offset-4 transition-colors hover:text-foreground"
+            className="underline underline-offset-4 transition-colors hover:text-base-content"
             href="/login"
           >
             Sign in
@@ -155,7 +155,7 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
       {methods.google && (
         <>
           <Button
-            className="h-11 w-full gap-2 rounded-lg border-input text-foreground disabled:opacity-60"
+            className="h-11 w-full gap-2 rounded-lg border-base-300 text-base-content disabled:opacity-60"
             disabled={busy}
             onClick={handleGoogleSignIn}
             type="button"
@@ -171,7 +171,7 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
 
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-muted-foreground text-xs">
+            <span className="text-base-content/60 text-xs">
               or sign up with email
             </span>
             <Separator className="flex-1" />
@@ -189,13 +189,13 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-semibold text-foreground">
+                <FormLabel className="text-sm font-semibold text-base-content">
                   Full name
                 </FormLabel>
                 <FormControl>
                   <Input
                     autoComplete="name"
-                    className="h-11 rounded-lg font-medium text-foreground"
+                    className="h-11 rounded-lg font-medium text-base-content"
                     placeholder="Ada Lovelace"
                     {...field}
                   />
@@ -210,13 +210,13 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-semibold text-foreground">
+                <FormLabel className="text-sm font-semibold text-base-content">
                   Email address
                 </FormLabel>
                 <FormControl>
                   <Input
                     autoComplete="email"
-                    className="h-11 rounded-lg font-medium text-foreground"
+                    className="h-11 rounded-lg font-medium text-base-content"
                     placeholder="you@example.com"
                     type="email"
                     {...field}
@@ -232,13 +232,13 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-semibold text-foreground">
+                <FormLabel className="text-sm font-semibold text-base-content">
                   Password
                 </FormLabel>
                 <FormControl>
                   <PasswordInput
                     autoComplete="new-password"
-                    className="h-11 rounded-lg font-medium text-foreground"
+                    className="h-11 rounded-lg font-medium text-base-content"
                     placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
                     {...field}
                   />
@@ -257,13 +257,13 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-semibold text-foreground">
+                <FormLabel className="text-sm font-semibold text-base-content">
                   Confirm password
                 </FormLabel>
                 <FormControl>
                   <PasswordInput
                     autoComplete="new-password"
-                    className="h-11 rounded-lg font-medium text-foreground"
+                    className="h-11 rounded-lg font-medium text-base-content"
                     placeholder="Re-enter your password"
                     {...field}
                   />
@@ -282,7 +282,7 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
           )}
 
           <Button
-            className="h-11 w-full gap-2 rounded-lg text-sm font-semibold shadow-sm disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none"
+            className="h-11 w-full gap-2 rounded-lg text-sm font-semibold shadow-sm disabled:bg-base-200 disabled:text-base-content/60 disabled:opacity-100 disabled:shadow-none"
             disabled={!isValid || busy}
             type="submit"
           >
@@ -301,10 +301,10 @@ export function SignupForm({ methods }: { methods: AuthMethods }) {
         </form>
       </Form>
 
-      <p className="pt-1 text-center text-sm text-foreground/70">
+      <p className="pt-1 text-center text-sm text-base-content/70">
         Already have an account?{" "}
         <Link
-          className="font-semibold text-foreground underline underline-offset-4 transition-opacity hover:opacity-80"
+          className="font-semibold text-base-content underline underline-offset-4 transition-opacity hover:opacity-80"
           href="/login"
         >
           Sign in

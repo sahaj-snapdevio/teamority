@@ -150,17 +150,17 @@ function useLoginForm(methods: AuthMethods) {
 
 function TermsNotice({ className = "" }: { className?: string }) {
   return (
-    <p className={`text-center text-muted-foreground text-xs ${className}`}>
+    <p className={`text-center text-base-content/60 text-xs ${className}`}>
       By signing in you agree to our{" "}
       <a
-        className="underline underline-offset-4 hover:text-foreground transition-colors"
+        className="underline underline-offset-4 hover:text-base-content transition-colors"
         href="/terms"
       >
         Terms of Service
       </a>{" "}
       and{" "}
       <a
-        className="underline underline-offset-4 hover:text-foreground transition-colors"
+        className="underline underline-offset-4 hover:text-base-content transition-colors"
         href="/privacy"
       >
         Privacy Policy
@@ -200,21 +200,21 @@ export function LoginFormFlat({
           <CheckCircleIcon className="size-6 text-primary" weight="duotone" />
         </div>
         <div className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight text-foreground">
+          <h2 className="text-xl font-bold tracking-tight text-base-content">
             Check your inbox
           </h2>
-          <p className="text-sm leading-relaxed text-foreground/70">
+          <p className="text-sm leading-relaxed text-base-content/70">
             We sent a sign-in link to{" "}
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-base-content">
               {form.getValues("email")}
             </span>
             .
           </p>
         </div>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-base-content/60 text-xs">
           {"Didn't receive it? "}
           <button
-            className="underline underline-offset-4 hover:text-foreground transition-colors"
+            className="underline underline-offset-4 hover:text-base-content transition-colors"
             onClick={() => setSent(false)}
           >
             Try again
@@ -229,7 +229,7 @@ export function LoginFormFlat({
       {methods.google && (
         <>
           <Button
-            className="w-full gap-2 rounded-lg h-11 text-foreground border-input disabled:opacity-60"
+            className="w-full gap-2 rounded-lg h-11 text-base-content border-base-300 disabled:opacity-60"
             disabled={busy}
             onClick={handleGoogleSignIn}
             type="button"
@@ -245,7 +245,7 @@ export function LoginFormFlat({
 
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-muted-foreground text-xs">
+            <span className="text-base-content/60 text-xs">
               or continue with email
             </span>
             <Separator className="flex-1" />
@@ -263,13 +263,13 @@ export function LoginFormFlat({
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-semibold text-foreground">
+                <FormLabel className="text-sm font-semibold text-base-content">
                   Email address
                 </FormLabel>
                 <FormControl>
                   <Input
                     autoComplete="email"
-                    className="h-11 rounded-lg text-foreground font-medium"
+                    className="h-11 rounded-lg text-base-content font-medium"
                     placeholder="you@example.com"
                     type="email"
                     {...field}
@@ -287,12 +287,12 @@ export function LoginFormFlat({
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel className="text-sm font-semibold text-foreground">
+                    <FormLabel className="text-sm font-semibold text-base-content">
                       Password
                     </FormLabel>
                     {methods.passwordReset && (
                       <Link
-                        className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+                        className="text-xs text-base-content/60 underline underline-offset-4 hover:text-base-content transition-colors"
                         href="/forgot-password"
                       >
                         Forgot password?
@@ -302,7 +302,7 @@ export function LoginFormFlat({
                   <FormControl>
                     <PasswordInput
                       autoComplete="current-password"
-                      className="h-11 rounded-lg text-foreground font-medium"
+                      className="h-11 rounded-lg text-base-content font-medium"
                       placeholder="Enter your password"
                       {...field}
                       value={field.value ?? ""}
@@ -323,7 +323,7 @@ export function LoginFormFlat({
           )}
 
           <Button
-            className="w-full gap-2 h-11 rounded-lg text-sm font-semibold shadow-sm disabled:opacity-100 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+            className="w-full gap-2 h-11 rounded-lg text-sm font-semibold shadow-sm disabled:opacity-100 disabled:bg-base-200 disabled:text-base-content/60 disabled:shadow-none"
             disabled={!isValid || busy}
             type="submit"
           >
@@ -366,10 +366,10 @@ export function LoginFormFlat({
       </Form>
 
       {passwordEnabled && (
-        <p className="text-center text-sm text-foreground/70">
+        <p className="text-center text-sm text-base-content/70">
           {"Don't have an account? "}
           <Link
-            className="font-semibold text-foreground underline underline-offset-4 hover:opacity-80 transition-opacity"
+            className="font-semibold text-base-content underline underline-offset-4 hover:opacity-80 transition-opacity"
             href="/signup"
           >
             Sign up
@@ -411,18 +411,18 @@ export function LoginForm({
           </div>
           <div className="space-y-1">
             <h2 className="font-semibold text-lg">Check your inbox</h2>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-base-content/60 text-sm">
               We sent a sign-in link to{" "}
-              <span className="font-medium text-foreground">
+              <span className="font-medium text-base-content">
                 {form.getValues("email")}
               </span>
               .
             </p>
           </div>
-          <p className="text-muted-foreground text-xs">
+          <p className="text-base-content/60 text-xs">
             {"Didn't receive it? "}
             <button
-              className="underline underline-offset-4 hover:text-foreground transition-colors"
+              className="underline underline-offset-4 hover:text-base-content transition-colors"
               onClick={() => setSent(false)}
             >
               Try again
@@ -441,7 +441,7 @@ export function LoginForm({
         </div>
         <div>
           <h2 className="text-xl font-bold">Sign in</h2>
-          <p className="text-muted-foreground text-sm mt-0.5">
+          <p className="text-base-content/60 text-sm mt-0.5">
             {passwordEnabled
               ? "Enter your email and password to continue."
               : "Enter your email and we'll send you a magic link."}
@@ -465,7 +465,7 @@ export function LoginForm({
             </Button>
             <div className="flex items-center gap-3">
               <Separator className="flex-1" />
-              <span className="text-muted-foreground text-xs">
+              <span className="text-base-content/60 text-xs">
                 or continue with email
               </span>
               <Separator className="flex-1" />

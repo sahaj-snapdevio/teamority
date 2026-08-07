@@ -41,8 +41,8 @@ const SECTIONS: {
     bucket: "overdue",
     emoji: "🔴",
     label: "Overdue",
-    labelClass: "text-destructive",
-    dotClass: "bg-destructive",
+    labelClass: "text-error",
+    dotClass: "bg-error",
     emptyLabel: "No overdue tasks 🎉",
   },
   {
@@ -90,15 +90,15 @@ function DeadlineRow({
     : null;
   return (
     <Link
-      className="flex items-start gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-accent/30 transition-colors"
+      className="flex items-start gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-base-200/30 transition-colors"
       href={`/${workspaceId}/task/${task.id}`}
     >
       <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${dotClass}`} />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-foreground/90">{task.title}</p>
+        <p className="truncate font-medium text-base-content/90">{task.title}</p>
         {deadline && (
           <p
-            className={`mt-0.5 text-xs ${bucketKey === "overdue" ? "text-destructive" : "text-muted-foreground"}`}
+            className={`mt-0.5 text-xs ${bucketKey === "overdue" ? "text-error" : "text-base-content/60"}`}
           >
             {deadline.text}
           </p>
@@ -142,7 +142,7 @@ export function UpcomingDeadlines({
       </CardHeader>
       <CardContent>
         {isEmpty ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
+          <p className="py-10 text-center text-sm text-base-content/60">
             Nothing due soon 🎉
           </p>
         ) : (
@@ -162,11 +162,11 @@ export function UpcomingDeadlines({
                     )}
                   </p>
                   {total === 0 ? (
-                    <p className="rounded-lg bg-muted/40 px-2.5 py-2 text-sm text-muted-foreground/70">
+                    <p className="rounded-lg bg-base-200/40 px-2.5 py-2 text-sm text-base-content/70">
                       {section.emptyLabel}
                     </p>
                   ) : (
-                    <div className="space-y-0.5 rounded-lg bg-muted/40 p-1">
+                    <div className="space-y-0.5 rounded-lg bg-base-200/40 p-1">
                       {tasks.map((t) => (
                         <DeadlineRow
                           bucketKey={section.key}

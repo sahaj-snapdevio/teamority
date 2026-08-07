@@ -15,16 +15,16 @@ const STATUS_LABEL: Record<IntegrationStatus, string> = {
 
 const STATUS_DOT_CLASS: Record<IntegrationStatus, string> = {
   configured: "bg-success",
-  "not-configured": "bg-muted-foreground",
+  "not-configured": "bg-base-content/60",
   "restart-required": "bg-warning",
-  failed: "bg-destructive",
+  failed: "bg-error",
 };
 
 const STATUS_BADGE_CLASS: Record<IntegrationStatus, string> = {
-  configured: "border-success/30 bg-success-subtle text-success-foreground",
-  "not-configured": "border-border bg-muted-foreground/10 text-foreground/70",
+  configured: "border-success/30 bg-success-subtle text-success-strong",
+  "not-configured": "border-base-300 bg-base-content/10 text-base-content/70",
   "restart-required": "border-warning/30 bg-warning/10 text-warning",
-  failed: "border-destructive/30 bg-destructive/10 text-destructive",
+  failed: "border-error/30 bg-error/10 text-error",
 };
 
 /** Shared status badge for provider cards on /orbit/integrations and the

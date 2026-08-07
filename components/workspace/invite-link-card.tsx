@@ -118,7 +118,7 @@ export function InviteLinkCard({
 
             {canManage && (
               <div className="flex flex-wrap items-center gap-2">
-                <Label className="text-xs text-muted-foreground">
+                <Label className="text-xs text-base-content/60">
                   Joins as
                 </Label>
                 <Select
@@ -225,7 +225,7 @@ export function InviteLinkCard({
             Enable invite link
           </Button>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-base-content/60">
             No invite link is active. An owner or admin can enable one.
           </p>
         )}

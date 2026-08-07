@@ -98,9 +98,9 @@ function Stepper({ step }: { step: 1 | 2 | 3 | 4 }) {
           <div
             className={cn(
               "flex size-7 items-center justify-center rounded-full text-xs font-semibold transition-colors",
-              n < step && "bg-primary text-primary-foreground",
-              n === step && "bg-primary text-primary-foreground",
-              n > step && "bg-muted text-muted-foreground"
+              n < step && "bg-primary text-primary-content",
+              n === step && "bg-primary text-primary-content",
+              n > step && "bg-base-200 text-base-content/60"
             )}
           >
             {n < step ? <CheckIcon className="size-4" weight="bold" /> : n}
@@ -207,21 +207,21 @@ export function SetupWizard() {
     step === "theme" ? 1 : step === "account" ? 2 : step === "services" ? 3 : 4;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-base-200/30 p-4">
       <div className="w-full max-w-md">
         <Stepper step={stepNumber} />
 
-        <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
+        <div className="rounded-xl border bg-elevated p-6 shadow-sm sm:p-8">
           {step === "theme" && (
             <div className="space-y-6">
               <div className="text-center">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary text-primary-content">
                   <RocketLaunchIcon className="size-6" weight="fill" />
                 </div>
                 <h1 className="mt-4 text-xl font-bold">
                   Welcome to {PRODUCT_NAME}
                 </h1>
-                <p className="mt-1.5 text-sm text-muted-foreground">
+                <p className="mt-1.5 text-sm text-base-content/60">
                   Let&rsquo;s get your instance set up. Pick a look — you can
                   change it later in Appearance settings.
                 </p>
@@ -235,10 +235,10 @@ export function SetupWizard() {
                     return (
                       <button
                         className={cn(
-                          "flex flex-col items-center gap-1.5 rounded-lg border p-2 transition-colors hover:bg-accent/50",
+                          "flex flex-col items-center gap-1.5 rounded-lg border p-2 transition-colors hover:bg-base-200/50",
                           selected
                             ? "border-primary ring-2 ring-primary/20"
-                            : "border-border"
+                            : "border-base-300"
                         )}
                         key={opt.id}
                         onClick={() => pickTheme(opt.id)}
@@ -272,16 +272,16 @@ export function SetupWizard() {
                     return (
                       <button
                         className={cn(
-                          "flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-colors hover:bg-accent/50",
+                          "flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-colors hover:bg-base-200/50",
                           selected
                             ? "border-primary ring-2 ring-primary/20"
-                            : "border-border"
+                            : "border-base-300"
                         )}
                         key={value}
                         onClick={() => pickAppearance(value)}
                         type="button"
                       >
-                        <Icon className="size-5 text-muted-foreground" />
+                        <Icon className="size-5 text-base-content/60" />
                         <span className="text-xs font-medium">{label}</span>
                       </button>
                     );
@@ -301,7 +301,7 @@ export function SetupWizard() {
             <form className="space-y-5" onSubmit={handleCreate}>
               <div className="text-center">
                 <h1 className="text-xl font-bold">Set up your account</h1>
-                <p className="mt-1.5 text-sm text-muted-foreground">
+                <p className="mt-1.5 text-sm text-base-content/60">
                   This is the administrator account for {PRODUCT_NAME}.
                 </p>
               </div>
@@ -353,7 +353,7 @@ export function SetupWizard() {
                     aria-label={
                       showPassword ? "Hide password" : "Show password"
                     }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/60 hover:text-base-content"
                     onClick={() => setShowPassword((s) => !s)}
                     tabIndex={-1}
                     type="button"
@@ -408,7 +408,7 @@ export function SetupWizard() {
             <div className="space-y-6">
               <div className="text-center">
                 <h1 className="text-xl font-bold">Configure services</h1>
-                <p className="mt-1.5 text-sm text-muted-foreground">
+                <p className="mt-1.5 text-sm text-base-content/60">
                   These integrations are optional. You can also configure them
                   later from Settings → Integrations. Your admin password works
                   fine either way.
@@ -483,7 +483,7 @@ export function SetupWizard() {
                 </IntegrationConfigCard>
               </div>
 
-              <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col-reverse gap-3 border-t border-base-300 pt-6 sm:flex-row sm:items-center sm:justify-between">
                 <Button
                   className="w-full gap-2 sm:w-auto"
                   onClick={() => setStep("done")}
@@ -505,18 +505,18 @@ export function SetupWizard() {
 
           {step === "done" && (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
-              <SpinnerGapIcon className="size-8 animate-spin text-muted-foreground" />
+              <SpinnerGapIcon className="size-8 animate-spin text-base-content/60" />
               <h1 className="text-lg font-semibold">
                 Setting up your workspace…
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-base-content/60">
                 Redirecting to your dashboard…
               </p>
             </div>
           )}
         </div>
 
-        <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-base-content/60">
           <CheckIcon className="size-3.5 text-primary" weight="bold" />
           Runs once — this page disappears after your first admin is created.
         </p>

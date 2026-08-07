@@ -288,7 +288,7 @@ export function CustomFieldsSettings({
             <DialogTitle className="text-center text-base">
               Delete &ldquo;{deleteTarget?.name}&rdquo;?
             </DialogTitle>
-            <p className="text-center text-sm leading-relaxed text-muted-foreground">
+            <p className="text-center text-sm leading-relaxed text-base-content/60">
               {deleteUsage === null ? (
                 <>
                   This will permanently delete the field and remove all stored
@@ -302,7 +302,7 @@ export function CustomFieldsSettings({
               ) : (
                 <>
                   This will permanently delete the field and its values from{" "}
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-base-content">
                     {deleteUsage} {deleteUsage === 1 ? "task" : "tasks"}
                   </span>
                   .
@@ -359,13 +359,13 @@ export function CustomFieldsSettings({
       </div>
 
       {fields.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-16 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-            <DatabaseIcon className="size-6 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-base-300 py-16 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-base-200">
+            <DatabaseIcon className="size-6 text-base-content/60" />
           </div>
           <div className="space-y-1">
             <p className="text-sm font-semibold">No custom fields yet</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-base-content/60">
               Create your first custom field.
             </p>
           </div>
@@ -395,7 +395,7 @@ export function CustomFieldsSettings({
               {visibleFields.length === 0 && (
                 <TableRow>
                   <TableCell
-                    className="py-6 text-center text-muted-foreground text-sm"
+                    className="py-6 text-center text-base-content/60 text-sm"
                     colSpan={5}
                   >
                     No fields match &ldquo;{search}&rdquo;
@@ -452,7 +452,7 @@ function FieldRow({
             {...attributes}
             {...listeners}
             aria-label="Drag to reorder"
-            className="flex touch-none items-center justify-center text-muted-foreground/40 hover:text-muted-foreground transition-colors cursor-grab active:cursor-grabbing"
+            className="flex touch-none items-center justify-center text-base-content/40 hover:text-base-content/60 transition-colors cursor-grab active:cursor-grabbing"
             type="button"
           >
             <DotsSixVerticalIcon className="size-4" />
@@ -461,7 +461,7 @@ function FieldRow({
       </TableCell>
       <TableCell className="font-medium">{field.name}</TableCell>
       <TableCell>
-        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 text-sm text-base-content/60">
           <meta.icon className="size-3.5" />
           {meta.label}
         </span>
@@ -471,7 +471,7 @@ function FieldRow({
           className={
             field.required
               ? "rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-primary"
-              : "rounded-full border border-border bg-muted px-2 py-0.5 text-muted-foreground"
+              : "rounded-full border border-base-300 bg-base-200 px-2 py-0.5 text-base-content/60"
           }
           variant={field.required ? "default" : "secondary"}
         >
@@ -482,7 +482,7 @@ function FieldRow({
         <div className="flex items-center justify-end gap-0.5">
           {!field.isArchived && (
             <button
-              className="flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="flex size-7 items-center justify-center rounded text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
               onClick={onEdit}
               title="Edit field"
               type="button"
@@ -493,7 +493,7 @@ function FieldRow({
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className="flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="flex size-7 items-center justify-center rounded text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                 title="More actions"
                 type="button"
               >
@@ -502,14 +502,14 @@ function FieldRow({
             </PopoverTrigger>
             <PopoverContent align="end" className="w-40 p-1">
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-base-200"
                 onClick={onEdit}
                 type="button"
               >
                 <PencilSimpleIcon className="size-3.5" /> Edit
               </button>
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-base-200"
                 onClick={onArchiveToggle}
                 type="button"
               >
@@ -525,7 +525,7 @@ function FieldRow({
               </button>
               <div className="my-1 h-px bg-border" />
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-destructive hover:bg-destructive/10"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-error hover:bg-error/10"
                 onClick={onDelete}
                 type="button"
               >
@@ -723,7 +723,7 @@ function FieldFormDialog({
               </SelectContent>
             </Select>
             {isEdit && (
-              <p className="text-2xs text-muted-foreground">
+              <p className="text-2xs text-base-content/60">
                 Type can&rsquo;t be changed after creation.
               </p>
             )}
@@ -822,16 +822,16 @@ function FieldFormDialog({
               <Popover onOpenChange={setDateOpen} open={dateOpen}>
                 <PopoverTrigger asChild>
                   <button
-                    className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm"
+                    className="flex h-9 w-full items-center justify-between rounded-md border border-base-300 bg-base-100 px-3 text-sm"
                     disabled={busy}
                     type="button"
                   >
                     {typeof defaultValue === "string" && defaultValue ? (
                       format(new Date(defaultValue), "MMM d, yyyy")
                     ) : (
-                      <span className="text-muted-foreground">No default</span>
+                      <span className="text-base-content/60">No default</span>
                     )}
-                    <CalendarBlankIcon className="size-3.5 text-muted-foreground" />
+                    <CalendarBlankIcon className="size-3.5 text-base-content/60" />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-auto p-0">
@@ -881,7 +881,7 @@ function FieldFormDialog({
             </div>
           )}
 
-          {error && <p className="text-destructive text-sm">{error}</p>}
+          {error && <p className="text-error text-sm">{error}</p>}
         </div>
         <DialogFooter>
           <Button

@@ -34,7 +34,7 @@ function ProjectStat({
       >
         {value}
       </p>
-      <p className="mt-1 text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-medium text-base-content/60">{label}</p>
     </div>
   );
 }
@@ -55,7 +55,7 @@ export function ProjectsTable({
       </CardHeader>
       <CardContent>
         {projects.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
+          <p className="py-10 text-center text-sm text-base-content/60">
             No projects yet
           </p>
         ) : (
@@ -64,7 +64,7 @@ export function ProjectsTable({
               const hasActiveSprint = sprintSpaceIds.has(p.id);
               return (
                 <Link
-                  className="block rounded-xl border border-border p-4 transition-colors hover:bg-accent/30"
+                  className="block rounded-xl border border-base-300 p-4 transition-colors hover:bg-base-200/30"
                   href={`/${workspaceId}/${p.id}`}
                   key={p.id}
                   style={{
@@ -79,7 +79,7 @@ export function ProjectsTable({
                         emoji={p.logoEmoji}
                         size="sm"
                       />
-                      <span className="truncate text-sm font-semibold text-foreground">
+                      <span className="truncate text-sm font-semibold text-base-content">
                         {p.name}
                       </span>
                     </div>
@@ -87,7 +87,7 @@ export function ProjectsTable({
                       <div className="flex shrink-0 items-center gap-1.5">
                         {hasActiveSprint && (
                           <Badge
-                            className="gap-1 rounded-full border border-success/30 bg-success-subtle px-2 py-0.5 text-2xs text-success-foreground"
+                            className="gap-1 rounded-full border border-success/30 bg-success-subtle px-2 py-0.5 text-2xs text-success-strong"
                             variant="outline"
                           >
                             <span className="size-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -111,7 +111,7 @@ export function ProjectsTable({
                       className="h-2.5 flex-1"
                       value={p.completedPercent}
                     />
-                    <span className="w-10 shrink-0 text-right text-sm font-semibold tabular-nums text-foreground">
+                    <span className="w-10 shrink-0 text-right text-sm font-semibold tabular-nums text-base-content">
                       {p.completedPercent}%
                     </span>
                   </div>

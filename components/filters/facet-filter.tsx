@@ -95,7 +95,7 @@ export function FacetOptionList({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={searchPlaceholder}
-          className="mb-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+          className="mb-1 w-full rounded-md border border-base-300 bg-base-100 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
         />
       )}
       <div
@@ -107,7 +107,7 @@ export function FacetOptionList({
       >
         {filtered.length === 0 ? (
           canCreate ? null : (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            <p className="px-2 py-1.5 text-xs text-base-content/60">
               {emptyText}
             </p>
           )
@@ -120,7 +120,7 @@ export function FacetOptionList({
                 type="button"
                 aria-pressed={active}
                 onClick={() => handleToggle(o.value)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-base-200"
               >
                 {/* Visual indicator only — the row itself is the button, so a
                     real (button-based) Checkbox/Radio here would nest buttons.
@@ -128,14 +128,14 @@ export function FacetOptionList({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "flex size-4 shrink-0 items-center justify-center border border-input transition-colors",
+                    "flex size-4 shrink-0 items-center justify-center border border-base-300 transition-colors",
                     single ? "rounded-full" : "rounded-none",
-                    active && "border-primary bg-primary text-primary-foreground",
+                    active && "border-primary bg-primary text-primary-content",
                   )}
                 >
                   {active &&
                     (single ? (
-                      <span className="size-1.5 rounded-full bg-primary-foreground" />
+                      <span className="size-1.5 rounded-full bg-primary-content" />
                     ) : (
                       <CheckIcon className="size-3" weight="bold" />
                     ))}
@@ -156,7 +156,7 @@ export function FacetOptionList({
           <button
             type="button"
             onClick={handleCreate}
-            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs text-primary hover:bg-accent"
+            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs text-primary hover:bg-base-200"
           >
             <PlusIcon className="size-3.5 shrink-0" />
             <span className="truncate">Create “{trimmedQuery}”</span>
@@ -169,7 +169,7 @@ export function FacetOptionList({
           <button
             type="button"
             onClick={() => onChange([])}
-            className="mt-1 w-full rounded-md px-2 py-1 text-center text-xs text-muted-foreground hover:bg-accent"
+            className="mt-1 w-full rounded-md px-2 py-1 text-center text-xs text-base-content/60 hover:bg-base-200"
           >
             {clearLabel}
           </button>
@@ -230,7 +230,7 @@ export function FacetFilter({
             "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
             count > 0
               ? "border-primary bg-primary/10 text-primary"
-              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+              : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content",
             className,
           )}
         >

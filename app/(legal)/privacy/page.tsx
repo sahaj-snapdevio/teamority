@@ -11,10 +11,10 @@ export default function PrivacyPage() {
     <article className="space-y-8">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground">Last updated: June 2026</p>
+        <p className="text-sm text-base-content/60">Last updated: June 2026</p>
       </header>
 
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-relaxed text-foreground/80">
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-relaxed text-base-content/80">
         <strong className="font-semibold">Template notice —</strong> This is a
         starter Privacy Policy provided for self-hosters. It is not legal
         advice. Review it with your own legal counsel and replace it with a
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
         handles data before using it in production.
       </div>
 
-      <p className="text-sm leading-relaxed text-foreground/80">
+      <p className="text-sm leading-relaxed text-base-content/80">
         This Privacy Policy explains how {PRODUCT_NAME} collects, uses, and
         protects your information when you use the Service. By using
         {" "}{PRODUCT_NAME}, you agree to the practices described here.
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">1. Information we collect</h2>
-        <p className="text-sm leading-relaxed text-foreground/80">
+        <p className="text-sm leading-relaxed text-base-content/80">
           We collect the email address you use to sign in, profile details you
           provide (such as your name and avatar), and the content you create in
           the Service — including workspaces, projects, tasks, comments, and
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">2. How we use information</h2>
-        <p className="text-sm leading-relaxed text-foreground/80">
+        <p className="text-sm leading-relaxed text-base-content/80">
           We use your information to provide and maintain the Service,
           authenticate you via secure magic links, send transactional emails
           (such as sign-in links and notifications), and improve reliability and
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">3. Sharing</h2>
-        <p className="text-sm leading-relaxed text-foreground/80">
+        <p className="text-sm leading-relaxed text-base-content/80">
           Content you create is visible to members of the workspaces you belong
           to, according to their permissions. We share data with service
           providers (such as email and hosting) only as needed to run the
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">4. Data retention</h2>
-        <p className="text-sm leading-relaxed text-foreground/80">
+        <p className="text-sm leading-relaxed text-base-content/80">
           We retain your information for as long as your account is active.
           When you delete your account, we remove your personal data, subject to
           limited retention required for legal or security purposes.
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">5. Security</h2>
-        <p className="text-sm leading-relaxed text-foreground/80">
+        <p className="text-sm leading-relaxed text-base-content/80">
           We use industry-standard measures to protect your data in transit and
           at rest. No method of transmission or storage is completely secure, so
           we cannot guarantee absolute security.
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">6. Your rights</h2>
-        <p className="text-sm leading-relaxed text-foreground/80">
+        <p className="text-sm leading-relaxed text-base-content/80">
           You can access and update your profile, export your data, and delete
           your account from within the Service. To exercise additional rights
           available under applicable law, contact us using the details below.
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">7. Contact</h2>
-        <p className="text-sm leading-relaxed text-foreground/80">
+        <p className="text-sm leading-relaxed text-base-content/80">
           Questions about this policy or your data? Email us at{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}

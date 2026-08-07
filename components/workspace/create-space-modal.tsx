@@ -100,7 +100,7 @@ export function CreateSpaceModal({ open, onOpenChange, workspaceId }: CreateSpac
                   onClick={() => setColor(c)}
                   className={cn(
                     "h-7 w-7 rounded-full border-2 transition-transform hover:scale-110",
-                    color === c ? "scale-110 border-foreground" : "border-transparent",
+                    color === c ? "scale-110 border-base-content" : "border-transparent",
                   )}
                   style={{ backgroundColor: c }}
                 />
@@ -120,11 +120,11 @@ export function CreateSpaceModal({ open, onOpenChange, workspaceId }: CreateSpac
                     "flex-1 rounded-md border px-3 py-2 text-left text-sm transition-colors",
                     (v === "private") === isPrivate
                       ? "border-primary bg-primary/5 font-medium"
-                      : "border-border hover:bg-accent",
+                      : "border-base-300 hover:bg-base-200",
                   )}
                 >
                   {v === "public" ? "🌐 Public" : "🔒 Private"}
-                  <p className="mt-0.5 font-normal text-muted-foreground text-xs">
+                  <p className="mt-0.5 font-normal text-base-content/60 text-xs">
                     {v === "public" ? "All workspace members" : "Only invited members"}
                   </p>
                 </button>

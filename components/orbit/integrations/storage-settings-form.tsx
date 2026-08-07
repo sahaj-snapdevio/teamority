@@ -186,7 +186,7 @@ export function StorageSettingsForm({
           <div className="space-y-1.5">
             <Label htmlFor="storage-region">
               Region{" "}
-              <span className="font-normal text-muted-foreground">
+              <span className="font-normal text-base-content/60">
                 (&ldquo;auto&rdquo; for R2)
               </span>
             </Label>
@@ -204,7 +204,7 @@ export function StorageSettingsForm({
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="storage-endpoint">
               Endpoint{" "}
-              <span className="font-normal text-muted-foreground">
+              <span className="font-normal text-base-content/60">
                 (R2/MinIO — omit for AWS S3)
               </span>
             </Label>
@@ -249,7 +249,7 @@ export function StorageSettingsForm({
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="storage-public-url">
               Public URL{" "}
-              <span className="font-normal text-muted-foreground">
+              <span className="font-normal text-base-content/60">
                 (optional — CDN/custom domain)
               </span>
             </Label>

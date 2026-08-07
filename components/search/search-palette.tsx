@@ -478,7 +478,7 @@ export function SearchPalette({
       {/* Panel */}
       <div
         className={cn(
-          "relative z-10 flex w-[min(880px,92vw)] flex-col overflow-hidden rounded-xl border bg-card shadow-2xl transition-[height] duration-200",
+          "relative z-10 flex w-[min(880px,92vw)] flex-col overflow-hidden rounded-xl border bg-elevated shadow-2xl transition-[height] duration-200",
           // Grow to fit ~4–5 result rows only when there's data; otherwise keep
           // the compact default so an empty palette isn't oversized. dvh (not
           // vh) on mobile so the panel shrinks with the on-screen keyboard
@@ -490,9 +490,9 @@ export function SearchPalette({
       >
         {/* Search input — the dominant element. */}
         <div className="flex h-[66px] shrink-0 items-center gap-3 border-b px-4 sm:gap-4 sm:px-6">
-          <MagnifyingGlassIcon className="size-6 shrink-0 text-muted-foreground" />
+          <MagnifyingGlassIcon className="size-6 shrink-0 text-base-content/60" />
           <input
-            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-lg"
+            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-base-content/60 sm:text-lg"
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onInputKeyDown}
             placeholder="Search tasks, lists, projects, members — or filter below…"
@@ -503,7 +503,7 @@ export function SearchPalette({
           {query && (
             <button
               aria-label="Clear search"
-              className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="flex size-6 shrink-0 items-center justify-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content"
               onClick={() => setQuery("")}
               type="button"
             >
@@ -512,7 +512,7 @@ export function SearchPalette({
           )}
           <button
             aria-label="Close"
-            className="flex size-7 shrink-0 items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30"
+            className="flex size-7 shrink-0 items-center justify-center rounded-md bg-error/10 text-error hover:bg-error/20 dark:bg-error/20 dark:hover:bg-error/30"
             onClick={onClose}
             type="button"
           >
@@ -523,7 +523,7 @@ export function SearchPalette({
         {/* Filter row — high-value facets inline; the rest behind "More filters".
             The muted background groups the filter controls into their own zone,
             distinct from the search box above and the results below. */}
-        <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-b bg-muted/30 px-3 py-3 sm:px-5">
+        <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-b bg-base-200/30 px-3 py-3 sm:px-5">
           <FacetFilter
             label="Type"
             onChange={(n) => set("type", (n[0] as SearchEntityType) ?? "all")}
@@ -555,7 +555,7 @@ export function SearchPalette({
                   "flex h-9 shrink-0 select-none items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition-colors",
                   moreCount > 0
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
                 )}
                 type="button"
               >
@@ -654,7 +654,7 @@ export function SearchPalette({
                   "flex h-9 shrink-0 select-none items-center rounded-full border px-3 text-xs font-medium transition-colors",
                   activeQuick
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
                 )}
                 key={q.label}
                 onClick={() => toggleQuick(q)}
@@ -668,12 +668,12 @@ export function SearchPalette({
 
         {/* Active-filter chips */}
         {activeChips.length > 0 && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-muted/30 px-3 py-2.5 sm:px-5">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-base-200/30 px-3 py-2.5 sm:px-5">
             {activeChips.map((c) => (
               <FilterChip key={c.key} label={c.label} onRemove={c.onRemove} />
             ))}
             <button
-              className="ml-auto shrink-0 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+              className="ml-auto shrink-0 rounded-md px-2 py-1 text-xs font-medium text-base-content/60 hover:text-base-content"
               onClick={() => setFilters({})}
               type="button"
             >
@@ -689,10 +689,10 @@ export function SearchPalette({
             <div className="space-y-1.5 p-3">
               {SKELETON_ROWS.map((k) => (
                 <div className="flex items-center gap-3 px-3 py-3" key={k}>
-                  <div className="size-2 shrink-0 animate-pulse rounded-full bg-muted" />
+                  <div className="size-2 shrink-0 animate-pulse rounded-full bg-base-200" />
                   <div className="flex-1 space-y-1.5">
-                    <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
-                    <div className="h-2.5 w-1/3 animate-pulse rounded bg-muted" />
+                    <div className="h-3 w-1/2 animate-pulse rounded bg-base-200" />
+                    <div className="h-2.5 w-1/3 animate-pulse rounded bg-base-200" />
                   </div>
                 </div>
               ))}
@@ -701,8 +701,8 @@ export function SearchPalette({
 
           {!loading && searching && !hasResults && (
             <div className="flex flex-col items-center gap-2.5 py-16">
-              <MagnifyingGlassIcon className="size-8 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">
+              <MagnifyingGlassIcon className="size-8 text-base-content/30" />
+              <p className="text-sm text-base-content/60">
                 No results{debouncedQuery ? ` for “${debouncedQuery}”` : ""}
               </p>
             </div>
@@ -713,11 +713,11 @@ export function SearchPalette({
               {recent.length > 0 && (
                 <section className="pb-3">
                   <div className="flex items-center justify-between px-3 pb-1.5">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-base-content/60">
                       Recent searches
                     </p>
                     <button
-                      className="text-2xs text-muted-foreground hover:text-foreground"
+                      className="text-2xs text-base-content/60 hover:text-base-content"
                       onClick={() => {
                         clearRecentSearches(workspaceId);
                         setRecent([]);
@@ -729,17 +729,17 @@ export function SearchPalette({
                   </div>
                   {recent.map((r) => (
                     <button
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-base-200"
                       key={`${r.at}-${r.query}`}
                       onClick={() => applyRecent(r)}
                       type="button"
                     >
-                      <ClockIcon className="size-4 shrink-0 text-muted-foreground" />
+                      <ClockIcon className="size-4 shrink-0 text-base-content/60" />
                       <span className="flex-1 truncate text-sm">
                         {r.query || "Filtered search"}
                       </span>
                       {recentFilterCount(r) > 0 && (
-                        <span className="shrink-0 text-2xs text-muted-foreground">
+                        <span className="shrink-0 text-2xs text-base-content/60">
                           {recentFilterCount(r)} filter
                           {recentFilterCount(r) > 1 ? "s" : ""}
                         </span>
@@ -751,7 +751,7 @@ export function SearchPalette({
 
               <RecentOpenedSection
                 icon={
-                  <CheckSquareIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <CheckSquareIcon className="size-4 shrink-0 text-base-content/60" />
                 }
                 items={recentTasks}
                 onClear={
@@ -762,7 +762,7 @@ export function SearchPalette({
               />
               <RecentOpenedSection
                 icon={
-                  <SquaresFourIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <SquaresFourIcon className="size-4 shrink-0 text-base-content/60" />
                 }
                 items={recentProjects}
                 onClear={
@@ -775,7 +775,7 @@ export function SearchPalette({
               />
               <RecentOpenedSection
                 icon={
-                  <ListIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <ListIcon className="size-4 shrink-0 text-base-content/60" />
                 }
                 items={recentLists}
                 onClear={
@@ -794,11 +794,11 @@ export function SearchPalette({
                   so this doesn't repeat them. */}
               {recent.length === 0 && recentOpened.length === 0 && (
                 <section className="flex flex-col items-center gap-2 px-3 py-14 text-center">
-                  <MagnifyingGlassIcon className="size-8 text-muted-foreground/30" />
+                  <MagnifyingGlassIcon className="size-8 text-base-content/30" />
                   <p className="text-sm font-medium">
                     Search across your workspace
                   </p>
-                  <p className="max-w-xs text-xs text-muted-foreground">
+                  <p className="max-w-xs text-xs text-base-content/60">
                     Find tasks, lists, projects, and members — or narrow things
                     down with the filters above. Your recent searches and
                     recently viewed items will show up here.
@@ -823,7 +823,7 @@ export function SearchPalette({
                           "flex w-full items-start gap-3 border-l-2 px-5 py-2.5 text-left transition-colors",
                           isActive
                             ? "border-primary bg-primary/10"
-                            : "border-transparent hover:bg-accent"
+                            : "border-transparent hover:bg-base-200"
                         )}
                         key={t.id}
                         onClick={() => navigateTask(t.id)}
@@ -841,14 +841,14 @@ export function SearchPalette({
                               className={cn(
                                 "truncate text-sm font-medium",
                                 t.isArchived &&
-                                  "text-muted-foreground line-through"
+                                  "text-base-content/60 line-through"
                               )}
                             >
                               {t.title}
                             </p>
                             <div className="flex shrink-0 items-center gap-1.5">
                               {t.isArchived && (
-                                <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-2xs font-medium text-muted-foreground">
+                                <span className="flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-2xs font-medium text-base-content/60">
                                   <ArchiveIcon className="size-3" />
                                   Archived
                                 </span>
@@ -868,7 +868,7 @@ export function SearchPalette({
                               )}
                             </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
+                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-base-content/60">
                             <span className="truncate">
                               {t.spaceName}
                               {t.listName ? ` • ${t.listName}` : ""}
@@ -888,7 +888,7 @@ export function SearchPalette({
                               <span
                                 className={
                                   due.overdue
-                                    ? "font-medium text-destructive"
+                                    ? "font-medium text-error"
                                     : ""
                                 }
                               >
@@ -899,7 +899,7 @@ export function SearchPalette({
                               <span className="flex -space-x-1">
                                 {t.assignees.slice(0, 3).map((a) => (
                                   <UserAvatar
-                                    className="border border-background"
+                                    className="border border-base-100"
                                     email={a.email}
                                     key={a.userId}
                                     name={a.name}
@@ -907,7 +907,7 @@ export function SearchPalette({
                                   />
                                 ))}
                                 {t.assignees.length > 3 && (
-                                  <span className="flex size-5 items-center justify-center rounded-full border border-background bg-muted text-[9px] font-medium">
+                                  <span className="flex size-5 items-center justify-center rounded-full border border-base-100 bg-base-200 text-[9px] font-medium">
                                     +{t.assignees.length - 3}
                                   </span>
                                 )}
@@ -932,18 +932,18 @@ export function SearchPalette({
                           "flex w-full items-center gap-3 border-l-2 px-5 py-2 text-left transition-colors",
                           isActive
                             ? "border-primary bg-primary/10"
-                            : "border-transparent hover:bg-accent"
+                            : "border-transparent hover:bg-base-200"
                         )}
                         key={l.id}
                         onClick={() => navigateList(l.id, l.spaceId)}
                         type="button"
                       >
-                        <ListIcon className="size-4 shrink-0 text-muted-foreground" />
+                        <ListIcon className="size-4 shrink-0 text-base-content/60" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">
                             {l.name}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-base-content/60">
                             {l.spaceName}
                           </p>
                         </div>
@@ -964,7 +964,7 @@ export function SearchPalette({
                           "flex w-full items-center gap-3 border-l-2 px-5 py-2 text-left transition-colors",
                           isActive
                             ? "border-primary bg-primary/10"
-                            : "border-transparent hover:bg-accent"
+                            : "border-transparent hover:bg-base-200"
                         )}
                         key={s.id}
                         onClick={() => navigateSpace(s.id)}
@@ -983,13 +983,13 @@ export function SearchPalette({
                         <p
                           className={cn(
                             "truncate text-sm font-medium",
-                            s.isArchived && "text-muted-foreground line-through"
+                            s.isArchived && "text-base-content/60 line-through"
                           )}
                         >
                           {s.name}
                         </p>
                         {s.isArchived && (
-                          <span className="flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-2xs font-medium text-muted-foreground">
+                          <span className="flex shrink-0 items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-2xs font-medium text-base-content/60">
                             <ArchiveIcon className="size-3" />
                             Archived
                           </span>
@@ -1013,12 +1013,12 @@ export function SearchPalette({
                           {m.name ?? m.email}
                         </p>
                         {m.name && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-base-content/60">
                             {m.email}
                           </p>
                         )}
                       </div>
-                      <span className="text-2xs uppercase text-muted-foreground">
+                      <span className="text-2xs uppercase text-base-content/60">
                         {m.role}
                       </span>
                     </div>
@@ -1030,7 +1030,7 @@ export function SearchPalette({
         </div>
 
         {/* Footer */}
-        <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1 border-t px-4 py-3 text-2xs text-muted-foreground sm:px-6">
+        <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1 border-t px-4 py-3 text-2xs text-base-content/60 sm:px-6">
           {SHORTCUTS.map((s) => (
             <FooterHint key={s.keys} keys={s.keys} label={s.label} />
           ))}
@@ -1051,8 +1051,8 @@ function ResultSection({
 }) {
   return (
     <section className="py-2">
-      <p className="px-5 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {title} <span className="text-muted-foreground/60">({count})</span>
+      <p className="px-5 pb-1 text-xs font-semibold uppercase tracking-wider text-base-content/60">
+        {title} <span className="text-base-content/60">({count})</span>
       </p>
       {children}
     </section>
@@ -1079,12 +1079,12 @@ function RecentOpenedSection({
   return (
     <section className="pb-3">
       <div className="flex items-center justify-between px-3 pb-1.5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-wider text-base-content/60">
           {title}
         </p>
         {onClear && (
           <button
-            className="text-2xs text-muted-foreground hover:text-foreground"
+            className="text-2xs text-base-content/60 hover:text-base-content"
             onClick={onClear}
             type="button"
           >
@@ -1094,7 +1094,7 @@ function RecentOpenedSection({
       </div>
       {items.map((o) => (
         <button
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-base-200"
           key={`${o.kind}-${o.id}`}
           onClick={() => onSelect(o)}
           type="button"
@@ -1103,7 +1103,7 @@ function RecentOpenedSection({
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm">{o.title}</p>
             {o.subtitle && (
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-xs text-base-content/60">
                 {o.subtitle}
               </p>
             )}
@@ -1131,7 +1131,7 @@ function MoreFilterAccordionItem({
         <span className="flex items-center gap-1.5">
           {label}
           {count > 0 && (
-            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-2xs font-bold text-primary-foreground">
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-2xs font-bold text-primary-content">
               {count}
             </span>
           )}
@@ -1145,7 +1145,7 @@ function MoreFilterAccordionItem({
 function FooterHint({ keys, label }: { keys: string; label: string }) {
   return (
     <span className="flex items-center gap-1">
-      <kbd className="inline-flex h-4 items-center rounded border bg-muted px-1 font-medium text-muted-foreground">
+      <kbd className="inline-flex h-4 items-center rounded border bg-base-200 px-1 font-medium text-base-content/60">
         {keys}
       </kbd>
       {label}

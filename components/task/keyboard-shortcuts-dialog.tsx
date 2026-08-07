@@ -46,7 +46,7 @@ const SHORTCUT_GROUPS: {
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-flex min-w-6 items-center justify-center rounded-md border bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-muted-foreground shadow-sm">
+    <kbd className="inline-flex min-w-6 items-center justify-center rounded-md border bg-base-200 px-1.5 py-0.5 font-mono text-xs font-medium text-base-content/60 shadow-sm">
       {children}
     </kbd>
   );
@@ -72,7 +72,7 @@ export function KeyboardShortcutsDialog({
         <div className="space-y-5">
           {SHORTCUT_GROUPS.map((group) => (
             <div key={group.title}>
-              <p className="mb-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-2 text-2xs font-semibold uppercase tracking-wider text-base-content/60">
                 {group.title}
               </p>
               <ul className="space-y-1.5">
@@ -81,7 +81,7 @@ export function KeyboardShortcutsDialog({
                     className="flex items-center justify-between gap-4"
                     key={item.label + item.keys.join("")}
                   >
-                    <span className="text-sm text-foreground">
+                    <span className="text-sm text-base-content">
                       {item.label}
                     </span>
                     <span className="flex shrink-0 items-center gap-1">

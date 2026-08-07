@@ -116,20 +116,20 @@ export default function ChannelPage() {
       {/* Channel header */}
       <div className="flex items-center gap-3 border-b px-4 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <HashIcon className="size-5 shrink-0 text-muted-foreground" weight="bold" />
+          <HashIcon className="size-5 shrink-0 text-base-content/60" weight="bold" />
           <h1 className="truncate text-lg font-semibold">{channelName}</h1>
         </div>
 
         {/* Member avatars */}
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+            <button className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content">
               <UsersIcon className="size-4" />
               <span>{channelMembers.length}</span>
             </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-64 p-2">
-            <p className="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-base-content/60">
               Members
             </p>
             <div className="max-h-48 space-y-0.5 overflow-y-auto">
@@ -140,14 +140,14 @@ export default function ChannelPage() {
                   </Avatar>
                   <span className="flex-1 truncate">{m.name}</span>
                   {m.role === "ADMIN" && (
-                    <span className="text-2xs font-medium text-muted-foreground uppercase">Admin</span>
+                    <span className="text-2xs font-medium text-base-content/60 uppercase">Admin</span>
                   )}
                 </div>
               ))}
             </div>
             <button
               onClick={() => setAddMemberOpen(true)}
-              className="mt-2 flex w-full items-center justify-center gap-1 rounded-md border py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="mt-2 flex w-full items-center justify-center gap-1 rounded-md border py-1.5 text-xs font-medium text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
             >
               Add Members
             </button>

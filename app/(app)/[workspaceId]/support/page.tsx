@@ -75,7 +75,7 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">Support</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Submit a request or view your existing tickets</p>
+          <p className="text-sm text-base-content/60 mt-0.5">Submit a request or view your existing tickets</p>
         </div>
         <Button onClick={() => setShowNew(true)}>New Ticket</Button>
       </div>
@@ -91,8 +91,8 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
               className={cn(
                 "flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
                 active
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                  ? "bg-base-200 text-base-content"
+                  : "text-base-content/60 hover:bg-base-200/60 hover:text-base-content",
               )}
             >
               {tab.label}
@@ -104,9 +104,9 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
       {/* Ticket list */}
       <div className="rounded-lg border overflow-hidden">
         {isLoading ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>
+          <div className="py-12 text-center text-sm text-base-content/60">Loading…</div>
         ) : tickets.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">
+          <div className="py-12 text-center text-sm text-base-content/60">
             {status ? "No tickets with that status." : "No support tickets yet. Submit one above."}
           </div>
         ) : (
@@ -115,19 +115,19 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
               <Link
                 key={t.id}
                 href={`/${workspaceId}/support/${t.id}`}
-                className="flex items-center justify-between gap-3 px-3 py-3 hover:bg-muted/30 transition-colors sm:px-4"
+                className="flex items-center justify-between gap-3 px-3 py-3 hover:bg-base-200/30 transition-colors sm:px-4"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-mono text-xs text-muted-foreground">{t.ticketNumber}</span>
+                    <span className="font-mono text-xs text-base-content/60">{t.ticketNumber}</span>
                     <Badge variant={STATUS_COLORS[t.status] ?? "secondary"} className="text-xs">
                       {t.status.replace("_", " ")}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">{t.category}</span>
+                    <span className="text-xs text-base-content/60">{t.category}</span>
                   </div>
                   <p className="text-sm font-medium mt-0.5 truncate">{t.subject}</p>
                 </div>
-                <span className="text-xs text-muted-foreground shrink-0">
+                <span className="text-xs text-base-content/60 shrink-0">
                   {new Date(t.updatedAt).toLocaleDateString()}
                 </span>
               </Link>
@@ -180,9 +180,9 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
                 maxLength={5000}
                 required
               />
-              <p className="text-xs text-muted-foreground text-right">{body.length}/5000</p>
+              <p className="text-xs text-base-content/60 text-right">{body.length}/5000</p>
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="text-sm text-error">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setShowNew(false)}>
                 Cancel

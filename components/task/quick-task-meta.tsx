@@ -73,8 +73,8 @@ function chipClass(active: boolean) {
   return cn(
     "flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs transition-colors",
     active
-      ? "border-primary/40 bg-primary/10 text-foreground"
-      : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+      ? "border-primary/40 bg-primary/10 text-base-content"
+      : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
   );
 }
 
@@ -326,7 +326,7 @@ export function QuickTaskMeta({
         </>
       ) : (
         <button
-          className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
           onClick={() => setShowMore(true)}
           type="button"
         >

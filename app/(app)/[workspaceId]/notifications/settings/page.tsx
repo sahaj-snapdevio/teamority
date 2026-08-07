@@ -193,7 +193,7 @@ export default function NotificationSettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 p-6">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-base-content/60">
         Control how and when you receive notifications.
       </p>
 
@@ -203,7 +203,7 @@ export default function NotificationSettingsPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="font-medium">Browser Notifications</h3>
-              <p className="mt-0.5 text-sm text-muted-foreground">
+              <p className="mt-0.5 text-sm text-base-content/60">
                 {permission === "denied"
                   ? "Notifications are blocked. Enable them in your browser settings."
                   : subscribed
@@ -235,7 +235,7 @@ export default function NotificationSettingsPage() {
             )}
           </div>
           {subscribed && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-base-content/60">
               Per-event push toggles are controlled in the table below.
             </p>
           )}
@@ -291,7 +291,7 @@ export default function NotificationSettingsPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="font-medium">In-App Notification Sound</h3>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <p className="mt-0.5 text-sm text-base-content/60">
               Master switch for notification sounds. When on, the Sound
               column below controls which event types actually play one
               while you're actively using Kanbanica.
@@ -311,7 +311,7 @@ export default function NotificationSettingsPage() {
           <div className="overflow-x-auto">
           <table className="w-full min-w-[480px] text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
+              <tr className="border-b bg-base-200/50">
                 <th className="px-4 py-2 text-left font-medium">Event</th>
                 <th className="px-4 py-2 text-center font-medium">In-App</th>
                 {emailAvailable && (
@@ -367,7 +367,7 @@ export default function NotificationSettingsPage() {
                 <tr>
                   <td
                     colSpan={emailAvailable ? 5 : 4}
-                    className="px-4 py-8 text-center text-sm text-muted-foreground"
+                    className="px-4 py-8 text-center text-sm text-base-content/60"
                   >
                     Loading preferences...
                   </td>

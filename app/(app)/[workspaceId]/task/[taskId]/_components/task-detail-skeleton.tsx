@@ -71,7 +71,7 @@ function ActivitySkeletonItems() {
 
 export function TaskDetailSkeleton() {
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-background">
+    <div className="flex h-full flex-col overflow-hidden bg-base-100">
       {/* Top bar — desktop/tablet (`md:`+), mirrors the loaded page's `hidden
         md:flex` top bar. */}
       <div className="hidden md:flex items-center gap-3 border-b px-5 py-3 shrink-0">
@@ -110,7 +110,7 @@ export function TaskDetailSkeleton() {
               <Skeleton className="h-9 w-28 rounded-full" />
               <Skeleton className="h-9 w-24 rounded-full" />
             </div>
-            <div className="rounded-xl border bg-card mb-4">
+            <div className="rounded-xl border bg-elevated mb-4">
               <div className="flex items-center justify-between px-3 py-2.5">
                 <Skeleton className="h-3 w-20 rounded" />
                 <Skeleton className="size-4 rounded" />
@@ -137,7 +137,7 @@ export function TaskDetailSkeleton() {
             <Skeleton className="h-8 w-3/4 rounded-lg mb-5" />
 
             {/* Fields card */}
-            <div className="rounded-lg border bg-card px-4 mb-6">
+            <div className="rounded-lg border bg-elevated px-4 mb-6">
               <FieldRowSkeleton />
               <FieldRowSkeleton />
               <FieldRowSkeleton />
@@ -153,7 +153,7 @@ export function TaskDetailSkeleton() {
           </div>
 
           {/* Description body */}
-          <div className="rounded-lg border bg-card p-4 mb-6 space-y-2.5">
+          <div className="rounded-lg border bg-elevated p-4 mb-6 space-y-2.5">
             <Skeleton className="h-4 w-full rounded" />
             <Skeleton className="h-4 w-5/6 rounded" />
             <Skeleton className="h-4 w-4/6 rounded" />
@@ -169,7 +169,7 @@ export function TaskDetailSkeleton() {
           </div>
 
           {/* Attachments section */}
-          <div className="rounded-lg border bg-card p-4 mb-6">
+          <div className="rounded-lg border bg-elevated p-4 mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Skeleton className="size-4 rounded" />
               <Skeleton className="h-4 w-24 rounded" />
@@ -182,7 +182,7 @@ export function TaskDetailSkeleton() {
           </div>
 
           {/* Checklist section */}
-          <div className="rounded-lg border bg-card p-4">
+          <div className="rounded-lg border bg-elevated p-4">
             <div className="flex items-center gap-2 mb-3">
               <Skeleton className="size-4 rounded" />
               <Skeleton className="h-4 w-20 rounded" />

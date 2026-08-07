@@ -307,7 +307,7 @@ export function SlashCommandMenu({ menu }: { menu: SlashMenuController }) {
   // which a <body> portal would otherwise inherit (menu shows but isn't clickable).
   return createPortal(
     <div
-      className="pointer-events-auto fixed z-50 w-110 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto overscroll-contain rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-lg"
+      className="pointer-events-auto fixed z-50 w-110 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto overscroll-contain rounded-xl border bg-elevated p-1.5 text-base-content shadow-lg"
       ref={menuRef}
       style={{
         top: pos?.top ?? slash.top,
@@ -348,7 +348,7 @@ export function SlashCommandGrid({
           <button
             className={cn(
               "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors",
-              active ? "bg-accent" : "hover:bg-accent/60"
+              active ? "bg-base-200" : "hover:bg-base-200/60"
             )}
             data-active={active}
             key={cmd.key}
@@ -359,19 +359,19 @@ export function SlashCommandGrid({
           >
             <span
               className={cn(
-                "flex size-7 shrink-0 items-center justify-center rounded-md border bg-background transition-colors",
+                "flex size-7 shrink-0 items-center justify-center rounded-md border bg-base-100 transition-colors",
                 active
                   ? "border-primary/40 text-primary"
-                  : "border-border text-muted-foreground"
+                  : "border-base-300 text-base-content/60"
               )}
             >
               <Icon className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium leading-tight text-foreground">
+              <span className="block truncate text-sm font-medium leading-tight text-base-content">
                 {cmd.label}
               </span>
-              <span className="block truncate text-2xs leading-tight text-muted-foreground">
+              <span className="block truncate text-2xs leading-tight text-base-content/60">
                 {cmd.desc}
               </span>
             </span>

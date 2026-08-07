@@ -269,14 +269,14 @@ function renderCardCustomField(
     return (
       <Tooltip key={field.id}>
         <TooltipTrigger asChild>
-          <Avatar className="size-6 shrink-0 border-2 border-background">
+          <Avatar className="size-6 shrink-0 border-2 border-base-100">
             {person.image && (
               <AvatarImage
                 alt={person.name ?? undefined}
                 src={avatarSrc(person.image)}
               />
             )}
-            <AvatarFallback className="text-2xs font-semibold bg-primary text-primary-foreground">
+            <AvatarFallback className="text-2xs font-semibold bg-primary text-primary-content">
               {userInitials(person.name || person.email || "?")}
             </AvatarFallback>
           </Avatar>
@@ -336,7 +336,7 @@ function renderCardCustomField(
         ))}
         {extra > 0 && (
           <span
-            className="text-2xs font-medium text-muted-foreground"
+            className="text-2xs font-medium text-base-content/60"
             title={`${field.name}: ${selected.map((o) => o.label).join(", ")}`}
           >
             +{extra}
@@ -354,7 +354,7 @@ function renderCardCustomField(
   }
   return (
     <span
-      className="max-w-[110px] truncate text-2xs font-medium text-muted-foreground"
+      className="max-w-[110px] truncate text-2xs font-medium text-base-content/60"
       key={field.id}
       title={`${field.name}: ${text}`}
     >
@@ -384,8 +384,8 @@ const PRIORITY_CONFIG: Record<
   Task["priority"],
   { label: string; color: string; icon: string }
 > = {
-  NONE: { label: "No Priority", color: "text-muted-foreground", icon: "😴" },
-  LOW: { label: "Low", color: "text-muted-foreground", icon: "🦥" },
+  NONE: { label: "No Priority", color: "text-base-content/60", icon: "😴" },
+  LOW: { label: "Low", color: "text-base-content/60", icon: "🦥" },
   MEDIUM: { label: "Medium", color: "text-yellow-600", icon: "🚶" },
   HIGH: { label: "High", color: "text-orange-500", icon: "🏃" },
   URGENT: { label: "Urgent", color: "text-red-500", icon: "🚨" },
@@ -788,14 +788,14 @@ function CardContent({
   }
 
   const iconBtn =
-    "flex size-7 sm:size-6 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "flex size-7 sm:size-6 items-center justify-center rounded hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
   const menuItem =
-    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer";
+    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer";
 
   return (
     <div
       className={cn(
-        "relative rounded-lg border bg-card p-3 shadow-sm group/card",
+        "relative rounded-lg border bg-elevated p-3 shadow-sm group/card",
         isDragging && "opacity-40 shadow-none border-dashed",
         overlay && "shadow-xl rotate-1 cursor-grabbing",
         !isDragging && !overlay && "hover:shadow-md transition-shadow",
@@ -816,7 +816,7 @@ function CardContent({
         {renaming ? (
           <input
             autoFocus
-            className="w-full rounded-md border border-input bg-background px-1.5 py-0.5 text-[13px] font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-base-300 bg-base-100 px-1.5 py-0.5 text-[13px] font-medium text-base-content focus:outline-none focus:ring-2 focus:ring-ring"
             onBlur={() => void commitRename()}
             onChange={(e) => setTitleDraft(e.target.value)}
             onClick={(e) => e.stopPropagation()}
@@ -837,7 +837,7 @@ function CardContent({
           <Tooltip>
             <TooltipTrigger asChild>
               <p
-                className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2"
+                className="text-[13px] font-medium text-base-content leading-snug select-none line-clamp-2"
                 ref={titleRef}
               >
                 {localTitle}
@@ -851,7 +851,7 @@ function CardContent({
           </Tooltip>
         ) : (
           <p
-            className="text-[13px] font-medium text-foreground leading-snug select-none line-clamp-2"
+            className="text-[13px] font-medium text-base-content leading-snug select-none line-clamp-2"
             ref={titleRef}
           >
             {localTitle}
@@ -872,7 +872,7 @@ function CardContent({
         )}
         <div className="mt-2 space-y-1.5">
           <div className="flex items-center gap-1.5">
-            <span className="font-mono text-2xs text-muted-foreground">
+            <span className="font-mono text-2xs text-base-content/60">
               #{task.seqNumber}
             </span>
             {task.dependencyInfo && (
@@ -898,14 +898,14 @@ function CardContent({
               <Popover onOpenChange={setPriorityOpen} open={priorityOpen}>
                 <PopoverTrigger asChild>
                   <button
-                    className="flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-1.5 sm:py-0.5 text-xs font-bold transition-colors hover:bg-accent"
+                    className="flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-1.5 sm:py-0.5 text-xs font-bold transition-colors hover:bg-base-200"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                     title="Change priority"
                     type="button"
                   >
                     {task.priority === "NONE" ? (
-                      <FlagIcon className="size-3.5 text-muted-foreground" />
+                      <FlagIcon className="size-3.5 text-base-content/60" />
                     ) : (
                       <span
                         className={cn(
@@ -929,8 +929,8 @@ function CardContent({
                     (value) => (
                       <button
                         className={cn(
-                          "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent",
-                          task.priority === value && "bg-accent"
+                          "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200",
+                          task.priority === value && "bg-base-200"
                         )}
                         key={value}
                         onClick={() => void handleSetPriority(value)}
@@ -945,7 +945,7 @@ function CardContent({
                   )}
                   <div className="my-1 h-px bg-border" />
                   <button
-                    className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent"
+                    className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-base-content/60 hover:bg-base-200"
                     onClick={() => void handleSetPriority("NONE")}
                     type="button"
                   >
@@ -972,10 +972,10 @@ function CardContent({
                 <PopoverTrigger asChild>
                   <button
                     className={cn(
-                      "flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-1.5 sm:py-0.5 text-xs font-semibold transition-colors hover:bg-accent",
+                      "flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-1.5 sm:py-0.5 text-xs font-semibold transition-colors hover:bg-base-200",
                       dueDate?.overdue
                         ? "text-red-500"
-                        : "text-muted-foreground"
+                        : "text-base-content/60"
                     )}
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
@@ -998,9 +998,9 @@ function CardContent({
                     selected={task.dueDateEnd ?? undefined}
                   />
                   {task.dueDateEnd && (
-                    <div className="border-t border-border p-1">
+                    <div className="border-t border-base-300 p-1">
                       <button
-                        className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent"
+                        className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-base-content/60 hover:bg-base-200"
                         onClick={() => void handleSetDueDate(null)}
                         type="button"
                       >
@@ -1015,7 +1015,7 @@ function CardContent({
                 <span
                   className={cn(
                     "flex items-center gap-1 text-xs font-semibold shrink-0",
-                    dueDate.overdue ? "text-red-500" : "text-muted-foreground"
+                    dueDate.overdue ? "text-red-500" : "text-base-content/60"
                   )}
                 >
                   <CalendarBlankIcon className="size-3.5" />
@@ -1036,7 +1036,7 @@ function CardContent({
               >
                 <PopoverTrigger asChild>
                   <button
-                    className="ml-auto flex shrink-0 cursor-pointer items-center rounded-full p-1 -m-1 sm:p-0 sm:m-0 transition-colors hover:bg-accent"
+                    className="ml-auto flex shrink-0 cursor-pointer items-center rounded-full p-1 -m-1 sm:p-0 sm:m-0 transition-colors hover:bg-base-200"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                     title={
@@ -1048,7 +1048,7 @@ function CardContent({
                       <div className="flex -space-x-1.5">
                         {localAssignees.slice(0, 3).map((a) => (
                           <Avatar
-                            className="size-7 border-2 border-background"
+                            className="size-7 border-2 border-base-100"
                             key={a.userId}
                             title={a.name}
                           >
@@ -1058,19 +1058,19 @@ function CardContent({
                                 src={avatarSrc(a.image)}
                               />
                             )}
-                            <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+                            <AvatarFallback className="text-xs font-semibold bg-primary text-primary-content">
                               {userInitials(a.name)}
                             </AvatarFallback>
                           </Avatar>
                         ))}
                         {localAssignees.length > 3 && (
-                          <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground">
+                          <div className="flex size-7 items-center justify-center rounded-full border-2 border-base-100 bg-base-200 text-xs font-medium text-base-content/60">
                             +{localAssignees.length - 3}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <span className="flex size-7 items-center justify-center text-muted-foreground">
+                      <span className="flex size-7 items-center justify-center text-base-content/60">
                         <UserIcon className="size-3.5" />
                       </span>
                     )}
@@ -1090,7 +1090,7 @@ function CardContent({
                     value={memberSearch}
                   />
                   {filteredMembers.length === 0 ? (
-                    <p className="py-2 px-1 text-xs text-muted-foreground">
+                    <p className="py-2 px-1 text-xs text-base-content/60">
                       No members found
                     </p>
                   ) : (
@@ -1103,7 +1103,7 @@ function CardContent({
                           <button
                             className={cn(
                               "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors",
-                              assigned ? "bg-primary/10" : "hover:bg-accent"
+                              assigned ? "bg-primary/10" : "hover:bg-base-200"
                             )}
                             key={m.userId}
                             onClick={() => void handleToggleAssignee(m.userId)}
@@ -1138,20 +1138,20 @@ function CardContent({
                 <div className="ml-auto flex -space-x-1.5">
                   {localAssignees.slice(0, 3).map((a) => (
                     <Avatar
-                      className="size-7 border-2 border-background"
+                      className="size-7 border-2 border-base-100"
                       key={a.userId}
                       title={a.name}
                     >
                       {a.image && (
                         <AvatarImage alt={a.name} src={avatarSrc(a.image)} />
                       )}
-                      <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+                      <AvatarFallback className="text-xs font-semibold bg-primary text-primary-content">
                         {userInitials(a.name)}
                       </AvatarFallback>
                     </Avatar>
                   ))}
                   {localAssignees.length > 3 && (
-                    <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground">
+                    <div className="flex size-7 items-center justify-center rounded-full border-2 border-base-100 bg-base-200 text-xs font-medium text-base-content/60">
                       +{localAssignees.length - 3}
                     </div>
                   )}
@@ -1165,7 +1165,7 @@ function CardContent({
             {customFieldNodes}
             {hiddenCustomFieldCount > 0 && (
               <span
-                className="text-2xs font-medium text-muted-foreground"
+                className="text-2xs font-medium text-base-content/60"
                 title={`${hiddenCustomFieldCount} more field${hiddenCustomFieldCount === 1 ? "" : "s"} set`}
               >
                 +{hiddenCustomFieldCount} more
@@ -1179,9 +1179,9 @@ function CardContent({
             drag/click wrapper, so an unguarded click would either start a
             drag or navigate into the parent task. */}
         {task.subtaskCount > 0 && (
-          <div className="mt-2 border-t border-border pt-1.5">
+          <div className="mt-2 border-t border-base-300 pt-1.5">
             <button
-              className="flex w-full cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="flex w-full cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs font-medium text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleSubtasksExpanded();
@@ -1203,7 +1203,7 @@ function CardContent({
                   <div className="space-y-1 py-0.5">
                     {["k0", "k1"].map((k) => (
                       <div
-                        className="h-5 animate-pulse rounded bg-muted"
+                        className="h-5 animate-pulse rounded bg-base-200"
                         key={k}
                       />
                     ))}
@@ -1214,7 +1214,7 @@ function CardContent({
                     return (
                       // biome-ignore lint/a11y/useSemanticElements: contains a nested "Complete" <button>, so the row itself can't literally be a <button>
                       <div
-                        className="flex cursor-pointer items-center gap-1.5 rounded px-1 py-1 transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex cursor-pointer items-center gap-1.5 rounded px-1 py-1 transition-colors hover:bg-base-200/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         key={sub.id}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1236,7 +1236,7 @@ function CardContent({
                         tabIndex={0}
                       >
                         <button
-                          className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                          className="shrink-0 text-base-content/60 transition-colors hover:text-primary"
                           onClick={(e) => {
                             e.stopPropagation();
                             void handleToggleSubtaskComplete(sub);
@@ -1257,7 +1257,7 @@ function CardContent({
                         <span
                           className={cn(
                             "min-w-0 flex-1 truncate text-xs",
-                            isDone && "text-muted-foreground line-through"
+                            isDone && "text-base-content/60 line-through"
                           )}
                         >
                           {sub.title}
@@ -1278,7 +1278,7 @@ function CardContent({
           pointer-events-none while hidden so taps pass through to open the task.
           Hidden entirely while renaming so it doesn't overlap the title input. */}
       {interactive && !renaming && (
-        <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5 rounded-md border bg-card/95 p-0.5 opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 has-[[data-state=open]]:pointer-events-auto has-[[data-state=open]]:opacity-100">
+        <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5 rounded-md border bg-elevated/95 p-0.5 opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 has-[[data-state=open]]:pointer-events-auto has-[[data-state=open]]:opacity-100">
           {canEdit && completeTarget && (
             <button
               className={iconBtn}
@@ -1369,7 +1369,7 @@ function CardContent({
                 }}
                 type="button"
               >
-                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy
+                <LinkIcon className="size-3.5 text-base-content/60" /> Copy
                 task link
               </button>
               <a
@@ -1379,7 +1379,7 @@ function CardContent({
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <ArrowSquareOutIcon className="size-3.5 text-muted-foreground" />{" "}
+                <ArrowSquareOutIcon className="size-3.5 text-base-content/60" />{" "}
                 Open in new tab
               </a>
               <button
@@ -1390,7 +1390,7 @@ function CardContent({
                 }}
                 type="button"
               >
-                <HashIcon className="size-3.5 text-muted-foreground" /> Copy
+                <HashIcon className="size-3.5 text-base-content/60" /> Copy
                 task ID
               </button>
               {canEdit && (
@@ -1404,7 +1404,7 @@ function CardContent({
                     }}
                     type="button"
                   >
-                    <CopyIcon className="size-3.5 text-muted-foreground" />{" "}
+                    <CopyIcon className="size-3.5 text-base-content/60" />{" "}
                     Duplicate
                   </button>
                   <button
@@ -1415,7 +1415,7 @@ function CardContent({
                     }}
                     type="button"
                   >
-                    <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
+                    <ArchiveIcon className="size-3.5 text-base-content/60" />{" "}
                     Archive
                   </button>
                 </>
@@ -1450,7 +1450,7 @@ function CardContent({
               </div>
               <div>
                 <p className="text-base font-semibold">Delete task?</p>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm text-base-content/60">
                   “{localTitle}” will be permanently deleted. This can’t be
                   undone.
                 </p>
@@ -1600,7 +1600,7 @@ function Column({
           className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
           style={{ backgroundColor: status.color }}
         />
-        <span className="min-w-0 flex-1 truncate font-semibold text-sm uppercase tracking-wide text-foreground/80">
+        <span className="min-w-0 flex-1 truncate font-semibold text-sm uppercase tracking-wide text-base-content/80">
           {status.name}
         </span>
         <span
@@ -2197,7 +2197,7 @@ export function BoardView({
             {/* Sort */}
             <Popover onOpenChange={setSortMenuOpen} open={sortMenuOpen}>
               <PopoverTrigger asChild>
-                <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer select-none">
+                <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors cursor-pointer select-none">
                   <ArrowsDownUpIcon className="size-3.5" />
                   Sort:{" "}
                   {sortBy
@@ -2211,8 +2211,8 @@ export function BoardView({
               >
                 <button
                   className={cn(
-                    "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
-                    !sortBy && "bg-accent"
+                    "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200 cursor-pointer text-base-content",
+                    !sortBy && "bg-base-200"
                   )}
                   onClick={() => {
                     setSortBy(null);
@@ -2223,8 +2223,8 @@ export function BoardView({
                 </button>
                 <button
                   className={cn(
-                    "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
-                    sortBy === "name" && "bg-accent"
+                    "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200 cursor-pointer text-base-content",
+                    sortBy === "name" && "bg-base-200"
                   )}
                   onClick={() => {
                     setSortBy("name");
@@ -2236,8 +2236,8 @@ export function BoardView({
                 </button>
                 <button
                   className={cn(
-                    "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent cursor-pointer text-foreground",
-                    sortBy === "priority" && "bg-accent"
+                    "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200 cursor-pointer text-base-content",
+                    sortBy === "priority" && "bg-base-200"
                   )}
                   onClick={() => {
                     setSortBy("priority");
@@ -2262,7 +2262,7 @@ export function BoardView({
                       "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors cursor-pointer",
                       visibleFieldIds.length > 0
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                        : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
                     )}
                     type="button"
                   >
@@ -2277,7 +2277,7 @@ export function BoardView({
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-56 rounded-xl p-1.5">
-                  <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                     Custom Fields
                   </p>
                   <FacetOptionList
@@ -2305,7 +2305,7 @@ export function BoardView({
                 Filters/Fields are hidden. */}
             {canManage && (
               <button
-                className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
+                className="flex items-center justify-center size-8 rounded-lg border border-base-300 text-base-content/60 hover:bg-base-200/30 hover:text-base-content transition-colors cursor-pointer"
                 onClick={() =>
                   router.push(
                     `/${workspaceId}/${space.id}/settings/custom-fields`
@@ -2322,7 +2322,7 @@ export function BoardView({
 
         {/* Create Task button */}
         <button
-          className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
+          className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-content hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
           onClick={() => setCreateOpen(true)}
         >
           <PlusIcon className="size-3.5" weight="bold" />
@@ -2349,7 +2349,7 @@ export function BoardView({
           />
           <button
             aria-label="Create task"
-            className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/95"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-content shadow-sm transition-all hover:bg-primary/95"
             onClick={() => setCreateOpen(true)}
             type="button"
           >
@@ -2365,7 +2365,7 @@ export function BoardView({
                   "flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border text-sm font-semibold transition-colors",
                   mobileFilterCount > 0
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
                 )}
                 type="button"
               >
@@ -2385,7 +2385,7 @@ export function BoardView({
               </SheetHeader>
               <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-4">
                 <div>
-                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                     Status
                   </p>
                   <FacetOptionList
@@ -2396,7 +2396,7 @@ export function BoardView({
                 </div>
 
                 <div>
-                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                     Priority
                   </p>
                   <FacetOptionList
@@ -2408,7 +2408,7 @@ export function BoardView({
 
                 {members.length > 0 && (
                   <div>
-                    <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                    <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                       Assignee
                     </p>
                     <FacetOptionList
@@ -2424,14 +2424,14 @@ export function BoardView({
                 <div className="h-px bg-border" />
 
                 <div>
-                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                     Sort
                   </p>
                   <div className="flex flex-col gap-0.5">
                     <button
                       className={cn(
-                        "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
-                        !sortBy && "bg-accent text-foreground"
+                        "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-base-200",
+                        !sortBy && "bg-base-200 text-base-content"
                       )}
                       onClick={() => setSortBy(null)}
                       type="button"
@@ -2440,8 +2440,8 @@ export function BoardView({
                     </button>
                     <button
                       className={cn(
-                        "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
-                        sortBy === "name" && "bg-accent text-foreground"
+                        "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-base-200",
+                        sortBy === "name" && "bg-base-200 text-base-content"
                       )}
                       onClick={() => {
                         setSortBy("name");
@@ -2453,8 +2453,8 @@ export function BoardView({
                     </button>
                     <button
                       className={cn(
-                        "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
-                        sortBy === "priority" && "bg-accent text-foreground"
+                        "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-base-200",
+                        sortBy === "priority" && "bg-base-200 text-base-content"
                       )}
                       onClick={() => {
                         setSortBy("priority");
@@ -2471,7 +2471,7 @@ export function BoardView({
                   <>
                     <div className="h-px bg-border" />
                     <div>
-                      <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                      <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                         More filters
                       </p>
                       <FilterBuilder
@@ -2484,9 +2484,9 @@ export function BoardView({
                   </>
                 )}
               </div>
-              <SheetFooter className="flex-row gap-2 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <SheetFooter className="flex-row gap-2 border-t border-base-300 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <button
-                  className="h-11 flex-1 rounded-lg border border-border text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent"
+                  className="h-11 flex-1 rounded-lg border border-base-300 text-sm font-semibold text-base-content/70 transition-colors hover:bg-base-200"
                   onClick={resetMobileFilters}
                   type="button"
                 >
@@ -2494,7 +2494,7 @@ export function BoardView({
                 </button>
                 <SheetClose asChild>
                   <button
-                    className="h-11 flex-1 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/95"
+                    className="h-11 flex-1 rounded-lg bg-primary text-sm font-semibold text-primary-content transition-all hover:bg-primary/95"
                     type="button"
                   >
                     Apply
@@ -2508,7 +2508,7 @@ export function BoardView({
             <PopoverTrigger asChild>
               <button
                 aria-label="More actions"
-                className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border text-foreground/60 transition-colors hover:bg-accent/30 hover:text-foreground"
+                className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-base-300 text-base-content/60 transition-colors hover:bg-base-200/30 hover:text-base-content"
                 type="button"
               >
                 <DotsThreeIcon className="size-5" weight="bold" />
@@ -2517,7 +2517,7 @@ export function BoardView({
             <PopoverContent align="end" className="w-64 rounded-xl p-1.5">
               {customFields.length > 0 && (
                 <div className="px-1 py-1.5">
-                  <p className="px-1.5 pb-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <p className="px-1.5 pb-1 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                     Fields shown on cards
                   </p>
                   <FacetOptionList
@@ -2536,7 +2536,7 @@ export function BoardView({
                 <>
                   <div className="my-1 h-px bg-border" />
                   <button
-                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-accent"
+                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-base-200"
                     onClick={() =>
                       router.push(
                         `/${workspaceId}/${space.id}/settings/custom-fields`
@@ -2544,7 +2544,7 @@ export function BoardView({
                     }
                     type="button"
                   >
-                    <ManageFieldsIcon className="size-4 text-muted-foreground" />
+                    <ManageFieldsIcon className="size-4 text-base-content/60" />
                     Manage Custom Fields
                   </button>
                 </>
@@ -2635,7 +2635,7 @@ export function BoardView({
           {/* Add group — creates a new status column (Full Access only). */}
           {canManage && (
             <button
-              className="flex h-9 shrink-0 select-none items-center gap-1.5 rounded-lg border border-dashed border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground"
+              className="flex h-9 shrink-0 select-none items-center gap-1.5 rounded-lg border border-dashed border-base-300 px-3 text-sm font-medium text-base-content/60 transition-colors hover:border-primary/40 hover:bg-base-200 hover:text-base-content"
               onClick={() => setNewGroupOpen(true)}
               type="button"
             >
@@ -2688,7 +2688,7 @@ export function BoardView({
                 value={newGroupName}
               />
               {groupError && (
-                <p className="text-xs text-destructive">{groupError}</p>
+                <p className="text-xs text-error">{groupError}</p>
               )}
               <div className="flex flex-wrap gap-2">
                 {STATUS_PRESET_COLORS.map((color) => (
@@ -2696,7 +2696,7 @@ export function BoardView({
                     className={cn(
                       "size-6 cursor-pointer rounded-full transition-transform",
                       newGroupColor === color &&
-                        "scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-popover"
+                        "scale-110 ring-2 ring-base-content ring-offset-2 ring-offset-popover"
                     )}
                     key={color}
                     onClick={() => setNewGroupColor(color)}
@@ -2706,7 +2706,7 @@ export function BoardView({
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground shrink-0">
+                <span className="text-xs text-base-content/60 shrink-0">
                   Dashboard category
                 </span>
                 <Select

@@ -28,8 +28,8 @@ const TILES: {
   {
     key: "overdueCount",
     focusKind: "overdue",
-    dotClass: "bg-destructive",
-    countClass: "text-destructive",
+    dotClass: "bg-error",
+    countClass: "text-error",
     label: "Overdue",
     sheetLabel: "Overdue Tasks",
   },
@@ -78,7 +78,7 @@ export function MyFocusToday({ focus, workspaceId }: MyFocusTodayProps) {
             const count = focus[tile.key];
             return (
               <button
-                className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-3 text-center transition-colors hover:border-foreground/15 hover:bg-accent/30 cursor-pointer"
+                className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-base-300 bg-base-200/40 px-3 py-3 text-center transition-colors hover:border-base-content/15 hover:bg-base-200/30 cursor-pointer"
                 key={tile.key}
                 onClick={() =>
                   setDrilldown({
@@ -95,14 +95,14 @@ export function MyFocusToday({ focus, workspaceId }: MyFocusTodayProps) {
                       tile.dotClass
                     )}
                   />
-                  <span className="text-sm font-medium text-muted-foreground">
+                  <span className="text-sm font-medium text-base-content/60">
                     {tile.label}
                   </span>
                 </span>
                 <span
                   className={cn(
                     "text-4xl font-bold leading-none tracking-[-0.03em] tabular-nums",
-                    count > 0 ? tile.countClass : "text-muted-foreground"
+                    count > 0 ? tile.countClass : "text-base-content/60"
                   )}
                 >
                   {count}

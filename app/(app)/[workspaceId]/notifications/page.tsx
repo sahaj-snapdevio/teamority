@@ -598,14 +598,14 @@ export default function InboxPage() {
           </div>
           <div className="flex items-center gap-4">
             <button
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="text-sm text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
               onClick={markAllRead}
             >
               Mark all as read
             </button>
-            <span className="text-muted-foreground/30 select-none">|</span>
+            <span className="text-base-content/30 select-none">|</span>
             <button
-              className="text-sm text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+              className="text-sm text-base-content/60 hover:text-error transition-colors cursor-pointer"
               onClick={clearAll}
             >
               Clear all
@@ -622,8 +622,8 @@ export default function InboxPage() {
                 className={cn(
                   "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
                   active
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                    ? "bg-base-200 text-base-content"
+                    : "text-base-content/60 hover:bg-base-200/60 hover:text-base-content"
                 )}
                 key={t.key}
                 onClick={() =>
@@ -636,7 +636,7 @@ export default function InboxPage() {
                     className={cn(
                       "flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-2xs font-semibold leading-none",
                       active
-                        ? "bg-foreground text-background"
+                        ? "bg-base-content text-base-100"
                         : "bg-blue-500 text-white"
                     )}
                   >
@@ -664,7 +664,7 @@ export default function InboxPage() {
             {renderFilters()}
             {hasActiveFilters && (
               <button
-                className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-foreground"
+                className="cursor-pointer text-xs text-base-content/60 transition-colors hover:text-base-content"
                 onClick={clearFilters}
                 type="button"
               >
@@ -681,7 +681,7 @@ export default function InboxPage() {
                   "flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors @xl:hidden",
                   activeFilterCount > 0
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
                 )}
                 type="button"
               >
@@ -691,7 +691,7 @@ export default function InboxPage() {
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56 p-2">
-              <p className="px-1 pb-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="px-1 pb-2 text-2xs font-semibold uppercase tracking-wider text-base-content/60">
                 Filters
               </p>
               <div className="flex flex-col items-stretch gap-2">
@@ -699,7 +699,7 @@ export default function InboxPage() {
               </div>
               {hasActiveFilters && (
                 <button
-                  className="mt-2 w-full border-t pt-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  className="mt-2 w-full border-t pt-2 text-left text-xs text-base-content/60 transition-colors hover:text-base-content"
                   onClick={clearFilters}
                   type="button"
                 >
@@ -717,13 +717,13 @@ export default function InboxPage() {
               alone are still enough to page through. */}
           {totalCount > NOTIFICATIONS_PAGE_SIZE && (
             <div className="ml-auto flex shrink-0 items-center gap-1 @xl:gap-3 border-l pl-3">
-              <span className="hidden text-xs text-muted-foreground tabular-nums @xl:inline">
+              <span className="hidden text-xs text-base-content/60 tabular-nums @xl:inline">
                 {pageStart}–{pageEnd} of {totalCount}
               </span>
               <div className="flex items-center gap-1">
                 <button
                   aria-label="Previous page"
-                  className="flex size-6 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                  className="flex size-6 items-center justify-center rounded-md border border-base-300 text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40"
                   disabled={!canGoPrev || isValidating}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   type="button"
@@ -732,7 +732,7 @@ export default function InboxPage() {
                 </button>
                 <button
                   aria-label="Next page"
-                  className="flex size-6 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                  className="flex size-6 items-center justify-center rounded-md border border-base-300 text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40"
                   disabled={!canGoNext || isValidating}
                   onClick={() => setPage((p) => p + 1)}
                   type="button"
@@ -749,12 +749,12 @@ export default function InboxPage() {
           {isLoadingInitial && <NotificationSkeletons count={6} />}
           {isEmpty && (
             <div className="flex flex-col items-center justify-center py-24 gap-2">
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-sm font-medium text-base-content/60">
                 {hasActiveFilters
                   ? "No matching notifications"
                   : "No notifications yet."}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-base-content/60">
                 {hasActiveFilters
                   ? "Try adjusting your filters."
                   : "You're all caught up."}
@@ -764,7 +764,7 @@ export default function InboxPage() {
           {!isEmpty &&
             groups.map((group) => (
               <section key={group.label}>
-                <div className="sticky top-0 z-10 border-b bg-background/95 px-4 py-1.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
+                <div className="sticky top-0 z-10 border-b bg-base-100/95 px-4 py-1.5 text-2xs font-semibold uppercase tracking-wider text-base-content/60 backdrop-blur-sm">
                   {group.label}
                 </div>
                 {group.items.map((n) => {
@@ -772,9 +772,9 @@ export default function InboxPage() {
                   return (
                     <div
                       className={cn(
-                        "group relative flex cursor-pointer items-center gap-3 border-b px-4 py-3.5 transition-colors hover:bg-accent/40",
+                        "group relative flex cursor-pointer items-center gap-3 border-b px-4 py-3.5 transition-colors hover:bg-base-200/40",
                         !n.isRead && "bg-blue-50/60 dark:bg-blue-950/20",
-                        isSelected && "bg-accent"
+                        isSelected && "bg-base-200"
                       )}
                       key={n.id}
                       onClick={() => void handleRowClick(n)}
@@ -788,7 +788,7 @@ export default function InboxPage() {
 
                       {/* Avatar */}
                       <Avatar className="size-8 shrink-0">
-                        <AvatarFallback className="text-xs bg-muted">
+                        <AvatarFallback className="text-xs bg-base-200">
                           {getInitials(n.actorName)}
                         </AvatarFallback>
                       </Avatar>
@@ -798,7 +798,7 @@ export default function InboxPage() {
                         <p
                           className={cn(
                             "text-sm leading-snug",
-                            n.isRead ? "text-foreground/90" : "font-medium"
+                            n.isRead ? "text-base-content/90" : "font-medium"
                           )}
                         >
                           {n.title}
@@ -808,7 +808,7 @@ export default function InboxPage() {
                             {n.body}
                           </p>
                         )}
-                        <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground/70">
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-base-content/70">
                           {n.workspaceName && (
                             <>
                               <span className="flex min-w-0 items-center gap-1 font-medium">
@@ -840,7 +840,7 @@ export default function InboxPage() {
                       <div
                         className={cn(
                           "static ml-auto flex shrink-0 items-center gap-0.5",
-                          "rounded-lg border border-border/60 bg-background/90 p-1 shadow-sm backdrop-blur-sm",
+                          "rounded-lg border border-base-300/60 bg-base-100/90 p-1 shadow-sm backdrop-blur-sm",
                           "sm:absolute sm:right-2 sm:top-1/2 sm:ml-0 sm:-translate-y-1/2",
                           "sm:pointer-events-none sm:translate-x-1 sm:opacity-0",
                           "transition-[opacity,transform] duration-150 ease-out",
@@ -895,7 +895,7 @@ export default function InboxPage() {
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="flex items-center justify-end border-b px-3 py-2 shrink-0">
             <button
-              className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+              className="flex size-7 items-center justify-center rounded-md text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors cursor-pointer"
               onClick={() => setSelectedTask(null)}
               title="Close"
             >
@@ -943,11 +943,11 @@ function ActionBtn({
     <button
       aria-label={title}
       className={cn(
-        "flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground",
+        "flex size-7 cursor-pointer items-center justify-center rounded-md text-base-content/60",
         "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         destructive
-          ? "hover:bg-destructive/10 hover:text-destructive"
-          : "hover:bg-accent hover:text-foreground"
+          ? "hover:bg-error/10 hover:text-error"
+          : "hover:bg-base-200 hover:text-base-content"
       )}
       onClick={onClick}
       title={title}
@@ -965,10 +965,10 @@ function NotificationSkeletons({ count }: { count: number }) {
       {SKELETON_KEYS.slice(0, count).map((k) => (
         <div className="flex items-center gap-3 border-b px-4 py-3.5" key={k}>
           <div className="w-2 shrink-0" />
-          <div className="size-8 shrink-0 animate-pulse rounded-full bg-muted" />
+          <div className="size-8 shrink-0 animate-pulse rounded-full bg-base-200" />
           <div className="flex-1 space-y-2">
-            <div className="h-3 w-3/5 animate-pulse rounded bg-muted" />
-            <div className="h-2.5 w-2/5 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-3/5 animate-pulse rounded bg-base-200" />
+            <div className="h-2.5 w-2/5 animate-pulse rounded bg-base-200" />
           </div>
         </div>
       ))}

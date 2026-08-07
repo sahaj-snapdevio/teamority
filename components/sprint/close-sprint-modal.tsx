@@ -224,7 +224,7 @@ export function CloseSprintModal({
         <DialogHeader>
           <DialogTitle className="text-base">
             Close Sprint —{" "}
-            <span className="text-muted-foreground font-normal">
+            <span className="text-base-content/60 font-normal">
               {sprintName}
             </span>
           </DialogTitle>
@@ -240,7 +240,7 @@ export function CloseSprintModal({
             ) : (
               <>
                 {/* Task summary */}
-                <div className="rounded-lg border bg-card p-4 space-y-3">
+                <div className="rounded-lg border bg-elevated p-4 space-y-3">
                   <div className="flex items-center gap-2.5">
                     <CheckCircleIcon
                       className="size-4 text-green-500 shrink-0"
@@ -266,8 +266,8 @@ export function CloseSprintModal({
 
                 {/* Mark all done shortcut */}
                 {incompleteTasks > 0 && (
-                  <div className="rounded-md bg-muted/50 p-3 space-y-2">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="rounded-md bg-base-200/50 p-3 space-y-2">
+                    <p className="text-sm text-base-content/60">
                       Want to wrap up cleanly? Mark all incomplete tasks as done
                       before closing.
                     </p>
@@ -286,7 +286,7 @@ export function CloseSprintModal({
                 )}
 
                 {error && (
-                  <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
                     {error}
                   </p>
                 )}
@@ -339,7 +339,7 @@ export function CloseSprintModal({
               >
                 {/* Move to Backlog */}
                 <label
-                  className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-accent/50 transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+                  className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-base-200/50 transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
                   htmlFor="strat-backlog"
                 >
                   <RadioGroupItem
@@ -349,7 +349,7 @@ export function CloseSprintModal({
                   />
                   <div>
                     <p className="text-sm font-medium">Move to Backlog</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-base-content/60">
                       Tasks are removed from the sprint and returned to the list
                       backlog
                     </p>
@@ -358,7 +358,7 @@ export function CloseSprintModal({
 
                 {/* Move to Next Sprint */}
                 <label
-                  className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-accent/50 transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+                  className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-base-200/50 transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
                   htmlFor="strat-next"
                 >
                   <RadioGroupItem
@@ -368,7 +368,7 @@ export function CloseSprintModal({
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">Move to Next Sprint</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-base-content/60">
                       {autoCreateNext
                         ? "Tasks are carried over to the next sprint"
                         : "Tasks are carried over to a planned sprint"}
@@ -376,15 +376,15 @@ export function CloseSprintModal({
                     {strategy === "move_to_next_sprint" && (
                       <div className="mt-2">
                         {loadingPlanned ? (
-                          <div className="h-8 w-full rounded-md bg-muted animate-pulse" />
+                          <div className="h-8 w-full rounded-md bg-base-200 animate-pulse" />
                         ) : plannedSprints.length === 0 ? (
                           autoCreateNext ? (
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-base-content/60">
                               A new sprint will be created automatically and
                               these tasks moved into it.
                             </p>
                           ) : (
-                            <p className="text-xs text-destructive">
+                            <p className="text-xs text-error">
                               No planned sprint available — create one first
                             </p>
                           )
@@ -412,7 +412,7 @@ export function CloseSprintModal({
 
                 {/* Leave as-is */}
                 <label
-                  className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-accent/50 transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+                  className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-base-200/50 transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
                   htmlFor="strat-leave"
                 >
                   <RadioGroupItem
@@ -422,7 +422,7 @@ export function CloseSprintModal({
                   />
                   <div>
                     <p className="text-sm font-medium">Leave as-is</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-base-content/60">
                       Tasks remain in the closed sprint for reference in sprint
                       history
                     </p>
@@ -432,7 +432,7 @@ export function CloseSprintModal({
             </div>
 
             {error && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
                 {error}
               </p>
             )}

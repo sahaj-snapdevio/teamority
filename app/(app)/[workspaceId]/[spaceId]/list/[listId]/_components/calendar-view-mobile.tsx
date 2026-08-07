@@ -190,13 +190,13 @@ export function MobileCalendar({
   );
 
   const modeToggleEl = (
-    <div className="flex h-9 shrink-0 items-center rounded-lg border border-border p-0.5 text-xs font-semibold">
+    <div className="flex h-9 shrink-0 items-center rounded-lg border border-base-300 p-0.5 text-xs font-semibold">
       <button
         className={cn(
           "rounded-md px-2.5 py-1.5 transition-colors",
           mobileMode === "week"
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground"
+            ? "bg-primary text-primary-content"
+            : "text-base-content/60"
         )}
         onClick={() => onModeChange("week")}
         type="button"
@@ -207,8 +207,8 @@ export function MobileCalendar({
         className={cn(
           "rounded-md px-2.5 py-1.5 transition-colors",
           mobileMode === "month"
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground"
+            ? "bg-primary text-primary-content"
+            : "text-base-content/60"
         )}
         onClick={() => onModeChange("month")}
         type="button"
@@ -227,7 +227,7 @@ export function MobileCalendar({
             "flex h-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 text-xs font-semibold transition-colors",
             mobileFilterCount > 0
               ? "border-primary bg-primary/10 text-primary"
-              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+              : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
           )}
           type="button"
         >
@@ -244,7 +244,7 @@ export function MobileCalendar({
         </SheetHeader>
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-4">
           <div>
-            <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+            <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
               Status
             </p>
             <FacetOptionList
@@ -259,7 +259,7 @@ export function MobileCalendar({
           </div>
 
           <div>
-            <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+            <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
               Priority
             </p>
             <FacetOptionList
@@ -271,7 +271,7 @@ export function MobileCalendar({
 
           {members.length > 0 && (
             <div>
-              <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+              <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                 Assignee
               </p>
               <FacetOptionList
@@ -284,9 +284,9 @@ export function MobileCalendar({
             </div>
           )}
         </div>
-        <SheetFooter className="flex-row gap-2 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <SheetFooter className="flex-row gap-2 border-t border-base-300 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
-            className="h-11 flex-1 rounded-lg border border-border text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent"
+            className="h-11 flex-1 rounded-lg border border-base-300 text-sm font-semibold text-base-content/70 transition-colors hover:bg-base-200"
             onClick={onResetFilters}
             type="button"
           >
@@ -294,7 +294,7 @@ export function MobileCalendar({
           </button>
           <SheetClose asChild>
             <button
-              className="h-11 flex-1 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/95"
+              className="h-11 flex-1 rounded-lg bg-primary text-sm font-semibold text-primary-content transition-all hover:bg-primary/95"
               type="button"
             >
               Apply
@@ -314,11 +314,11 @@ export function MobileCalendar({
           turns out to be. The gap between them is a dead zone where sibling
           content and the stuck bar paint on top of each other. Plain, in-flow
           — it scrolls with the page like everything else here. */}
-      <div className="z-10 shrink-0 space-y-1.5 border-b border-border bg-app px-3 pb-2 pt-1.5">
+      <div className="z-10 shrink-0 space-y-1.5 border-b border-base-300 bg-app px-3 pb-2 pt-1.5">
         <div className="flex items-center gap-1">
           <button
             aria-label="Previous"
-            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-accent hover:bg-accent hover:text-foreground"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-base-content/60 transition-colors active:bg-base-200 hover:bg-base-200 hover:text-base-content"
             onClick={goPrev}
             type="button"
           >
@@ -329,14 +329,14 @@ export function MobileCalendar({
           </div>
           <button
             aria-label="Next"
-            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-accent hover:bg-accent hover:text-foreground"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-base-content/60 transition-colors active:bg-base-200 hover:bg-base-200 hover:text-base-content"
             onClick={goNext}
             type="button"
           >
             <CaretRightIcon className="size-5" />
           </button>
           <button
-            className="ml-0.5 h-8 shrink-0 rounded-md border border-border px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+            className="ml-0.5 h-8 shrink-0 rounded-md border border-base-300 px-2.5 text-xs font-semibold text-base-content transition-colors hover:bg-base-200"
             onClick={() => onNavigate(new Date())}
             type="button"
           >
@@ -361,7 +361,7 @@ export function MobileCalendar({
         )}
 
         {mobileMode === "month" && (
-          <div className="grid grid-cols-7 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="grid grid-cols-7 text-2xs font-semibold uppercase tracking-wider text-base-content/60">
             {days.slice(0, 7).map((d) => (
               <div className="text-center" key={dayKey(d)}>
                 {format(d, "EEEEE")}
@@ -449,14 +449,14 @@ export function MobileCalendar({
           className="flex max-h-[85dvh] flex-col rounded-t-2xl"
           side="bottom"
         >
-          <SheetHeader className="border-b border-border p-4 pb-3">
+          <SheetHeader className="border-b border-base-300 p-4 pb-3">
             <SheetTitle className="tracking-normal normal-case">
               {agendaDay ? format(agendaDay, "EEEE, MMMM d") : ""}
             </SheetTitle>
           </SheetHeader>
           <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
             {agendaTasks.length === 0 && (
-              <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+              <p className="px-2 py-6 text-center text-sm text-base-content/60">
                 No tasks due this day.
               </p>
             )}
@@ -471,9 +471,9 @@ export function MobileCalendar({
             ))}
           </div>
           {canEdit && agendaDay && (
-            <SheetFooter className="border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <SheetFooter className="border-t border-base-300 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button
-                className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/95"
+                className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-primary-content transition-all hover:bg-primary/95"
                 onClick={() => {
                   const day = agendaDay;
                   onAgendaDayChange(null);
@@ -520,9 +520,9 @@ function MonthDayCell({
   return (
     <button
       className={cn(
-        "flex min-h-16 flex-col items-stretch border-r border-b border-border p-1.5 text-left transition-colors active:bg-accent/60",
-        weekend && "bg-muted/30 dark:bg-muted/10",
-        !inMonth && "bg-muted/20 text-muted-foreground/60"
+        "flex min-h-16 flex-col items-stretch border-r border-b border-base-300 p-1.5 text-left transition-colors active:bg-base-200/60",
+        weekend && "bg-base-200/30 dark:bg-base-200/10",
+        !inMonth && "bg-base-200/20 text-base-content/60"
       )}
       onClick={onOpen}
       type="button"
@@ -531,8 +531,8 @@ function MonthDayCell({
         <span
           className={cn(
             "flex size-6 items-center justify-center rounded-full text-xs",
-            today && "bg-primary font-semibold text-primary-foreground",
-            !today && !inMonth && "text-muted-foreground/60"
+            today && "bg-primary font-semibold text-primary-content",
+            !today && !inMonth && "text-base-content/60"
           )}
         >
           {format(day, "d")}
@@ -541,7 +541,7 @@ function MonthDayCell({
 
       <div className="min-w-0 flex-1 space-y-1">
         {isPending ? (
-          <div className="h-4 animate-pulse rounded bg-muted" />
+          <div className="h-4 animate-pulse rounded bg-base-200" />
         ) : (
           <>
             {visible.map((t) => {
@@ -559,7 +559,7 @@ function MonthDayCell({
                     className={cn(
                       "min-w-0 flex-1 truncate",
                       status?.type === "CLOSED" &&
-                        "text-muted-foreground line-through"
+                        "text-base-content/60 line-through"
                     )}
                   >
                     {t.title}
@@ -568,7 +568,7 @@ function MonthDayCell({
               );
             })}
             {overflow > 0 && (
-              <div className="text-2xs font-medium text-muted-foreground">
+              <div className="text-2xs font-medium text-base-content/60">
                 +{overflow} more
               </div>
             )}
@@ -604,10 +604,10 @@ function WeekDayRow({
   return (
     <button
       className={cn(
-        "flex w-full flex-col gap-1.5 border-l-[3px] px-3 py-2.5 text-left transition-colors active:bg-accent/60",
+        "flex w-full flex-col gap-1.5 border-l-[3px] px-3 py-2.5 text-left transition-colors active:bg-base-200/60",
         today
           ? "border-primary bg-primary/5"
-          : cn("border-transparent", weekend && "bg-muted/30 dark:bg-muted/10")
+          : cn("border-transparent", weekend && "bg-base-200/30 dark:bg-base-200/10")
       )}
       onClick={onOpen}
       type="button"
@@ -617,17 +617,17 @@ function WeekDayRow({
           <span
             className={cn(
               "truncate text-sm font-semibold",
-              today ? "text-primary" : "text-foreground"
+              today ? "text-primary" : "text-base-content"
             )}
           >
             {format(day, "EEEE")}
           </span>
-          <span className="shrink-0 text-xs text-muted-foreground">
+          <span className="shrink-0 text-xs text-base-content/60">
             {format(day, "MMM d")}
           </span>
         </div>
         {today && (
-          <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-2xs font-semibold text-primary-foreground">
+          <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-2xs font-semibold text-primary-content">
             Today
           </span>
         )}
@@ -635,16 +635,16 @@ function WeekDayRow({
 
       <div className="space-y-1.5">
         {isPending ? (
-          <div className="h-8 animate-pulse rounded-md bg-muted" />
+          <div className="h-8 animate-pulse rounded-md bg-base-200" />
         ) : tasks.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No tasks</p>
+          <p className="text-xs text-base-content/60">No tasks</p>
         ) : (
           <>
             {visible.map((t) => (
               <WeekTaskCard key={t.id} statusById={statusById} task={t} />
             ))}
             {overflow > 0 && (
-              <p className="text-2xs font-medium text-muted-foreground">
+              <p className="text-2xs font-medium text-base-content/60">
                 +{overflow} more
               </p>
             )}
@@ -669,7 +669,7 @@ function WeekTaskCard({
   const priorityCfg = PRIORITY_CONFIG[task.priority];
 
   return (
-    <div className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-2 dark:bg-muted/20">
+    <div className="flex items-center gap-2 rounded-md bg-base-200/50 px-2.5 py-2 dark:bg-base-200/20">
       <span
         className="size-2 shrink-0 rounded-full"
         style={{ backgroundColor: status?.color ?? "#94a3b8" }}
@@ -677,7 +677,7 @@ function WeekTaskCard({
       <span
         className={cn(
           "min-w-0 flex-1 truncate text-xs font-medium",
-          done && "text-muted-foreground line-through"
+          done && "text-base-content/60 line-through"
         )}
       >
         {task.title}

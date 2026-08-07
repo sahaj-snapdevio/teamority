@@ -13,8 +13,8 @@ import { Button } from "@/components/ui/button";
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <div className="bg-background rounded-xl border shadow-sm p-8 max-w-sm w-full text-center space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-base-200/30 p-4">
+      <div className="bg-base-100 rounded-xl border shadow-sm p-8 max-w-sm w-full text-center space-y-4">
         {children}
       </div>
     </div>
@@ -30,9 +30,9 @@ export function JoinError({ message }: { message: string }) {
   const router = useRouter();
   return (
     <Shell>
-      <XCircleIcon className="size-12 text-destructive mx-auto" weight="fill" />
+      <XCircleIcon className="size-12 text-error mx-auto" weight="fill" />
       <h1 className="text-lg font-semibold">Invite link unavailable</h1>
-      <p className="text-sm text-muted-foreground">{message}</p>
+      <p className="text-sm text-base-content/60">{message}</p>
       <Button
         className="w-full"
         onClick={() => router.push("/")}
@@ -85,7 +85,7 @@ export function JoinWorkspaceCard({
           weight="fill"
         />
         <h1 className="text-lg font-semibold">You&rsquo;re in!</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-base-content/60">
           Taking you to the workspace&hellip;
         </p>
         <Button
@@ -103,14 +103,14 @@ export function JoinWorkspaceCard({
       <UsersIcon className="size-12 text-primary mx-auto" weight="duotone" />
       <h1 className="text-lg font-semibold">Join workspace</h1>
       <div className="space-y-1">
-        <p className="text-sm text-muted-foreground">Workspace</p>
+        <p className="text-sm text-base-content/60">Workspace</p>
         <p className="text-base font-medium">{workspaceName}</p>
       </div>
       <div className="space-y-1">
-        <p className="text-sm text-muted-foreground">Role</p>
+        <p className="text-sm text-base-content/60">Role</p>
         <p className="text-base font-medium">{roleLabel(role)}</p>
       </div>
-      <p className="text-xs text-muted-foreground">Invited via link</p>
+      <p className="text-xs text-base-content/60">Invited via link</p>
       <Button
         className="w-full"
         disabled={status === "loading"}

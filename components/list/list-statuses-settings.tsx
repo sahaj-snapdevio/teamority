@@ -73,7 +73,7 @@ const DEFAULT_COLORS: Record<StatusType, string> = {
 type StatusType = "OPEN" | "ACTIVE" | "CLOSED";
 
 const GROUPS: { type: StatusType; label: string; accent: string }[] = [
-  { type: "OPEN",   label: "Not started", accent: "text-muted-foreground" },
+  { type: "OPEN",   label: "Not started", accent: "text-base-content/60" },
   { type: "ACTIVE", label: "Active",      accent: "text-blue-500" },
   { type: "CLOSED", label: "Closed",      accent: "text-green-600" },
 ];
@@ -149,7 +149,7 @@ function AddRow({
   }
 
   return (
-    <div className="rounded-md border border-dashed bg-muted/20 px-3 py-2.5 space-y-2.5">
+    <div className="rounded-md border border-dashed bg-base-200/20 px-3 py-2.5 space-y-2.5">
       <div className="flex items-center gap-2">
         <Popover open={colorOpen} onOpenChange={setColorOpen}>
           <PopoverTrigger asChild>
@@ -170,7 +170,7 @@ function AddRow({
         />
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-        <span className="text-xs text-muted-foreground shrink-0">Dashboard category</span>
+        <span className="text-xs text-base-content/60 shrink-0">Dashboard category</span>
         <Select value={dashboardCategory} onValueChange={(v) => setDashboardCategory(v as DashboardCategory)} disabled={loading}>
           <SelectTrigger className="h-7 w-32 text-xs shrink-0">
             <SelectValue />
@@ -182,7 +182,7 @@ function AddRow({
           </SelectContent>
         </Select>
       </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-error">{error}</p>}
       <div className="flex gap-2">
         <Button size="sm" className="h-7 text-xs" onClick={save} disabled={loading || !name.trim()}>
           {loading ? "Adding…" : "Add"}
@@ -228,7 +228,7 @@ function EditRow({
   }
 
   return (
-    <div className="rounded-md border bg-muted/20 px-3 py-2.5 space-y-2.5">
+    <div className="rounded-md border bg-base-200/20 px-3 py-2.5 space-y-2.5">
       <div className="flex items-center gap-2">
         <Popover open={colorOpen} onOpenChange={setColorOpen}>
           <PopoverTrigger asChild>
@@ -258,7 +258,7 @@ function EditRow({
         </Select>
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-        <span className="text-xs text-muted-foreground shrink-0">Dashboard category</span>
+        <span className="text-xs text-base-content/60 shrink-0">Dashboard category</span>
         <Select value={dashboardCategory} onValueChange={(v) => setDashboardCategory(v as DashboardCategory)} disabled={loading}>
           <SelectTrigger className="h-7 w-32 text-xs shrink-0">
             <SelectValue />
@@ -270,7 +270,7 @@ function EditRow({
           </SelectContent>
         </Select>
       </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-error">{error}</p>}
       <div className="flex gap-2">
         <Button size="sm" className="h-7 text-xs" onClick={save} disabled={loading || !name.trim()}>
           {loading ? "Saving…" : "Save"}
@@ -376,7 +376,7 @@ export function ListStatusesSettings({
               </span>
               <button
                 onClick={() => { setEditingId(null); setAddingType(type); }}
-                className="flex size-9 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors sm:size-5"
+                className="flex size-9 items-center justify-center rounded hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors sm:size-5"
                 title={`Add ${label} status`}
               >
                 <PlusIcon className="size-3.5" />
@@ -419,7 +419,7 @@ export function ListStatusesSettings({
               ) : (
                 <button
                   onClick={() => { setEditingId(null); setAddingType(type); }}
-                  className="flex w-full items-center gap-1.5 rounded-md border border-dashed px-2 py-1.5 text-xs text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground transition-colors"
+                  className="flex w-full items-center gap-1.5 rounded-md border border-dashed px-2 py-1.5 text-xs text-base-content/60 hover:border-base-300 hover:bg-base-200 hover:text-base-content transition-colors"
                 >
                   <PlusIcon className="size-3.5" /> Add status
                 </button>
@@ -458,7 +458,7 @@ function SortableStatusRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex items-center gap-2 rounded-md border bg-background px-2 py-2 hover:bg-muted/30 transition-colors",
+        "group flex items-center gap-2 rounded-md border bg-base-100 px-2 py-2 hover:bg-base-200/30 transition-colors",
         isDragging && "opacity-50",
       )}
     >
@@ -467,7 +467,7 @@ function SortableStatusRow({
         {...attributes}
         {...listeners}
         aria-label="Drag to reorder"
-        className="flex size-9 shrink-0 cursor-grab touch-none items-center justify-center text-muted-foreground/40 group-hover:text-muted-foreground transition-colors active:cursor-grabbing sm:size-4"
+        className="flex size-9 shrink-0 cursor-grab touch-none items-center justify-center text-base-content/40 group-hover:text-base-content/60 transition-colors active:cursor-grabbing sm:size-4"
       >
         <DotsSixVerticalIcon className="size-4" />
       </button>
@@ -476,33 +476,33 @@ function SortableStatusRow({
       <div className="flex items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex size-9 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors sm:size-6">
+            <button className="flex size-9 items-center justify-center rounded hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors sm:size-6">
               <DotsThreeIcon className="size-4" weight="bold" />
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-36 p-1" align="end">
             <button
               onClick={onEdit}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
             >
               <PencilSimpleIcon className="size-3.5" /> Edit
             </button>
             <button
               onClick={onMoveUp}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent text-muted-foreground"
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200 text-base-content/60"
             >
               Move up
             </button>
             <button
               onClick={onMoveDown}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent text-muted-foreground"
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200 text-base-content/60"
             >
               Move down
             </button>
             <div className="h-px bg-border my-1" />
             <button
               onClick={onDelete}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-error hover:bg-error/10"
             >
               <TrashIcon className="size-3.5" /> Delete
             </button>

@@ -134,9 +134,9 @@ const PRIORITY_CONFIG: Record<
 > = {
   NONE: {
     label: "No Priority",
-    color: "text-muted-foreground",
+    color: "text-base-content/60",
     icon: "😴",
-    bg: "bg-muted/60",
+    bg: "bg-base-200/60",
   },
   LOW: {
     label: "Low",
@@ -331,7 +331,7 @@ export function TaskDetailPanel({
   if (loading || !data || "error" in data) {
     const loadingContent = (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-base-content/60">
           {loading ? "Loading…" : "Task not found"}
         </p>
       </div>
@@ -588,11 +588,11 @@ export function TaskDetailPanel({
       {/* Header */}
       <div className="flex items-start gap-2 border-b px-4 py-4 sm:px-6">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+          <div className="flex items-center gap-2 text-xs text-base-content/60 mb-1">
             <ClipboardTextIcon className="size-3.5" />
             <span className="font-mono">#{t.seqNumber}</span>
             <button
-              className="flex items-center gap-1 hover:text-foreground"
+              className="flex items-center gap-1 hover:text-base-content"
               onClick={() => void copyLink()}
             >
               <LinkIcon className="size-3" />
@@ -631,7 +631,7 @@ export function TaskDetailPanel({
             />
           ) : (
             <h2
-              className="text-base font-semibold cursor-text hover:bg-accent rounded px-1 -mx-1 py-0.5"
+              className="text-base font-semibold cursor-text hover:bg-base-200 rounded px-1 -mx-1 py-0.5"
               onClick={() => setTitleEditing(true)}
             >
               {t.title}
@@ -645,7 +645,7 @@ export function TaskDetailPanel({
               "flex min-h-11 items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors sm:min-h-0",
               isWatching
                 ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                : "text-base-content/60 hover:bg-base-200 hover:text-base-content"
             )}
             onClick={handleToggleWatch}
           >
@@ -658,29 +658,29 @@ export function TaskDetailPanel({
           </button>
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex size-11 items-center justify-center rounded-md hover:bg-accent sm:size-8">
+              <button className="flex size-11 items-center justify-center rounded-md hover:bg-base-200 sm:size-8">
                 <DotsThreeIcon className="size-4.5" weight="bold" />
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-44 p-1">
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                 disabled={saving}
                 onClick={handleDuplicate}
               >
-                <CopyIcon className="size-3.5 text-muted-foreground" />{" "}
+                <CopyIcon className="size-3.5 text-base-content/60" />{" "}
                 Duplicate
               </button>
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                 onClick={handleArchive}
               >
-                <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
+                <ArchiveIcon className="size-3.5 text-base-content/60" />{" "}
                 Archive
               </button>
               <Separator className="my-1" />
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-error hover:bg-error/10"
                 onClick={handleDelete}
               >
                 <TrashIcon className="size-3.5" /> Delete
@@ -724,7 +724,7 @@ export function TaskDetailPanel({
                           : "Closed";
                     return (
                       <SelectGroup key={type}>
-                        <SelectLabel className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1">
+                        <SelectLabel className="text-2xs font-semibold uppercase tracking-wider text-base-content/60 px-2 py-1">
                           {label}
                         </SelectLabel>
                         {group.map((s) => (
@@ -746,7 +746,7 @@ export function TaskDetailPanel({
               {isAdmin && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                    <button className="flex size-5 items-center justify-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors">
                       <DotsThreeIcon className="size-3.5" weight="bold" />
                     </button>
                   </DropdownMenuTrigger>
@@ -806,9 +806,9 @@ export function TaskDetailPanel({
             own Assignees/Due date blocks (below) are hidden on mobile in
             favor of this, so key properties aren't buried under
             Description/Checklist/Time Tracking/Dependencies/Activity. */}
-          <div className="space-y-3 rounded-xl border bg-card p-3 sm:hidden">
+          <div className="space-y-3 rounded-xl border bg-elevated p-3 sm:hidden">
             <div className="flex items-center gap-3">
-              <span className="w-16 shrink-0 text-xs text-muted-foreground">
+              <span className="w-16 shrink-0 text-xs text-base-content/60">
                 Assignee
               </span>
               <Popover
@@ -831,18 +831,18 @@ export function TaskDetailPanel({
                           {assignees[0].name ?? assignees[0].email}
                         </span>
                         {assignees.length > 1 && (
-                          <span className="shrink-0 text-xs text-muted-foreground">
+                          <span className="shrink-0 text-xs text-base-content/60">
                             +{assignees.length - 1}
                           </span>
                         )}
                       </>
                     ) : (
-                      <span className="text-sm text-muted-foreground">Unassigned</span>
+                      <span className="text-sm text-base-content/60">Unassigned</span>
                     )}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-64 p-2">
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5 px-1">
+                  <p className="text-xs font-medium text-base-content/60 mb-1.5 px-1">
                     Select members
                   </p>
                   <div className="space-y-0.5 max-h-48 overflow-y-auto">
@@ -850,7 +850,7 @@ export function TaskDetailPanel({
                       const isAssigned = assignees.some((a) => a.userId === m.userId);
                       return (
                         <button
-                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                           key={m.userId}
                           onClick={() => handleToggleAssignee(m.userId!)}
                         >
@@ -871,13 +871,13 @@ export function TaskDetailPanel({
                   </div>
                   <Separator className="my-1.5" />
                   <button
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 hover:bg-base-200 hover:text-base-content"
                     onClick={() => {
                       setMobileAssigneePopoverOpen(false);
                       setInviteOpen(true);
                     }}
                   >
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-base-300">
                       <UserPlusIcon className="size-3.5" />
                     </span>
                     <span className="flex-1 truncate text-left">Invite member</span>
@@ -887,12 +887,12 @@ export function TaskDetailPanel({
             </div>
             <Separator />
             <div className="flex items-center gap-3">
-              <span className="w-16 shrink-0 text-xs text-muted-foreground">Dates</span>
+              <span className="w-16 shrink-0 text-xs text-base-content/60">Dates</span>
               <div className="flex min-h-9 flex-1 items-center gap-1.5 text-sm">
                 <Popover onOpenChange={setMobileStartCalOpen} open={mobileStartCalOpen}>
                   <PopoverTrigger asChild>
                     <button
-                      className={cn("truncate", dueDateStart ? "text-foreground" : "text-muted-foreground")}
+                      className={cn("truncate", dueDateStart ? "text-base-content" : "text-base-content/60")}
                       type="button"
                     >
                       {dueDateStart ? format(dueDateStart, "MMM d") : "Start"}
@@ -909,11 +909,11 @@ export function TaskDetailPanel({
                     />
                   </PopoverContent>
                 </Popover>
-                <span className="shrink-0 text-muted-foreground">→</span>
+                <span className="shrink-0 text-base-content/60">→</span>
                 <Popover onOpenChange={setMobileEndCalOpen} open={mobileEndCalOpen}>
                   <PopoverTrigger asChild>
                     <button
-                      className={cn("truncate", dueDateEnd ? "text-foreground" : "text-muted-foreground")}
+                      className={cn("truncate", dueDateEnd ? "text-base-content" : "text-base-content/60")}
                       type="button"
                     >
                       {dueDateEnd ? format(dueDateEnd, "MMM d") : "End"}
@@ -937,7 +937,7 @@ export function TaskDetailPanel({
 
           {/* Description */}
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">
+            <Label className="text-xs text-base-content/60 mb-1.5 block">
               Description
             </Label>
             <TaskDescriptionEditor
@@ -961,7 +961,7 @@ export function TaskDetailPanel({
                   <div key={cl.id}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium">{cl.name}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-base-content/60">
                         {clChecked}/{clTotal}
                       </span>
                     </div>
@@ -986,13 +986,13 @@ export function TaskDetailPanel({
                             className={cn(
                               "flex-1 text-sm",
                               item.isChecked &&
-                                "line-through text-muted-foreground"
+                                "line-through text-base-content/60"
                             )}
                           >
                             {item.title}
                           </span>
                           <button
-                            className="opacity-0 group-hover:opacity-100 flex size-5 items-center justify-center rounded hover:bg-destructive/10 text-destructive transition-opacity"
+                            className="opacity-0 group-hover:opacity-100 flex size-5 items-center justify-center rounded hover:bg-error/10 text-error transition-opacity"
                             onClick={() =>
                               deleteChecklistItem(
                                 workspaceId,
@@ -1033,7 +1033,7 @@ export function TaskDetailPanel({
                           <PlusIcon className="size-3.5" />
                         </Button>
                         <button
-                          className="flex size-7 items-center justify-center rounded hover:bg-destructive/10 text-destructive"
+                          className="flex size-7 items-center justify-center rounded hover:bg-error/10 text-error"
                           onClick={() =>
                             deleteChecklist(
                               workspaceId,
@@ -1086,7 +1086,7 @@ export function TaskDetailPanel({
             </div>
           ) : (
             <button
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-xs text-base-content/60 hover:text-base-content transition-colors"
               onClick={() => setAddingChecklist(true)}
               ref={addChecklistTriggerRef}
             >
@@ -1140,17 +1140,17 @@ export function TaskDetailPanel({
           {/* Assignees */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-base-content/60">
                 Assignees
               </span>
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="size-5 flex items-center justify-center rounded hover:bg-accent">
-                    <PlusIcon className="size-3.5 text-muted-foreground" />
+                  <button className="size-5 flex items-center justify-center rounded hover:bg-base-200">
+                    <PlusIcon className="size-3.5 text-base-content/60" />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-56 p-2">
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5 px-1">
+                  <p className="text-xs font-medium text-base-content/60 mb-1.5 px-1">
                     Select members
                   </p>
                   <div className="space-y-0.5 max-h-48 overflow-y-auto">
@@ -1160,7 +1160,7 @@ export function TaskDetailPanel({
                       );
                       return (
                         <button
-                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                           key={m.userId}
                           onClick={() => handleToggleAssignee(m.userId!)}
                         >
@@ -1181,10 +1181,10 @@ export function TaskDetailPanel({
                   </div>
                   <Separator className="my-1.5" />
                   <button
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 hover:bg-base-200 hover:text-base-content"
                     onClick={() => setInviteOpen(true)}
                   >
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-base-300">
                       <UserPlusIcon className="size-3.5" />
                     </span>
                     <span className="flex-1 truncate text-left">
@@ -1198,7 +1198,7 @@ export function TaskDetailPanel({
               <div className="flex flex-wrap gap-1">
                 {assignees.map((a) => (
                   <div
-                    className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5"
+                    className="flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5"
                     key={a.userId}
                   >
                     <Avatar className="size-4">
@@ -1210,7 +1210,7 @@ export function TaskDetailPanel({
                       {a.name ?? a.email}
                     </span>
                     <button
-                      className="text-muted-foreground hover:text-foreground"
+                      className="text-base-content/60 hover:text-base-content"
                       onClick={() => handleToggleAssignee(a.userId!)}
                     >
                       <XIcon className="size-3" />
@@ -1219,7 +1219,7 @@ export function TaskDetailPanel({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">None</p>
+              <p className="text-xs text-base-content/60">None</p>
             )}
           </div>
 
@@ -1227,19 +1227,19 @@ export function TaskDetailPanel({
 
           {/* Due date */}
           <div>
-            <Label className="text-xs font-medium text-muted-foreground block mb-1.5">
+            <Label className="text-xs font-medium text-base-content/60 block mb-1.5">
               Due date
             </Label>
             <div className="space-y-1">
               <div>
-                <p className="text-2xs text-muted-foreground mb-0.5">Start</p>
+                <p className="text-2xs text-base-content/60 mb-0.5">Start</p>
                 <Popover onOpenChange={setStartCalOpen} open={startCalOpen}>
                   <PopoverTrigger asChild>
-                    <button className="w-full flex items-center rounded-md border bg-background px-2 py-1.5 text-xs hover:bg-accent transition-colors text-left">
+                    <button className="w-full flex items-center rounded-md border bg-base-100 px-2 py-1.5 text-xs hover:bg-base-200 transition-colors text-left">
                       {dueDateStart ? (
                         format(dueDateStart, "MMM d, yyyy")
                       ) : (
-                        <span className="text-muted-foreground">
+                        <span className="text-base-content/60">
                           Pick a date
                         </span>
                       )}
@@ -1262,14 +1262,14 @@ export function TaskDetailPanel({
                 </Popover>
               </div>
               <div>
-                <p className="text-2xs text-muted-foreground mb-0.5">End</p>
+                <p className="text-2xs text-base-content/60 mb-0.5">End</p>
                 <Popover onOpenChange={setEndCalOpen} open={endCalOpen}>
                   <PopoverTrigger asChild>
-                    <button className="w-full flex items-center rounded-md border bg-background px-2 py-1.5 text-xs hover:bg-accent transition-colors text-left">
+                    <button className="w-full flex items-center rounded-md border bg-base-100 px-2 py-1.5 text-xs hover:bg-base-200 transition-colors text-left">
                       {dueDateEnd ? (
                         format(dueDateEnd, "MMM d, yyyy")
                       ) : (
-                        <span className="text-muted-foreground">
+                        <span className="text-base-content/60">
                           Pick a date
                         </span>
                       )}
@@ -1303,13 +1303,13 @@ export function TaskDetailPanel({
           {/* Tags */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-base-content/60">
                 Tags
               </span>
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="size-5 flex items-center justify-center rounded hover:bg-accent">
-                    <PlusIcon className="size-3.5 text-muted-foreground" />
+                  <button className="size-5 flex items-center justify-center rounded hover:bg-base-200">
+                    <PlusIcon className="size-3.5 text-base-content/60" />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-52 p-2">
@@ -1346,7 +1346,7 @@ export function TaskDetailPanel({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">None</p>
+              <p className="text-xs text-base-content/60">None</p>
             )}
           </div>
 
@@ -1354,7 +1354,7 @@ export function TaskDetailPanel({
 
           {/* Watchers */}
           <div>
-            <span className="text-xs font-medium text-muted-foreground block mb-1.5">
+            <span className="text-xs font-medium text-base-content/60 block mb-1.5">
               Watchers
             </span>
             {watchers.length > 0 ? (
@@ -1370,7 +1370,7 @@ export function TaskDetailPanel({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">None</p>
+              <p className="text-xs text-base-content/60">None</p>
             )}
           </div>
 
@@ -1378,11 +1378,11 @@ export function TaskDetailPanel({
 
           {/* Reporter */}
           <div>
-            <span className="text-xs font-medium text-muted-foreground block mb-1">
+            <span className="text-xs font-medium text-base-content/60 block mb-1">
               Reporter
             </span>
             <div className="flex items-center gap-1.5">
-              <UserIcon className="size-3.5 shrink-0 text-muted-foreground" />
+              <UserIcon className="size-3.5 shrink-0 text-base-content/60" />
               <span className="min-w-0 flex-1 truncate text-xs">
                 {members.find((m) => m.userId === t.reporterId)?.name ??
                   "Unknown"}
@@ -1396,7 +1396,7 @@ export function TaskDetailPanel({
               <Separator />
               {customFields.map((field) => (
                 <div key={field.id}>
-                  <span className="text-xs font-medium text-muted-foreground block mb-1.5">
+                  <span className="text-xs font-medium text-base-content/60 block mb-1.5">
                     {field.name}
                   </span>
                   <CustomFieldEditor
@@ -1418,11 +1418,11 @@ export function TaskDetailPanel({
             <>
               <Separator />
               <div>
-                <span className="text-xs font-medium text-muted-foreground block mb-1.5">
+                <span className="text-xs font-medium text-base-content/60 block mb-1.5">
                   Checklist
                 </span>
                 <Progress className="h-1.5 mb-1" value={checkProgress} />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-base-content/60">
                   {totalChecked}/{totalItems} items
                 </p>
               </div>
@@ -1437,14 +1437,14 @@ export function TaskDetailPanel({
     <Dialog onOpenChange={setDeleteOpen} open={deleteOpen}>
       <DialogContent className="sm:max-w-xs text-center">
         <div className="flex flex-col items-center gap-3 pt-2">
-          <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
-            <TrashIcon className="size-6 text-destructive" weight="fill" />
+          <div className="flex size-12 items-center justify-center rounded-full bg-error/10">
+            <TrashIcon className="size-6 text-error" weight="fill" />
           </div>
           <div>
             <DialogTitle className="text-base font-bold">
               Delete Task
             </DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-base-content/60 mt-1">
               This action cannot be undone.
             </p>
           </div>
@@ -1493,7 +1493,7 @@ export function TaskDetailPanel({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive text-white hover:bg-destructive/90"
+            className="bg-error text-white hover:bg-error/90"
             onClick={handleDeleteTag}
           >
             Delete tag
@@ -1594,7 +1594,7 @@ function TagPicker({
       <div className="space-y-0.5 max-h-40 overflow-y-auto">
         {filtered.map((tag) => (
           <div
-            className="group/tag flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-accent"
+            className="group/tag flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-base-200"
             key={tag.id}
           >
             <button
@@ -1613,7 +1613,7 @@ function TagPicker({
               )}
             </button>
             <button
-              className="opacity-0 group-hover/tag:opacity-100 flex size-5 items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive transition-opacity shrink-0"
+              className="opacity-0 group-hover/tag:opacity-100 flex size-5 items-center justify-center rounded hover:bg-error/10 hover:text-error transition-opacity shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(tag.id, tag.name);
@@ -1625,7 +1625,7 @@ function TagPicker({
         ))}
         {search && !exactMatch && (
           <button
-            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-accent"
+            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-base-200"
             onClick={() => {
               onCreate(search.trim());
               setSearch("");

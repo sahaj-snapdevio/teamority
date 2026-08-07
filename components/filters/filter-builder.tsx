@@ -85,7 +85,7 @@ export function FilterBuilder({
     <Popover onOpenChange={setAddOpen} open={addOpen}>
       <PopoverTrigger asChild>
         <button
-          className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-accent"
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-base-200"
           type="button"
         >
           <PlusIcon className="size-3.5" />
@@ -125,7 +125,7 @@ export function FilterBuilder({
             "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
             activeKeys.length > 0
               ? "border-primary bg-primary/10 text-primary"
-              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+              : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
           )}
           type="button"
         >
@@ -146,15 +146,15 @@ export function FilterBuilder({
         align="start"
         className="flex max-h-[75vh] w-72 flex-col overflow-hidden rounded-xl p-0"
       >
-        <div className="flex shrink-0 flex-col gap-1.5 border-b border-border p-2">
-          <p className="px-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+        <div className="flex shrink-0 flex-col gap-1.5 border-b border-base-300 p-2">
+          <p className="px-1 text-2xs font-bold uppercase tracking-wide text-base-content/60">
             Filters
           </p>
           <div className="flex items-center justify-between gap-2">
             {addFilterButton || <span />}
             {visibleKeys.length > 0 && (
               <button
-                className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-base-content/60 hover:bg-base-200 hover:text-base-content"
                 onClick={handleClearAll}
                 type="button"
               >
@@ -167,7 +167,7 @@ export function FilterBuilder({
             the end of this list into the page behind the popover. */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
           {visibleKeys.length === 0 ? (
-            <p className="px-1 py-1 text-xs text-muted-foreground">
+            <p className="px-1 py-1 text-xs text-base-content/60">
               No filters yet — add one above.
             </p>
           ) : (
@@ -179,7 +179,7 @@ export function FilterBuilder({
                 }
                 return (
                   <div
-                    className="rounded-lg border border-border p-2"
+                    className="rounded-lg border border-base-300 p-2"
                     key={key}
                   >
                     <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -187,7 +187,7 @@ export function FilterBuilder({
                         {field.label}
                       </span>
                       <button
-                        className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+                        className="flex size-5 shrink-0 items-center justify-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content"
                         onClick={() => handleClear(key)}
                         type="button"
                       >

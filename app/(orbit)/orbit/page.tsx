@@ -45,13 +45,13 @@ export default async function OrbitPage() {
                 className="flex items-center gap-3 px-(--card-spacing) py-3"
                 key={item.id}
               >
-                <span className="grid size-8 shrink-0 place-items-center bg-muted font-black text-xs text-muted-foreground">
+                <span className="grid size-8 shrink-0 place-items-center bg-base-200 font-black text-xs text-base-content/60">
                   {(item.name ?? item.email).slice(0, 2).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{item.email}</p>
                   {item.name && (
-                    <p className="truncate text-muted-foreground text-xs">{item.name}</p>
+                    <p className="truncate text-base-content/60 text-xs">{item.name}</p>
                   )}
                 </div>
                 <Badge
@@ -60,7 +60,7 @@ export default async function OrbitPage() {
                 >
                   {item.role}
                 </Badge>
-                <span className="hidden font-mono text-muted-foreground text-xs sm:block">
+                <span className="hidden font-mono text-base-content/60 text-xs sm:block">
                   {item.id.slice(0, 8)}
                 </span>
               </div>
@@ -74,8 +74,8 @@ export default async function OrbitPage() {
 
 function StatBlock({ label, value }: { label: string; value: number }) {
   return (
-    <div className="border border-border bg-card p-6">
-      <p className="text-2xs font-semibold uppercase tracking-ui text-muted-foreground">
+    <div className="border border-base-300 bg-elevated p-6">
+      <p className="text-2xs font-semibold uppercase tracking-ui text-base-content/60">
         {label}
       </p>
       <p className="mt-2 font-black text-4xl tracking-normal">{value}</p>

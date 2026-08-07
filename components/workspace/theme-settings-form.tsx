@@ -123,10 +123,10 @@ export function ThemeSettingsForm() {
             return (
               <button
                 className={cn(
-                  "flex flex-col items-center justify-center p-4 rounded-xl border text-center hover:bg-accent/50 transition-all focus:outline-none cursor-pointer gap-2",
+                  "flex flex-col items-center justify-center p-4 rounded-xl border text-center hover:bg-base-200/50 transition-all focus:outline-none cursor-pointer gap-2",
                   isSelected
-                    ? "border-primary ring-2 ring-primary/20 bg-accent"
-                    : "border-border bg-card"
+                    ? "border-primary ring-2 ring-primary/20 bg-base-200"
+                    : "border-base-300 bg-elevated"
                 )}
                 key={theme.id}
                 onClick={() => setTheme(theme.id)}
@@ -148,13 +148,13 @@ export function ThemeSettingsForm() {
 
         <div
           className={cn(
-            "flex flex-wrap items-center justify-end gap-3 border-t border-border pt-4 transition-all duration-300",
+            "flex flex-wrap items-center justify-end gap-3 border-t border-base-300 pt-4 transition-all duration-300",
             hasChanges
               ? "opacity-100 translate-y-0"
               : "opacity-60 pointer-events-none"
           )}
         >
-          <span className="text-xs text-muted-foreground mr-auto">
+          <span className="text-xs text-base-content/60 mr-auto">
             {hasChanges ? "You have unsaved changes" : "All changes saved"}
           </span>
           <Button

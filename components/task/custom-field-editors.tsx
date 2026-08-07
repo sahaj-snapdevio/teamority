@@ -205,14 +205,14 @@ function InlineValueEditor({
     <button
       className={cn(
         "-mx-1 block w-full min-w-0 rounded px-1 py-0.5 text-left text-xs",
-        disabled ? "cursor-default" : "cursor-text hover:bg-accent"
+        disabled ? "cursor-default" : "cursor-text hover:bg-base-200"
       )}
       disabled={disabled}
       onClick={startEdit}
       type="button"
     >
       {value === null || value === undefined || value === "" ? (
-        <span className="text-muted-foreground">{placeholder}</span>
+        <span className="text-base-content/60">{placeholder}</span>
       ) : (
         <span className="block truncate">{String(value)}</span>
       )}
@@ -238,7 +238,7 @@ function CheckboxEditor({
         disabled={disabled}
         onCheckedChange={(v) => onChange(!!v)}
       />
-      <span className="text-xs text-muted-foreground">
+      <span className="text-xs text-base-content/60">
         {value ? "Yes" : "No"}
       </span>
     </div>
@@ -284,7 +284,7 @@ function SingleSelectEditor({
     return selected ? (
       optionBadge(selected)
     ) : (
-      <span className="text-xs text-muted-foreground">
+      <span className="text-xs text-base-content/60">
         {emptyPlaceholder ?? "Not set"}
       </span>
     );
@@ -294,13 +294,13 @@ function SingleSelectEditor({
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <button
-          className="inline-flex min-w-0 max-w-full items-center rounded-md px-1 py-0.5 text-xs transition-colors hover:bg-accent"
+          className="inline-flex min-w-0 max-w-full items-center rounded-md px-1 py-0.5 text-xs transition-colors hover:bg-base-200"
           type="button"
         >
           {selected ? (
             optionBadge(selected)
           ) : (
-            <span className="text-muted-foreground">
+            <span className="text-base-content/60">
               {emptyPlaceholder ?? "Set value"}
             </span>
           )}
@@ -369,7 +369,7 @@ function MultiSelectEditor({
         </Badge>
       ))}
       {selected.length === 0 && (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-base-content/60">
           {emptyPlaceholder ?? "None"}
         </span>
       )}
@@ -377,7 +377,7 @@ function MultiSelectEditor({
         <Popover>
           <PopoverTrigger asChild>
             <button
-              className="flex size-5 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+              className="flex size-5 items-center justify-center rounded-full border border-dashed border-base-300 text-base-content/60 transition-colors hover:border-primary hover:text-primary"
               type="button"
             >
               <PlusIcon className="size-3" />
@@ -422,7 +422,7 @@ function DateEditor({
     return date ? (
       <span className="text-xs">{format(date, "MMM d, yyyy")}</span>
     ) : (
-      <span className="text-xs text-muted-foreground">
+      <span className="text-xs text-base-content/60">
         {emptyPlaceholder ?? "Not set"}
       </span>
     );
@@ -432,13 +432,13 @@ function DateEditor({
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <button
-          className="inline-flex items-center rounded-md border bg-background px-2 py-1 text-xs transition-colors hover:bg-accent"
+          className="inline-flex items-center rounded-md border bg-base-100 px-2 py-1 text-xs transition-colors hover:bg-base-200"
           type="button"
         >
           {date ? (
             format(date, "MMM d, yyyy")
           ) : (
-            <span className="text-muted-foreground">
+            <span className="text-base-content/60">
               {emptyPlaceholder ?? "Pick a date"}
             </span>
           )}
@@ -477,7 +477,7 @@ function PersonEditor({
   const person = members.find((m) => m.userId === value);
 
   const chip = person ? (
-    <div className="flex min-w-0 items-center gap-1 rounded-full bg-accent px-2 py-0.5">
+    <div className="flex min-w-0 items-center gap-1 rounded-full bg-base-200 px-2 py-0.5">
       <UserAvatar
         email={person.email}
         image={person.image}
@@ -489,7 +489,7 @@ function PersonEditor({
       </span>
       {!disabled && (
         <button
-          className="shrink-0 text-muted-foreground hover:text-foreground"
+          className="shrink-0 text-base-content/60 hover:text-base-content"
           onClick={() => onChange(null)}
           type="button"
         >
@@ -498,7 +498,7 @@ function PersonEditor({
       )}
     </div>
   ) : (
-    <span className="text-xs text-muted-foreground">
+    <span className="text-xs text-base-content/60">
       {emptyPlaceholder ?? "Unassigned"}
     </span>
   );
@@ -513,7 +513,7 @@ function PersonEditor({
       <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>
           <button
-            className="flex size-5 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            className="flex size-5 items-center justify-center rounded-full border border-dashed border-base-300 text-base-content/60 transition-colors hover:border-primary hover:text-primary"
             type="button"
           >
             <PlusIcon className="size-3" />

@@ -55,7 +55,7 @@ function NoteImageView({ node, selected, editor, deleteNode }: NodeViewProps) {
     <NodeViewWrapper className="note-image my-2" data-drag-handle>
       <div
         className={cn(
-          "group relative inline-block max-w-full overflow-hidden rounded-lg border bg-muted/30",
+          "group relative inline-block max-w-full overflow-hidden rounded-lg border bg-base-200/30",
           selected && "ring-2 ring-primary"
         )}
       >
@@ -105,7 +105,7 @@ function NoteImageView({ node, selected, editor, deleteNode }: NodeViewProps) {
           ))}
         {isUploading && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <SpinnerGapIcon className="size-6 animate-spin text-foreground/70" />
+            <SpinnerGapIcon className="size-6 animate-spin text-base-content/70" />
           </div>
         )}
       </div>

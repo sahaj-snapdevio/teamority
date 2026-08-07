@@ -46,11 +46,11 @@ export function CreateChannelModal({ open, onOpenChange, workspaceId }: CreateCh
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="channel-name" className="text-sm font-medium text-foreground">
+            <label htmlFor="channel-name" className="text-sm font-medium text-base-content">
               Channel name
             </label>
             <div className="flex items-center gap-2">
-              <span className="text-lg text-muted-foreground">#</span>
+              <span className="text-lg text-base-content/60">#</span>
               <Input
                 id="channel-name"
                 placeholder="e.g. general"
@@ -60,11 +60,11 @@ export function CreateChannelModal({ open, onOpenChange, workspaceId }: CreateCh
                 maxLength={50}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-base-content/60">
               Channel names must be lowercase and can contain letters, numbers, hyphens, and underscores.
             </p>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-sm text-error">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel

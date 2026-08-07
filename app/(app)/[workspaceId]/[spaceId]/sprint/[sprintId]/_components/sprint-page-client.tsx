@@ -72,7 +72,7 @@ export function SprintPageClient({ workspaceId, spaceId, sprintId, sprintStatus,
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 text-muted-foreground hover:text-foreground"
+              className="gap-2 text-base-content/60 hover:text-base-content"
               onClick={() => setShowBacklog((v) => !v)}
             >
               <TrayIcon className="size-4" />

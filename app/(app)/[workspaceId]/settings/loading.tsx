@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SettingsLoading() {
   return (
-    <div className="rounded-xl border bg-card p-6">
+    <div className="rounded-xl border bg-elevated p-6">
       {/* Section heading */}
       <div className="space-y-2">
         <Skeleton className="h-5 w-40 rounded" />

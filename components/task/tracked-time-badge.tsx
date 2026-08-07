@@ -19,7 +19,7 @@ export function TrackedTimeBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 text-2xs font-medium text-muted-foreground tabular-nums",
+        "inline-flex items-center gap-0.5 text-2xs font-medium text-base-content/60 tabular-nums",
         className
       )}
     >

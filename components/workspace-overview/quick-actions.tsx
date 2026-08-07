@@ -97,21 +97,21 @@ function CreateTaskAction({
           align="start"
           className="w-64 p-1.5 max-h-80 overflow-y-auto"
         >
-          <p className="px-2 py-1 text-2xs font-bold uppercase text-muted-foreground">
+          <p className="px-2 py-1 text-2xs font-bold uppercase text-base-content/60">
             {loadingStatuses ? "Loading…" : "Choose a list"}
           </p>
           {spaces === null ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            <p className="px-2 py-1.5 text-xs text-base-content/60">
               Loading…
             </p>
           ) : spaces.length === 0 ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            <p className="px-2 py-1.5 text-xs text-base-content/60">
               No lists yet
             </p>
           ) : (
             spaces.map((sp) => (
               <div key={sp.id}>
-                <p className="flex items-center gap-1.5 px-2 py-0.5 text-2xs font-bold uppercase text-muted-foreground">
+                <p className="flex items-center gap-1.5 px-2 py-0.5 text-2xs font-bold uppercase text-base-content/60">
                   <SpaceIcon
                     color={sp.color ?? "#6B7280"}
                     emoji={sp.logoEmoji}
@@ -120,7 +120,7 @@ function CreateTaskAction({
                 </p>
                 {sp.lists.map((l) => (
                   <button
-                    className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-xs hover:bg-accent cursor-pointer disabled:opacity-50"
+                    className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-xs hover:bg-base-200 cursor-pointer disabled:opacity-50"
                     disabled={loadingStatuses}
                     key={l.id}
                     onClick={() => void handlePickList(sp.id, l.id)}
@@ -198,17 +198,17 @@ function StartSprintAction({
           align="start"
           className="w-56 p-1.5 max-h-80 overflow-y-auto"
         >
-          <p className="px-2 py-1 text-2xs font-bold uppercase text-muted-foreground">
+          <p className="px-2 py-1 text-2xs font-bold uppercase text-base-content/60">
             Choose a project
           </p>
           {projects.length === 0 ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            <p className="px-2 py-1.5 text-xs text-base-content/60">
               No projects yet
             </p>
           ) : (
             projects.map((p) => (
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent cursor-pointer disabled:opacity-50"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-base-200 cursor-pointer disabled:opacity-50"
                 disabled={checking !== null}
                 key={p.id}
                 onClick={() => void handlePickProject(p.id)}
@@ -217,7 +217,7 @@ function StartSprintAction({
                 <SpaceIcon color={p.color} emoji={p.logoEmoji} />
                 <span className="flex-1 truncate text-left">{p.name}</span>
                 {checking === p.id && (
-                  <span className="text-2xs text-muted-foreground">…</span>
+                  <span className="text-2xs text-base-content/60">…</span>
                 )}
               </button>
             ))
@@ -252,7 +252,7 @@ export function QuickActions({
   return (
     <Card className="p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-sm font-medium text-muted-foreground">
+        <span className="mr-1 text-sm font-medium text-base-content/60">
           Quick Actions
         </span>
 

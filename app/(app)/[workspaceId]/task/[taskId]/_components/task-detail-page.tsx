@@ -148,9 +148,9 @@ const PRIORITY_CONFIG: Record<
 > = {
   NONE: {
     label: "No Priority",
-    color: "text-muted-foreground",
+    color: "text-base-content/60",
     icon: "😴",
-    bg: "bg-muted/60",
+    bg: "bg-base-200/60",
   },
   LOW: {
     label: "Low",
@@ -206,8 +206,8 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1 py-2 border-b border-border/40 last:border-0 sm:flex-row sm:items-start sm:gap-3">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground sm:w-36 sm:shrink-0 sm:pt-0.5">
+    <div className="flex flex-col gap-1 py-2 border-b border-base-300/40 last:border-0 sm:flex-row sm:items-start sm:gap-3">
+      <div className="flex items-center gap-2 text-sm text-base-content/60 sm:w-36 sm:shrink-0 sm:pt-0.5">
         <span className="shrink-0">{icon}</span>
         {label}
       </div>
@@ -233,17 +233,17 @@ function SectionHeader({
     <span className="flex flex-col gap-0.5">
       {/* Icon + title sit together at the left edge. */}
       <span className="flex items-center gap-2">
-        <Icon className="size-4 shrink-0 text-muted-foreground" />
+        <Icon className="size-4 shrink-0 text-base-content/60" />
         <span className="text-sm font-semibold">{title}</span>
         {count > 0 && (
-          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-2xs font-medium text-muted-foreground tabular-nums">
+          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-base-200 px-1.5 text-2xs font-medium text-base-content/60 tabular-nums">
             {count}
           </span>
         )}
       </span>
       {/* Description is indented (pl-6 = icon width + gap) so it aligns under
           the title text, not the icon. Reads as a subtitle when collapsed. */}
-      <span className="pl-6 text-xs font-normal text-muted-foreground group-aria-expanded/accordion-trigger:hidden">
+      <span className="pl-6 text-xs font-normal text-base-content/60 group-aria-expanded/accordion-trigger:hidden">
         {description}
       </span>
     </span>
@@ -278,14 +278,14 @@ function StatusPickerContent({
         return (
           <div key={type}>
             <div className="flex items-center px-2 pt-2 pb-0.5">
-              <span className="flex-1 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="flex-1 text-2xs font-semibold uppercase tracking-wider text-base-content/60">
                 {label}
               </span>
               {canManage && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="flex size-4 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      className="flex size-4 items-center justify-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <DotsThreeIcon className="size-3.5" weight="bold" />
@@ -302,7 +302,7 @@ function StatusPickerContent({
             </div>
             {group.map((s) => (
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                 key={s.id}
                 onClick={() => onSelect(s.id)}
               >
@@ -340,7 +340,7 @@ function PriorityPickerContent({
       ).map(([key, cfg]) => (
         <button
           className={cn(
-            "flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent",
+            "flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200",
             cfg.color
           )}
           key={key}
@@ -370,13 +370,13 @@ function AssigneePickerContent({
 }) {
   return (
     <>
-      <p className="text-xs text-muted-foreground px-1 mb-1.5">Select members</p>
+      <p className="text-xs text-base-content/60 px-1 mb-1.5">Select members</p>
       <div className="space-y-0.5 max-h-48 overflow-y-auto">
         {members.map((m) => {
           const selected = assignedUserIds.includes(m.userId);
           return (
             <button
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
               key={m.userId}
               onClick={() => onToggle(m.userId)}
             >
@@ -396,10 +396,10 @@ function AssigneePickerContent({
       </div>
       <Separator className="my-1.5" />
       <button
-        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 hover:bg-base-200 hover:text-base-content"
         onClick={onInvite}
       >
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-base-300">
           <UserPlusIcon className="size-3.5" />
         </span>
         <span className="flex-1 truncate text-left">Invite member</span>
@@ -447,7 +447,7 @@ function TagPickerContent({
           const selected = selectedTagIds.includes(tag.id);
           return (
             <div
-              className="group/tag flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-accent"
+              className="group/tag flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-base-200"
               key={tag.id}
             >
               <button
@@ -466,7 +466,7 @@ function TagPickerContent({
                 )}
               </button>
               <button
-                className="opacity-0 group-hover/tag:opacity-100 flex size-5 items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive transition-opacity shrink-0"
+                className="opacity-0 group-hover/tag:opacity-100 flex size-5 items-center justify-center rounded hover:bg-error/10 hover:text-error transition-opacity shrink-0"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDeleteRequest({ id: tag.id, name: tag.name });
@@ -479,7 +479,7 @@ function TagPickerContent({
         })}
         {search && !exactMatch && (
           <button
-            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-accent"
+            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-base-200"
             onClick={() => onCreate(search.trim())}
           >
             <PlusIcon className="size-3.5" /> Create &ldquo;{search}&rdquo;
@@ -515,30 +515,30 @@ function TaskOverflowMenuItems({
   return (
     <>
       <button
-        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
         disabled={saving}
         onClick={onDuplicate}
       >
-        <CopyIcon className="size-3.5 text-muted-foreground" /> Duplicate
+        <CopyIcon className="size-3.5 text-base-content/60" /> Duplicate
       </button>
       <button
-        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
         onClick={onArchiveToggle}
       >
-        <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
+        <ArchiveIcon className="size-3.5 text-base-content/60" />{" "}
         {isArchived ? "Unarchive" : "Archive"}
       </button>
       {canPinToList && (
         <>
           <Separator className="my-1" />
           <button
-            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
             onClick={onPinToListToggle}
           >
             <PushPinIcon
               className={cn(
                 "size-3.5",
-                isPinnedToList ? "text-primary" : "text-muted-foreground"
+                isPinnedToList ? "text-primary" : "text-base-content/60"
               )}
               weight={isPinnedToList ? "fill" : "regular"}
             />
@@ -548,7 +548,7 @@ function TaskOverflowMenuItems({
       )}
       <Separator className="my-1" />
       <button
-        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
+        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-error hover:bg-error/10"
         onClick={onDelete}
       >
         <TrashIcon className="size-3.5" /> Delete
@@ -962,7 +962,7 @@ export function TaskDetailPage({
   if (!data || "error" in data) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">Task not found.</p>
+        <p className="text-base-content/60">Task not found.</p>
         <Button onClick={() => router.push(listBackUrl)} variant="ghost">
           <ArrowLeftIcon className="size-4 mr-2" /> Back to list
         </Button>
@@ -1356,19 +1356,19 @@ export function TaskDetailPage({
 
   return (
     <AttachmentPreviewProvider>
-      <div className="flex h-full flex-col overflow-hidden bg-background">
+      <div className="flex h-full flex-col overflow-hidden bg-base-100">
         {/* Top bar — desktop/tablet (`md:`+), unchanged from before. */}
         <div className="hidden md:flex flex-wrap items-center gap-2 border-b px-3 py-3 shrink-0 sm:gap-3 sm:px-5">
           <button
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-sm text-base-content/60 hover:text-base-content transition-colors"
             onClick={() => router.push(backUrl)}
           >
             <ArrowLeftIcon className="size-4" />
           </button>
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-base-content/60">
             <ClipboardTextIcon className="size-4 shrink-0" />
             <button
-              className="hover:text-foreground transition-colors shrink-0"
+              className="hover:text-base-content transition-colors shrink-0"
               onClick={() => router.push(listBackUrl)}
             >
               {contextLabel}
@@ -1377,7 +1377,7 @@ export function TaskDetailPage({
               <>
                 <CaretRightIcon className="size-3.5 shrink-0" />
                 <button
-                  className="hover:text-foreground transition-colors truncate max-w-32 sm:max-w-xs"
+                  className="hover:text-base-content transition-colors truncate max-w-32 sm:max-w-xs"
                   onClick={() =>
                     router.push(`/${workspaceId}/task/${parentTask.id}`)
                   }
@@ -1387,7 +1387,7 @@ export function TaskDetailPage({
               </>
             )}
             <CaretRightIcon className="size-3.5 shrink-0" />
-            <span className="text-foreground font-medium truncate max-w-32 sm:max-w-xs">
+            <span className="text-base-content font-medium truncate max-w-32 sm:max-w-xs">
               {t.title}
             </span>
           </div>
@@ -1402,14 +1402,14 @@ export function TaskDetailPage({
                         aria-label="Previous task"
                         disabled={!taskNav.prevId}
                         onClick={goPrevTask}
-                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex size-7 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <CaretLeftIcon className="size-4" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>Previous Task</TooltipContent>
                   </Tooltip>
-                  <span className="px-0.5 text-xs tabular-nums text-muted-foreground select-none">
+                  <span className="px-0.5 text-xs tabular-nums text-base-content/60 select-none">
                     {taskNav.position} / {taskNav.total}
                   </span>
                   <Tooltip>
@@ -1419,7 +1419,7 @@ export function TaskDetailPage({
                         aria-label="Next task"
                         disabled={!taskNav.nextId}
                         onClick={goNextTask}
-                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex size-7 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <CaretRightIcon className="size-4" />
                       </button>
@@ -1434,7 +1434,7 @@ export function TaskDetailPage({
                 "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
                 isPinned
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  : "text-base-content/60 hover:bg-base-200 hover:text-base-content"
               )}
               onClick={handleTogglePin}
               title={isPinned ? "Unpin from sidebar" : "Pin to sidebar"}
@@ -1448,7 +1448,7 @@ export function TaskDetailPage({
               </span>
             </button>
             <button
-              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
               onClick={() => void copyLink()}
               title="Copy link"
             >
@@ -1460,7 +1460,7 @@ export function TaskDetailPage({
                 "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
                 isWatching
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  : "text-base-content/60 hover:bg-base-200 hover:text-base-content"
               )}
               onClick={handleToggleWatch}
               title={isWatching ? "Unwatch" : "Watch"}
@@ -1476,7 +1476,7 @@ export function TaskDetailPage({
             </button>
             <Popover>
               <PopoverTrigger asChild>
-                <button className="flex size-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground">
+                <button className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60">
                   <DotsThreeIcon className="size-4.5" weight="bold" />
                 </button>
               </PopoverTrigger>
@@ -1503,19 +1503,19 @@ export function TaskDetailPage({
         <div className="flex md:hidden items-center gap-0.5 border-b px-1 py-1.5 shrink-0">
           <button
             aria-label="Back"
-            className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="flex size-11 shrink-0 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
             onClick={() => router.push(backUrl)}
           >
             <ArrowLeftIcon className="size-5" />
           </button>
-          <span className="min-w-0 flex-1 truncate px-1 text-sm font-semibold text-foreground">
+          <span className="min-w-0 flex-1 truncate px-1 text-sm font-semibold text-base-content">
             {t.title}
           </span>
           {taskNav.available && (
             <div className="flex shrink-0 items-center">
               <button
                 aria-label="Previous task"
-                className="flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                className="flex size-11 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40"
                 disabled={!taskNav.prevId}
                 onClick={goPrevTask}
                 type="button"
@@ -1524,7 +1524,7 @@ export function TaskDetailPage({
               </button>
               <button
                 aria-label="Next task"
-                className="flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                className="flex size-11 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40"
                 disabled={!taskNav.nextId}
                 onClick={goNextTask}
                 type="button"
@@ -1537,40 +1537,40 @@ export function TaskDetailPage({
             <PopoverTrigger asChild>
               <button
                 aria-label="More actions"
-                className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
+                className="flex size-11 shrink-0 items-center justify-center rounded-md text-base-content/60 hover:bg-base-200"
               >
                 <DotsThreeIcon className="size-5" weight="bold" />
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-52 p-1">
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-base-200"
                 onClick={handleTogglePin}
               >
                 <PushPinIcon
                   className={cn(
                     "size-3.5",
-                    isPinned ? "text-primary" : "text-muted-foreground"
+                    isPinned ? "text-primary" : "text-base-content/60"
                   )}
                   weight={isPinned ? "fill" : "regular"}
                 />
                 {isPinned ? "Unpin from sidebar" : "Pin to sidebar"}
               </button>
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-base-200"
                 onClick={() => void copyLink()}
               >
-                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy
+                <LinkIcon className="size-3.5 text-base-content/60" /> Copy
                 link
               </button>
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-base-200"
                 onClick={handleToggleWatch}
               >
                 {isWatching ? (
-                  <EyeSlashIcon className="size-3.5 text-muted-foreground" />
+                  <EyeSlashIcon className="size-3.5 text-base-content/60" />
                 ) : (
-                  <EyeIcon className="size-3.5 text-muted-foreground" />
+                  <EyeIcon className="size-3.5 text-base-content/60" />
                 )}
                 {isWatching ? "Unwatch" : "Watch"}
               </button>
@@ -1665,7 +1665,7 @@ export function TaskDetailPage({
                 <h1
                   className={cn(
                     "text-xl font-bold rounded px-1 -mx-1 py-1 mb-3 transition-colors",
-                    canEditNow && "cursor-text hover:bg-accent/50"
+                    canEditNow && "cursor-text hover:bg-base-200/50"
                   )}
                   onClick={() => canEditNow && setTitleEditing(true)}
                 >
@@ -1740,20 +1740,20 @@ export function TaskDetailPage({
               {/* Collapsible compact Properties — assignee/dates/tags/custom
                 fields. Starts expanded (compact single-line rows don't
                 dominate the screen even open); the chevron lets it collapse. */}
-              <div className="rounded-xl border bg-card mb-4 overflow-hidden">
+              <div className="rounded-xl border bg-elevated mb-4 overflow-hidden">
                 <button
                   aria-expanded={mobilePropertiesOpen}
                   className="flex w-full items-center justify-between px-3 py-2.5 min-h-11"
                   onClick={() => setMobilePropertiesOpen((o) => !o)}
                   type="button"
                 >
-                  <span className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span className="text-2xs font-semibold uppercase tracking-wider text-base-content/60">
                     Properties
                   </span>
                   {mobilePropertiesOpen ? (
-                    <CaretUpIcon className="size-4 text-muted-foreground" />
+                    <CaretUpIcon className="size-4 text-base-content/60" />
                   ) : (
-                    <CaretDownIcon className="size-4 text-muted-foreground" />
+                    <CaretDownIcon className="size-4 text-base-content/60" />
                   )}
                 </button>
                 {mobilePropertiesOpen && (
@@ -1765,10 +1765,10 @@ export function TaskDetailPage({
                     >
                       <PopoverTrigger asChild>
                         <button
-                          className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11 text-left transition-colors hover:bg-accent/40"
+                          className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11 text-left transition-colors hover:bg-base-200/40"
                           type="button"
                         >
-                          <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                          <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-base-content/60">
                             <UserIcon className="size-3.5" /> Assignee
                           </span>
                           <span className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -1786,13 +1786,13 @@ export function TaskDetailPage({
                                   {assignees[0].name ?? assignees[0].email}
                                 </span>
                                 {assignees.length > 1 && (
-                                  <span className="shrink-0 text-xs text-muted-foreground">
+                                  <span className="shrink-0 text-xs text-base-content/60">
                                     +{assignees.length - 1}
                                   </span>
                                 )}
                               </>
                             ) : (
-                              <span className="text-sm text-muted-foreground">
+                              <span className="text-sm text-base-content/60">
                                 Unassigned
                               </span>
                             )}
@@ -1814,7 +1814,7 @@ export function TaskDetailPage({
 
                     {/* Dates */}
                     <div className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11">
-                      <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-base-content/60">
                         <CalendarBlankIcon className="size-3.5" /> Dates
                       </span>
                       <div className="flex min-w-0 flex-1 items-center gap-1.5 text-sm">
@@ -1826,7 +1826,7 @@ export function TaskDetailPage({
                             <button
                               className={cn(
                                 "truncate",
-                                dueDateStart ? "text-foreground" : "text-muted-foreground"
+                                dueDateStart ? "text-base-content" : "text-base-content/60"
                               )}
                               type="button"
                             >
@@ -1844,7 +1844,7 @@ export function TaskDetailPage({
                             />
                           </PopoverContent>
                         </Popover>
-                        <span className="shrink-0 text-muted-foreground">→</span>
+                        <span className="shrink-0 text-base-content/60">→</span>
                         <Popover
                           onOpenChange={setMobileEndCalOpen}
                           open={mobileEndCalOpen}
@@ -1853,7 +1853,7 @@ export function TaskDetailPage({
                             <button
                               className={cn(
                                 "truncate",
-                                dueDateEnd ? "text-foreground" : "text-muted-foreground"
+                                dueDateEnd ? "text-base-content" : "text-base-content/60"
                               )}
                               type="button"
                             >
@@ -1882,10 +1882,10 @@ export function TaskDetailPage({
                     >
                       <PopoverTrigger asChild>
                         <button
-                          className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11 text-left transition-colors hover:bg-accent/40"
+                          className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11 text-left transition-colors hover:bg-base-200/40"
                           type="button"
                         >
-                          <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                          <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-base-content/60">
                             <TagIcon className="size-3.5" /> Tags
                           </span>
                           <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
@@ -1903,10 +1903,10 @@ export function TaskDetailPage({
                                 </span>
                               ))
                             ) : (
-                              <span className="text-sm text-muted-foreground">None</span>
+                              <span className="text-sm text-base-content/60">None</span>
                             )}
                             {tags.length > 3 && (
-                              <span className="shrink-0 text-xs text-muted-foreground">
+                              <span className="shrink-0 text-xs text-base-content/60">
                                 +{tags.length - 3}
                               </span>
                             )}
@@ -1933,7 +1933,7 @@ export function TaskDetailPage({
                         className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11"
                         key={field.id}
                       >
-                        <span className="w-20 shrink-0 truncate text-xs text-muted-foreground">
+                        <span className="w-20 shrink-0 truncate text-xs text-base-content/60">
                           {field.name}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -1990,7 +1990,7 @@ export function TaskDetailPage({
               <h1
                 className={cn(
                   "text-2xl font-bold rounded px-1 -mx-1 py-1 mb-5 transition-colors",
-                  canEditNow && "cursor-text hover:bg-accent/50"
+                  canEditNow && "cursor-text hover:bg-base-200/50"
                 )}
                 onClick={() => canEditNow && setTitleEditing(true)}
               >
@@ -2002,7 +2002,7 @@ export function TaskDetailPage({
             {/* ── Desktop/tablet fields grid (`md:`+) — unchanged from before. ── */}
             <div className="hidden md:block">
             {/* Fields grid */}
-            <div className="rounded-lg border bg-card px-4 mb-6">
+            <div className="rounded-lg border bg-elevated px-4 mb-6">
               {/* Status */}
               <FieldRow
                 icon={
@@ -2056,7 +2056,7 @@ export function TaskDetailPage({
                 <div className="flex flex-wrap items-center gap-1.5">
                   {assignees.map((a) => (
                     <div
-                      className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs"
+                      className="flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-xs"
                       key={a.userId}
                     >
                       <Avatar className="size-4">
@@ -2067,7 +2067,7 @@ export function TaskDetailPage({
                       </Avatar>
                       <span>{a.name ?? a.email}</span>
                       <button
-                        className="text-muted-foreground hover:text-foreground"
+                        className="text-base-content/60 hover:text-base-content"
                         onClick={() => handleToggleAssignee(a.userId)}
                       >
                         <XIcon className="size-3" />
@@ -2079,7 +2079,7 @@ export function TaskDetailPage({
                     open={assigneePopoverOpen}
                   >
                     <PopoverTrigger asChild>
-                      <button className="flex size-6 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+                      <button className="flex size-6 items-center justify-center rounded-full border border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors">
                         <PlusIcon className="size-3.5" />
                       </button>
                     </PopoverTrigger>
@@ -2106,13 +2106,13 @@ export function TaskDetailPage({
                 <div className="flex flex-wrap items-center gap-2">
                   <Popover onOpenChange={setStartCalOpen} open={startCalOpen}>
                     <PopoverTrigger asChild>
-                      <button className="flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-xs w-32 hover:bg-accent transition-colors">
-                        <CalendarBlankIcon className="size-3 text-muted-foreground shrink-0" />
+                      <button className="flex items-center gap-1.5 rounded-md border bg-base-100 px-2 py-1 text-xs w-32 hover:bg-base-200 transition-colors">
+                        <CalendarBlankIcon className="size-3 text-base-content/60 shrink-0" />
                         <span
                           className={
                             dueDateStart
-                              ? "text-foreground"
-                              : "text-muted-foreground"
+                              ? "text-base-content"
+                              : "text-base-content/60"
                           }
                         >
                           {dueDateStart
@@ -2132,16 +2132,16 @@ export function TaskDetailPage({
                       />
                     </PopoverContent>
                   </Popover>
-                  <span className="text-muted-foreground text-xs">→</span>
+                  <span className="text-base-content/60 text-xs">→</span>
                   <Popover onOpenChange={setEndCalOpen} open={endCalOpen}>
                     <PopoverTrigger asChild>
-                      <button className="flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-xs w-32 hover:bg-accent transition-colors">
-                        <CalendarBlankIcon className="size-3 text-muted-foreground shrink-0" />
+                      <button className="flex items-center gap-1.5 rounded-md border bg-base-100 px-2 py-1 text-xs w-32 hover:bg-base-200 transition-colors">
+                        <CalendarBlankIcon className="size-3 text-base-content/60 shrink-0" />
                         <span
                           className={
                             dueDateEnd
-                              ? "text-foreground"
-                              : "text-muted-foreground"
+                              ? "text-base-content"
+                              : "text-base-content/60"
                           }
                         >
                           {dueDateEnd
@@ -2226,7 +2226,7 @@ export function TaskDetailPage({
                     open={tagPopoverOpen}
                   >
                     <PopoverTrigger asChild>
-                      <button className="flex size-6 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+                      <button className="flex size-6 items-center justify-center rounded-full border border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors">
                         <PlusIcon className="size-3.5" />
                       </button>
                     </PopoverTrigger>
@@ -2245,7 +2245,7 @@ export function TaskDetailPage({
                   </Popover>
                   {tags.length > 1 && (
                     <button
-                      className="ml-0.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                      className="ml-0.5 text-xs text-base-content/60 hover:text-error transition-colors"
                       onClick={handleClearAllTags}
                     >
                       Clear all
@@ -2377,7 +2377,7 @@ export function TaskDetailPage({
                                 {completed.length > 0 && (
                                   <>
                                     <button
-                                      className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                                      className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-medium text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
                                       onClick={() =>
                                         setCompletedOpen((o) => !o)
                                       }
@@ -2399,7 +2399,7 @@ export function TaskDetailPage({
                         </>
                       ) : (
                         !addingSubtask && (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-base-content/60">
                             Break this task into smaller pieces.
                           </p>
                         )
@@ -2473,7 +2473,7 @@ export function TaskDetailPage({
                         </div>
                       ) : (
                         <button
-                          className="flex w-fit items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                          className="flex w-fit items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
                           onClick={() => setAddingSubtask(true)}
                           type="button"
                         >
@@ -2525,7 +2525,7 @@ export function TaskDetailPage({
                       <div className="space-y-5">
                         {totalItems > 0 && (
                           <div className="flex items-center gap-3">
-                            <span className="text-xs text-muted-foreground w-8 text-right">
+                            <span className="text-xs text-base-content/60 w-8 text-right">
                               {checkProgress}%
                             </span>
                             <Progress
@@ -2541,7 +2541,7 @@ export function TaskDetailPage({
                                 {cl.name}
                               </span>
                               <button
-                                className="text-muted-foreground hover:text-destructive"
+                                className="text-base-content/60 hover:text-error"
                                 onClick={async () => {
                                   await deleteChecklist(
                                     workspaceId,
@@ -2558,7 +2558,7 @@ export function TaskDetailPage({
                             <div className="space-y-1 mb-2">
                               {cl.items.map((item) => (
                                 <div
-                                  className="flex items-center gap-2 rounded-md py-1 px-1 hover:bg-accent/30 group"
+                                  className="flex items-center gap-2 rounded-md py-1 px-1 hover:bg-base-200/30 group"
                                   key={item.id}
                                 >
                                   <Checkbox
@@ -2572,13 +2572,13 @@ export function TaskDetailPage({
                                     className={cn(
                                       "flex-1 text-sm",
                                       item.isChecked &&
-                                        "line-through text-muted-foreground"
+                                        "line-through text-base-content/60"
                                     )}
                                   >
                                     {item.title}
                                   </span>
                                   <button
-                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                                    className="opacity-0 group-hover:opacity-100 text-base-content/60 hover:text-error transition-opacity"
                                     onClick={async () => {
                                       await deleteChecklistItem(
                                         workspaceId,
@@ -2624,7 +2624,7 @@ export function TaskDetailPage({
                       </div>
                     ) : (
                       !addingChecklist && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-base-content/60">
                           Track quick steps for this task.
                         </p>
                       )
@@ -2665,7 +2665,7 @@ export function TaskDetailPage({
                       </div>
                     ) : (
                       <button
-                        className="flex w-fit items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                        className="flex w-fit items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
                         onClick={() => setAddingChecklist(true)}
                         type="button"
                       >
@@ -2709,10 +2709,10 @@ export function TaskDetailPage({
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <PaperclipIcon className="size-4 text-muted-foreground" />
+                  <PaperclipIcon className="size-4 text-base-content/60" />
                   <h3 className="text-sm font-semibold">Attachments</h3>
                   {visibleAttachments.length > 0 && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-base-content/60">
                       {visibleAttachments.length} file
                       {visibleAttachments.length === 1 ? "" : "s"}
                     </span>
@@ -2722,7 +2722,7 @@ export function TaskDetailPage({
                   call-to-action. Returns once the first file is uploaded. */}
                 {visibleAttachments.length > 0 && (
                   <button
-                    className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-muted-foreground border hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-base-content/60 border hover:bg-base-200 hover:text-base-content transition-colors disabled:opacity-50"
                     disabled={uploadingFile}
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -2755,7 +2755,7 @@ export function TaskDetailPage({
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                   attachmentDragOver
                     ? "border-primary bg-primary/5"
-                    : "border-border/50 hover:border-primary/40 hover:bg-accent/30",
+                    : "border-base-300/50 hover:border-primary/40 hover:bg-base-200/30",
                   visibleAttachments.length === 0 && "min-h-40"
                 )}
                 onClick={() => fileInputRef.current?.click()}
@@ -2785,7 +2785,7 @@ export function TaskDetailPage({
                       />
                     ))}
                     <button
-                      className="flex flex-col items-center justify-center h-full min-h-24 rounded-md border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors disabled:opacity-50"
+                      className="flex flex-col items-center justify-center h-full min-h-24 rounded-md border-2 border-dashed border-base-300/50 text-base-content/60 hover:border-primary/40 hover:text-base-content transition-colors disabled:opacity-50"
                       disabled={uploadingFile}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -2801,19 +2801,19 @@ export function TaskDetailPage({
                 ) : (
                   /* Empty state — hidden as soon as one attachment exists */
                   <div className="flex flex-col items-center justify-center py-8 text-center select-none pointer-events-none">
-                    <PaperclipIcon className="size-6 text-muted-foreground" />
-                    <p className="mt-2 text-sm font-medium text-foreground">
+                    <PaperclipIcon className="size-6 text-base-content/60" />
+                    <p className="mt-2 text-sm font-medium text-base-content">
                       Attachments
                     </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 text-sm text-base-content/60">
                       {uploadingFile ? "Uploading…" : "Drag & drop files here"}
                     </p>
                     {!uploadingFile && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-base-content/60">
                         or click anywhere to upload
                       </p>
                     )}
-                    <p className="mt-2 text-xs text-muted-foreground/70">
+                    <p className="mt-2 text-xs text-base-content/70">
                       Supports images, PDFs, documents, and other supported
                       files.
                     </p>
@@ -2827,7 +2827,7 @@ export function TaskDetailPage({
                     <p className="mt-2 text-sm font-semibold text-primary">
                       Drop files here
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-base-content/60">
                       Release to upload
                     </p>
                   </div>
@@ -2841,7 +2841,7 @@ export function TaskDetailPage({
             `isMobile` gate above). Unchanged from before at `md:`+. ── */}
           <div className="hidden min-h-0 w-full border-t md:flex md:flex-1 md:flex-col overflow-hidden lg:w-80 lg:flex-none lg:border-t-0 lg:border-l xl:w-96">
             <div className="flex shrink-0 border-b px-3 py-2.5 sm:px-5">
-              <span className="text-xs font-medium text-foreground">
+              <span className="text-xs font-medium text-base-content">
                 Activity
               </span>
             </div>
@@ -2865,7 +2865,7 @@ export function TaskDetailPage({
 
             {/* Task seq footer */}
             <div className="border-t px-3 py-3 shrink-0 sm:px-5">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-base-content/60">
                 <span className="font-mono">#{t.seqNumber}</span> · Created{" "}
                 {format(new Date(t.createdAt), "MMM d, yyyy")}
               </p>
@@ -2895,7 +2895,7 @@ export function TaskDetailPage({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-error text-white hover:bg-error/90"
               onClick={handleDeleteTag}
             >
               Delete tag
@@ -2914,14 +2914,14 @@ export function TaskDetailPage({
       <Dialog onOpenChange={setDeleteOpen} open={deleteOpen}>
         <DialogContent className="sm:max-w-xs text-center">
           <div className="flex flex-col items-center gap-3 pt-2">
-            <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
-              <TrashIcon className="size-6 text-destructive" weight="fill" />
+            <div className="flex size-12 items-center justify-center rounded-full bg-error/10">
+              <TrashIcon className="size-6 text-error" weight="fill" />
             </div>
             <div>
               <DialogTitle className="text-base font-bold">
                 Delete Task
               </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-base-content/60 mt-1">
                 This action cannot be undone.
               </p>
             </div>
@@ -2952,14 +2952,14 @@ export function TaskDetailPage({
       >
         <DialogContent className="sm:max-w-xs text-center">
           <div className="flex flex-col items-center gap-3 pt-2">
-            <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
-              <TrashIcon className="size-6 text-destructive" weight="fill" />
+            <div className="flex size-12 items-center justify-center rounded-full bg-error/10">
+              <TrashIcon className="size-6 text-error" weight="fill" />
             </div>
             <div>
               <DialogTitle className="text-base font-bold">
                 Delete Subtask
               </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-base-content/60 mt-1">
                 {deletingSubtask
                   ? `"${deletingSubtask.title}" will be permanently deleted.`
                   : ""}{" "}
@@ -3034,7 +3034,7 @@ function TaskAttachmentCard({ att, onDelete }: TaskAttachmentCardProps) {
   }
 
   return (
-    <div className="group relative rounded-md border bg-card overflow-hidden">
+    <div className="group relative rounded-md border bg-elevated overflow-hidden">
       {isImg ? (
         <button className="block w-full" onClick={openPreview} type="button">
           <img
@@ -3045,7 +3045,7 @@ function TaskAttachmentCard({ att, onDelete }: TaskAttachmentCardProps) {
         </button>
       ) : (
         <button
-          className="flex w-full flex-col items-center justify-center gap-2 h-24 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="flex w-full flex-col items-center justify-center gap-2 h-24 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
           onClick={openPreview}
           type="button"
         >
@@ -3058,7 +3058,7 @@ function TaskAttachmentCard({ att, onDelete }: TaskAttachmentCardProps) {
       )}
       <div className="px-2 py-1.5 border-t">
         <p className="text-xs truncate font-medium">{att.fileName}</p>
-        <p className="text-2xs text-muted-foreground">
+        <p className="text-2xs text-base-content/60">
           {fmtBytes(att.fileSize)}
         </p>
       </div>

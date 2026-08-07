@@ -54,20 +54,20 @@ export function ArchivedProjectsEmptyState({
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-16">
       <div className="w-full max-w-md text-center">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-accent text-muted-foreground">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-base-200 text-base-content/60">
           <ArchiveIcon className="size-7" />
         </div>
-        <h2 className="mt-5 text-lg font-semibold text-foreground">
+        <h2 className="mt-5 text-lg font-semibold text-base-content">
           All projects are archived
         </h2>
-        <p className="mt-1.5 text-sm text-muted-foreground">
+        <p className="mt-1.5 text-sm text-base-content/60">
           {canManage
             ? "Restore a project below to pick up where you left off, or create a new one with the + in the sidebar."
             : "Ask a workspace owner or admin to restore a project from the archive."}
         </p>
 
         <div className="mt-6 rounded-xl border text-left">
-          <div className="border-b px-4 py-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="border-b px-4 py-2 text-2xs font-semibold uppercase tracking-wider text-base-content/60">
             Archived projects
           </div>
           <ul className="divide-y">

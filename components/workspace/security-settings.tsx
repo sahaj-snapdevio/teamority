@@ -51,9 +51,9 @@ export function SecuritySettings({
   return (
     <div className="space-y-6">
       {/* Danger Zone */}
-      <Card className="border-destructive/50">
+      <Card className="border-error/50">
         <CardHeader>
-          <CardTitle className="normal-case tracking-normal text-base font-semibold text-destructive">
+          <CardTitle className="normal-case tracking-normal text-base font-semibold text-error">
             Danger Zone
           </CardTitle>
           <CardDescription>

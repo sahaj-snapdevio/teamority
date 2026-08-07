@@ -23,7 +23,7 @@ export default function AdminAuditLogPage() {
     <div className="p-4 space-y-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Audit Log</h1>
-        <p className="text-muted-foreground text-sm mt-1">{total.toLocaleString()} entries</p>
+        <p className="text-base-content/60 text-sm mt-1">{total.toLocaleString()} entries</p>
       </div>
 
       <Input
@@ -36,7 +36,7 @@ export default function AdminAuditLogPage() {
       <div className="rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50">
+            <thead className="bg-base-200/50">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Timestamp</th>
                 <th className="text-left px-4 py-2 font-medium">Action</th>
@@ -47,22 +47,22 @@ export default function AdminAuditLogPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-base-content/60">Loading…</td></tr>
               ) : logs.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">No entries found</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-base-content/60">No entries found</td></tr>
               ) : (
                 logs.map((log) => (
-                  <tr key={log.id} className="border-t hover:bg-muted/30">
-                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap text-xs">
+                  <tr key={log.id} className="border-t hover:bg-base-200/30">
+                    <td className="px-4 py-2 text-base-content/60 whitespace-nowrap text-xs">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-2 font-mono text-xs">{log.action}</td>
-                    <td className="px-4 py-2 text-muted-foreground text-xs">{log.actorEmail ?? log.actorId ?? "—"}</td>
+                    <td className="px-4 py-2 text-base-content/60 text-xs">{log.actorEmail ?? log.actorId ?? "—"}</td>
                     <td className="px-4 py-2 text-xs">
-                      <span className="text-muted-foreground">{log.entityType}</span>
-                      {log.entityId && <span className="text-muted-foreground"> / {log.entityId.slice(0, 8)}…</span>}
+                      <span className="text-base-content/60">{log.entityType}</span>
+                      {log.entityId && <span className="text-base-content/60"> / {log.entityId.slice(0, 8)}…</span>}
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground text-xs">{log.description}</td>
+                    <td className="px-4 py-2 text-base-content/60 text-xs">{log.description}</td>
                   </tr>
                 ))
               )}
@@ -74,7 +74,7 @@ export default function AdminAuditLogPage() {
       {totalPages > 1 && (
         <div className="flex items-center gap-2">
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Previous</button>
-          <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+          <span className="text-sm text-base-content/60">Page {page} of {totalPages}</span>
           <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Next</button>
         </div>
       )}

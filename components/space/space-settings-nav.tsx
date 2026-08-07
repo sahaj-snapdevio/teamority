@@ -32,8 +32,8 @@ export function SpaceSettingsNav({ workspaceId, spaceId }: SpaceSettingsNavProps
             className={cn(
               "shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
               active
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "border-primary text-base-content"
+                : "border-transparent text-base-content/60 hover:text-base-content",
             )}
           >
             {item.label}

@@ -92,8 +92,8 @@ export function ChannelMessageList({ messages, currentUserId }: ChannelMessageLi
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <p className="text-lg font-medium text-muted-foreground">No messages yet</p>
-          <p className="mt-1 text-sm text-muted-foreground/70">
+          <p className="text-lg font-medium text-base-content/60">No messages yet</p>
+          <p className="mt-1 text-sm text-base-content/70">
             Be the first to send a message in this channel!
           </p>
         </div>
@@ -119,7 +119,7 @@ export function ChannelMessageList({ messages, currentUserId }: ChannelMessageLi
               {showDateSep && (
                 <div className="flex items-center gap-3 py-3">
                   <div className="h-px flex-1 bg-border" />
-                  <span className="text-xs font-medium text-muted-foreground">
+                  <span className="text-xs font-medium text-base-content/60">
                     {formatDate(msg.createdAt)}
                   </span>
                   <div className="h-px flex-1 bg-border" />
@@ -129,7 +129,7 @@ export function ChannelMessageList({ messages, currentUserId }: ChannelMessageLi
               {/* Message */}
               <div
                 className={cn(
-                  "group flex gap-3 rounded-md px-2 py-1 transition-colors hover:bg-accent/30",
+                  "group flex gap-3 rounded-md px-2 py-1 transition-colors hover:bg-base-200/30",
                   showAvatar ? "mt-3" : "mt-0",
                 )}
               >
@@ -151,14 +151,14 @@ export function ChannelMessageList({ messages, currentUserId }: ChannelMessageLi
                       <span className="text-sm font-semibold">
                         {msg.senderName || msg.senderEmail}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-base-content/60">
                         {formatTime(msg.createdAt)}
                       </span>
                     </div>
                   )}
 
                   {msg.isDeleted ? (
-                    <p className="text-sm italic text-muted-foreground/60">
+                    <p className="text-sm italic text-base-content/60">
                       This message was deleted
                     </p>
                   ) : (
@@ -191,16 +191,16 @@ export function ChannelMessageList({ messages, currentUserId }: ChannelMessageLi
                                 href={att.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm transition-colors hover:bg-accent"
+                                className="flex items-center gap-2 rounded-lg border bg-base-100 px-3 py-2 text-sm transition-colors hover:bg-base-200"
                               >
-                                <FileIcon className="size-5 shrink-0 text-muted-foreground" />
+                                <FileIcon className="size-5 shrink-0 text-base-content/60" />
                                 <div className="min-w-0">
                                   <p className="truncate font-medium">{att.fileName}</p>
-                                  <p className="text-xs text-muted-foreground">
+                                  <p className="text-xs text-base-content/60">
                                     {formatFileSize(att.fileSize)}
                                   </p>
                                 </div>
-                                <DownloadSimpleIcon className="size-4 shrink-0 text-muted-foreground" />
+                                <DownloadSimpleIcon className="size-4 shrink-0 text-base-content/60" />
                               </a>
                             ),
                           )}

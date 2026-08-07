@@ -62,7 +62,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   if (done) {
     return (
-      <p className="py-6 text-center text-sm text-foreground/70">
+      <p className="py-6 text-center text-sm text-base-content/70">
         Password updated. Redirecting you to sign in…
       </p>
     );
@@ -76,9 +76,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-foreground">New password</FormLabel>
+              <FormLabel className="text-sm font-semibold text-base-content">New password</FormLabel>
               <FormControl>
-                <PasswordInput autoComplete="new-password" placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`} className="h-11 rounded-lg font-medium text-foreground" {...field} />
+                <PasswordInput autoComplete="new-password" placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`} className="h-11 rounded-lg font-medium text-base-content" {...field} />
               </FormControl>
               <FormDescription className="text-xs">
                 For your security, all devices will be signed out.
@@ -93,9 +93,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-foreground">Confirm new password</FormLabel>
+              <FormLabel className="text-sm font-semibold text-base-content">Confirm new password</FormLabel>
               <FormControl>
-                <PasswordInput autoComplete="new-password" placeholder="Re-enter your password" className="h-11 rounded-lg font-medium text-foreground" {...field} />
+                <PasswordInput autoComplete="new-password" placeholder="Re-enter your password" className="h-11 rounded-lg font-medium text-base-content" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -111,7 +111,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         <Button
           type="submit"
           disabled={!isValid || isSubmitting}
-          className="h-11 w-full gap-2 rounded-lg text-sm font-semibold shadow-sm disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none"
+          className="h-11 w-full gap-2 rounded-lg text-sm font-semibold shadow-sm disabled:bg-base-200 disabled:text-base-content/60 disabled:opacity-100 disabled:shadow-none"
         >
           {isSubmitting ? (
             <><Spinner className="size-4" />Updating…</>
@@ -120,8 +120,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
           )}
         </Button>
 
-        <p className="pt-1 text-center text-sm text-foreground/70">
-          <Link href="/login" className="font-semibold text-foreground underline underline-offset-4 transition-opacity hover:opacity-80">
+        <p className="pt-1 text-center text-sm text-base-content/70">
+          <Link href="/login" className="font-semibold text-base-content underline underline-offset-4 transition-opacity hover:opacity-80">
             Back to sign in
           </Link>
         </p>

@@ -19,11 +19,11 @@ export function AppShell({
   isAdmin?: boolean;
 }) {
   return (
-    <div className="min-h-screen bg-page text-foreground">
-      <header className="border-b border-border bg-background/85 backdrop-blur">
+    <div className="min-h-screen bg-page text-base-content">
+      <header className="border-b border-base-300 bg-base-100/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 sm:px-6">
           <Link className="flex items-center gap-3" href="/dashboard">
-            <span className="grid size-9 place-items-center rounded-none bg-primary font-black text-primary-foreground text-xs">
+            <span className="grid size-9 place-items-center rounded-none bg-primary font-black text-primary-content text-xs">
               KR
             </span>
             <span className="font-black tracking-normal">{PRODUCT_NAME}</span>
@@ -32,7 +32,7 @@ export function AppShell({
           <nav className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => (
               <Link
-                className="rounded-none px-3 py-2 text-xs font-semibold uppercase tracking-ui text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="rounded-none px-3 py-2 text-xs font-semibold uppercase tracking-ui text-base-content/60 hover:bg-base-200 hover:text-base-content"
                 href={link.href}
                 key={link.href}
               >
@@ -47,7 +47,7 @@ export function AppShell({
                 <Link href="/orbit">Admin Panel</Link>
               </Button>
             )}
-            <span className="hidden max-w-56 truncate text-muted-foreground text-sm sm:block">
+            <span className="hidden max-w-56 truncate text-base-content/60 text-sm sm:block">
               {email}
             </span>
             <form action={logoutAction}>
@@ -61,7 +61,7 @@ export function AppShell({
         <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-3 md:hidden">
           {navLinks.map((link) => (
             <Link
-              className="rounded-none px-3 py-2 text-xs font-semibold uppercase tracking-ui text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="rounded-none px-3 py-2 text-xs font-semibold uppercase tracking-ui text-base-content/60 hover:bg-base-200 hover:text-base-content"
               href={link.href}
               key={link.href}
             >
@@ -70,7 +70,7 @@ export function AppShell({
           ))}
           {isAdmin && (
             <Link
-              className="rounded-none px-3 py-2 text-xs font-semibold uppercase tracking-ui text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="rounded-none px-3 py-2 text-xs font-semibold uppercase tracking-ui text-base-content/60 hover:bg-base-200 hover:text-base-content"
               href="/orbit"
             >
               Admin Panel
