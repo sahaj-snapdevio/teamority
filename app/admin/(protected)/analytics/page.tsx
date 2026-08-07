@@ -22,17 +22,17 @@ export default async function AdminAnalyticsPage() {
   try {
     data = await getAnalytics();
   } catch {
-    return <div className="p-8 text-red-500">Failed to load analytics data.</div>;
+    return <div className="p-4 text-red-500 sm:p-8">Failed to load analytics data.</div>;
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 space-y-8 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Analytics</h1>
         <p className="text-muted-foreground text-sm mt-1">Platform usage statistics</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: "Total Tasks", value: data.totals?.tasks ?? 0 },
           { label: "Total Comments", value: data.totals?.comments ?? 0 },
@@ -48,24 +48,26 @@ export default async function AdminAnalyticsPage() {
       <div>
         <h2 className="text-lg font-semibold mb-3">Tasks Created — Last 30 Days</h2>
         <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium">Date</th>
-                <th className="text-left px-4 py-2 font-medium">Tasks Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data.tasksPerDay ?? []).length === 0 ? (
-                <tr><td colSpan={2} className="px-4 py-4 text-center text-muted-foreground">No data</td></tr>
-              ) : (data.tasksPerDay ?? []).map((row: any) => (
-                <tr key={row.date} className="border-t">
-                  <td className="px-4 py-2 text-muted-foreground">{row.date}</td>
-                  <td className="px-4 py-2 font-medium">{row.count}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-2 font-medium">Date</th>
+                  <th className="text-left px-4 py-2 font-medium">Tasks Created</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {(data.tasksPerDay ?? []).length === 0 ? (
+                  <tr><td colSpan={2} className="px-4 py-4 text-center text-muted-foreground">No data</td></tr>
+                ) : (data.tasksPerDay ?? []).map((row: any) => (
+                  <tr key={row.date} className="border-t">
+                    <td className="px-4 py-2 text-muted-foreground">{row.date}</td>
+                    <td className="px-4 py-2 font-medium">{row.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

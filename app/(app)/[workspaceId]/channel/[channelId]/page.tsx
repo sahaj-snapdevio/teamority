@@ -115,16 +115,15 @@ export default function ChannelPage() {
     <div className="flex h-full flex-col">
       {/* Channel header */}
       <div className="flex items-center gap-3 border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <HashIcon className="size-5 text-muted-foreground" weight="bold" />
-          <h1 className="text-lg font-semibold">{channelName}</h1>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <HashIcon className="size-5 shrink-0 text-muted-foreground" weight="bold" />
+          <h1 className="truncate text-lg font-semibold">{channelName}</h1>
         </div>
-        <div className="flex-1" />
 
         {/* Member avatars */}
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+            <button className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
               <UsersIcon className="size-4" />
               <span>{channelMembers.length}</span>
             </button>

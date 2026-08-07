@@ -43,11 +43,11 @@ export default function AdminWorkspaceDetailPage({ params }: { params: Promise<{
     else setDeleting(false);
   }
 
-  if (!ws) return <div className="p-8 text-muted-foreground">Loading…</div>;
+  if (!ws) return <div className="p-4 text-muted-foreground sm:p-8">Loading…</div>;
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-start justify-between">
+    <div className="p-4 space-y-8 sm:p-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{ws.name}</h1>
           <p className="text-muted-foreground text-sm">/{ws.slug}</p>
@@ -82,7 +82,7 @@ export default function AdminWorkspaceDetailPage({ params }: { params: Promise<{
         </AlertDialog>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: "Spaces", value: stats.spaces },
           { label: "Tasks", value: stats.tasks },
@@ -98,28 +98,30 @@ export default function AdminWorkspaceDetailPage({ params }: { params: Promise<{
       <div>
         <h2 className="text-lg font-semibold mb-3">Members ({members.length})</h2>
         <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium">Name</th>
-                <th className="text-left px-4 py-2 font-medium">Email</th>
-                <th className="text-left px-4 py-2 font-medium">Role</th>
-                <th className="text-left px-4 py-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-4 text-center text-muted-foreground">No members</td></tr>
-              ) : members.map((m) => (
-                <tr key={m.id} className="border-t">
-                  <td className="px-4 py-2">{m.userName ?? "—"}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{m.userEmail ?? m.email ?? "—"}</td>
-                  <td className="px-4 py-2"><Badge variant="secondary">{m.role}</Badge></td>
-                  <td className="px-4 py-2">{m.status}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-2 font-medium">Name</th>
+                  <th className="text-left px-4 py-2 font-medium">Email</th>
+                  <th className="text-left px-4 py-2 font-medium">Role</th>
+                  <th className="text-left px-4 py-2 font-medium">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {members.length === 0 ? (
+                  <tr><td colSpan={4} className="px-4 py-4 text-center text-muted-foreground">No members</td></tr>
+                ) : members.map((m) => (
+                  <tr key={m.id} className="border-t">
+                    <td className="px-4 py-2">{m.userName ?? "—"}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{m.userEmail ?? m.email ?? "—"}</td>
+                    <td className="px-4 py-2"><Badge variant="secondary">{m.role}</Badge></td>
+                    <td className="px-4 py-2">{m.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

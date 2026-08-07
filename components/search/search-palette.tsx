@@ -468,7 +468,7 @@ export function SearchPalette({
   const active = flatItems[selectedIndex];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[6dvh] sm:pt-[12vh]">
       {/* Backdrop — light blur + a semi-transparent dark overlay. */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -480,15 +480,19 @@ export function SearchPalette({
         className={cn(
           "relative z-10 flex w-[min(880px,92vw)] flex-col overflow-hidden rounded-xl border bg-card shadow-2xl transition-[height] duration-200",
           // Grow to fit ~4–5 result rows only when there's data; otherwise keep
-          // the compact default so an empty palette isn't oversized.
-          hasResults ? "h-[min(600px,85vh)]" : "h-[min(440px,85vh)]"
+          // the compact default so an empty palette isn't oversized. dvh (not
+          // vh) on mobile so the panel shrinks with the on-screen keyboard
+          // instead of getting pushed off the bottom of the layout viewport.
+          hasResults
+            ? "h-[min(600px,85dvh)] sm:h-[min(600px,85vh)]"
+            : "h-[min(440px,85dvh)] sm:h-[min(440px,85vh)]"
         )}
       >
         {/* Search input — the dominant element. */}
-        <div className="flex h-[66px] shrink-0 items-center gap-4 border-b px-6">
+        <div className="flex h-[66px] shrink-0 items-center gap-3 border-b px-4 sm:gap-4 sm:px-6">
           <MagnifyingGlassIcon className="size-6 shrink-0 text-muted-foreground" />
           <input
-            className="flex-1 bg-transparent text-lg outline-none placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-lg"
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onInputKeyDown}
             placeholder="Search tasks, lists, projects, members — or filter below…"
@@ -518,7 +522,7 @@ export function SearchPalette({
         {/* Filter row — high-value facets inline; the rest behind "More filters".
             The muted background groups the filter controls into their own zone,
             distinct from the search box above and the results below. */}
-        <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-b bg-muted/30 px-5 py-3">
+        <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-b bg-muted/30 px-3 py-3 sm:px-5">
           <FacetFilter
             label="Type"
             onChange={(n) => set("type", (n[0] as SearchEntityType) ?? "all")}
@@ -663,7 +667,7 @@ export function SearchPalette({
 
         {/* Active-filter chips */}
         {activeChips.length > 0 && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-muted/30 px-5 py-2.5">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-muted/30 px-3 py-2.5 sm:px-5">
             {activeChips.map((c) => (
               <FilterChip key={c.key} label={c.label} onRemove={c.onRemove} />
             ))}
@@ -1025,7 +1029,7 @@ export function SearchPalette({
         </div>
 
         {/* Footer */}
-        <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1 border-t px-6 py-3 text-2xs text-muted-foreground">
+        <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1 border-t px-4 py-3 text-2xs text-muted-foreground sm:px-6">
           {SHORTCUTS.map((s) => (
             <FooterHint key={s.keys} keys={s.keys} label={s.label} />
           ))}

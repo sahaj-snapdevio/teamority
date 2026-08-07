@@ -194,7 +194,7 @@ export function SpaceMembersManager({
       ) : (
         <div className="divide-y rounded-md border">
           {members.map((member) => (
-            <div key={member.id} className="flex items-center gap-3 px-4 py-3">
+            <div key={member.id} className="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap">
               <UserAvatar name={member.user.name} email={member.user.email} image={member.user.image} size="md" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">
@@ -205,34 +205,35 @@ export function SpaceMembersManager({
                 )}
               </div>
 
-              <Select
-                value={member.permission}
-                onValueChange={(v) => handleChangePermission(member.userId, v as SpacePermission)}
-                disabled={pending}
-              >
-                <SelectTrigger className="w-36 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="p-1.5">
-                  {(Object.keys(PERMISSION_LABELS) as SpacePermission[]).map((p) => (
-                    <SelectItem key={p} value={p} className="text-xs">
-                      {PERMISSION_LABELS[p]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex basis-full items-center justify-end gap-2 sm:basis-auto sm:justify-start">
+                <Select
+                  value={member.permission}
+                  onValueChange={(v) => handleChangePermission(member.userId, v as SpacePermission)}
+                  disabled={pending}
+                >
+                  <SelectTrigger className="w-36 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="p-1.5">
+                    {(Object.keys(PERMISSION_LABELS) as SpacePermission[]).map((p) => (
+                      <SelectItem key={p} value={p} className="text-xs">
+                        {PERMISSION_LABELS[p]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={pending}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    Remove
-                  </Button>
-                </AlertDialogTrigger>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={pending}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      Remove
+                    </Button>
+                  </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Remove member?</AlertDialogTitle>
@@ -251,6 +252,7 @@ export function SpaceMembersManager({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+              </div>
             </div>
           ))}
         </div>

@@ -92,7 +92,7 @@ const loadEmojiData = () =>
 const EmojiPicker = dynamic(() => import("@emoji-mart/react"), {
   ssr: false,
   loading: () => (
-    <div className="w-88 p-3 space-y-2">
+    <div className="w-88 max-w-[calc(100vw-2rem)] p-3 space-y-2">
       <div className="h-8 rounded-md bg-muted animate-pulse" />
       <div className="flex gap-1 pb-1 border-b border-border">
         {Array.from({ length: 9 }).map((_, i) => (
@@ -381,12 +381,14 @@ function CommentEditor({
         </div>
       )}
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-0.5 border-t px-2 py-1.5">
+      {/* Toolbar — wraps instead of overflowing on narrow composers (mobile
+        full task page / drawer) since it holds several icon buttons plus the
+        submit group. */}
+      <div className="flex flex-wrap items-center gap-y-1 gap-x-0.5 border-t px-2 py-1.5">
         {/* Plus — formatting menu */}
         <Popover open={plusOpen} onOpenChange={setPlusOpen}>
           <PopoverTrigger asChild>
-            <button className="size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+            <button className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
               <PlusIcon className="size-3.5" />
             </button>
           </PopoverTrigger>
@@ -410,11 +412,11 @@ function CommentEditor({
         {/* Emoji */}
         <Popover>
           <PopoverTrigger asChild>
-            <button className="size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+            <button className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
               <SmileyIcon className="size-4" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 border-0 shadow-lg" align="start">
+          <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] overflow-x-auto p-0 border-0 shadow-lg" align="start">
             <EmojiPicker
               data={loadEmojiData}
               onEmojiSelect={(e: { native: string }) => editor?.commands.insertContent(e.native)}
@@ -432,7 +434,7 @@ function CommentEditor({
           <>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
               title="Attach file"
             >
               <PaperclipIcon className="size-4" />
@@ -452,7 +454,7 @@ function CommentEditor({
           <>
             <button
               onClick={() => imageInputRef.current?.click()}
-              className="size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
               title="Add image"
             >
               <ImageIcon className="size-4" />
@@ -471,7 +473,7 @@ function CommentEditor({
         {/* Mention */}
         <button
           onClick={() => editor?.chain().focus().insertContent("@").run()}
-          className="size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
         >
           <AtIcon className="size-4" />
         </button>
@@ -851,7 +853,7 @@ function CommentItem({
         {/* Footer */}
         {!comment.isDeleted && (
           <TooltipProvider delayDuration={200}>
-          <div className="flex items-center gap-1 px-3 pb-2 pt-1 border-t border-border/40">
+          <div className="flex flex-wrap items-center gap-1 px-3 pb-2 pt-1 border-t border-border/40">
             {/* Existing emoji reactions (👍 is shown on the dedicated like button) */}
             {comment.reactions
               .filter((r) => r.emoji !== "👍")
@@ -921,7 +923,7 @@ function CommentItem({
                   <SmileyIcon className="size-3.5" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 border-0 shadow-lg" align="start">
+              <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] overflow-x-auto p-0 border-0 shadow-lg" align="start">
                 <EmojiPicker
                   data={loadEmojiData}
                   onEmojiSelect={(e: { native: string }) => handleReaction(e.native)}
@@ -1010,7 +1012,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
 
   return (
     <div className="flex items-center gap-2 py-1 px-1">
-      <Avatar className="size-5 shrink-0">
+      <Avatar className="size-6 shrink-0 md:size-5">
         {entry.image && <AvatarImage src={avatarSrc(entry.image)} />}
         <AvatarFallback className="text-[9px] bg-muted">
           {initials(entry.name, entry.email)}
@@ -1021,8 +1023,10 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
           <span className="font-medium text-foreground">{entry.name ?? entry.email ?? "System"}</span>
           {" "}
           {describeEvent(entry.eventType, meta)}
+          {/* Own line below `md:` for a clearer User/Action/Timestamp split
+            on narrow phones; inline (unchanged) at `md:`+. */}
           <span
-            className="ml-2 text-2xs opacity-70"
+            className="mt-0.5 block text-2xs opacity-70 md:ml-2 md:mt-0 md:inline"
             title={format(new Date(entry.createdAt), "PPpp")}
           >
             {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
@@ -1173,11 +1177,11 @@ function TaskActivityFeed({
   if (variant === "fill") {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-3 px-5 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-3 px-3 py-4 sm:px-5">
           {header}
           {body}
         </div>
-        <div className="shrink-0 border-t bg-background px-5 py-3">
+        <div className="shrink-0 border-t bg-background px-3 py-3 sm:px-5">
           {composer}
         </div>
       </div>
@@ -1186,12 +1190,13 @@ function TaskActivityFeed({
 
   // Drawer: the feed is the last section of a taller scroll column it doesn't
   // own, so the composer sticks to the bottom of that scrollport instead. The
-  // negative margin lets its background bleed over the column's px-6 padding.
+  // negative margin lets its background bleed over the column's padding —
+  // matches the parent's own responsive px-4/sm:px-6 (task-detail-panel.tsx).
   return (
     <div className="space-y-3">
       {header}
       {body}
-      <div className="sticky bottom-0 z-10 -mx-6 border-t bg-background px-6 pb-4 pt-3">
+      <div className="sticky bottom-0 z-10 -mx-4 border-t bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-6 sm:px-6">
         {composer}
       </div>
     </div>

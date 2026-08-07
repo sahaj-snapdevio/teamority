@@ -429,7 +429,7 @@ function StatusGroup({
         {/* Group header */}
         <div
           onClick={() => setCollapsed((v) => !v)}
-          className="group/header flex items-center gap-2.5 py-1.5 px-3 hover:bg-accent/40 transition-colors cursor-pointer select-none border-b border-border"
+          className="group/header flex flex-wrap items-center gap-2.5 py-1.5 px-3 hover:bg-accent/40 transition-colors cursor-pointer select-none border-b border-border"
         >
           <div className="flex size-5 items-center justify-center rounded hover:bg-accent transition-colors shrink-0 text-muted-foreground group-hover/header:text-foreground/70">
             {collapsed ? (
@@ -459,7 +459,7 @@ function StatusGroup({
           </span>
 
           <div
-            className="ml-2 flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity"
+            className="ml-2 flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/header:opacity-100"
             onClick={(e) => e.stopPropagation()}
           >
             <Popover open={menuOpen} onOpenChange={setMenuOpen}>
@@ -531,7 +531,8 @@ function StatusGroup({
 
         {/* Expanded: column headers + tasks */}
         {!collapsed && (
-          <div>
+          <div className="overflow-x-auto">
+            <div className="min-w-160">
             {/* Column headers with select-all */}
             <div className="flex items-center">
               <div className="w-0.75 self-stretch shrink-0" />
@@ -639,6 +640,7 @@ function StatusGroup({
               statusId={status.id}
               onCreated={onRefresh}
             />
+            </div>
           </div>
         )}
       </div>
@@ -925,13 +927,13 @@ function BulkActionBar({
           </div>
         </DialogContent>
       </Dialog>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-xl border border-white/10 bg-neutral-900 px-3 py-2 shadow-2xl text-white text-sm">
-        <span className="font-semibold text-white pr-2 border-r border-white/20 mr-2">
+      <div className="fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-xl border border-white/10 bg-neutral-900 px-3 py-2 text-sm text-white shadow-2xl">
+        <span className="font-semibold text-white pr-2 border-r border-white/20 mr-2 shrink-0">
           {count} task{count > 1 ? "s" : ""} selected
         </span>
         <button
           onClick={onClear}
-          className="flex size-6 items-center justify-center rounded hover:bg-white/10 transition-colors mr-2"
+          className="flex size-6 shrink-0 items-center justify-center rounded hover:bg-white/10 transition-colors mr-2"
         >
           <XIcon className="size-3.5 text-white/70" />
         </button>
@@ -941,7 +943,7 @@ function BulkActionBar({
           <PopoverTrigger asChild>
             <button
               disabled={busy}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+              className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
             >
               <span className="size-2 rounded-full bg-white/60" />
               Status
@@ -976,7 +978,7 @@ function BulkActionBar({
           <PopoverTrigger asChild>
             <button
               disabled={busy}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+              className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
             >
               <CaretDownIcon className="size-3.5" />
               Move
@@ -1082,19 +1084,19 @@ function BulkActionBar({
         <button
           disabled={busy}
           onClick={handleMoveToBacklog}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
         >
           <TrayIcon className="size-3.5" />
           Backlog
         </button>
 
-        <div className="h-4 w-px bg-white/20 mx-1" />
+        <div className="h-4 w-px shrink-0 bg-white/20 mx-1" />
 
         {/* Archive */}
         <button
           disabled={busy}
           onClick={handleBulkArchive}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
         >
           <ArchiveIcon className="size-3.5" />
           Archive
@@ -1104,7 +1106,7 @@ function BulkActionBar({
           <button
             disabled={busy}
             onClick={() => setDeleteOpen(true)}
-            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-50"
+            className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-50"
           >
             <TrashIcon className="size-3.5" />
             Delete
@@ -1976,8 +1978,8 @@ export function SprintListView({
                 className="size-3.5 text-primary shrink-0"
                 weight="fill"
               />
-              <span className="text-sm font-semibold">{sprintInfo.name}</span>
-              <span className="text-xs text-muted-foreground">
+              <span className="min-w-0 truncate text-sm font-semibold">{sprintInfo.name}</span>
+              <span className="text-xs text-muted-foreground shrink-0">
                 ({formatDateRange(sprintInfo.startDate, sprintInfo.endDate)})
               </span>
             </button>
@@ -2141,7 +2143,7 @@ export function SprintListView({
                                 ]);
                               });
                             }}
-                            className="hidden group-hover:flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
+                            className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none sm:hidden sm:group-hover:flex"
                           >
                             <ArchiveIcon className="size-3.5 text-muted-foreground" />
                             Unarchive
@@ -2167,9 +2169,9 @@ export function SprintListView({
         >
           {/* Sprint header row */}
           <div className="flex items-center gap-2 mb-3 px-1">
-            <LightningIcon className="size-3.5 text-primary" weight="fill" />
-            <span className="text-sm font-semibold">{sprintInfo.name}</span>
-            <span className="text-xs text-muted-foreground">
+            <LightningIcon className="size-3.5 shrink-0 text-primary" weight="fill" />
+            <span className="min-w-0 truncate text-sm font-semibold">{sprintInfo.name}</span>
+            <span className="shrink-0 text-xs text-muted-foreground">
               ({formatDateRange(sprintInfo.startDate, sprintInfo.endDate)})
             </span>
             <Badge

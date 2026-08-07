@@ -160,7 +160,7 @@ export function SprintSettingsModal({
             <div className="space-y-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule</h3>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Sprint starts on</Label>
                   <Select
@@ -204,7 +204,7 @@ export function SprintSettingsModal({
             <div className="space-y-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Naming</h3>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Sprint name format</Label>
                   <Select value={nameFormat} onValueChange={setNameFormat}>
@@ -316,7 +316,7 @@ export function SprintSettingsModal({
                 </div>
 
                 {archiveEnabled && (
-                  <div className="ml-4 flex items-center gap-2 border-l-2 border-border pl-4">
+                  <div className="ml-4 flex flex-wrap items-center gap-2 border-l-2 border-border pl-4">
                     <p className="text-sm text-muted-foreground shrink-0">Keep last</p>
                     <Input
                       type="number"

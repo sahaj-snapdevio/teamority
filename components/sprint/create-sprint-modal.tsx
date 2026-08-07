@@ -152,7 +152,7 @@ export function CreateSprintModal({
           </div>
 
           {/* Start Date + End Date */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>
                 Start Date <span className="text-destructive">*</span>

@@ -47,15 +47,17 @@ export function PushNotificationBanner({ workspaceId }: { workspaceId: string })
   return (
     <div
       className={cn(
-        "flex items-center gap-3 border-b bg-primary/5 px-4 py-2.5 text-sm transition-all",
+        "flex flex-col gap-2 border-b bg-primary/5 px-4 py-2.5 text-sm transition-all sm:flex-row sm:items-center sm:gap-3",
       )}
     >
-      <BellIcon className="size-4 shrink-0 text-primary" weight="fill" />
-      <p className="flex-1 text-foreground">
-        Stay updated in real time —{" "}
-        <span className="text-muted-foreground">enable browser notifications to get alerts even when the app is in the background.</span>
-      </p>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-start gap-3 sm:flex-1 sm:items-center">
+        <BellIcon className="size-4 shrink-0 text-primary" weight="fill" />
+        <p className="min-w-0 flex-1 text-foreground">
+          Stay updated in real time —{" "}
+          <span className="text-muted-foreground">enable browser notifications to get alerts even when the app is in the background.</span>
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0 pl-7 sm:pl-0">
         <button
           onClick={handleEnable}
           disabled={enabling}

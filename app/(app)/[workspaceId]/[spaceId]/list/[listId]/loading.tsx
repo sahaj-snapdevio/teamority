@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ListLoading() {
   return (
-    <div className="space-y-5 p-6">
+    <div className="space-y-5 p-3 sm:p-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Skeleton className="h-2.5 w-2.5 rounded-full" />
@@ -12,18 +12,18 @@ export default function ListLoading() {
       </div>
 
       {/* Toolbar: view tabs + search + add task */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-1 items-center gap-3 border-b pb-2">
           <Skeleton className="h-4 w-12 rounded" />
           <Skeleton className="h-4 w-14 rounded" />
           <Skeleton className="h-4 w-14 rounded" />
         </div>
-        <Skeleton className="h-8 w-48 rounded-md" />
+        <Skeleton className="h-8 w-32 rounded-md sm:w-48" />
         <Skeleton className="h-8 w-20 rounded-md" />
       </div>
 
       {/* Filter toolbar */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Skeleton className="h-7 w-20 rounded-md" />
         <Skeleton className="h-7 w-24 rounded-md" />
         <Skeleton className="h-7 w-20 rounded-md" />

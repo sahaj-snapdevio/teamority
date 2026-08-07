@@ -160,7 +160,7 @@ function BacklogTaskRow({
           <Button
             variant="ghost"
             size="sm"
-            className="shrink-0 h-6 gap-1 px-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+            className="shrink-0 h-6 gap-1 px-2 text-xs opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
             disabled={addLoading}
             onClick={(e) => {
               e.stopPropagation();

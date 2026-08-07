@@ -122,16 +122,37 @@ export async function getStorageSettings(): Promise<StorageSettings> {
   return { driver: "local" };
 }
 
-/** True only for a fully usable s3/r2 config (bucket + both keys resolved) —
- * local disk doesn't need this check since it always works with zero setup.
- * Used to detect a section that's live via .env even though the DB row (or
- * the relevant DB fields) is empty — see getIntegrationSettingsSummary(). */
+/**
+ * True only for a fully usable s3/r2 config with *genuinely provided*
+ * bucket + both keys — local disk doesn't need this check since it always
+ * works with zero setup. Used to detect a section that's live via .env even
+ * though the DB row (or the relevant DB fields) is empty.
+ *
+ * Deliberately bypasses getStorageSettings()'s resolved value: S3_BUCKET /
+ * S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY all fall back to MinIO-shaped
+ * local-dev defaults in lib/env.ts (`"kanbanica"` / `"minioadmin"` /
+ * `"minioadmin"`) even when unset in .env, precisely so STORAGE_DRIVER=s3
+ * "just works" against a local Docker Compose MinIO. Using the resolved
+ * value here would make an admin's bare driver switch (no real credentials)
+ * read as "Connected · Using .env" — so this checks the DB and the raw env
+ * vars directly, ignoring those schema defaults.
+ */
 export async function isStorageConfiguredViaS3(): Promise<boolean> {
-  const settings = await getStorageSettings();
-  return (
-    settings.driver !== "local" &&
-    !!(settings.bucket && settings.accessKeyId && settings.secretAccessKey)
-  );
+  const row = await getRow();
+  const driver = nonEmpty(row?.storageDriver) ?? env.STORAGE_DRIVER;
+  if (driver === "local") {
+    return false;
+  }
+
+  const bucket =
+    nonEmpty(row?.storageBucket) ?? nonEmpty(process.env.S3_BUCKET);
+  const accessKeyId =
+    nonEmpty(row?.storageAccessKeyId) ?? nonEmpty(process.env.S3_ACCESS_KEY_ID);
+  const secretAccessKey = row?.storageSecretAccessKeyEncrypted
+    ? decryptSecret(row.storageSecretAccessKeyEncrypted)
+    : nonEmpty(process.env.S3_SECRET_ACCESS_KEY);
+
+  return !!(bucket && accessKeyId && secretAccessKey);
 }
 
 export interface WebPushSettings {

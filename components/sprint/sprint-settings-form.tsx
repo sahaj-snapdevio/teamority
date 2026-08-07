@@ -110,7 +110,7 @@ export function SprintSettingsForm({
           <p className="text-sm text-muted-foreground mt-0.5">Control when and how long sprints run.</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Sprint starts on</Label>
             <Select value={String(startDay)} onValueChange={(v) => setStartDay(Number(v))}>
@@ -151,7 +151,7 @@ export function SprintSettingsForm({
           <p className="text-sm text-muted-foreground mt-0.5">Define how sprints are named and how dates display.</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Sprint name format</Label>
             <Select value={nameFormat} onValueChange={setNameFormat}>
@@ -230,7 +230,7 @@ export function SprintSettingsForm({
 
           {/* Move incomplete — sub-option */}
           {autoCreateNext && (
-            <div className="flex items-start justify-between gap-4 py-3 pl-10 pr-4 bg-muted/30">
+            <div className="flex items-start justify-between gap-4 py-3 pl-6 pr-4 bg-muted/30 sm:pl-10">
               <div>
                 <p className="text-sm font-medium">Move incomplete tasks to next sprint</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Unfinished tasks carry over automatically</p>
@@ -254,7 +254,7 @@ export function SprintSettingsForm({
           </div>
 
           {archiveEnabled && (
-            <div className="flex items-center gap-3 py-3 pl-10 pr-4 bg-muted/30">
+            <div className="flex flex-wrap items-center gap-3 py-3 pl-6 pr-4 bg-muted/30 sm:pl-10">
               <p className="text-sm text-muted-foreground shrink-0">Keep last</p>
               <Input
                 type="number"

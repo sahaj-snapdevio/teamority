@@ -148,7 +148,7 @@ export function ThemeSettingsForm() {
 
         <div
           className={cn(
-            "flex items-center justify-end gap-3 border-t border-border pt-4 transition-all duration-300",
+            "flex flex-wrap items-center justify-end gap-3 border-t border-border pt-4 transition-all duration-300",
             hasChanges
               ? "opacity-100 translate-y-0"
               : "opacity-60 pointer-events-none"

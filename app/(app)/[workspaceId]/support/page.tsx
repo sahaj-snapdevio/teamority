@@ -71,9 +71,9 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">Support</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Submit a request or view your existing tickets</p>
         </div>
@@ -81,7 +81,7 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
       </div>
 
       {/* Status filter */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 overflow-x-auto">
         {STATUS_TABS.map((tab) => {
           const active = status === tab.key;
           return (
@@ -89,7 +89,7 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
               key={tab.key}
               onClick={() => setStatus(tab.key)}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
+                "flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
                 active
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
@@ -115,10 +115,10 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
               <Link
                 key={t.id}
                 href={`/${workspaceId}/support/${t.id}`}
-                className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+                className="flex items-center justify-between gap-3 px-3 py-3 hover:bg-muted/30 transition-colors sm:px-4"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="font-mono text-xs text-muted-foreground">{t.ticketNumber}</span>
                     <Badge variant={STATUS_COLORS[t.status] ?? "secondary"} className="text-xs">
                       {t.status.replace("_", " ")}
@@ -127,7 +127,7 @@ export default function SupportPage({ params }: { params: Promise<{ workspaceId:
                   </div>
                   <p className="text-sm font-medium mt-0.5 truncate">{t.subject}</p>
                 </div>
-                <span className="text-xs text-muted-foreground shrink-0 ml-4">
+                <span className="text-xs text-muted-foreground shrink-0">
                   {new Date(t.updatedAt).toLocaleDateString()}
                 </span>
               </Link>

@@ -10,9 +10,9 @@ export default async function AdminLayout({
   const session = await requireAdmin();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-page">
+    <div className="flex h-screen flex-col overflow-hidden bg-page lg:flex-row">
       <AdminSidebar email={session.user.email} />
-      <main className="flex-1 overflow-y-auto p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-4 sm:p-8">{children}</main>
     </div>
   );
 }

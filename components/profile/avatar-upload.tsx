@@ -94,8 +94,8 @@ export function AvatarUpload({ currentImageKey, name, email }: AvatarUploadProps
   }
 
   return (
-    <div className="flex items-center gap-5">
-      <div className="relative">
+    <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
+      <div className="relative shrink-0">
         <Avatar className="size-20">
           {previewUrl && <AvatarImage src={previewUrl} alt={name ?? email} />}
           <AvatarFallback className="text-xl">{initials}</AvatarFallback>
@@ -104,24 +104,24 @@ export function AvatarUpload({ currentImageKey, name, email }: AvatarUploadProps
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="absolute -bottom-1 -right-1 z-20 flex size-7 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-sm transition-opacity hover:opacity-80 disabled:opacity-50"
+          className="absolute -bottom-1 -right-1 z-20 flex size-9 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-sm transition-opacity hover:opacity-80 disabled:opacity-50 sm:size-7"
           title="Change avatar"
         >
-          <CameraIcon className="size-3.5" weight="bold" />
+          <CameraIcon className="size-4 sm:size-3.5" weight="bold" />
         </button>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="min-w-0 space-y-1.5">
         <p className="text-sm font-medium">Profile photo</p>
         <p className="text-xs text-muted-foreground">
           JPEG, PNG, WebP or GIF · max 2 MB
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="h-7 text-xs"
+            className="h-8 text-xs sm:h-7"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
           >
@@ -132,7 +132,7 @@ export function AvatarUpload({ currentImageKey, name, email }: AvatarUploadProps
               type="button"
               size="sm"
               variant="ghost"
-              className="h-7 text-xs text-destructive hover:text-destructive"
+              className="h-8 text-xs text-destructive hover:text-destructive sm:h-7"
               onClick={handleRemove}
               disabled={removing}
             >

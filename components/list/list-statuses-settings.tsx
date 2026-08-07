@@ -169,7 +169,7 @@ function AddRow({
           disabled={loading}
         />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
         <span className="text-xs text-muted-foreground shrink-0">Dashboard category</span>
         <Select value={dashboardCategory} onValueChange={(v) => setDashboardCategory(v as DashboardCategory)} disabled={loading}>
           <SelectTrigger className="h-7 w-32 text-xs shrink-0">
@@ -257,7 +257,7 @@ function EditRow({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
         <span className="text-xs text-muted-foreground shrink-0">Dashboard category</span>
         <Select value={dashboardCategory} onValueChange={(v) => setDashboardCategory(v as DashboardCategory)} disabled={loading}>
           <SelectTrigger className="h-7 w-32 text-xs shrink-0">
@@ -376,7 +376,7 @@ export function ListStatusesSettings({
               </span>
               <button
                 onClick={() => { setEditingId(null); setAddingType(type); }}
-                className="flex size-5 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                className="flex size-9 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors sm:size-5"
                 title={`Add ${label} status`}
               >
                 <PlusIcon className="size-3.5" />
@@ -467,16 +467,16 @@ function SortableStatusRow({
         {...attributes}
         {...listeners}
         aria-label="Drag to reorder"
-        className="flex shrink-0 cursor-grab touch-none items-center text-muted-foreground/40 group-hover:text-muted-foreground transition-colors active:cursor-grabbing"
+        className="flex size-9 shrink-0 cursor-grab touch-none items-center justify-center text-muted-foreground/40 group-hover:text-muted-foreground transition-colors active:cursor-grabbing sm:size-4"
       >
         <DotsSixVerticalIcon className="size-4" />
       </button>
       <span className="size-3.5 shrink-0 rounded-full" style={{ backgroundColor: status.color }} />
-      <span className="flex-1 text-sm font-medium truncate">{status.name}</span>
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <span className="flex-1 min-w-0 text-sm font-medium truncate">{status.name}</span>
+      <div className="flex items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex size-6 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+            <button className="flex size-9 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors sm:size-6">
               <DotsThreeIcon className="size-4" weight="bold" />
             </button>
           </PopoverTrigger>

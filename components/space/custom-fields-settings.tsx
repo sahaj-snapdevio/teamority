@@ -333,10 +333,10 @@ export function CustomFieldsSettings({
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
           <SearchInput
-            className="w-56"
+            className="w-full sm:w-56"
             onChange={(e) => setSearch(e.target.value)}
             onClear={() => setSearch("")}
             placeholder="Search fields…"
@@ -353,7 +353,7 @@ export function CustomFieldsSettings({
             </Label>
           </div>
         </div>
-        <Button onClick={openCreate} size="sm">
+        <Button onClick={openCreate} size="sm" className="w-full sm:w-auto">
           Create Field
         </Button>
       </div>

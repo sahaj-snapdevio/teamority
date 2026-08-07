@@ -30,6 +30,7 @@ import {
   CheckSquareIcon,
   ColumnsIcon,
   DotsThreeIcon,
+  FunnelIcon,
   GearIcon,
   HashIcon,
   KeyboardIcon,
@@ -89,6 +90,7 @@ import {
   FacetOptionList,
 } from "@/components/filters/facet-filter";
 import { FilterBuilder } from "@/components/filters/filter-builder";
+import { FilterChip } from "@/components/filters/filter-chip";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
 import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
@@ -127,6 +129,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { useListColumnPreferences } from "@/hooks/use-list-column-preferences";
 import {
   CUSTOM_FIELD_COLUMN_WIDTH_CLASS,
@@ -360,7 +372,7 @@ function PinnedSection({
       </div>
 
       {!collapsed && (
-        <div className="flex flex-col border-t border-primary/15">
+        <div className="flex flex-col overflow-x-auto border-t border-primary/15">
           {tasks.map((t) => {
             const statusColor =
               statuses.find((s) => s.id === t.statusId)?.color ?? "#6B7280";
@@ -921,7 +933,7 @@ function StatusGroup({
             </div>
             <div
               className={cn(
-                "flex flex-col transition-all min-h-1",
+                "flex flex-col overflow-x-auto transition-all min-h-1",
                 isOver && "bg-accent/20 border-y border-dashed border-border"
               )}
               ref={setNodeRef}
@@ -1505,7 +1517,7 @@ function BulkActionBar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-xl border border-white/10 bg-neutral-900 px-3 py-2 shadow-2xl text-white text-sm">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-1 overflow-x-auto rounded-xl border border-white/10 bg-neutral-900 px-3 py-2 shadow-2xl text-white text-sm md:max-w-none md:overflow-visible">
         {/* Count + clear */}
         <span className="font-semibold text-white pr-2 border-r border-white/20 mr-2 select-none">
           {count} task{count > 1 ? "s" : ""} selected
@@ -1849,6 +1861,9 @@ export function ListView({
     null
   );
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  // Mobile-only "Filters" bottom sheet (see the mobile toolbar block below) —
+  // desktop keeps every filter inline, so this only matters under `md:`.
+  const [mobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
 
   const [priorityFilter, setPriorityFilter] = React.useState<string[]>([]);
   const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([]);
@@ -2091,6 +2106,22 @@ export function ListView({
     assigneeFilter.length > 0 ||
     searchQuery.trim().length > 0 ||
     Object.keys(customFieldFilters).length > 0;
+
+  // Count shown on the mobile "Filters" button/chip row — search has its own
+  // always-visible input on mobile, so it's deliberately excluded here (same
+  // as `hasActiveFilter` above tracks one more thing: search).
+  const mobileFilterCount =
+    statusFilter.length +
+    priorityFilter.length +
+    assigneeFilter.length +
+    Object.keys(customFieldFilters).length;
+
+  function resetMobileFilters() {
+    setStatusFilter([]);
+    setPriorityFilter([]);
+    setAssigneeFilter([]);
+    setCustomFieldFilters({});
+  }
 
   // ─── Group By logic ────────────────────────────────────────────────────────
   const groupedGroups = React.useMemo(() => {
@@ -2600,8 +2631,10 @@ export function ListView({
               it above the scrolling rows but BELOW the mobile sidebar drawer +
               backdrop (z-20/z-30). */}
           <div className="sticky top-14 z-10 bg-card pt-5 pb-3 border-b border-border flex flex-col gap-3">
-            {/* Action Bar / Toolbar */}
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+            {/* Action Bar / Toolbar — desktop/tablet only; mobile gets its
+                own compact toolbar below (same state/handlers, different
+                presentation). */}
+            <div className="hidden md:grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
               {/* Left column: primary controls, then a secondary block. A
                   plain flex-wrap row can't prioritize which group wraps
                   first — the browser sizes each flex item to its own
@@ -2623,7 +2656,7 @@ export function ListView({
                 <div className="flex items-center gap-4 flex-wrap">
                   {/* Search */}
                   <SearchInput
-                    className="w-64 focus:w-80"
+                    className="min-w-0 flex-1 md:w-64 md:flex-none md:focus:w-80"
                     id="list-view-search"
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onClear={() => setSearchQuery("")}
@@ -2955,6 +2988,337 @@ export function ListView({
                 <PlusIcon className="size-3.5" weight="bold" />
                 Create Task
               </button>
+            </div>
+
+            {/* ── Mobile toolbar (below md:) ────────────────────────────────
+                Same state/handlers as the desktop toolbar above — this is a
+                presentation-only split, not a second filtering
+                implementation. Search + a compact Create button up top, a
+                single "Filters" entry point (Status/Priority/Assignee/Sort/
+                Group By/Archived/custom fields all live in a bottom sheet)
+                instead of every control inline, an overflow menu for the
+                desktop-only utility controls (Manage Custom Fields/Columns/
+                Keyboard shortcuts), and active-filter chips below. */}
+            <div className="flex flex-col gap-2 md:hidden">
+              <div className="flex items-center gap-2">
+                <SearchInput
+                  className="min-w-0 flex-1"
+                  id="list-view-search-mobile"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onClear={() => setSearchQuery("")}
+                  placeholder="Search tasks…"
+                  value={searchQuery}
+                />
+                <button
+                  aria-label="Create task"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/95"
+                  onClick={() => setCreateForStatusId(statuses[0]?.id || "")}
+                  type="button"
+                >
+                  <PlusIcon className="size-4.5" weight="bold" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Sheet onOpenChange={setMobileFiltersOpen} open={mobileFiltersOpen}>
+                  <SheetTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border text-sm font-semibold transition-colors",
+                        mobileFilterCount > 0
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                      )}
+                      type="button"
+                    >
+                      <FunnelIcon className="size-4" />
+                      Filters
+                      {mobileFilterCount > 0 && (
+                        <span className="font-bold">({mobileFilterCount})</span>
+                      )}
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent
+                    className="flex max-h-[85dvh] flex-col rounded-t-2xl"
+                    side="bottom"
+                  >
+                    <SheetHeader className="p-4 pb-2">
+                      <SheetTitle>Filters</SheetTitle>
+                    </SheetHeader>
+                    <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-4">
+                      <div>
+                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Status
+                        </p>
+                        <FacetOptionList
+                          onChange={setStatusFilter}
+                          options={statusOptions}
+                          selected={statusFilter}
+                        />
+                      </div>
+
+                      <div>
+                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Priority
+                        </p>
+                        <FacetOptionList
+                          onChange={setPriorityFilter}
+                          options={PRIORITY_OPTIONS}
+                          selected={priorityFilter}
+                        />
+                      </div>
+
+                      {members.length > 0 && (
+                        <div>
+                          <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                            Assignee
+                          </p>
+                          <FacetOptionList
+                            onChange={setAssigneeFilter}
+                            options={assigneeOptions}
+                            searchable
+                            searchPlaceholder="Search people…"
+                            selected={assigneeFilter}
+                          />
+                        </div>
+                      )}
+
+                      <div className="h-px bg-border" />
+
+                      <div>
+                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Sort
+                        </p>
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            className={cn(
+                              "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
+                              !sortBy && "bg-accent text-foreground"
+                            )}
+                            onClick={() => {
+                              setSortBy(null);
+                              setSortOrder("asc");
+                            }}
+                            type="button"
+                          >
+                            None
+                          </button>
+                          {SORT_OPTIONS.map(({ key, label }) => {
+                            const active = sortBy === key;
+                            return (
+                              <button
+                                className={cn(
+                                  "flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
+                                  active && "bg-accent text-foreground"
+                                )}
+                                key={key}
+                                onClick={() => cycleSort(key)}
+                                type="button"
+                              >
+                                <span>{label}</span>
+                                {active && (
+                                  <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wide text-primary">
+                                    {sortOrder === "asc" ? (
+                                      <>
+                                        <CaretUpIcon className="size-3" weight="bold" />
+                                        Asc
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CaretDownIcon className="size-3" weight="bold" />
+                                        Desc
+                                      </>
+                                    )}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Group By
+                        </p>
+                        <div className="flex flex-col gap-0.5">
+                          {(["status", "priority", "assignee"] as const).map(
+                            (g) => (
+                              <button
+                                className={cn(
+                                  "rounded-md px-2.5 py-2 text-left text-sm font-medium capitalize hover:bg-accent",
+                                  groupBy === g && "bg-accent text-foreground"
+                                )}
+                                key={g}
+                                onClick={() => setGroupBy(g)}
+                                type="button"
+                              >
+                                {g}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </div>
+
+                      {onToggleArchived && (
+                        <>
+                          <div className="h-px bg-border" />
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              Show archived
+                            </span>
+                            <Switch
+                              checked={!!showArchived}
+                              onCheckedChange={() => onToggleArchived()}
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {filterFields.length > 0 && (
+                        <>
+                          <div className="h-px bg-border" />
+                          <div>
+                            <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                              More filters
+                            </p>
+                            <FilterBuilder
+                              fields={filterFields}
+                              isActive={isFilterFieldActive}
+                              onClear={clearFilterField}
+                              renderControl={renderFilterControl}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <SheetFooter className="flex-row gap-2 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                      <button
+                        className="h-11 flex-1 rounded-lg border border-border text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent"
+                        onClick={resetMobileFilters}
+                        type="button"
+                      >
+                        Reset
+                      </button>
+                      <SheetClose asChild>
+                        <button
+                          className="h-11 flex-1 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/95"
+                          type="button"
+                        >
+                          Apply
+                        </button>
+                      </SheetClose>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      aria-label="More actions"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border text-foreground/60 transition-colors hover:bg-accent/30 hover:text-foreground"
+                      type="button"
+                    >
+                      <DotsThreeIcon className="size-5" weight="bold" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-64 rounded-xl p-1.5">
+                    {canManage && (
+                      <button
+                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-accent"
+                        onClick={() =>
+                          router.push(
+                            `/${workspaceId}/${spaceId}/settings/custom-fields`
+                          )
+                        }
+                        type="button"
+                      >
+                        <ManageFieldsIcon className="size-4 text-muted-foreground" />
+                        Manage Custom Fields
+                      </button>
+                    )}
+                    {columnOptions.length > 0 && (
+                      <div className="px-1 py-1.5">
+                        <p className="px-1.5 pb-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Columns
+                        </p>
+                        <FacetOptionList
+                          emptyText="No custom fields"
+                          onChange={setVisibleColumnIds}
+                          options={sortedColumnOptions.map((c) => ({
+                            value: c.id,
+                            label: c.label,
+                          }))}
+                          searchable
+                          searchPlaceholder="Search columns…"
+                          selected={visibleColumnIds}
+                        />
+                      </div>
+                    )}
+                    <div className="my-1 h-px bg-border" />
+                    <button
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-accent"
+                      onClick={() => setShortcutsOpen(true)}
+                      type="button"
+                    >
+                      <KeyboardIcon className="size-4 text-muted-foreground" />
+                      Keyboard Shortcuts
+                    </button>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {mobileFilterCount > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {statusFilter.map((sId) => {
+                    const s = statuses.find((st) => st.id === sId);
+                    if (!s) {
+                      return null;
+                    }
+                    return (
+                      <FilterChip
+                        key={sId}
+                        label={s.name}
+                        onRemove={() =>
+                          setStatusFilter(statusFilter.filter((id) => id !== sId))
+                        }
+                      />
+                    );
+                  })}
+                  {priorityFilter.map((p) => (
+                    <FilterChip
+                      key={p}
+                      label={p.charAt(0) + p.slice(1).toLowerCase()}
+                      onRemove={() =>
+                        setPriorityFilter(priorityFilter.filter((v) => v !== p))
+                      }
+                    />
+                  ))}
+                  {assigneeFilter.map((aId) => {
+                    const m = assigneeOptions.find((o) => o.value === aId);
+                    return (
+                      <FilterChip
+                        key={aId}
+                        label={m?.label ?? aId}
+                        onRemove={() =>
+                          setAssigneeFilter(
+                            assigneeFilter.filter((id) => id !== aId)
+                          )
+                        }
+                      />
+                    );
+                  })}
+                  {filterFields
+                    .filter((f) => isFilterFieldActive(f.key))
+                    .map((f) => (
+                      <FilterChip
+                        key={f.key}
+                        label={f.label}
+                        onRemove={() => clearFilterField(f.key)}
+                      />
+                    ))}
+                </div>
+              )}
             </div>
           </div>
 

@@ -122,13 +122,13 @@ export default function AdminHelpCenterPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 space-y-6 sm:p-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Help Center</h1>
           <p className="text-muted-foreground text-sm mt-1">{articles.length} article{articles.length !== 1 ? "s" : ""}</p>
         </div>
-        <Button onClick={openNew}>New Article</Button>
+        <Button className="sm:self-auto self-start" onClick={openNew}>New Article</Button>
       </div>
 
       {isLoading ? (
@@ -143,42 +143,44 @@ export default function AdminHelpCenterPage() {
             <div key={cat}>
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">{cat}</h2>
               <div className="rounded-lg border overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-left px-4 py-2 font-medium">Title</th>
-                      <th className="text-left px-4 py-2 font-medium">Slug</th>
-                      <th className="text-left px-4 py-2 font-medium">Status</th>
-                      <th className="text-left px-4 py-2 font-medium">Updated</th>
-                      <th className="px-4 py-2" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((a) => (
-                      <tr key={a.id} className="border-t hover:bg-muted/30">
-                        <td className="px-4 py-2 font-medium">{a.title}</td>
-                        <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{a.slug}</td>
-                        <td className="px-4 py-2">
-                          <Badge variant={a.isPublished ? "default" : "outline"}>
-                            {a.isPublished ? "Published" : "Draft"}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-2 text-muted-foreground">{new Date(a.updatedAt).toLocaleDateString()}</td>
-                        <td className="px-4 py-2">
-                          <div className="flex items-center gap-2 justify-end">
-                            <Button size="sm" variant="ghost" onClick={() => openEdit(a)}>Edit</Button>
-                            <Button size="sm" variant="ghost" onClick={() => handleTogglePublish(a)}>
-                              {a.isPublished ? "Unpublish" : "Publish"}
-                            </Button>
-                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(a.id, a.title)}>
-                              Delete
-                            </Button>
-                          </div>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="text-left px-4 py-2 font-medium">Title</th>
+                        <th className="text-left px-4 py-2 font-medium">Slug</th>
+                        <th className="text-left px-4 py-2 font-medium">Status</th>
+                        <th className="text-left px-4 py-2 font-medium">Updated</th>
+                        <th className="px-4 py-2" />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {items.map((a) => (
+                        <tr key={a.id} className="border-t hover:bg-muted/30">
+                          <td className="px-4 py-2 font-medium">{a.title}</td>
+                          <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{a.slug}</td>
+                          <td className="px-4 py-2">
+                            <Badge variant={a.isPublished ? "default" : "outline"}>
+                              {a.isPublished ? "Published" : "Draft"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-2 text-muted-foreground">{new Date(a.updatedAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2 justify-end">
+                              <Button size="sm" variant="ghost" onClick={() => openEdit(a)}>Edit</Button>
+                              <Button size="sm" variant="ghost" onClick={() => handleTogglePublish(a)}>
+                                {a.isPublished ? "Unpublish" : "Publish"}
+                              </Button>
+                              <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(a.id, a.title)}>
+                                Delete
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           ))}
@@ -210,7 +212,7 @@ export default function AdminHelpCenterPage() {
 
       {/* Create / Edit dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Article" : "New Help Article"}</DialogTitle>
           </DialogHeader>
@@ -219,7 +221,7 @@ export default function AdminHelpCenterPage() {
               <Label htmlFor="title">Title</Label>
               <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="slug">Slug (optional)</Label>
                 <Input id="slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="auto-generated from title" />

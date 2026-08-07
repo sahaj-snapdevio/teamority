@@ -7,7 +7,8 @@ import {
   type DragOverEvent,
   DragOverlay,
   type DragStartEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDroppable,
   useSensor,
   useSensors,
@@ -34,6 +35,7 @@ import {
   CopyIcon,
   DotsThreeIcon,
   FlagIcon,
+  FunnelIcon,
   HashIcon,
   LinkIcon,
   ListPlusIcon,
@@ -68,6 +70,7 @@ import {
   FacetOptionList,
 } from "@/components/filters/facet-filter";
 import { FilterBuilder } from "@/components/filters/filter-builder";
+import { FilterChip } from "@/components/filters/filter-chip";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
 import {
@@ -93,6 +96,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Tooltip,
   TooltipContent,
@@ -776,7 +788,7 @@ function CardContent({
   }
 
   const iconBtn =
-    "flex size-6 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "flex size-7 sm:size-6 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
   const menuItem =
     "flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer";
 
@@ -792,7 +804,14 @@ function CardContent({
     >
       <div
         {...dragListeners}
-        className={cn(!overlay && "cursor-grab active:cursor-grabbing")}
+        // touch-none (touch-action: none): without it, the browser starts
+        // its own native scroll on the very first touchmove — winning the
+        // gesture before dnd-kit's TouchSensor ever sees enough movement to
+        // activate a drag, so dragging silently never starts on mobile.
+        className={cn(
+          "touch-none",
+          !overlay && "cursor-grab active:cursor-grabbing"
+        )}
       >
         {renaming ? (
           <input
@@ -879,7 +898,7 @@ function CardContent({
               <Popover onOpenChange={setPriorityOpen} open={priorityOpen}>
                 <PopoverTrigger asChild>
                   <button
-                    className="flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs font-bold transition-colors hover:bg-accent"
+                    className="flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-1.5 sm:py-0.5 text-xs font-bold transition-colors hover:bg-accent"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                     title="Change priority"
@@ -953,7 +972,7 @@ function CardContent({
                 <PopoverTrigger asChild>
                   <button
                     className={cn(
-                      "flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs font-semibold transition-colors hover:bg-accent",
+                      "flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-1.5 sm:py-0.5 text-xs font-semibold transition-colors hover:bg-accent",
                       dueDate?.overdue
                         ? "text-red-500"
                         : "text-muted-foreground"
@@ -1017,7 +1036,7 @@ function CardContent({
               >
                 <PopoverTrigger asChild>
                   <button
-                    className="ml-auto flex shrink-0 cursor-pointer items-center rounded-full transition-colors hover:bg-accent"
+                    className="ml-auto flex shrink-0 cursor-pointer items-center rounded-full p-1 -m-1 sm:p-0 sm:m-0 transition-colors hover:bg-accent"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                     title={
@@ -1581,7 +1600,7 @@ function Column({
           className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
           style={{ backgroundColor: status.color }}
         />
-        <span className="flex-1 font-semibold text-sm uppercase tracking-wide text-foreground/80">
+        <span className="min-w-0 flex-1 truncate font-semibold text-sm uppercase tracking-wide text-foreground/80">
           {status.name}
         </span>
         <span
@@ -1767,6 +1786,9 @@ export function BoardView({
   // Sort is a single-select menu — picking an option closes the popover
   // immediately, same as FacetFilter's `single` mode.
   const [sortMenuOpen, setSortMenuOpen] = React.useState(false);
+  // Mobile-only "Filters" bottom sheet (see the mobile toolbar block below) —
+  // desktop keeps every filter inline, so this only matters under `md:`.
+  const [mobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
 
   // Local filter state (mirrors list-view pattern)
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
@@ -1889,6 +1911,21 @@ export function BoardView({
     );
   }
 
+  // Count shown on the mobile "Filters" button/chip row — search has its own
+  // always-visible input on mobile, so it's deliberately excluded here.
+  const mobileFilterCount =
+    statusFilter.length +
+    priorityFilter.length +
+    assigneeFilter.length +
+    Object.keys(customFieldFilters).length;
+
+  function resetMobileFilters() {
+    setStatusFilter([]);
+    setPriorityFilter([]);
+    setAssigneeFilter([]);
+    setCustomFieldFilters({});
+  }
+
   // ── Filtered + sorted tasks (for display) ────────────────────────────────
   const processedTasks = React.useMemo(() => {
     let result = filterTasks(
@@ -1952,8 +1989,19 @@ export function BoardView({
     [statuses, tasksByStatus]
   );
 
+  // Split mouse/touch instead of a single PointerSensor: a touchstart on a
+  // card needs `touch-action: none` (below) to stop the browser's native
+  // scroll from winning the gesture before dnd-kit sees enough movement to
+  // activate — but with that CSS in place, a *plain* distance-based
+  // constraint (fine for a mouse) would turn every scroll-swipe starting on
+  // a card into a drag. TouchSensor's delay+tolerance requires a brief
+  // press-and-hold before a touch counts as a drag, so a quick swipe still
+  // reads as "scrolling" and is left alone.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    })
   );
 
   function findStatusForTask(taskId: string) {
@@ -2081,8 +2129,9 @@ export function BoardView({
         workspaceId={workspaceId}
       />
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
+      {/* Toolbar — desktop/tablet only; mobile gets its own compact toolbar
+          below (same state/handlers, different presentation). */}
+      <div className="hidden md:flex items-center justify-between gap-4 flex-wrap mb-3">
         {/* Logical groups get their own gap-2 row; the gap-4 on this wrapper
             is what separates the groups from each other (Search /
             Status+Priority+Assignee+Filters / Sort+Fields) — a bit more
@@ -2279,6 +2328,280 @@ export function BoardView({
           <PlusIcon className="size-3.5" weight="bold" />
           Create Task
         </button>
+      </div>
+
+      {/* ── Mobile toolbar (below md:) ──────────────────────────────────────
+          Same state/handlers as the desktop toolbar above — this is a
+          presentation-only split, not a second filtering implementation.
+          Search + a compact Create button up top, a single "Filters" entry
+          point (Status/Priority/Assignee/Sort/custom fields all live in a
+          bottom sheet) instead of every control inline, an overflow menu for
+          the desktop-only utility controls (Fields/Manage Custom Fields),
+          and active-filter chips below. */}
+      <div className="flex flex-col gap-2 mb-3 md:hidden">
+        <div className="flex items-center gap-2">
+          <SearchInput
+            className="min-w-0 flex-1"
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery("")}
+            placeholder="Search tasks…"
+            value={searchQuery}
+          />
+          <button
+            aria-label="Create task"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/95"
+            onClick={() => setCreateOpen(true)}
+            type="button"
+          >
+            <PlusIcon className="size-4.5" weight="bold" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Sheet onOpenChange={setMobileFiltersOpen} open={mobileFiltersOpen}>
+            <SheetTrigger asChild>
+              <button
+                className={cn(
+                  "flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border text-sm font-semibold transition-colors",
+                  mobileFilterCount > 0
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+                type="button"
+              >
+                <FunnelIcon className="size-4" />
+                Filters
+                {mobileFilterCount > 0 && (
+                  <span className="font-bold">({mobileFilterCount})</span>
+                )}
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              className="flex max-h-[85dvh] flex-col rounded-t-2xl"
+              side="bottom"
+            >
+              <SheetHeader className="p-4 pb-2">
+                <SheetTitle>Filters</SheetTitle>
+              </SheetHeader>
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-4">
+                <div>
+                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Status
+                  </p>
+                  <FacetOptionList
+                    onChange={setStatusFilter}
+                    options={statusOptions}
+                    selected={statusFilter}
+                  />
+                </div>
+
+                <div>
+                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Priority
+                  </p>
+                  <FacetOptionList
+                    onChange={setPriorityFilter}
+                    options={PRIORITY_OPTIONS}
+                    selected={priorityFilter}
+                  />
+                </div>
+
+                {members.length > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Assignee
+                    </p>
+                    <FacetOptionList
+                      onChange={setAssigneeFilter}
+                      options={assigneeOptions}
+                      searchable
+                      searchPlaceholder="Search people…"
+                      selected={assigneeFilter}
+                    />
+                  </div>
+                )}
+
+                <div className="h-px bg-border" />
+
+                <div>
+                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Sort
+                  </p>
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      className={cn(
+                        "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
+                        !sortBy && "bg-accent text-foreground"
+                      )}
+                      onClick={() => setSortBy(null)}
+                      type="button"
+                    >
+                      None
+                    </button>
+                    <button
+                      className={cn(
+                        "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
+                        sortBy === "name" && "bg-accent text-foreground"
+                      )}
+                      onClick={() => {
+                        setSortBy("name");
+                        setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                      }}
+                      type="button"
+                    >
+                      Task Name
+                    </button>
+                    <button
+                      className={cn(
+                        "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
+                        sortBy === "priority" && "bg-accent text-foreground"
+                      )}
+                      onClick={() => {
+                        setSortBy("priority");
+                        setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+                      }}
+                      type="button"
+                    >
+                      Priority
+                    </button>
+                  </div>
+                </div>
+
+                {filterFields.length > 0 && (
+                  <>
+                    <div className="h-px bg-border" />
+                    <div>
+                      <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        More filters
+                      </p>
+                      <FilterBuilder
+                        fields={filterFields}
+                        isActive={isFilterFieldActive}
+                        onClear={clearFilterField}
+                        renderControl={renderFilterControl}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+              <SheetFooter className="flex-row gap-2 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <button
+                  className="h-11 flex-1 rounded-lg border border-border text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent"
+                  onClick={resetMobileFilters}
+                  type="button"
+                >
+                  Reset
+                </button>
+                <SheetClose asChild>
+                  <button
+                    className="h-11 flex-1 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/95"
+                    type="button"
+                  >
+                    Apply
+                  </button>
+                </SheetClose>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                aria-label="More actions"
+                className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border text-foreground/60 transition-colors hover:bg-accent/30 hover:text-foreground"
+                type="button"
+              >
+                <DotsThreeIcon className="size-5" weight="bold" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 rounded-xl p-1.5">
+              {customFields.length > 0 && (
+                <div className="px-1 py-1.5">
+                  <p className="px-1.5 pb-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Fields shown on cards
+                  </p>
+                  <FacetOptionList
+                    emptyText="No custom fields"
+                    onChange={setVisibleFieldIds}
+                    options={fieldOptions.map((f) => ({
+                      value: f.id,
+                      label: f.label,
+                    }))}
+                    searchable={fieldOptions.length > 6}
+                    selected={visibleFieldIds}
+                  />
+                </div>
+              )}
+              {canManage && (
+                <>
+                  <div className="my-1 h-px bg-border" />
+                  <button
+                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-accent"
+                    onClick={() =>
+                      router.push(
+                        `/${workspaceId}/${space.id}/settings/custom-fields`
+                      )
+                    }
+                    type="button"
+                  >
+                    <ManageFieldsIcon className="size-4 text-muted-foreground" />
+                    Manage Custom Fields
+                  </button>
+                </>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {mobileFilterCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {statusFilter.map((sId) => {
+              const s = statuses.find((st) => st.id === sId);
+              if (!s) {
+                return null;
+              }
+              return (
+                <FilterChip
+                  key={sId}
+                  label={s.name}
+                  onRemove={() =>
+                    setStatusFilter(statusFilter.filter((id) => id !== sId))
+                  }
+                />
+              );
+            })}
+            {priorityFilter.map((p) => (
+              <FilterChip
+                key={p}
+                label={p.charAt(0) + p.slice(1).toLowerCase()}
+                onRemove={() =>
+                  setPriorityFilter(priorityFilter.filter((v) => v !== p))
+                }
+              />
+            ))}
+            {assigneeFilter.map((aId) => {
+              const m = assigneeOptions.find((o) => o.value === aId);
+              return (
+                <FilterChip
+                  key={aId}
+                  label={m?.label ?? aId}
+                  onRemove={() =>
+                    setAssigneeFilter(assigneeFilter.filter((id) => id !== aId))
+                  }
+                />
+              );
+            })}
+            {filterFields
+              .filter((f) => isFilterFieldActive(f.key))
+              .map((f) => (
+                <FilterChip
+                  key={f.key}
+                  label={f.label}
+                  onRemove={() => clearFilterField(f.key)}
+                />
+              ))}
+          </div>
+        )}
       </div>
 
       <DndContext

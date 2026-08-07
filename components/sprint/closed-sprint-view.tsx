@@ -310,7 +310,8 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
         </div>
       ) : (
         <div className="rounded-xl border bg-card overflow-hidden">
-          <table className="w-full border-collapse">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-150 border-collapse">
             <thead>
               <tr className="border-b border-border/60 bg-muted/20">
                 <th className="py-2 pl-4 pr-3 text-left text-xs font-semibold text-muted-foreground">
@@ -346,6 +347,7 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

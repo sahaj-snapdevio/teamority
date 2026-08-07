@@ -19,13 +19,13 @@ export function SettingsNav({ workspaceId, isOwner }: SettingsNavProps) {
   ];
 
   return (
-    <nav className="flex gap-1 md:sticky md:top-6 md:w-[200px] md:shrink-0 md:flex-col md:self-start">
+    <nav className="flex gap-1 overflow-x-auto overflow-y-hidden md:sticky md:top-6 md:w-[200px] md:shrink-0 md:flex-col md:self-start md:overflow-visible">
       {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm transition-colors",
+            "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors",
             pathname === item.href
               ? "bg-accent font-medium text-accent-foreground"
               : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",

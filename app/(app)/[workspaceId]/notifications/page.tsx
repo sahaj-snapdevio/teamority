@@ -566,12 +566,18 @@ export default function InboxPage() {
           column is narrow — whether from a small viewport or an open task. */}
       <div
         className={cn(
-          "@container flex flex-col h-full transition-all duration-200 min-w-0",
-          selectedTask ? "w-105 shrink-0 border-r" : "flex-1"
+          "@container h-full flex-col transition-all duration-200 min-w-0",
+          // On mobile, an open task fully replaces the list (see the detail
+          // panel below) instead of squeezing a 420px-wide list column into
+          // a <400px viewport — the detail panel's own Close button is the
+          // way back. At sm+ this restores the original fixed-width split.
+          selectedTask
+            ? "hidden w-full shrink-0 border-r sm:flex sm:w-105"
+            : "flex flex-1"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-y-2 border-b px-4 py-4 shrink-0 sm:px-6">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold">Inbox</h1>
             {/* Scoped to the active Date/Workspace/Event/search filters (the
@@ -824,19 +830,22 @@ export default function InboxPage() {
                         </p>
                       </div>
 
-                      {/* Actions on hover. Overlaid instead of laid out in flow — if they
+                      {/* Actions on hover (sm+). Overlaid instead of laid out in flow — if they
                     took up space, the text column would shrink on hover and the title
                     would reflow onto extra lines. Icon-only and translucent so the
                     tray stays narrow and reads as floating above the row rather than
-                    punching a hole in it. */}
+                    punching a hole in it. On mobile there's no hover, so the tray is
+                    static and always visible instead — laid out in flow at the end of
+                    the row (text truncates around it) rather than overlaid. */}
                       <div
                         className={cn(
-                          "absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5",
+                          "static ml-auto flex shrink-0 items-center gap-0.5",
                           "rounded-lg border border-border/60 bg-background/90 p-1 shadow-sm backdrop-blur-sm",
-                          "pointer-events-none translate-x-1 opacity-0",
+                          "sm:absolute sm:right-2 sm:top-1/2 sm:ml-0 sm:-translate-y-1/2",
+                          "sm:pointer-events-none sm:translate-x-1 sm:opacity-0",
                           "transition-[opacity,transform] duration-150 ease-out",
-                          "group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100",
-                          "group-focus-within:pointer-events-auto group-focus-within:translate-x-0 group-focus-within:opacity-100"
+                          "sm:group-hover:pointer-events-auto sm:group-hover:translate-x-0 sm:group-hover:opacity-100",
+                          "sm:group-focus-within:pointer-events-auto sm:group-focus-within:translate-x-0 sm:group-focus-within:opacity-100"
                         )}
                       >
                         {getNotificationTarget(n).type !== "info" && (

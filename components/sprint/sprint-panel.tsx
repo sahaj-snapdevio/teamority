@@ -236,7 +236,7 @@ function ActiveSprintCard({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs">
           <CalendarBlankIcon className="size-3 text-muted-foreground" />
           {daysRemaining === null ? null : isOverdue ? (
@@ -322,7 +322,7 @@ function PlannedSprintRow({
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100 px-1"
+              className="hidden items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100 px-1 sm:flex"
             >
               <PlusIcon className="size-3" />
               New task
@@ -330,7 +330,7 @@ function PlannedSprintRow({
             {listId && (
               <button
                 onClick={() => onAddTasks(sprint.id)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100 px-1"
+                className="hidden items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100 px-1 sm:flex"
               >
                 Add tasks
               </button>
@@ -351,7 +351,7 @@ function PlannedSprintRow({
             )}
             <button
               disabled={deleting || starting}
-              className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive disabled:opacity-30"
+              className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 sm:opacity-0 sm:group-hover:opacity-100"
               aria-label="Delete sprint"
               onClick={() => setConfirmDelete(true)}
             >
@@ -528,7 +528,7 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
       )}
 
       <div className="rounded-lg border bg-card">
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-accent/50 transition-colors">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-lg hover:bg-accent/50 transition-colors">
           <button
             onClick={() => setExpanded((v) => !v)}
             className="flex flex-1 items-center gap-2 text-left min-w-0"

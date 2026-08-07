@@ -233,7 +233,7 @@ export function SubtaskRow({
       </span>
       <span
         className={cn(
-          "flex-1 truncate text-sm",
+          "min-w-0 flex-1 truncate text-sm",
           isClosed && "text-muted-foreground line-through"
         )}
       >

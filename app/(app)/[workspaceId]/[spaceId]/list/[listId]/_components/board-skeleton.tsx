@@ -11,7 +11,7 @@ export function BoardSkeleton({ columns = 4 }: { columns?: number }) {
       {Array.from({ length: columns }).map((_, colIndex) => (
         <div
           key={colIndex}
-          className="flex w-72 shrink-0 flex-col gap-2 self-start rounded-xl bg-muted/40 p-2"
+          className="flex w-64 shrink-0 flex-col gap-2 self-start rounded-xl bg-muted/40 p-2"
         >
           {/* Column header */}
           <div className="flex items-center gap-2 px-1 py-1">
