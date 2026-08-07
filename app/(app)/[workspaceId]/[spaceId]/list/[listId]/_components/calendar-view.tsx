@@ -38,7 +38,6 @@ import { UserAvatar } from "@/components/common/user-avatar";
 import { FacetFilter } from "@/components/filters/facet-filter";
 import { useRealtimePause } from "@/components/realtime/realtime-provider";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
-import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,20 +61,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
 import { PRIORITY_OPTIONS } from "@/lib/filters/options";
 import { filterTasks } from "@/lib/filters/task-filter";
 import { PRIORITY_CONFIG, type Priority } from "@/lib/priority-config";
 import { setTaskNavContext } from "@/lib/task-nav-context";
 import { cn } from "@/lib/utils";
+import { MobileCalendar } from "./calendar-view-mobile";
 
-type Status = {
+export type Status = {
   id: string;
   name: string;
   color: string;
   type: "OPEN" | "ACTIVE" | "CLOSED";
 };
 
-type CalendarTask = {
+export type CalendarTask = {
   id: string;
   title: string;
   priority: Priority;
@@ -86,7 +87,7 @@ type CalendarTask = {
   assignees: { userId: string; name: string; image: string | null }[];
 };
 
-type Member = {
+export type Member = {
   userId: string;
   name: string | null;
   email: string | null;
@@ -95,7 +96,7 @@ type Member = {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MAX_CHIPS_PER_DAY = 4;
 
-function dayKey(d: Date): string {
+export function dayKey(d: Date): string {
   return format(d, "yyyy-MM-dd");
 }
 function parseDayKey(key: string): Date {
@@ -104,7 +105,7 @@ function parseDayKey(key: string): Date {
 
 // The task's anchor day on the grid: its deadline (dueDateEnd) or, failing that,
 // its start date. Tasks with neither are unscheduled and not shown.
-function primaryDay(t: CalendarTask): Date | null {
+export function primaryDay(t: CalendarTask): Date | null {
   const d = t.dueDateEnd ?? t.dueDateStart;
   return d ? startOfDay(new Date(d)) : null;
 }
@@ -151,19 +152,22 @@ export function CalendarView({
   const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([]);
 
   // Current month — persisted per list so we return to the last month viewed.
+  // Read from localStorage in an effect, not the useState initializer: the
+  // initializer also runs during SSR (no localStorage there), so reading it
+  // eagerly renders a different date server- vs client-side and trips a
+  // hydration mismatch. Both sides start at `new Date()`; the effect restores
+  // the saved value right after mount.
   const storageKey = `kanbanica:calendar-month:${listId}`;
-  const [viewDate, setViewDate] = React.useState<Date>(() => {
-    if (typeof window !== "undefined") {
-      const saved = window.localStorage.getItem(storageKey);
-      if (saved) {
-        const d = new Date(saved);
-        if (!Number.isNaN(d.getTime())) {
-          return d;
-        }
+  const [viewDate, setViewDate] = React.useState<Date>(() => new Date());
+  React.useEffect(() => {
+    const saved = window.localStorage.getItem(storageKey);
+    if (saved) {
+      const d = new Date(saved);
+      if (!Number.isNaN(d.getTime())) {
+        setViewDate(d);
       }
     }
-    return new Date();
-  });
+  }, [storageKey]);
   React.useEffect(() => {
     window.localStorage.setItem(storageKey, viewDate.toISOString());
   }, [viewDate, storageKey]);
@@ -172,6 +176,25 @@ export function CalendarView({
   function goToMonth(next: Date) {
     startTransition(() => setViewDate(next));
   }
+
+  // Mobile-only: week vs month sub-view, persisted per list like `viewDate`
+  // (and restored the same post-mount way, for the same hydration reason).
+  const mobileModeStorageKey = `kanbanica:calendar-mobile-mode:${listId}`;
+  const [mobileMode, setMobileMode] = React.useState<"week" | "month">("week");
+  React.useEffect(() => {
+    const saved = window.localStorage.getItem(mobileModeStorageKey);
+    if (saved === "week" || saved === "month") {
+      setMobileMode(saved);
+    }
+  }, [mobileModeStorageKey]);
+  React.useEffect(() => {
+    window.localStorage.setItem(mobileModeStorageKey, mobileMode);
+  }, [mobileMode, mobileModeStorageKey]);
+
+  // Mobile-only: the day whose agenda bottom sheet is open, and the filters
+  // bottom sheet's open state.
+  const [agendaDay, setAgendaDay] = React.useState<Date | null>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
 
   const [activeTask, setActiveTask] = React.useState<CalendarTask | null>(null);
   const [createDay, setCreateDay] = React.useState<Date | null>(null);
@@ -199,6 +222,24 @@ export function CalendarView({
     const end = endOfWeek(endOfMonth(viewDate));
     return eachDayOfInterval({ start, end });
   }, [viewDate]);
+
+  // Mobile-only: the single visible week (Week View default).
+  const weekDays = React.useMemo(() => {
+    const start = startOfWeek(viewDate);
+    const end = endOfWeek(viewDate);
+    return eachDayOfInterval({ start, end });
+  }, [viewDate]);
+
+  // Count shown on the mobile "Filters" button badge — search has its own
+  // always-visible input on mobile, so it's deliberately excluded here.
+  const mobileFilterCount =
+    statusFilter.length + priorityFilter.length + assigneeFilter.length;
+
+  function resetMobileFilters() {
+    setStatusFilter([]);
+    setPriorityFilter([]);
+    setAssigneeFilter([]);
+  }
 
   // Deadline calendar: every task appears exactly ONCE, on its deadline
   // (dueDateEnd ?? dueDateStart). The start date is deliberately ignored for
@@ -326,20 +367,29 @@ export function CalendarView({
             top of the page scroll (top-14 clears the List/Board/Calendar tabs)
             while the month grid scrolls underneath. Wrapping both in one sticky
             container avoids a fragile fixed offset, since the toolbar can wrap
-            to two rows on narrow widths. */}
-        <div className="sticky top-14 z-10 shrink-0 bg-app">
+            to two rows on narrow widths. Desktop/tablet only — mobile gets its
+            own compact header in <MobileCalendar> below (same state/handlers,
+            different presentation, matching the Board/List convention). */}
+        <div className="sticky top-14 z-10 hidden shrink-0 bg-app md:block">
           {/* Toolbar: search + facet filters + month navigation. No top padding —
             the view already sits below the List/Board/Calendar tabs with the
             container's own gap, so a `py-*` here stacked a second gap on top and
             pushed the calendar down relative to the List/Board toolbars. */}
           <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 pb-2 shrink-0">
-            <SearchInput
-              className="w-44 focus:w-56"
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onClear={() => setSearchQuery("")}
-              placeholder="Search tasks…"
-              value={searchQuery}
-            />
+            {/* Wrapped in a sized container rather than putting `w-full` only on
+              the input: SearchInput's own root is a plain (non-flex) div, so a
+              percentage width on the input alone can't expand it to fill the
+              toolbar row — the wrapper is the actual flex item that needs the
+              explicit width. */}
+            <div className="w-full sm:w-auto">
+              <SearchInput
+                className="w-full sm:w-44 sm:focus:w-56"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onClear={() => setSearchQuery("")}
+                placeholder="Search tasks…"
+                value={searchQuery}
+              />
+            </div>
             <FacetFilter
               label="Status"
               onChange={setStatusFilter}
@@ -430,7 +480,7 @@ export function CalendarView({
           onDragStart={handleDragStart}
           sensors={sensors}
         >
-          <div className="grid flex-1 auto-rows-fr grid-cols-7 overflow-y-auto">
+          <div className="hidden flex-1 auto-rows-fr grid-cols-7 overflow-y-auto md:grid">
             {gridDays.map((day) => (
               <DayCell
                 canEdit={canEdit}
@@ -452,6 +502,40 @@ export function CalendarView({
             ) : null}
           </DragOverlay>
         </DndContext>
+
+        {/* Mobile — week-first, bottom sheets, FAB. Desktop/tablet render
+            above (hidden below md:); this owns the entire sub-md experience,
+            sharing all state/handlers from this component. */}
+        <MobileCalendar
+          agendaDay={agendaDay}
+          assigneeFilter={assigneeFilter}
+          canEdit={canEdit}
+          gridDays={gridDays}
+          isPending={isPending}
+          members={members}
+          mobileFilterCount={mobileFilterCount}
+          mobileFiltersOpen={mobileFiltersOpen}
+          mobileMode={mobileMode}
+          onAgendaDayChange={setAgendaDay}
+          onAssigneeFilterChange={setAssigneeFilter}
+          onCreateDay={(day) => setCreateDay(day)}
+          onMobileFiltersOpenChange={setMobileFiltersOpen}
+          onModeChange={setMobileMode}
+          onNavigate={goToMonth}
+          onOpenTask={openTask}
+          onPriorityFilterChange={setPriorityFilter}
+          onResetFilters={resetMobileFilters}
+          onSearchChange={setSearchQuery}
+          onStatusFilterChange={setStatusFilter}
+          priorityFilter={priorityFilter}
+          searchQuery={searchQuery}
+          statusById={statusById}
+          statuses={statuses}
+          statusFilter={statusFilter}
+          tasksByDay={tasksByDay}
+          viewDate={viewDate}
+          weekDays={weekDays}
+        />
 
         {/* Create task on a clicked day — reuses the existing modal */}
         <CreateTaskModal
@@ -563,7 +647,7 @@ function DayCell({
         </button>
         {canEdit && (
           <button
-            className="flex items-center gap-0.5 rounded px-1 text-2xs text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+            className="flex items-center gap-0.5 rounded px-1 text-2xs text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100"
             onClick={onCreate}
             type="button"
           >
@@ -679,7 +763,7 @@ function ChipVisual({
         />
       )}
       {task.priority !== "NONE" && (
-        <span aria-hidden className="shrink-0 leading-none">
+        <span aria-hidden className="hidden shrink-0 leading-none sm:inline">
           {priorityCfg.icon}
         </span>
       )}
@@ -688,7 +772,7 @@ function ChipVisual({
       </span>
       {assignee && (
         <UserAvatar
-          className="size-4 shrink-0"
+          className="hidden size-4 shrink-0 sm:flex"
           image={assignee.image}
           name={assignee.name}
           size="xs"
@@ -724,56 +808,73 @@ function MorePopover({
         className="max-h-80 w-64 overflow-y-auto p-1"
       >
         <div className="space-y-0.5">
-          {tasks.map((t) => {
-            const status = statusById.get(t.statusId ?? "");
-            const done = status?.type === "CLOSED";
-            const priorityCfg = PRIORITY_CONFIG[t.priority];
-            const assignee = t.assignees[0];
-            return (
-              <button
-                className={cn(
-                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent",
-                  done && "opacity-60"
-                )}
-                key={t.id}
-                onClick={() => onOpenTask(t.id)}
-                type="button"
-              >
-                {t.priority !== "NONE" && (
-                  <span aria-hidden className="shrink-0 leading-none">
-                    {priorityCfg.icon}
-                  </span>
-                )}
-                <span
-                  className={cn(
-                    "min-w-0 flex-1 truncate",
-                    done && "line-through"
-                  )}
-                >
-                  {t.title}
-                </span>
-                {status && (
-                  <span className="flex shrink-0 items-center gap-1 text-2xs text-muted-foreground">
-                    <span
-                      className="size-2 rounded-full"
-                      style={{ backgroundColor: status.color }}
-                    />
-                    {status.name}
-                  </span>
-                )}
-                {assignee && (
-                  <UserAvatar
-                    className="size-4 shrink-0"
-                    image={assignee.image}
-                    name={assignee.name}
-                    size="xs"
-                  />
-                )}
-              </button>
-            );
-          })}
+          {tasks.map((t) => (
+            <TaskRow
+              key={t.id}
+              onOpenTask={onOpenTask}
+              statusById={statusById}
+              task={t}
+            />
+          ))}
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+// A single task row: title, priority icon, status dot/name, assignee avatar.
+// Shared by the desktop "+N more" popover and the mobile Day Agenda sheet.
+export function TaskRow({
+  task,
+  statusById,
+  onOpenTask,
+  className,
+}: {
+  task: CalendarTask;
+  statusById: Map<string, Status>;
+  onOpenTask: (taskId: string) => void;
+  className?: string;
+}) {
+  const status = statusById.get(task.statusId ?? "");
+  const done = status?.type === "CLOSED";
+  const priorityCfg = PRIORITY_CONFIG[task.priority];
+  const assignee = task.assignees[0];
+
+  return (
+    <button
+      className={cn(
+        "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent",
+        done && "opacity-60",
+        className
+      )}
+      onClick={() => onOpenTask(task.id)}
+      type="button"
+    >
+      {task.priority !== "NONE" && (
+        <span aria-hidden className="shrink-0 leading-none">
+          {priorityCfg.icon}
+        </span>
+      )}
+      <span className={cn("min-w-0 flex-1 truncate", done && "line-through")}>
+        {task.title}
+      </span>
+      {status && (
+        <span className="flex shrink-0 items-center gap-1 text-2xs text-muted-foreground">
+          <span
+            className="size-2 rounded-full"
+            style={{ backgroundColor: status.color }}
+          />
+          {status.name}
+        </span>
+      )}
+      {assignee && (
+        <UserAvatar
+          className="size-4 shrink-0"
+          image={assignee.image}
+          name={assignee.name}
+          size="xs"
+        />
+      )}
+    </button>
   );
 }

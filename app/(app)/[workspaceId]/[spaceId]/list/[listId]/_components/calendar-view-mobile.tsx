@@ -1,0 +1,692 @@
+"use client";
+
+import {
+  CaretLeftIcon,
+  CaretRightIcon,
+  FunnelIcon,
+  PlusIcon,
+} from "@phosphor-icons/react";
+import {
+  addDays,
+  addMonths,
+  format,
+  isSameMonth,
+  isToday,
+  isWeekend,
+  subMonths,
+} from "date-fns";
+import * as React from "react";
+import { FacetOptionList } from "@/components/filters/facet-filter";
+import { SearchInput } from "@/components/ui/search-input";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { PRIORITY_OPTIONS } from "@/lib/filters/options";
+import { PRIORITY_CONFIG } from "@/lib/priority-config";
+import { cn } from "@/lib/utils";
+import {
+  type CalendarTask,
+  dayKey,
+  type Member,
+  type Status,
+  TaskRow,
+} from "./calendar-view";
+
+const MAX_WEEK_PREVIEWS = 4;
+const MAX_MONTH_PREVIEWS = 2;
+
+// Plain touch tracking for swipe-to-navigate — the decision is made on
+// touchend (never preventDefault on touchmove) so vertical page scroll is
+// never hijacked. `consumeSwipe()` lets a day cell's onClick bail out when
+// the tap that follows touchend was actually the tail of a swipe.
+function useSwipeNav(onSwipeLeft: () => void, onSwipeRight: () => void) {
+  const startRef = React.useRef<{ x: number; y: number } | null>(null);
+  const swipedRef = React.useRef(false);
+
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    startRef.current = { x: t.clientX, y: t.clientY };
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    const start = startRef.current;
+    startRef.current = null;
+    if (!start) {
+      return;
+    }
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      swipedRef.current = true;
+      if (dx < 0) {
+        onSwipeLeft();
+      } else {
+        onSwipeRight();
+      }
+    }
+  }
+
+  function consumeSwipe(): boolean {
+    const was = swipedRef.current;
+    swipedRef.current = false;
+    return was;
+  }
+
+  return { onTouchStart, onTouchEnd, consumeSwipe };
+}
+
+export function MobileCalendar({
+  agendaDay,
+  assigneeFilter,
+  canEdit,
+  gridDays,
+  isPending,
+  members,
+  mobileFilterCount,
+  mobileFiltersOpen,
+  mobileMode,
+  onAgendaDayChange,
+  onAssigneeFilterChange,
+  onCreateDay,
+  onMobileFiltersOpenChange,
+  onModeChange,
+  onNavigate,
+  onOpenTask,
+  onPriorityFilterChange,
+  onResetFilters,
+  onSearchChange,
+  onStatusFilterChange,
+  priorityFilter,
+  searchQuery,
+  statusById,
+  statusFilter,
+  statuses,
+  tasksByDay,
+  viewDate,
+  weekDays,
+}: {
+  agendaDay: Date | null;
+  assigneeFilter: string[];
+  canEdit: boolean;
+  gridDays: Date[];
+  isPending: boolean;
+  members: Member[];
+  mobileFilterCount: number;
+  mobileFiltersOpen: boolean;
+  mobileMode: "week" | "month";
+  onAgendaDayChange: (day: Date | null) => void;
+  onAssigneeFilterChange: (v: string[]) => void;
+  onCreateDay: (day: Date) => void;
+  onMobileFiltersOpenChange: (open: boolean) => void;
+  onModeChange: (mode: "week" | "month") => void;
+  onNavigate: (next: Date) => void;
+  onOpenTask: (taskId: string) => void;
+  onPriorityFilterChange: (v: string[]) => void;
+  onResetFilters: () => void;
+  onSearchChange: (v: string) => void;
+  onStatusFilterChange: (v: string[]) => void;
+  priorityFilter: string[];
+  searchQuery: string;
+  statusById: Map<string, Status>;
+  statusFilter: string[];
+  statuses: Status[];
+  tasksByDay: Map<string, CalendarTask[]>;
+  viewDate: Date;
+  weekDays: Date[];
+}) {
+  const days = mobileMode === "week" ? weekDays : gridDays;
+
+  function goPrev() {
+    onNavigate(
+      mobileMode === "week" ? addDays(viewDate, -7) : subMonths(viewDate, 1)
+    );
+  }
+  function goNext() {
+    onNavigate(
+      mobileMode === "week" ? addDays(viewDate, 7) : addMonths(viewDate, 1)
+    );
+  }
+
+  const swipe = useSwipeNav(goNext, goPrev);
+
+  const periodLabel =
+    mobileMode === "week"
+      ? `${format(weekDays[0], "MMM d")} – ${format(weekDays[6], "MMM d")}`
+      : format(viewDate, "MMMM yyyy");
+
+  const assigneeOptions = [
+    { value: "unassigned", label: "Unassigned" },
+    ...members.map((m) => ({
+      value: m.userId,
+      label: m.name || m.email || "Unknown",
+    })),
+  ];
+
+  const agendaTasks = agendaDay
+    ? (tasksByDay.get(dayKey(agendaDay)) ?? [])
+    : [];
+
+  // SearchInput's `className` lands on the inner <input>, not its own
+  // "relative" wrapper div — without an explicitly sized wrapper, that div
+  // shrinks to the input's intrinsic content size instead of filling the
+  // row (same gotcha the desktop toolbar wraps around, in calendar-view.tsx).
+  const searchEl = (
+    <div className={mobileMode === "week" ? "w-full" : "min-w-0 flex-1"}>
+      <SearchInput
+        className="w-full"
+        onChange={(e) => onSearchChange(e.target.value)}
+        onClear={() => onSearchChange("")}
+        placeholder="Search tasks…"
+        value={searchQuery}
+      />
+    </div>
+  );
+
+  const modeToggleEl = (
+    <div className="flex h-9 shrink-0 items-center rounded-lg border border-border p-0.5 text-xs font-semibold">
+      <button
+        className={cn(
+          "rounded-md px-2.5 py-1.5 transition-colors",
+          mobileMode === "week"
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground"
+        )}
+        onClick={() => onModeChange("week")}
+        type="button"
+      >
+        Week
+      </button>
+      <button
+        className={cn(
+          "rounded-md px-2.5 py-1.5 transition-colors",
+          mobileMode === "month"
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground"
+        )}
+        onClick={() => onModeChange("month")}
+        type="button"
+      >
+        Month
+      </button>
+    </div>
+  );
+
+  const filterEl = (
+    <Sheet onOpenChange={onMobileFiltersOpenChange} open={mobileFiltersOpen}>
+      <SheetTrigger asChild>
+        <button
+          aria-label="Filters"
+          className={cn(
+            "flex h-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 text-xs font-semibold transition-colors",
+            mobileFilterCount > 0
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+          )}
+          type="button"
+        >
+          <FunnelIcon className="size-3.5" />
+          {mobileFilterCount > 0 && <span>({mobileFilterCount})</span>}
+        </button>
+      </SheetTrigger>
+      <SheetContent
+        className="flex max-h-[85dvh] flex-col rounded-t-2xl"
+        side="bottom"
+      >
+        <SheetHeader className="p-4 pb-2">
+          <SheetTitle>Filters</SheetTitle>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-4">
+          <div>
+            <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+              Status
+            </p>
+            <FacetOptionList
+              onChange={onStatusFilterChange}
+              options={statuses.map((s) => ({
+                value: s.id,
+                label: s.name,
+                color: s.color,
+              }))}
+              selected={statusFilter}
+            />
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+              Priority
+            </p>
+            <FacetOptionList
+              onChange={onPriorityFilterChange}
+              options={PRIORITY_OPTIONS}
+              selected={priorityFilter}
+            />
+          </div>
+
+          {members.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                Assignee
+              </p>
+              <FacetOptionList
+                onChange={onAssigneeFilterChange}
+                options={assigneeOptions}
+                searchable
+                searchPlaceholder="Search people…"
+                selected={assigneeFilter}
+              />
+            </div>
+          )}
+        </div>
+        <SheetFooter className="flex-row gap-2 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <button
+            className="h-11 flex-1 rounded-lg border border-border text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent"
+            onClick={onResetFilters}
+            type="button"
+          >
+            Reset
+          </button>
+          <SheetClose asChild>
+            <button
+              className="h-11 flex-1 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/95"
+              type="button"
+            >
+              Apply
+            </button>
+          </SheetClose>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden md:hidden">
+      {/* Compact header. Deliberately not `sticky` — a sticky nav row here
+          gets laid out (by its siblings) at its natural, non-stuck position,
+          but paints at its pinned position once stuck, and those two
+          disagree by however tall the view-tabs bar above it (also sticky)
+          turns out to be. The gap between them is a dead zone where sibling
+          content and the stuck bar paint on top of each other. Plain, in-flow
+          — it scrolls with the page like everything else here. */}
+      <div className="z-10 shrink-0 space-y-1.5 border-b border-border bg-app px-3 pb-2 pt-1.5">
+        <div className="flex items-center gap-1">
+          <button
+            aria-label="Previous"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-accent hover:bg-accent hover:text-foreground"
+            onClick={goPrev}
+            type="button"
+          >
+            <CaretLeftIcon className="size-5" />
+          </button>
+          <div className="min-w-0 flex-1 truncate text-center text-sm font-semibold">
+            {periodLabel}
+          </div>
+          <button
+            aria-label="Next"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-accent hover:bg-accent hover:text-foreground"
+            onClick={goNext}
+            type="button"
+          >
+            <CaretRightIcon className="size-5" />
+          </button>
+          <button
+            className="ml-0.5 h-8 shrink-0 rounded-md border border-border px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+            onClick={() => onNavigate(new Date())}
+            type="button"
+          >
+            Today
+          </button>
+        </div>
+
+        {mobileMode === "week" ? (
+          <div className="space-y-2">
+            {searchEl}
+            <div className="flex items-center gap-2">
+              {modeToggleEl}
+              <div className="ml-auto">{filterEl}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            {searchEl}
+            {modeToggleEl}
+            {filterEl}
+          </div>
+        )}
+
+        {mobileMode === "month" && (
+          <div className="grid grid-cols-7 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {days.slice(0, 7).map((d) => (
+              <div className="text-center" key={dayKey(d)}>
+                {format(d, "EEEEE")}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Grid body — Month keeps the 7-column calendar grid. Week instead
+          stacks days as full-width agenda rows: squeezing 7 columns into a
+          narrow phone width left each column a sliver wide, so the only way
+          to make room for tasks was an oversized per-column min-height —
+          mostly blank space under whichever day actually had something due.
+          A vertical list uses the full width per day instead. */}
+      <div
+        className={cn(
+          "flex-1 overflow-x-hidden overflow-y-auto",
+          mobileMode === "month"
+            ? "grid auto-rows-fr grid-cols-7"
+            : "flex flex-col divide-y divide-border"
+        )}
+        onTouchEnd={swipe.onTouchEnd}
+        onTouchStart={swipe.onTouchStart}
+      >
+        {mobileMode === "week"
+          ? days.map((day) => (
+              <WeekDayRow
+                day={day}
+                isPending={isPending}
+                key={dayKey(day)}
+                maxPreviews={MAX_WEEK_PREVIEWS}
+                onOpen={() => {
+                  if (swipe.consumeSwipe()) {
+                    return;
+                  }
+                  onAgendaDayChange(day);
+                }}
+                statusById={statusById}
+                tasks={tasksByDay.get(dayKey(day)) ?? []}
+              />
+            ))
+          : days.map((day) => (
+              <MonthDayCell
+                day={day}
+                inMonth={isSameMonth(day, viewDate)}
+                isPending={isPending}
+                key={dayKey(day)}
+                maxPreviews={MAX_MONTH_PREVIEWS}
+                onOpen={() => {
+                  if (swipe.consumeSwipe()) {
+                    return;
+                  }
+                  onAgendaDayChange(day);
+                }}
+                statusById={statusById}
+                tasks={tasksByDay.get(dayKey(day)) ?? []}
+              />
+            ))}
+      </div>
+
+      {/* Floating Action Button for mobile task creation */}
+      {canEdit && (
+        <button
+          aria-label="Create task"
+          className="fixed right-6 bottom-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-all active:scale-95 hover:scale-105"
+          onClick={() => onCreateDay(new Date())}
+          type="button"
+        >
+          <PlusIcon className="size-6" weight="bold" />
+        </button>
+      )}
+
+      {/* Day agenda bottom sheet — tapping a day opens this instead of the
+          desktop's inline create/drag affordances. */}
+      <Sheet
+        onOpenChange={(o) => {
+          if (!o) {
+            onAgendaDayChange(null);
+          }
+        }}
+        open={!!agendaDay}
+      >
+        <SheetContent
+          className="flex max-h-[85dvh] flex-col rounded-t-2xl"
+          side="bottom"
+        >
+          <SheetHeader className="border-b border-border p-4 pb-3">
+            <SheetTitle className="tracking-normal normal-case">
+              {agendaDay ? format(agendaDay, "EEEE, MMMM d") : ""}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
+            {agendaTasks.length === 0 && (
+              <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                No tasks due this day.
+              </p>
+            )}
+            {agendaTasks.map((t) => (
+              <TaskRow
+                className="py-2.5 text-sm"
+                key={t.id}
+                onOpenTask={onOpenTask}
+                statusById={statusById}
+                task={t}
+              />
+            ))}
+          </div>
+          {canEdit && agendaDay && (
+            <SheetFooter className="border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <button
+                className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/95"
+                onClick={() => {
+                  const day = agendaDay;
+                  onAgendaDayChange(null);
+                  onCreateDay(day);
+                }}
+                type="button"
+              >
+                <PlusIcon className="size-4" weight="bold" />
+                Add task
+              </button>
+            </SheetFooter>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+// Month grid cell — unchanged from the original mobile calendar. Kept
+// separate from the Week agenda row below so improving Week can't drift
+// Month's rendering.
+function MonthDayCell({
+  day,
+  tasks,
+  inMonth,
+  isPending,
+  maxPreviews,
+  statusById,
+  onOpen,
+}: {
+  day: Date;
+  tasks: CalendarTask[];
+  inMonth: boolean;
+  isPending: boolean;
+  maxPreviews: number;
+  statusById: Map<string, Status>;
+  onOpen: () => void;
+}) {
+  const today = isToday(day);
+  const weekend = isWeekend(day);
+  const visible = tasks.slice(0, maxPreviews);
+  const overflow = tasks.length - visible.length;
+
+  return (
+    <button
+      className={cn(
+        "flex min-h-16 flex-col items-stretch border-r border-b border-border p-1.5 text-left transition-colors active:bg-accent/60",
+        weekend && "bg-muted/30 dark:bg-muted/10",
+        !inMonth && "bg-muted/20 text-muted-foreground/60"
+      )}
+      onClick={onOpen}
+      type="button"
+    >
+      <div className="mb-1 flex shrink-0 items-center gap-1">
+        <span
+          className={cn(
+            "flex size-6 items-center justify-center rounded-full text-xs",
+            today && "bg-primary font-semibold text-primary-foreground",
+            !today && !inMonth && "text-muted-foreground/60"
+          )}
+        >
+          {format(day, "d")}
+        </span>
+      </div>
+
+      <div className="min-w-0 flex-1 space-y-1">
+        {isPending ? (
+          <div className="h-4 animate-pulse rounded bg-muted" />
+        ) : (
+          <>
+            {visible.map((t) => {
+              const status = statusById.get(t.statusId ?? "");
+              return (
+                <div
+                  className="flex min-w-0 items-center gap-1 text-2xs"
+                  key={t.id}
+                >
+                  <span
+                    className="size-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: status?.color ?? "#94a3b8" }}
+                  />
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 truncate",
+                      status?.type === "CLOSED" &&
+                        "text-muted-foreground line-through"
+                    )}
+                  >
+                    {t.title}
+                  </span>
+                </div>
+              );
+            })}
+            {overflow > 0 && (
+              <div className="text-2xs font-medium text-muted-foreground">
+                +{overflow} more
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// Week agenda row — full-width per day, compact when empty and growing
+// naturally with its own task cards (no shared fixed height across rows).
+function WeekDayRow({
+  day,
+  tasks,
+  isPending,
+  maxPreviews,
+  statusById,
+  onOpen,
+}: {
+  day: Date;
+  tasks: CalendarTask[];
+  isPending: boolean;
+  maxPreviews: number;
+  statusById: Map<string, Status>;
+  onOpen: () => void;
+}) {
+  const today = isToday(day);
+  const weekend = isWeekend(day);
+  const visible = tasks.slice(0, maxPreviews);
+  const overflow = tasks.length - visible.length;
+
+  return (
+    <button
+      className={cn(
+        "flex w-full flex-col gap-1.5 border-l-[3px] px-3 py-2.5 text-left transition-colors active:bg-accent/60",
+        today
+          ? "border-primary bg-primary/5"
+          : cn("border-transparent", weekend && "bg-muted/30 dark:bg-muted/10")
+      )}
+      onClick={onOpen}
+      type="button"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-baseline gap-1.5">
+          <span
+            className={cn(
+              "truncate text-sm font-semibold",
+              today ? "text-primary" : "text-foreground"
+            )}
+          >
+            {format(day, "EEEE")}
+          </span>
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {format(day, "MMM d")}
+          </span>
+        </div>
+        {today && (
+          <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-2xs font-semibold text-primary-foreground">
+            Today
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        {isPending ? (
+          <div className="h-8 animate-pulse rounded-md bg-muted" />
+        ) : tasks.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No tasks</p>
+        ) : (
+          <>
+            {visible.map((t) => (
+              <WeekTaskCard key={t.id} statusById={statusById} task={t} />
+            ))}
+            {overflow > 0 && (
+              <p className="text-2xs font-medium text-muted-foreground">
+                +{overflow} more
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// Compact task card for the Week agenda — status-colored dot, title,
+// priority icon. Presentational only; the row above is what's tappable.
+function WeekTaskCard({
+  task,
+  statusById,
+}: {
+  task: CalendarTask;
+  statusById: Map<string, Status>;
+}) {
+  const status = statusById.get(task.statusId ?? "");
+  const done = status?.type === "CLOSED";
+  const priorityCfg = PRIORITY_CONFIG[task.priority];
+
+  return (
+    <div className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-2 dark:bg-muted/20">
+      <span
+        className="size-2 shrink-0 rounded-full"
+        style={{ backgroundColor: status?.color ?? "#94a3b8" }}
+      />
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-xs font-medium",
+          done && "text-muted-foreground line-through"
+        )}
+      >
+        {task.title}
+      </span>
+      {task.priority !== "NONE" && (
+        <span aria-hidden className="shrink-0 text-xs leading-none">
+          {priorityCfg.icon}
+        </span>
+      )}
+    </div>
+  );
+}

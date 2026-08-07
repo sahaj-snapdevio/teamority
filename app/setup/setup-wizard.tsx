@@ -211,7 +211,7 @@ export function SetupWizard() {
       <div className="w-full max-w-md">
         <Stepper step={stepNumber} />
 
-        <div className="rounded-xl border bg-card p-8 shadow-sm">
+        <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
           {step === "theme" && (
             <div className="space-y-6">
               <div className="text-center">
@@ -380,9 +380,9 @@ export function SetupWizard() {
                 />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Button
-                  className="gap-2"
+                  className="w-full gap-2 sm:w-auto"
                   disabled={submitting}
                   onClick={() => setStep("theme")}
                   type="button"
@@ -390,7 +390,11 @@ export function SetupWizard() {
                 >
                   <ArrowLeftIcon className="size-4" /> Previous
                 </Button>
-                <Button className="gap-2" disabled={submitting} type="submit">
+                <Button
+                  className="w-full gap-2 sm:w-auto"
+                  disabled={submitting}
+                  type="submit"
+                >
                   {submitting && (
                     <SpinnerGapIcon className="size-4 animate-spin" />
                   )}
@@ -479,9 +483,9 @@ export function SetupWizard() {
                 </IntegrationConfigCard>
               </div>
 
-              <div className="flex items-center justify-between border-t border-border pt-6">
+              <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
                 <Button
-                  className="gap-2"
+                  className="w-full gap-2 sm:w-auto"
                   onClick={() => setStep("done")}
                   type="button"
                   variant="ghost"
@@ -489,7 +493,7 @@ export function SetupWizard() {
                   Skip for now
                 </Button>
                 <Button
-                  className="gap-2"
+                  className="w-full gap-2 sm:w-auto"
                   onClick={() => setStep("done")}
                   type="button"
                 >

@@ -44,11 +44,11 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
     await mutate();
   }
 
-  if (!ticket) return <div className="p-8 text-muted-foreground">Loading…</div>;
+  if (!ticket) return <div className="p-4 text-muted-foreground sm:p-8">Loading…</div>;
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="p-4 space-y-6 sm:p-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="text-xs text-muted-foreground font-mono mb-1">{ticket.ticketNumber}</div>
           <h1 className="text-2xl font-bold">{ticket.subject}</h1>
@@ -81,8 +81,8 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
               msg.isInternalNote
                 ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
                 : msg.isAdmin
-                ? "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 ml-8"
-                : "bg-muted/30 mr-8"
+                ? "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 ml-3 sm:ml-8"
+                : "bg-muted/30 mr-3 sm:mr-8"
             )}
           >
             <div className="flex items-center justify-between mb-2">

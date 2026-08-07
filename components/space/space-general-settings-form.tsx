@@ -175,8 +175,8 @@ export function SpaceGeneralSettingsForm({
         <h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
 
         {!isArchived && (
-          <div className="flex items-center justify-between rounded-md border border-border p-4">
-            <div>
+          <div className="flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <p className="text-sm font-medium">Archive Project</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Hides the Project from the sidebar. Data is preserved and searchable.
@@ -184,7 +184,7 @@ export function SpaceGeneralSettingsForm({
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" disabled={pending}>
+                <Button variant="outline" size="sm" disabled={pending} className="w-full sm:w-auto">
                   Archive
                 </Button>
               </AlertDialogTrigger>
@@ -205,8 +205,8 @@ export function SpaceGeneralSettingsForm({
         )}
 
         {isAdmin && (
-          <div className="flex items-center justify-between rounded-md border border-destructive/30 p-4">
-            <div>
+          <div className="flex flex-col gap-3 rounded-md border border-destructive/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <p className="text-sm font-medium">Delete Project</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Permanently deletes this Project and all its Lists, Tasks, and files. Cannot be undone.
@@ -214,7 +214,7 @@ export function SpaceGeneralSettingsForm({
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" disabled={pending}>
+                <Button variant="destructive" size="sm" disabled={pending} className="w-full sm:w-auto">
                   Delete
                 </Button>
               </AlertDialogTrigger>

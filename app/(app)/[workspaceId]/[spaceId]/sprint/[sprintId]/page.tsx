@@ -66,7 +66,7 @@ export default async function SprintPage({ params }: SprintPageProps) {
   }));
 
   return (
-    <div className="space-y-5 p-6">
+    <div className="space-y-5 p-3 sm:p-6">
       <SprintPageClient
         workspaceId={workspaceId}
         spaceId={spaceId}

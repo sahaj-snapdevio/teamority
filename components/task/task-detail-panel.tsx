@@ -233,6 +233,14 @@ export function TaskDetailPanel({
   const [manageStatusesOpen, setManageStatusesOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  // Mobile-only compact Assignee/Due date block (< sm) — surfaces the two
+  // most-used sidebar fields near the top instead of at the very bottom of a
+  // long scroll. Separate popover-open state from the sidebar's own (below),
+  // since both triggers stay mounted (one hidden via CSS) and sharing state
+  // would open both Popover instances at once.
+  const [mobileAssigneePopoverOpen, setMobileAssigneePopoverOpen] = React.useState(false);
+  const [mobileStartCalOpen, setMobileStartCalOpen] = React.useState(false);
+  const [mobileEndCalOpen, setMobileEndCalOpen] = React.useState(false);
 
   // Note: `load()` intentionally does NOT flip `loading` to true — it refetches
   // in the background so the panel stays mounted. Blanking the panel to a
@@ -578,7 +586,7 @@ export function TaskDetailPanel({
   const panelContent = (
     <>
       {/* Header */}
-      <div className="flex items-start gap-2 border-b px-6 py-4">
+      <div className="flex items-start gap-2 border-b px-4 py-4 sm:px-6">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
             <ClipboardTextIcon className="size-3.5" />
@@ -634,7 +642,7 @@ export function TaskDetailPanel({
         <div className="flex items-center gap-1 shrink-0">
           <button
             className={cn(
-              "flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors",
+              "flex min-h-11 items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors sm:min-h-0",
               isWatching
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -650,7 +658,7 @@ export function TaskDetailPanel({
           </button>
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex size-8 items-center justify-center rounded-md hover:bg-accent">
+              <button className="flex size-11 items-center justify-center rounded-md hover:bg-accent sm:size-8">
                 <DotsThreeIcon className="size-4.5" weight="bold" />
               </button>
             </PopoverTrigger>
@@ -682,11 +690,13 @@ export function TaskDetailPanel({
         </div>
       </div>
 
-      {/* Body — two-column */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* Body — two-column at `sm`+ (each pane scrolls independently, matching
+        the Sheet's own `w-full sm:max-w-2xl` breakpoint); below `sm` it's a
+        single naturally-flowing column that scrolls as one. */}
+      <div className="flex flex-1 flex-col min-h-0 overflow-y-auto sm:flex-row sm:overflow-hidden">
         {/* Main column */}
         <div
-          className="flex-1 min-w-0 overflow-y-auto px-6 pt-4 space-y-6"
+          className="flex-1 min-w-0 px-4 pt-4 space-y-6 sm:overflow-y-auto sm:px-6"
           ref={mainColumnRef}
         >
           {/* Status + Priority row */}
@@ -696,7 +706,7 @@ export function TaskDetailPanel({
                 onValueChange={handleStatusChange}
                 value={t.statusId ?? undefined}
               >
-                <SelectTrigger className="h-7 w-auto text-xs px-2 gap-1.5">
+                <SelectTrigger className="h-11 w-auto text-xs px-2 gap-1.5 sm:h-7">
                   {/* SelectValue already renders the selected item's dot + name. */}
                   <SelectValue />
                 </SelectTrigger>
@@ -762,7 +772,7 @@ export function TaskDetailPanel({
             >
               <SelectTrigger
                 className={cn(
-                  "h-7 w-auto text-xs px-2 gap-1.5",
+                  "h-11 w-auto text-xs px-2 gap-1.5 sm:h-7",
                   priority.color,
                   priority.bg
                 )}
@@ -790,6 +800,139 @@ export function TaskDetailPanel({
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Mobile-only compact Assignee + Due date (< sm) — the sidebar's
+            own Assignees/Due date blocks (below) are hidden on mobile in
+            favor of this, so key properties aren't buried under
+            Description/Checklist/Time Tracking/Dependencies/Activity. */}
+          <div className="space-y-3 rounded-xl border bg-card p-3 sm:hidden">
+            <div className="flex items-center gap-3">
+              <span className="w-16 shrink-0 text-xs text-muted-foreground">
+                Assignee
+              </span>
+              <Popover
+                onOpenChange={setMobileAssigneePopoverOpen}
+                open={mobileAssigneePopoverOpen}
+              >
+                <PopoverTrigger asChild>
+                  <button
+                    className="flex min-h-9 flex-1 items-center gap-1.5 text-left"
+                    type="button"
+                  >
+                    {assignees.length > 0 ? (
+                      <>
+                        <Avatar className="size-5 shrink-0">
+                          <AvatarFallback className="text-[9px]">
+                            {userInitials(assignees[0].name, assignees[0].email)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="truncate text-sm">
+                          {assignees[0].name ?? assignees[0].email}
+                        </span>
+                        {assignees.length > 1 && (
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            +{assignees.length - 1}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Unassigned</span>
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-64 p-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5 px-1">
+                    Select members
+                  </p>
+                  <div className="space-y-0.5 max-h-48 overflow-y-auto">
+                    {members.map((m) => {
+                      const isAssigned = assignees.some((a) => a.userId === m.userId);
+                      return (
+                        <button
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                          key={m.userId}
+                          onClick={() => handleToggleAssignee(m.userId!)}
+                        >
+                          <Avatar className="size-6 shrink-0">
+                            <AvatarFallback className="text-2xs">
+                              {userInitials(m.name, m.email)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="flex-1 truncate text-left">
+                            {m.name || m.email}
+                          </span>
+                          {isAssigned && (
+                            <CheckIcon className="size-3.5 text-primary shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Separator className="my-1.5" />
+                  <button
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                    onClick={() => {
+                      setMobileAssigneePopoverOpen(false);
+                      setInviteOpen(true);
+                    }}
+                  >
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border">
+                      <UserPlusIcon className="size-3.5" />
+                    </span>
+                    <span className="flex-1 truncate text-left">Invite member</span>
+                  </button>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <Separator />
+            <div className="flex items-center gap-3">
+              <span className="w-16 shrink-0 text-xs text-muted-foreground">Dates</span>
+              <div className="flex min-h-9 flex-1 items-center gap-1.5 text-sm">
+                <Popover onOpenChange={setMobileStartCalOpen} open={mobileStartCalOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={cn("truncate", dueDateStart ? "text-foreground" : "text-muted-foreground")}
+                      type="button"
+                    >
+                      {dueDateStart ? format(dueDateStart, "MMM d") : "Start"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-auto p-0" collisionPadding={16}>
+                    <Calendar
+                      mode="single"
+                      onSelect={(date) => {
+                        handleDueDateChange("start", date ?? null);
+                        setMobileStartCalOpen(false);
+                      }}
+                      selected={dueDateStart ?? undefined}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <span className="shrink-0 text-muted-foreground">→</span>
+                <Popover onOpenChange={setMobileEndCalOpen} open={mobileEndCalOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={cn("truncate", dueDateEnd ? "text-foreground" : "text-muted-foreground")}
+                      type="button"
+                    >
+                      {dueDateEnd ? format(dueDateEnd, "MMM d") : "End"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-auto p-0" collisionPadding={16}>
+                    <Calendar
+                      disabled={dueDateStart ? { before: dueDateStart } : undefined}
+                      mode="single"
+                      onSelect={(date) => {
+                        handleDueDateChange("end", date ?? null);
+                        setMobileEndCalOpen(false);
+                      }}
+                      selected={dueDateEnd ?? undefined}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
           </div>
 
           {/* Description */}
@@ -989,7 +1132,11 @@ export function TaskDetailPanel({
         </div>
 
         {/* Sidebar column */}
-        <div className="w-56 shrink-0 border-l overflow-y-auto px-4 py-4 space-y-5">
+        <div className="w-full border-t px-4 py-4 space-y-5 sm:w-56 sm:shrink-0 sm:overflow-y-auto sm:border-t-0 sm:border-l">
+          {/* Assignees + Due date — hidden below `sm` (a compact version
+            already sits near the top of the main column on mobile; see
+            above). Unchanged at `sm`+. */}
+          <div className="hidden sm:block space-y-5">
           {/* Assignees */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -1149,6 +1296,7 @@ export function TaskDetailPanel({
               </div>
             </div>
           </div>
+          </div>
 
           <Separator />
 
@@ -1234,8 +1382,8 @@ export function TaskDetailPanel({
               Reporter
             </span>
             <div className="flex items-center gap-1.5">
-              <UserIcon className="size-3.5 text-muted-foreground" />
-              <span className="text-xs truncate">
+              <UserIcon className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1 truncate text-xs">
                 {members.find((m) => m.userId === t.reporterId)?.name ??
                   "Unknown"}
               </span>

@@ -71,7 +71,7 @@ export function DeleteListDialog({
             Consider archiving instead — archived lists can be restored any time.
           </p>
           <div className="space-y-1.5">
-            <Label htmlFor="delete-confirm">
+            <Label htmlFor="delete-confirm" className="flex-wrap sm:flex-nowrap">
               Type{" "}
               <span className="normal-case font-semibold tracking-normal text-foreground">
                 {list.name}

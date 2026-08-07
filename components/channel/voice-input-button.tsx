@@ -92,7 +92,7 @@ export function VoiceInputButton({ onTranscript, disabled }: VoiceInputButtonPro
       onClick={toggleListening}
       disabled={disabled}
       className={cn(
-        "relative flex size-8 items-center justify-center rounded-md transition-colors",
+        "relative flex size-10 items-center justify-center rounded-md transition-colors sm:size-8",
         listening
           ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
           : "text-muted-foreground hover:bg-accent hover:text-foreground",

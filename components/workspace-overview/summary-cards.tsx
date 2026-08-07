@@ -197,7 +197,10 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* Below ~380px a 2-up icon+number tile gets too cramped for 3-digit
+          values (icon + gap already eat half the tile) — drop to one column
+          only under that width; the sm:/lg: desktop breakpoints are untouched. */}
+      <div className="grid grid-cols-1 gap-4 min-[381px]:grid-cols-2 sm:grid-cols-4">
         {tiles.map((tile) => (
           <StatTile key={tile.label} {...tile} />
         ))}

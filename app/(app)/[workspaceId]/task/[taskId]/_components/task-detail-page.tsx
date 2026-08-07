@@ -7,6 +7,7 @@ import {
   CaretDownIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  CaretUpIcon,
   CheckIcon,
   ClipboardTextIcon,
   CopyIcon,
@@ -205,12 +206,12 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
-      <div className="flex items-center gap-2 w-36 shrink-0 text-sm text-muted-foreground pt-0.5">
+    <div className="flex flex-col gap-1 py-2 border-b border-border/40 last:border-0 sm:flex-row sm:items-start sm:gap-3">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground sm:w-36 sm:shrink-0 sm:pt-0.5">
         <span className="shrink-0">{icon}</span>
         {label}
       </div>
-      <div className="flex-1 min-w-0">{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }
@@ -247,6 +248,334 @@ function SectionHeader({
       </span>
     </span>
   );
+}
+
+// ─── Picker popover bodies (shared between the desktop field grid and the
+// mobile compact Properties rows — one implementation, two trigger styles) ────
+
+function StatusPickerContent({
+  statuses,
+  currentStatusId,
+  canManage,
+  onSelect,
+  onManageStatuses,
+}: {
+  statuses: { id: string; name: string; color: string; type: string }[];
+  currentStatusId: string | null;
+  canManage: boolean;
+  onSelect: (statusId: string) => void;
+  onManageStatuses: () => void;
+}) {
+  return (
+    <div className="max-h-60 overflow-y-auto p-1" onWheel={(e) => e.stopPropagation()}>
+      {(["OPEN", "ACTIVE", "CLOSED"] as const).map((type) => {
+        const group = statuses.filter((s) => s.type === type);
+        if (group.length === 0) {
+          return null;
+        }
+        const label =
+          type === "OPEN" ? "Not started" : type === "ACTIVE" ? "Active" : "Closed";
+        return (
+          <div key={type}>
+            <div className="flex items-center px-2 pt-2 pb-0.5">
+              <span className="flex-1 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {label}
+              </span>
+              {canManage && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="flex size-4 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DotsThreeIcon className="size-3.5" weight="bold" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-36" side="right">
+                    <DropdownMenuItem onClick={onManageStatuses}>
+                      <GearIcon className="size-3.5" />
+                      Edit statuses
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+            {group.map((s) => (
+              <button
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                key={s.id}
+                onClick={() => onSelect(s.id)}
+              >
+                <span
+                  className="size-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: s.color }}
+                />
+                <span className="flex-1 text-left">{s.name}</span>
+                {s.id === currentStatusId && (
+                  <CheckIcon className="size-3.5 text-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PriorityPickerContent({
+  currentPriority,
+  onSelect,
+}: {
+  currentPriority: Priority;
+  onSelect: (p: Priority) => void;
+}) {
+  return (
+    <>
+      {(
+        Object.entries(PRIORITY_CONFIG) as [
+          Priority,
+          (typeof PRIORITY_CONFIG)[Priority],
+        ][]
+      ).map(([key, cfg]) => (
+        <button
+          className={cn(
+            "flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent",
+            cfg.color
+          )}
+          key={key}
+          onClick={() => onSelect(key)}
+        >
+          <span>{cfg.icon}</span>
+          <span className="flex-1 text-left">{cfg.label}</span>
+          {key === currentPriority && (
+            <CheckIcon className="size-3.5 shrink-0" />
+          )}
+        </button>
+      ))}
+    </>
+  );
+}
+
+function AssigneePickerContent({
+  members,
+  assignedUserIds,
+  onToggle,
+  onInvite,
+}: {
+  members: { userId: string; name: string; email: string; image: string | null }[];
+  assignedUserIds: string[];
+  onToggle: (userId: string) => void;
+  onInvite: () => void;
+}) {
+  return (
+    <>
+      <p className="text-xs text-muted-foreground px-1 mb-1.5">Select members</p>
+      <div className="space-y-0.5 max-h-48 overflow-y-auto">
+        {members.map((m) => {
+          const selected = assignedUserIds.includes(m.userId);
+          return (
+            <button
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+              key={m.userId}
+              onClick={() => onToggle(m.userId)}
+            >
+              <Avatar className="size-6 shrink-0">
+                {m.image && <AvatarImage src={avatarSrc(m.image)} />}
+                <AvatarFallback className="text-2xs">
+                  {userInitials(m.name, m.email)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="flex-1 truncate text-left">{m.name}</span>
+              {selected && (
+                <CheckIcon className="size-3.5 text-primary shrink-0" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <Separator className="my-1.5" />
+      <button
+        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+        onClick={onInvite}
+      >
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border">
+          <UserPlusIcon className="size-3.5" />
+        </span>
+        <span className="flex-1 truncate text-left">Invite member</span>
+      </button>
+    </>
+  );
+}
+
+function TagPickerContent({
+  search,
+  onSearchChange,
+  filteredTags,
+  selectedTagIds,
+  exactMatch,
+  onToggle,
+  onCreate,
+  onDeleteRequest,
+}: {
+  search: string;
+  onSearchChange: (v: string) => void;
+  filteredTags: { id: string; name: string; color: string }[];
+  selectedTagIds: string[];
+  exactMatch: boolean;
+  onToggle: (tagId: string) => void;
+  onCreate: (name: string) => void;
+  onDeleteRequest: (tag: { id: string; name: string }) => void;
+}) {
+  return (
+    <>
+      <Input
+        autoFocus
+        className="h-7 text-xs mb-2"
+        onChange={(e) => onSearchChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && search.trim() && !exactMatch) {
+            e.preventDefault();
+            onCreate(search.trim());
+          }
+        }}
+        placeholder="Search or create…"
+        value={search}
+      />
+      <div className="space-y-0.5 max-h-40 overflow-y-auto">
+        {filteredTags.map((tag) => {
+          const selected = selectedTagIds.includes(tag.id);
+          return (
+            <div
+              className="group/tag flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-accent"
+              key={tag.id}
+            >
+              <button
+                className="flex flex-1 min-w-0 items-center gap-2"
+                onClick={() => onToggle(tag.id)}
+              >
+                <span
+                  className="size-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: tag.color }}
+                />
+                <span className="flex-1 truncate text-left text-xs">
+                  {tag.name}
+                </span>
+                {selected && (
+                  <CheckIcon className="size-3.5 text-primary shrink-0" />
+                )}
+              </button>
+              <button
+                className="opacity-0 group-hover/tag:opacity-100 flex size-5 items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive transition-opacity shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteRequest({ id: tag.id, name: tag.name });
+                }}
+              >
+                <TrashIcon className="size-3" />
+              </button>
+            </div>
+          );
+        })}
+        {search && !exactMatch && (
+          <button
+            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-accent"
+            onClick={() => onCreate(search.trim())}
+          >
+            <PlusIcon className="size-3.5" /> Create &ldquo;{search}&rdquo;
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ─── Overflow menu items shared by the desktop "⋮" and the mobile header's
+// overflow menu (mobile additionally prepends Pin/Copy link/Watch). ──────────
+
+function TaskOverflowMenuItems({
+  saving,
+  onDuplicate,
+  isArchived,
+  onArchiveToggle,
+  canPinToList,
+  isPinnedToList,
+  onPinToListToggle,
+  onDelete,
+}: {
+  saving: boolean;
+  onDuplicate: () => void;
+  isArchived: boolean;
+  onArchiveToggle: () => void;
+  canPinToList: boolean;
+  isPinnedToList: boolean;
+  onPinToListToggle: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <>
+      <button
+        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+        disabled={saving}
+        onClick={onDuplicate}
+      >
+        <CopyIcon className="size-3.5 text-muted-foreground" /> Duplicate
+      </button>
+      <button
+        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+        onClick={onArchiveToggle}
+      >
+        <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
+        {isArchived ? "Unarchive" : "Archive"}
+      </button>
+      {canPinToList && (
+        <>
+          <Separator className="my-1" />
+          <button
+            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+            onClick={onPinToListToggle}
+          >
+            <PushPinIcon
+              className={cn(
+                "size-3.5",
+                isPinnedToList ? "text-primary" : "text-muted-foreground"
+              )}
+              weight={isPinnedToList ? "fill" : "regular"}
+            />
+            {isPinnedToList ? "Unpin from list" : "Pin to list top"}
+          </button>
+        </>
+      )}
+      <Separator className="my-1" />
+      <button
+        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
+        onClick={onDelete}
+      >
+        <TrashIcon className="size-3.5" /> Delete
+      </button>
+    </>
+  );
+}
+
+// ─── Mobile-breakpoint hook ───────────────────────────────────────────────────
+// Used only to decide WHERE a single TaskActivityFeed instance mounts (the
+// left column, ahead of Subtasks/Dependencies, vs the desktop right column) —
+// everything else in this file is a pure CSS (`md:`) split. Mounting the feed
+// twice would double its data fetch and give it two independent comment
+// composers, so its placement needs a real breakpoint check, not just
+// hidden/md:hidden. Defaults to `false` (desktop) for the SSR pass; this page
+// only renders real content after the client-side fetch resolves (see
+// `loading` below), so there's no hydration mismatch from correcting on mount.
+function useIsBelowMd() {
+  const [isBelow, setIsBelow] = React.useState(false);
+  React.useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    setIsBelow(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsBelow(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+  return isBelow;
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -384,6 +713,13 @@ export function TaskDetailPage({
     setCompletedOpen(false);
     setOpenSections([]);
     initedSectionsTaskRef.current = null;
+    setMobilePropertiesOpen(true);
+    setMobileStatusPopoverOpen(false);
+    setMobilePriorityPopoverOpen(false);
+    setMobileAssigneePopoverOpen(false);
+    setMobileTagPopoverOpen(false);
+    setMobileStartCalOpen(false);
+    setMobileEndCalOpen(false);
   }, [taskId]);
   // Auto-open every section that already has data, once per task, so a task's
   // subtasks / dependencies / checklist are shown together on open. Guarded to
@@ -473,6 +809,18 @@ export function TaskDetailPage({
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [unarchiving, setUnarchiving] = React.useState(false);
+  // Mobile-only compact Properties section (see the `md:hidden` block below):
+  // its own popover-open state, separate from the desktop ones above, so the
+  // desktop and mobile triggers (both always mounted, only one ever visible
+  // via CSS) never end up both "open" and racing over the same boolean.
+  const isMobile = useIsBelowMd();
+  const [mobilePropertiesOpen, setMobilePropertiesOpen] = React.useState(true);
+  const [mobileStatusPopoverOpen, setMobileStatusPopoverOpen] = React.useState(false);
+  const [mobilePriorityPopoverOpen, setMobilePriorityPopoverOpen] = React.useState(false);
+  const [mobileAssigneePopoverOpen, setMobileAssigneePopoverOpen] = React.useState(false);
+  const [mobileTagPopoverOpen, setMobileTagPopoverOpen] = React.useState(false);
+  const [mobileStartCalOpen, setMobileStartCalOpen] = React.useState(false);
+  const [mobileEndCalOpen, setMobileEndCalOpen] = React.useState(false);
 
   async function fetchAll(showSpinner: boolean) {
     if (showSpinner) {
@@ -692,14 +1040,14 @@ export function TaskDetailPage({
     load();
   }
 
+  // Popover closing is the caller's job (desktop and mobile each close their
+  // own popover-open state) — these just do the write.
   async function handleStatusChange(statusId: string) {
-    setStatusPopoverOpen(false);
     await updateTaskStatus(workspaceId, spaceId, listId, taskId, statusId);
     load();
   }
 
   async function handlePriorityChange(p: Priority) {
-    setPriorityPopoverOpen(false);
     await updateTask(workspaceId, spaceId, listId, taskId, { priority: p });
     load();
   }
@@ -914,6 +1262,20 @@ export function TaskDetailPage({
     }
   }
 
+  // Shared by the desktop and mobile overflow menus (TaskOverflowMenuItems).
+  async function handlePinToListToggle() {
+    const isPinnedToList = !!(data && !("error" in data) && data.task.isPinnedToList);
+    const res = await fetch(`/api/tasks/${taskId}/pin-to-list`, {
+      method: isPinnedToList ? "DELETE" : "POST",
+    });
+    if (res.ok) {
+      load();
+    } else if (!isPinnedToList) {
+      const d = await res.json().catch(() => ({}));
+      alert(d.error ?? "Failed to pin");
+    }
+  }
+
   async function handleFileUpload(file: File) {
     setUploadingFile(true);
     const fd = new FormData();
@@ -995,27 +1357,27 @@ export function TaskDetailPage({
   return (
     <AttachmentPreviewProvider>
       <div className="flex h-full flex-col overflow-hidden bg-background">
-        {/* Top bar */}
-        <div className="flex items-center gap-3 border-b px-5 py-3 shrink-0">
+        {/* Top bar — desktop/tablet (`md:`+), unchanged from before. */}
+        <div className="hidden md:flex flex-wrap items-center gap-2 border-b px-3 py-3 shrink-0 sm:gap-3 sm:px-5">
           <button
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => router.push(backUrl)}
           >
             <ArrowLeftIcon className="size-4" />
           </button>
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <ClipboardTextIcon className="size-4" />
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground">
+            <ClipboardTextIcon className="size-4 shrink-0" />
             <button
-              className="hover:text-foreground transition-colors"
+              className="hover:text-foreground transition-colors shrink-0"
               onClick={() => router.push(listBackUrl)}
             >
               {contextLabel}
             </button>
             {parentTask && (
               <>
-                <CaretRightIcon className="size-3.5" />
+                <CaretRightIcon className="size-3.5 shrink-0" />
                 <button
-                  className="hover:text-foreground transition-colors truncate max-w-xs"
+                  className="hover:text-foreground transition-colors truncate max-w-32 sm:max-w-xs"
                   onClick={() =>
                     router.push(`/${workspaceId}/task/${parentTask.id}`)
                   }
@@ -1024,8 +1386,8 @@ export function TaskDetailPage({
                 </button>
               </>
             )}
-            <CaretRightIcon className="size-3.5" />
-            <span className="text-foreground font-medium truncate max-w-xs">
+            <CaretRightIcon className="size-3.5 shrink-0" />
+            <span className="text-foreground font-medium truncate max-w-32 sm:max-w-xs">
               {t.title}
             </span>
           </div>
@@ -1081,13 +1443,17 @@ export function TaskDetailPage({
                 className="size-3.5"
                 weight={isPinned ? "fill" : "regular"}
               />
-              {isPinned ? "Pinned" : "Pin"}
+              <span className="hidden sm:inline">
+                {isPinned ? "Pinned" : "Pin"}
+              </span>
             </button>
             <button
               className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
               onClick={() => void copyLink()}
+              title="Copy link"
             >
-              <LinkIcon className="size-3.5" /> Copy link
+              <LinkIcon className="size-3.5" />{" "}
+              <span className="hidden sm:inline">Copy link</span>
             </button>
             <button
               className={cn(
@@ -1097,13 +1463,16 @@ export function TaskDetailPage({
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
               onClick={handleToggleWatch}
+              title={isWatching ? "Unwatch" : "Watch"}
             >
               {isWatching ? (
                 <EyeSlashIcon className="size-3.5" />
               ) : (
                 <EyeIcon className="size-3.5" />
               )}
-              {isWatching ? "Unwatch" : "Watch"}
+              <span className="hidden sm:inline">
+                {isWatching ? "Unwatch" : "Watch"}
+              </span>
             </button>
             <Popover>
               <PopoverTrigger asChild>
@@ -1112,75 +1481,112 @@ export function TaskDetailPage({
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-44 p-1">
-                <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                  disabled={saving}
-                  onClick={handleDuplicate}
-                >
-                  <CopyIcon className="size-3.5 text-muted-foreground" />{" "}
-                  Duplicate
-                </button>
-                <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                  onClick={isArchived ? handleUnarchive : handleArchive}
-                >
-                  <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
-                  {isArchived ? "Unarchive" : "Archive"}
-                </button>
-                {canPinToList && listId && (
-                  <>
-                    <Separator className="my-1" />
-                    {data?.task.isPinnedToList ? (
-                      <button
-                        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                        onClick={async () => {
-                          const res = await fetch(
-                            `/api/tasks/${taskId}/pin-to-list`,
-                            { method: "DELETE" }
-                          );
-                          if (res.ok) {
-                            load();
-                          }
-                        }}
-                      >
-                        <PushPinIcon
-                          className="size-3.5 text-primary"
-                          weight="fill"
-                        />{" "}
-                        Unpin from list
-                      </button>
-                    ) : (
-                      <button
-                        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                        onClick={async () => {
-                          const res = await fetch(
-                            `/api/tasks/${taskId}/pin-to-list`,
-                            { method: "POST" }
-                          );
-                          if (res.ok) {
-                            load();
-                          } else {
-                            const d = await res.json().catch(() => ({}));
-                            alert(d.error ?? "Failed to pin");
-                          }
-                        }}
-                      >
-                        <PushPinIcon className="size-3.5 text-muted-foreground" />{" "}
-                        Pin to list top
-                      </button>
-                    )}
-                  </>
-                )}
-                <Separator className="my-1" />
-                <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
-                  onClick={handleDelete}
-                >
-                  <TrashIcon className="size-3.5" /> Delete
-                </button>
+                <TaskOverflowMenuItems
+                  canPinToList={!!(canPinToList && listId)}
+                  isArchived={isArchived}
+                  isPinnedToList={!!data?.task.isPinnedToList}
+                  onArchiveToggle={isArchived ? handleUnarchive : handleArchive}
+                  onDelete={handleDelete}
+                  onDuplicate={handleDuplicate}
+                  onPinToListToggle={handlePinToListToggle}
+                  saving={saving}
+                />
               </PopoverContent>
             </Popover>
           </div>
+        </div>
+
+        {/* Compact header — mobile only (< md). Back, truncated title,
+          Previous/Next, and a single overflow menu that folds in Pin/Copy
+          link/Watch (separate buttons on desktop) alongside the shared
+          Duplicate/Archive/Pin-to-list/Delete items. */}
+        <div className="flex md:hidden items-center gap-0.5 border-b px-1 py-1.5 shrink-0">
+          <button
+            aria-label="Back"
+            className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            onClick={() => router.push(backUrl)}
+          >
+            <ArrowLeftIcon className="size-5" />
+          </button>
+          <span className="min-w-0 flex-1 truncate px-1 text-sm font-semibold text-foreground">
+            {t.title}
+          </span>
+          {taskNav.available && (
+            <div className="flex shrink-0 items-center">
+              <button
+                aria-label="Previous task"
+                className="flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                disabled={!taskNav.prevId}
+                onClick={goPrevTask}
+                type="button"
+              >
+                <CaretLeftIcon className="size-4.5" />
+              </button>
+              <button
+                aria-label="Next task"
+                className="flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                disabled={!taskNav.nextId}
+                onClick={goNextTask}
+                type="button"
+              >
+                <CaretRightIcon className="size-4.5" />
+              </button>
+            </div>
+          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                aria-label="More actions"
+                className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
+              >
+                <DotsThreeIcon className="size-5" weight="bold" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-52 p-1">
+              <button
+                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent"
+                onClick={handleTogglePin}
+              >
+                <PushPinIcon
+                  className={cn(
+                    "size-3.5",
+                    isPinned ? "text-primary" : "text-muted-foreground"
+                  )}
+                  weight={isPinned ? "fill" : "regular"}
+                />
+                {isPinned ? "Unpin from sidebar" : "Pin to sidebar"}
+              </button>
+              <button
+                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent"
+                onClick={() => void copyLink()}
+              >
+                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy
+                link
+              </button>
+              <button
+                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent"
+                onClick={handleToggleWatch}
+              >
+                {isWatching ? (
+                  <EyeSlashIcon className="size-3.5 text-muted-foreground" />
+                ) : (
+                  <EyeIcon className="size-3.5 text-muted-foreground" />
+                )}
+                {isWatching ? "Unwatch" : "Watch"}
+              </button>
+              <Separator className="my-1" />
+              <TaskOverflowMenuItems
+                canPinToList={!!(canPinToList && listId)}
+                isArchived={isArchived}
+                isPinnedToList={!!data?.task.isPinnedToList}
+                onArchiveToggle={isArchived ? handleUnarchive : handleArchive}
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
+                onPinToListToggle={handlePinToListToggle}
+                saving={saving}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Archived banner — shown in place of the old redirect-to-list. The
@@ -1216,10 +1622,338 @@ export function TaskDetailPage({
           </div>
         )}
 
-        {/* Two-column body */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Two-column body — stacks to a single scrolling column below `lg`;
+          each pane (main content / activity) keeps its own independent
+          scroll at `lg`+, matching the original desktop layout exactly. */}
+        <div className="flex flex-1 flex-col min-h-0 overflow-hidden lg:flex-row">
           {/* ── Left: main content ── */}
-          <div className="flex-1 min-w-0 overflow-y-auto px-8 py-6">
+          <div className="flex-1 min-w-0 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+            {/* ── Mobile hero: editable title + prominent status/priority ──
+              (< md only). Reuses the same titleEditing/titleDraft/saveTitle
+              state as the desktop title below, and the extracted
+              StatusPickerContent/PriorityPickerContent bodies. */}
+            <div className="md:hidden">
+              {titleEditing ? (
+                <textarea
+                  autoFocus
+                  className="mb-3 -mx-1 block w-full resize-none overflow-hidden rounded bg-transparent px-1 py-1 text-xl font-bold leading-tight outline-none"
+                  onBlur={saveTitle}
+                  onChange={(e) => {
+                    setTitleDraft(e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      saveTitle();
+                    }
+                    if (e.key === "Escape") {
+                      setTitleEditing(false);
+                    }
+                  }}
+                  ref={(el) => {
+                    if (el) {
+                      el.style.height = "auto";
+                      el.style.height = `${el.scrollHeight}px`;
+                    }
+                  }}
+                  rows={1}
+                  value={titleDraft}
+                />
+              ) : (
+                <h1
+                  className={cn(
+                    "text-xl font-bold rounded px-1 -mx-1 py-1 mb-3 transition-colors",
+                    canEditNow && "cursor-text hover:bg-accent/50"
+                  )}
+                  onClick={() => canEditNow && setTitleEditing(true)}
+                >
+                  {t.title}
+                </h1>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <Popover
+                  onOpenChange={setMobileStatusPopoverOpen}
+                  open={mobileStatusPopoverOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <button
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors hover:opacity-80"
+                      style={{
+                        backgroundColor: `${currentStatus?.color ?? "#9CA3AF"}20`,
+                        color: currentStatus?.color ?? "#9CA3AF",
+                      }}
+                    >
+                      <span
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: currentStatus?.color ?? "#9CA3AF" }}
+                      />
+                      {currentStatus?.name ?? "No status"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-52 p-0">
+                    <StatusPickerContent
+                      canManage={!!canPinToList}
+                      currentStatusId={t.statusId}
+                      onManageStatuses={() => {
+                        setMobileStatusPopoverOpen(false);
+                        setManageStatusesOpen(true);
+                      }}
+                      onSelect={(id) => {
+                        setMobileStatusPopoverOpen(false);
+                        handleStatusChange(id);
+                      }}
+                      statuses={statuses}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover
+                  onOpenChange={setMobilePriorityPopoverOpen}
+                  open={mobilePriorityPopoverOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex min-h-9 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors hover:opacity-80",
+                        priority.bg,
+                        priority.color
+                      )}
+                    >
+                      <span>{priority.icon}</span>
+                      {priority.label}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-44 p-1">
+                    <PriorityPickerContent
+                      currentPriority={t.priority as Priority}
+                      onSelect={(p) => {
+                        setMobilePriorityPopoverOpen(false);
+                        handlePriorityChange(p);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Collapsible compact Properties — assignee/dates/tags/custom
+                fields. Starts expanded (compact single-line rows don't
+                dominate the screen even open); the chevron lets it collapse. */}
+              <div className="rounded-xl border bg-card mb-4 overflow-hidden">
+                <button
+                  aria-expanded={mobilePropertiesOpen}
+                  className="flex w-full items-center justify-between px-3 py-2.5 min-h-11"
+                  onClick={() => setMobilePropertiesOpen((o) => !o)}
+                  type="button"
+                >
+                  <span className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Properties
+                  </span>
+                  {mobilePropertiesOpen ? (
+                    <CaretUpIcon className="size-4 text-muted-foreground" />
+                  ) : (
+                    <CaretDownIcon className="size-4 text-muted-foreground" />
+                  )}
+                </button>
+                {mobilePropertiesOpen && (
+                  <div className="border-t divide-y divide-border/60">
+                    {/* Assignee */}
+                    <Popover
+                      onOpenChange={setMobileAssigneePopoverOpen}
+                      open={mobileAssigneePopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11 text-left transition-colors hover:bg-accent/40"
+                          type="button"
+                        >
+                          <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                            <UserIcon className="size-3.5" /> Assignee
+                          </span>
+                          <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                            {assignees.length > 0 ? (
+                              <>
+                                <Avatar className="size-5 shrink-0">
+                                  {assignees[0].image && (
+                                    <AvatarImage src={avatarSrc(assignees[0].image)} />
+                                  )}
+                                  <AvatarFallback className="text-[9px]">
+                                    {userInitials(assignees[0].name, assignees[0].email)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="truncate text-sm">
+                                  {assignees[0].name ?? assignees[0].email}
+                                </span>
+                                {assignees.length > 1 && (
+                                  <span className="shrink-0 text-xs text-muted-foreground">
+                                    +{assignees.length - 1}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">
+                                Unassigned
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-64 p-2">
+                        <AssigneePickerContent
+                          assignedUserIds={assignees.map((a) => a.userId)}
+                          members={members}
+                          onInvite={() => {
+                            setMobileAssigneePopoverOpen(false);
+                            setInviteOpen(true);
+                          }}
+                          onToggle={handleToggleAssignee}
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Dates */}
+                    <div className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11">
+                      <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                        <CalendarBlankIcon className="size-3.5" /> Dates
+                      </span>
+                      <div className="flex min-w-0 flex-1 items-center gap-1.5 text-sm">
+                        <Popover
+                          onOpenChange={setMobileStartCalOpen}
+                          open={mobileStartCalOpen}
+                        >
+                          <PopoverTrigger asChild>
+                            <button
+                              className={cn(
+                                "truncate",
+                                dueDateStart ? "text-foreground" : "text-muted-foreground"
+                              )}
+                              type="button"
+                            >
+                              {dueDateStart ? format(dueDateStart, "MMM d") : "Start"}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              onSelect={(date) => {
+                                handleDueDateChange("start", date ?? null);
+                                setMobileStartCalOpen(false);
+                              }}
+                              selected={dueDateStart ?? undefined}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <span className="shrink-0 text-muted-foreground">→</span>
+                        <Popover
+                          onOpenChange={setMobileEndCalOpen}
+                          open={mobileEndCalOpen}
+                        >
+                          <PopoverTrigger asChild>
+                            <button
+                              className={cn(
+                                "truncate",
+                                dueDateEnd ? "text-foreground" : "text-muted-foreground"
+                              )}
+                              type="button"
+                            >
+                              {dueDateEnd ? format(dueDateEnd, "MMM d") : "End"}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" className="w-auto p-0">
+                            <Calendar
+                              disabled={dueDateStart ? { before: dueDateStart } : undefined}
+                              mode="single"
+                              onSelect={(date) => {
+                                handleDueDateChange("end", date ?? null);
+                                setMobileEndCalOpen(false);
+                              }}
+                              selected={dueDateEnd ?? undefined}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    <Popover
+                      onOpenChange={setMobileTagPopoverOpen}
+                      open={mobileTagPopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11 text-left transition-colors hover:bg-accent/40"
+                          type="button"
+                        >
+                          <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                            <TagIcon className="size-3.5" /> Tags
+                          </span>
+                          <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+                            {tags.length > 0 ? (
+                              tags.slice(0, 3).map((tag) => (
+                                <span
+                                  className="shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium"
+                                  key={tag.id}
+                                  style={{
+                                    backgroundColor: `${tag.color}20`,
+                                    color: tag.color,
+                                  }}
+                                >
+                                  {tag.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-sm text-muted-foreground">None</span>
+                            )}
+                            {tags.length > 3 && (
+                              <span className="shrink-0 text-xs text-muted-foreground">
+                                +{tags.length - 3}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-56 p-2">
+                        <TagPickerContent
+                          exactMatch={exactTagMatch}
+                          filteredTags={filteredTags}
+                          onCreate={handleCreateTag}
+                          onDeleteRequest={setDeleteTagTarget}
+                          onSearchChange={setTagSearch}
+                          onToggle={handleToggleTag}
+                          search={tagSearch}
+                          selectedTagIds={tags.map((tg) => tg.id)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Custom fields */}
+                    {customFields.map((field) => (
+                      <div
+                        className="flex w-full items-center gap-3 px-3 py-2.5 min-h-11"
+                        key={field.id}
+                      >
+                        <span className="w-20 shrink-0 truncate text-xs text-muted-foreground">
+                          {field.name}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <CustomFieldEditor
+                            disabled={!canEditNow}
+                            field={field}
+                            members={members}
+                            onChange={(value) => handleCustomFieldChange(field.id, value)}
+                            value={customFieldValues[field.id]}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Desktop/tablet title (`md:`+) — unchanged from before. ── */}
+            <div className="hidden md:block">
             {/* Title */}
             {titleEditing ? (
               // Textarea (not a single-line input) so a long title keeps the
@@ -1263,7 +1997,10 @@ export function TaskDetailPage({
                 {t.title}
               </h1>
             )}
+            </div>
 
+            {/* ── Desktop/tablet fields grid (`md:`+) — unchanged from before. ── */}
+            <div className="hidden md:block">
             {/* Fields grid */}
             <div className="rounded-lg border bg-card px-4 mb-6">
               {/* Status */}
@@ -1294,80 +2031,19 @@ export function TaskDetailPage({
                     </button>
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-52 p-0">
-                    <div
-                      className="max-h-60 overflow-y-auto p-1"
-                      onWheel={(e) => e.stopPropagation()}
-                    >
-                      {(["OPEN", "ACTIVE", "CLOSED"] as const).map((type) => {
-                        const group = statuses.filter((s) => s.type === type);
-                        if (group.length === 0) {
-                          return null;
-                        }
-                        const label =
-                          type === "OPEN"
-                            ? "Not started"
-                            : type === "ACTIVE"
-                              ? "Active"
-                              : "Closed";
-                        return (
-                          <div key={type}>
-                            <div className="flex items-center px-2 pt-2 pb-0.5">
-                              <span className="flex-1 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                {label}
-                              </span>
-                              {canPinToList && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      className="flex size-4 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <DotsThreeIcon
-                                        className="size-3.5"
-                                        weight="bold"
-                                      />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent
-                                    align="start"
-                                    className="w-36"
-                                    side="right"
-                                  >
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setStatusPopoverOpen(false);
-                                        setManageStatusesOpen(true);
-                                      }}
-                                    >
-                                      <GearIcon className="size-3.5" />
-                                      Edit statuses
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </div>
-                            {group.map((s) => (
-                              <button
-                                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                                key={s.id}
-                                onClick={() => handleStatusChange(s.id)}
-                              >
-                                <span
-                                  className="size-2.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: s.color }}
-                                />
-                                <span className="flex-1 text-left">
-                                  {s.name}
-                                </span>
-                                {s.id === t.statusId && (
-                                  <CheckIcon className="size-3.5 text-primary" />
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <StatusPickerContent
+                      canManage={!!canPinToList}
+                      currentStatusId={t.statusId}
+                      onManageStatuses={() => {
+                        setStatusPopoverOpen(false);
+                        setManageStatusesOpen(true);
+                      }}
+                      onSelect={(id) => {
+                        setStatusPopoverOpen(false);
+                        handleStatusChange(id);
+                      }}
+                      statuses={statuses}
+                    />
                   </PopoverContent>
                 </Popover>
               </FieldRow>
@@ -1408,51 +2084,15 @@ export function TaskDetailPage({
                       </button>
                     </PopoverTrigger>
                     <PopoverContent align="start" className="w-52 p-2">
-                      <p className="text-xs text-muted-foreground px-1 mb-1.5">
-                        Select members
-                      </p>
-                      <div className="space-y-0.5 max-h-48 overflow-y-auto">
-                        {members.map((m) => {
-                          const selected = assignees.some(
-                            (a) => a.userId === m.userId
-                          );
-                          return (
-                            <button
-                              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
-                              key={m.userId}
-                              onClick={() => handleToggleAssignee(m.userId)}
-                            >
-                              <Avatar className="size-6 shrink-0">
-                                {m.image && <AvatarImage src={avatarSrc(m.image)} />}
-                                <AvatarFallback className="text-2xs">
-                                  {userInitials(m.name, m.email)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="flex-1 truncate text-left">
-                                {m.name}
-                              </span>
-                              {selected && (
-                                <CheckIcon className="size-3.5 text-primary shrink-0" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <Separator className="my-1.5" />
-                      <button
-                        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-                        onClick={() => {
+                      <AssigneePickerContent
+                        assignedUserIds={assignees.map((a) => a.userId)}
+                        members={members}
+                        onInvite={() => {
                           setAssigneePopoverOpen(false);
                           setInviteOpen(true);
                         }}
-                      >
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border">
-                          <UserPlusIcon className="size-3.5" />
-                        </span>
-                        <span className="flex-1 truncate text-left">
-                          Invite member
-                        </span>
-                      </button>
+                        onToggle={handleToggleAssignee}
+                      />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -1463,7 +2103,7 @@ export function TaskDetailPage({
                 icon={<CalendarBlankIcon className="size-3.5" />}
                 label="Dates"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Popover onOpenChange={setStartCalOpen} open={startCalOpen}>
                     <PopoverTrigger asChild>
                       <button className="flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-xs w-32 hover:bg-accent transition-colors">
@@ -1549,27 +2189,13 @@ export function TaskDetailPage({
                     </button>
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-44 p-1">
-                    {(
-                      Object.entries(PRIORITY_CONFIG) as [
-                        Priority,
-                        (typeof PRIORITY_CONFIG)[Priority],
-                      ][]
-                    ).map(([key, cfg]) => (
-                      <button
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent",
-                          cfg.color
-                        )}
-                        key={key}
-                        onClick={() => handlePriorityChange(key)}
-                      >
-                        <span>{cfg.icon}</span>
-                        <span className="flex-1 text-left">{cfg.label}</span>
-                        {key === t.priority && (
-                          <CheckIcon className="size-3.5 shrink-0" />
-                        )}
-                      </button>
-                    ))}
+                    <PriorityPickerContent
+                      currentPriority={t.priority as Priority}
+                      onSelect={(p) => {
+                        setPriorityPopoverOpen(false);
+                        handlePriorityChange(p);
+                      }}
+                    />
                   </PopoverContent>
                 </Popover>
               </FieldRow>
@@ -1605,71 +2231,16 @@ export function TaskDetailPage({
                       </button>
                     </PopoverTrigger>
                     <PopoverContent align="start" className="w-52 p-2">
-                      <Input
-                        autoFocus
-                        className="h-7 text-xs mb-2"
-                        onChange={(e) => setTagSearch(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            tagSearch.trim() &&
-                            !exactTagMatch
-                          ) {
-                            e.preventDefault();
-                            handleCreateTag(tagSearch.trim());
-                          }
-                        }}
-                        placeholder="Search or create…"
-                        value={tagSearch}
+                      <TagPickerContent
+                        exactMatch={exactTagMatch}
+                        filteredTags={filteredTags}
+                        onCreate={handleCreateTag}
+                        onDeleteRequest={setDeleteTagTarget}
+                        onSearchChange={setTagSearch}
+                        onToggle={handleToggleTag}
+                        search={tagSearch}
+                        selectedTagIds={tags.map((tg) => tg.id)}
                       />
-                      <div className="space-y-0.5 max-h-40 overflow-y-auto">
-                        {filteredTags.map((tag) => {
-                          const selected = tags.some((t) => t.id === tag.id);
-                          return (
-                            <div
-                              className="group/tag flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-accent"
-                              key={tag.id}
-                            >
-                              <button
-                                className="flex flex-1 min-w-0 items-center gap-2"
-                                onClick={() => handleToggleTag(tag.id)}
-                              >
-                                <span
-                                  className="size-2.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: tag.color }}
-                                />
-                                <span className="flex-1 truncate text-left text-xs">
-                                  {tag.name}
-                                </span>
-                                {selected && (
-                                  <CheckIcon className="size-3.5 text-primary shrink-0" />
-                                )}
-                              </button>
-                              <button
-                                className="opacity-0 group-hover/tag:opacity-100 flex size-5 items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive transition-opacity shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteTagTarget({
-                                    id: tag.id,
-                                    name: tag.name,
-                                  });
-                                }}
-                              >
-                                <TrashIcon className="size-3" />
-                              </button>
-                            </div>
-                          );
-                        })}
-                        {tagSearch && !exactTagMatch && (
-                          <button
-                            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-accent"
-                            onClick={() => handleCreateTag(tagSearch.trim())}
-                          >
-                            <PlusIcon className="size-3.5" /> Create &ldquo;
-                            {tagSearch}&rdquo;
-                          </button>
-                        )}
-                      </div>
                     </PopoverContent>
                   </Popover>
                   {tags.length > 1 && (
@@ -1702,8 +2273,10 @@ export function TaskDetailPage({
                 </FieldRow>
               ))}
             </div>
+            </div>
 
-            {/* Description */}
+            {/* Description — shared by every breakpoint (single instance;
+              the Tiptap editor is too heavy to double-mount). */}
             <div className="mb-6">
               <TaskDescriptionEditor
                 onChange={setDescDraft}
@@ -1714,6 +2287,26 @@ export function TaskDetailPage({
                 workspaceId={workspaceId}
               />
             </div>
+
+            {/* Activity/comments, mobile only (< md) — placed here (right
+              after Description, ahead of Subtasks/Dependencies/Checklist) so
+              the discussion is reachable with minimal scrolling. Gated on the
+              actual breakpoint (not CSS hidden/md:hidden) because
+              TaskActivityFeed fetches its own data and owns a comment
+              composer — mounting it a second time for the desktop right
+              column below would double-fetch and give two composers. */}
+            {isMobile && (
+              <div className="mb-6 md:hidden">
+                <TaskActivityFeed
+                  currentUserId={currentUserId}
+                  listId={listId}
+                  ref={feedRef}
+                  spaceId={spaceId}
+                  taskId={taskId}
+                  workspaceId={workspaceId}
+                />
+              </div>
+            )}
 
             {/* Unified content sections — sections with data open together on
               load; empty sections start collapsed and auto-collapse on an
@@ -2243,9 +2836,11 @@ export function TaskDetailPage({
             </div>
           </div>
 
-          {/* ── Right: activity ── */}
-          <div className="w-80 xl:w-96 shrink-0 min-h-0 border-l flex flex-col overflow-hidden">
-            <div className="flex shrink-0 border-b px-5 py-2.5">
+          {/* ── Right: activity (`md:`+ only — mobile mounts its own
+            TaskActivityFeed earlier in the left column instead; see the
+            `isMobile` gate above). Unchanged from before at `md:`+. ── */}
+          <div className="hidden min-h-0 w-full border-t md:flex md:flex-1 md:flex-col overflow-hidden lg:w-80 lg:flex-none lg:border-t-0 lg:border-l xl:w-96">
+            <div className="flex shrink-0 border-b px-3 py-2.5 sm:px-5">
               <span className="text-xs font-medium text-foreground">
                 Activity
               </span>
@@ -2254,20 +2849,22 @@ export function TaskDetailPage({
             {/* No scroll here — the feed owns it, so its composer can sit as a
                 fixed footer below the scrolling activity list. */}
             <div className="flex-1 min-h-0">
-              <TaskActivityFeed
-                currentUserId={currentUserId}
-                hideHeader
-                listId={listId}
-                ref={feedRef}
-                spaceId={spaceId}
-                taskId={taskId}
-                variant="fill"
-                workspaceId={workspaceId}
-              />
+              {!isMobile && (
+                <TaskActivityFeed
+                  currentUserId={currentUserId}
+                  hideHeader
+                  listId={listId}
+                  ref={feedRef}
+                  spaceId={spaceId}
+                  taskId={taskId}
+                  variant="fill"
+                  workspaceId={workspaceId}
+                />
+              )}
             </div>
 
             {/* Task seq footer */}
-            <div className="border-t px-5 py-3 shrink-0">
+            <div className="border-t px-3 py-3 shrink-0 sm:px-5">
               <p className="text-xs text-muted-foreground">
                 <span className="font-mono">#{t.seqNumber}</span> · Created{" "}
                 {format(new Date(t.createdAt), "MMM d, yyyy")}

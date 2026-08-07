@@ -574,7 +574,7 @@ export function MyTasksView(_props: MyTasksViewProps) {
   return (
     <div className="p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-y-1.5 gap-x-3">
         <div className="flex items-center gap-2">
           <CheckCircleIcon className="size-5 text-primary" weight="fill" />
           <h1 className="text-lg font-semibold">My Tasks</h1>
@@ -693,43 +693,49 @@ export function MyTasksView(_props: MyTasksViewProps) {
         </div>
       ) : (
         <div className="rounded-xl border bg-card overflow-hidden">
-          {/* table-fixed is what makes the explicit column widths below
-              actually binding — without it, a long unbroken task title can
-              force the Task column (and the whole table) wider than its
-              container, pushing Status/Due Date/Priority out of alignment. */}
-          <table className="w-full table-fixed border-collapse">
-            <thead>
-              <tr className="border-b border-border/60 bg-muted/20">
-                <th className="py-2 pl-10 pr-4 text-left text-sm font-semibold text-muted-foreground">
-                  Task
-                </th>
-                <th className="py-2 px-4 text-left text-sm font-semibold text-muted-foreground w-32">
-                  Status
-                </th>
-                <th className="py-2 px-4 text-left text-sm font-semibold text-muted-foreground w-28">
-                  Due Date
-                </th>
-                <th className="py-2 px-4 text-left text-sm font-semibold text-muted-foreground w-28">
-                  Priority
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((group, i) => (
-                <React.Fragment key={group.key}>
-                  {i > 0 && (
-                    <tr aria-hidden>
-                      <td
-                        className="h-2 bg-transparent border-none"
-                        colSpan={4}
-                      />
-                    </tr>
-                  )}
-                  <TaskGroup group={group} taskNav={taskNav} />
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+          {/* Horizontal scroll on narrow viewports — the table below keeps a
+              min-width so its fixed Status/Due Date/Priority columns stay
+              legible instead of getting squeezed; wide/desktop containers
+              are unaffected since they already exceed that min-width. */}
+          <div className="overflow-x-auto">
+            {/* table-fixed is what makes the explicit column widths below
+                actually binding — without it, a long unbroken task title can
+                force the Task column (and the whole table) wider than its
+                container, pushing Status/Due Date/Priority out of alignment. */}
+            <table className="w-full min-w-[640px] table-fixed border-collapse">
+              <thead>
+                <tr className="border-b border-border/60 bg-muted/20">
+                  <th className="py-2 pl-10 pr-4 text-left text-sm font-semibold text-muted-foreground">
+                    Task
+                  </th>
+                  <th className="py-2 px-4 text-left text-sm font-semibold text-muted-foreground w-32">
+                    Status
+                  </th>
+                  <th className="py-2 px-4 text-left text-sm font-semibold text-muted-foreground w-28">
+                    Due Date
+                  </th>
+                  <th className="py-2 px-4 text-left text-sm font-semibold text-muted-foreground w-28">
+                    Priority
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((group, i) => (
+                  <React.Fragment key={group.key}>
+                    {i > 0 && (
+                      <tr aria-hidden>
+                        <td
+                          className="h-2 bg-transparent border-none"
+                          colSpan={4}
+                        />
+                      </tr>
+                    )}
+                    <TaskGroup group={group} taskNav={taskNav} />
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

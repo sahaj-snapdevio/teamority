@@ -50,11 +50,11 @@ export default async function AdminDashboardPage() {
   try {
     data = await getDashboard();
   } catch {
-    return <div className="p-8 text-red-500">Failed to load dashboard data.</div>;
+    return <div className="p-4 text-red-500 sm:p-8">Failed to load dashboard data.</div>;
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 space-y-8 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">Platform overview</p>
@@ -72,38 +72,40 @@ export default async function AdminDashboardPage() {
       <div>
         <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
         <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium">Time</th>
-                <th className="text-left px-4 py-2 font-medium">Action</th>
-                <th className="text-left px-4 py-2 font-medium">Actor</th>
-                <th className="text-left px-4 py-2 font-medium">Entity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.recentActivity.map((entry) => (
-                <tr key={entry.id} className="border-t hover:bg-muted/30">
-                  <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">
-                    {new Date(entry.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs">{entry.action}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{entry.actorEmail ?? entry.actorId ?? "—"}</td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {entry.entityType}
-                    {entry.entityId ? ` / ${entry.entityId.slice(0, 8)}…` : ""}
-                  </td>
-                </tr>
-              ))}
-              {data.recentActivity.length === 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
-                    No activity yet
-                  </td>
+                  <th className="text-left px-4 py-2 font-medium">Time</th>
+                  <th className="text-left px-4 py-2 font-medium">Action</th>
+                  <th className="text-left px-4 py-2 font-medium">Actor</th>
+                  <th className="text-left px-4 py-2 font-medium">Entity</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.recentActivity.map((entry) => (
+                  <tr key={entry.id} className="border-t hover:bg-muted/30">
+                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-xs">{entry.action}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{entry.actorEmail ?? entry.actorId ?? "—"}</td>
+                    <td className="px-4 py-2 text-muted-foreground">
+                      {entry.entityType}
+                      {entry.entityId ? ` / ${entry.entityId.slice(0, 8)}…` : ""}
+                    </td>
+                  </tr>
+                ))}
+                {data.recentActivity.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                      No activity yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

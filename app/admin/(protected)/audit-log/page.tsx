@@ -20,7 +20,7 @@ export default function AdminAuditLogPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 space-y-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Audit Log</h1>
         <p className="text-muted-foreground text-sm mt-1">{total.toLocaleString()} entries</p>
@@ -34,39 +34,41 @@ export default function AdminAuditLogPage() {
       />
 
       <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="text-left px-4 py-2 font-medium">Timestamp</th>
-              <th className="text-left px-4 py-2 font-medium">Action</th>
-              <th className="text-left px-4 py-2 font-medium">Actor</th>
-              <th className="text-left px-4 py-2 font-medium">Entity</th>
-              <th className="text-left px-4 py-2 font-medium">Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
-            ) : logs.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">No entries found</td></tr>
-            ) : (
-              logs.map((log) => (
-                <tr key={log.id} className="border-t hover:bg-muted/30">
-                  <td className="px-4 py-2 text-muted-foreground whitespace-nowrap text-xs">
-                    {new Date(log.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs">{log.action}</td>
-                  <td className="px-4 py-2 text-muted-foreground text-xs">{log.actorEmail ?? log.actorId ?? "—"}</td>
-                  <td className="px-4 py-2 text-xs">
-                    <span className="text-muted-foreground">{log.entityType}</span>
-                    {log.entityId && <span className="text-muted-foreground"> / {log.entityId.slice(0, 8)}…</span>}
-                  </td>
-                  <td className="px-4 py-2 text-muted-foreground text-xs">{log.description}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-2 font-medium">Timestamp</th>
+                <th className="text-left px-4 py-2 font-medium">Action</th>
+                <th className="text-left px-4 py-2 font-medium">Actor</th>
+                <th className="text-left px-4 py-2 font-medium">Entity</th>
+                <th className="text-left px-4 py-2 font-medium">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
+              ) : logs.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">No entries found</td></tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className="border-t hover:bg-muted/30">
+                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap text-xs">
+                      {new Date(log.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-xs">{log.action}</td>
+                    <td className="px-4 py-2 text-muted-foreground text-xs">{log.actorEmail ?? log.actorId ?? "—"}</td>
+                    <td className="px-4 py-2 text-xs">
+                      <span className="text-muted-foreground">{log.entityType}</span>
+                      {log.entityId && <span className="text-muted-foreground"> / {log.entityId.slice(0, 8)}…</span>}
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground text-xs">{log.description}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {totalPages > 1 && (

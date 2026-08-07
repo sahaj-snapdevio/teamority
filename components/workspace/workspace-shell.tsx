@@ -296,6 +296,20 @@ export function WorkspaceShell({
     if (profileCloseTimer.current) clearTimeout(profileCloseTimer.current);
     setProfileOpen(true);
   }
+  // Touch devices still dispatch synthetic mouseenter/mouseleave for taps —
+  // including a spurious mouseenter on the trigger right after a menu item's
+  // click closes the popover and reveals the trigger underneath the tap
+  // point, which reopens it. Hover-driven open/close is desktop-only.
+  function handleTriggerHoverEnter() {
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      openProfileMenu();
+    }
+  }
+  function handleTriggerHoverLeave() {
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      scheduleCloseProfileMenu();
+    }
+  }
   function scheduleCloseProfileMenu() {
     if (profileCloseTimer.current) clearTimeout(profileCloseTimer.current);
     // Swapping in the project picker makes the menu shorter, and it is
@@ -1191,8 +1205,8 @@ export function WorkspaceShell({
           >
             <PopoverTrigger asChild>
               <button
-                onMouseEnter={openProfileMenu}
-                onMouseLeave={scheduleCloseProfileMenu}
+                onMouseEnter={handleTriggerHoverEnter}
+                onMouseLeave={handleTriggerHoverLeave}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-[13px] text-(--text-sidebar) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active) cursor-pointer"
               >
                 <Avatar className="size-7 shrink-0">
@@ -1215,8 +1229,8 @@ export function WorkspaceShell({
               side="top"
               sideOffset={4}
               onOpenAutoFocus={(e) => e.preventDefault()}
-              onMouseEnter={openProfileMenu}
-              onMouseLeave={scheduleCloseProfileMenu}
+              onMouseEnter={handleTriggerHoverEnter}
+              onMouseLeave={handleTriggerHoverLeave}
             >
               {showProjectPicker && spaces.length > 1 ? (
                 /* Project picker — replaces the menu in-place (single popup, no side panel) */
@@ -1242,6 +1256,7 @@ export function WorkspaceShell({
                           onClick={() => {
                             setProfileOpen(false);
                             setShowProjectPicker(false);
+                            setSidebarOpen(false);
                           }}
                         >
                           <SpaceIcon
@@ -1264,7 +1279,10 @@ export function WorkspaceShell({
                   <Link
                     className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                     href={`/${workspace.id}/profile`}
-                    onClick={() => setProfileOpen(false)}
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setSidebarOpen(false);
+                    }}
                   >
                     <UserCircleIcon className="size-4 shrink-0 text-muted-foreground" />
                     Edit profile
@@ -1274,7 +1292,10 @@ export function WorkspaceShell({
                     <Link
                       className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                       href={`/${workspace.id}/settings/general`}
-                      onClick={() => setProfileOpen(false)}
+                      onClick={() => {
+                        setProfileOpen(false);
+                        setSidebarOpen(false);
+                      }}
                     >
                       <GearIcon className="size-4 shrink-0 text-muted-foreground" />
                       Workspace settings
@@ -1288,7 +1309,10 @@ export function WorkspaceShell({
                       <Link
                         className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                         href={`/${workspace.id}/${spaces[0].id}/settings/general`}
-                        onClick={() => setProfileOpen(false)}
+                        onClick={() => {
+                          setProfileOpen(false);
+                          setSidebarOpen(false);
+                        }}
                       >
                         <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
                         Project settings
@@ -1314,7 +1338,10 @@ export function WorkspaceShell({
                   <Link
                     className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                     href={`/${workspace.id}/notifications/settings`}
-                    onClick={() => setProfileOpen(false)}
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setSidebarOpen(false);
+                    }}
                   >
                     <BellIcon className="size-4 shrink-0 text-muted-foreground" />
                     Notification settings
@@ -1322,7 +1349,10 @@ export function WorkspaceShell({
                   <Link
                     className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
                     href={`/${workspace.id}/theme`}
-                    onClick={() => setProfileOpen(false)}
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setSidebarOpen(false);
+                    }}
                   >
                     <PaletteIcon className="size-4 shrink-0 text-muted-foreground" />
                     Theme
@@ -1363,7 +1393,7 @@ export function WorkspaceShell({
       <TopbarProvider>
         <TopbarRightColumn
           onOpenSearch={() => setSearchOpen(true)}
-          onOpenSidebar={() => setSidebarOpen(true)}
+          onOpenSidebar={() => setSidebarOpen((open) => !open)}
           workspaceId={workspace.id}
         >
           {children}
@@ -1552,9 +1582,18 @@ function TopbarRightColumn({
           ) : null}
         </div>
 
-        {/* Search — right side */}
+        {/* Search — right side. Icon-only on narrow screens so it doesn't
+            crowd out the breadcrumb; full search box from sm: up. */}
+        <Button
+          className="size-8 sm:hidden shrink-0"
+          onClick={onOpenSearch}
+          size="icon"
+          variant="ghost"
+        >
+          <MagnifyingGlassIcon className="size-4.5" />
+        </Button>
         <button
-          className="flex items-center gap-2 h-8 w-52 shrink-0 rounded-md border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="hidden sm:flex items-center gap-2 h-8 w-52 shrink-0 rounded-md border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           onClick={onOpenSearch}
         >
           <MagnifyingGlassIcon className="size-4 shrink-0" />

@@ -311,7 +311,7 @@ export function ChannelComposer({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || sending}
-              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+              className="flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50 sm:size-8"
               title="Attach files"
             >
               <PaperclipIcon className="size-4" />
@@ -344,7 +344,7 @@ export function ChannelComposer({
                 (!content.trim() && attachments.filter((a) => a.uploadedId).length === 0)
               }
               className={cn(
-                "flex size-8 items-center justify-center rounded-md transition-colors",
+                "flex size-10 items-center justify-center rounded-md transition-colors sm:size-8",
                 content.trim() || attachments.some((a) => a.uploadedId)
                   ? "bg-primary text-primary-foreground hover:bg-primary/90"
                   : "text-muted-foreground hover:bg-accent",

@@ -55,7 +55,7 @@ export function ManageStatusesDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg flex flex-col max-h-[80vh]">
+      <DialogContent className="flex flex-col max-h-[80vh]">
         <DialogHeader className="shrink-0">
           <DialogTitle>Manage Statuses</DialogTitle>
         </DialogHeader>

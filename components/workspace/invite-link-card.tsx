@@ -150,7 +150,7 @@ export function InviteLinkCard({
             )}
 
             {canManage && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Dialog onOpenChange={setRegenerateOpen} open={regenerateOpen}>
                   <DialogTrigger asChild>
                     <Button disabled={pending} variant="outline">

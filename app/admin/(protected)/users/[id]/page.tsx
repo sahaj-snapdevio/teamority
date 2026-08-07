@@ -75,17 +75,17 @@ export default function AdminUserDetailPage({
   }
 
   if (!u) {
-    return <div className="p-8 text-muted-foreground">Loading…</div>;
+    return <div className="p-4 text-muted-foreground sm:p-8">Loading…</div>;
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-start justify-between">
+    <div className="p-4 space-y-8 sm:p-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{u.name}</h1>
           <p className="text-muted-foreground">{u.email}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {u.banned ? (
             <Button disabled={loading} onClick={handleUnban} variant="outline">
               Unban
@@ -184,41 +184,43 @@ export default function AdminUserDetailPage({
           Workspaces ({workspaces.length})
         </h2>
         <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium">Workspace</th>
-                <th className="text-left px-4 py-2 font-medium">Role</th>
-                <th className="text-left px-4 py-2 font-medium">Status</th>
-                <th className="text-left px-4 py-2 font-medium">Joined</th>
-              </tr>
-            </thead>
-            <tbody>
-              {workspaces.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
                 <tr>
-                  <td
-                    className="px-4 py-4 text-center text-muted-foreground"
-                    colSpan={4}
-                  >
-                    No workspaces
-                  </td>
+                  <th className="text-left px-4 py-2 font-medium">Workspace</th>
+                  <th className="text-left px-4 py-2 font-medium">Role</th>
+                  <th className="text-left px-4 py-2 font-medium">Status</th>
+                  <th className="text-left px-4 py-2 font-medium">Joined</th>
                 </tr>
-              ) : (
-                workspaces.map((w) => (
-                  <tr className="border-t" key={w.workspaceId}>
-                    <td className="px-4 py-2 font-medium">{w.workspaceName}</td>
-                    <td className="px-4 py-2">{w.role}</td>
-                    <td className="px-4 py-2">{w.status}</td>
-                    <td className="px-4 py-2 text-muted-foreground">
-                      {w.joinedAt
-                        ? new Date(w.joinedAt).toLocaleDateString()
-                        : "—"}
+              </thead>
+              <tbody>
+                {workspaces.length === 0 ? (
+                  <tr>
+                    <td
+                      className="px-4 py-4 text-center text-muted-foreground"
+                      colSpan={4}
+                    >
+                      No workspaces
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  workspaces.map((w) => (
+                    <tr className="border-t" key={w.workspaceId}>
+                      <td className="px-4 py-2 font-medium">{w.workspaceName}</td>
+                      <td className="px-4 py-2">{w.role}</td>
+                      <td className="px-4 py-2">{w.status}</td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {w.joinedAt
+                          ? new Date(w.joinedAt).toLocaleDateString()
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -227,47 +229,49 @@ export default function AdminUserDetailPage({
           Active Sessions ({sessions.length})
         </h2>
         <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium">Created</th>
-                <th className="text-left px-4 py-2 font-medium">Expires</th>
-                <th className="text-left px-4 py-2 font-medium">IP</th>
-                <th className="text-left px-4 py-2 font-medium">
-                  Impersonated By
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
                 <tr>
-                  <td
-                    className="px-4 py-4 text-center text-muted-foreground"
-                    colSpan={4}
-                  >
-                    No active sessions
-                  </td>
+                  <th className="text-left px-4 py-2 font-medium">Created</th>
+                  <th className="text-left px-4 py-2 font-medium">Expires</th>
+                  <th className="text-left px-4 py-2 font-medium">IP</th>
+                  <th className="text-left px-4 py-2 font-medium">
+                    Impersonated By
+                  </th>
                 </tr>
-              ) : (
-                sessions.map((s) => (
-                  <tr className="border-t" key={s.id}>
-                    <td className="px-4 py-2 text-muted-foreground">
-                      {new Date(s.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-2 text-muted-foreground">
-                      {new Date(s.expiresAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-2 text-muted-foreground">
-                      {s.ipAddress ?? "—"}
-                    </td>
-                    <td className="px-4 py-2 text-muted-foreground">
-                      {s.impersonatedBy ?? "—"}
+              </thead>
+              <tbody>
+                {sessions.length === 0 ? (
+                  <tr>
+                    <td
+                      className="px-4 py-4 text-center text-muted-foreground"
+                      colSpan={4}
+                    >
+                      No active sessions
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  sessions.map((s) => (
+                    <tr className="border-t" key={s.id}>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {new Date(s.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {new Date(s.expiresAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {s.ipAddress ?? "—"}
+                      </td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {s.impersonatedBy ?? "—"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

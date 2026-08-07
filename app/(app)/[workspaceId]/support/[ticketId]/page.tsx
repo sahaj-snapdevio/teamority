@@ -85,12 +85,12 @@ export default function TicketDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6">
+    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
       <div className="flex items-center gap-3">
-        <Link href={`/${workspaceId}/support`} className="text-muted-foreground hover:text-foreground transition-colors">
+        <Link href={`/${workspaceId}/support`} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeftIcon className="h-4 w-4" />
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-mono text-xs text-muted-foreground">{ticket.ticketNumber}</span>
           <Badge variant={STATUS_COLORS[ticket.status] ?? "secondary"}>
             {ticket.status.replace("_", " ")}
@@ -115,11 +115,11 @@ export default function TicketDetailPage({
             className={cn(
               "rounded-lg border p-4",
               msg.isAdmin
-                ? "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 ml-6"
-                : "bg-muted/30 mr-6",
+                ? "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 ml-3 sm:ml-6"
+                : "bg-muted/30 mr-3 sm:mr-6",
             )}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-2">
               <span className="text-xs font-medium">
                 {msg.isAdmin ? "Support Team" : "You"}
               </span>
@@ -127,7 +127,7 @@ export default function TicketDetailPage({
                 {new Date(msg.createdAt).toLocaleString()}
               </span>
             </div>
-            <p className="text-sm whitespace-pre-wrap">{msg.body}</p>
+            <p className="text-sm whitespace-pre-wrap break-words">{msg.body}</p>
           </div>
         ))}
         {messages.length === 0 && (

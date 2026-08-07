@@ -252,9 +252,10 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
                 </p>
               </div>
 
-              {/* Delete button */}
+              {/* Delete button — always visible on mobile (no hover to reveal
+                  it there); hidden until hover/focus at sm+ to match desktop. */}
               <button
-                className="absolute right-2 top-2 hidden size-5 items-center justify-center rounded hover:bg-accent group-hover:flex"
+                className="absolute right-2 top-2 flex size-5 items-center justify-center rounded hover:bg-accent sm:hidden sm:group-hover:flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   void deleteNotification(n.id);

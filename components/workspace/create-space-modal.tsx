@@ -132,16 +132,17 @@ export function CreateSpaceModal({ open, onOpenChange, workspaceId }: CreateSpac
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-1">
+          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={pending}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={pending || !name.trim()} className="gap-2">
+            <Button type="submit" disabled={pending || !name.trim()} className="w-full gap-2 sm:w-auto">
               {pending && <Spinner className="size-4" />}
               Create Project
             </Button>

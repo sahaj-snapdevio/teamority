@@ -246,12 +246,12 @@ export default function NotificationSettingsPage() {
       {emailAvailable && (
         <div className="space-y-4 rounded-xl border p-4">
           <h3 className="font-medium">Email Delivery</h3>
-          <div className="flex items-center gap-4">
-            <Label htmlFor="delivery-mode" className="w-32 shrink-0">
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+            <Label htmlFor="delivery-mode" className="sm:w-32 sm:shrink-0">
               Delivery mode
             </Label>
             <Select value={deliveryMode} onValueChange={setDeliveryMode}>
-              <SelectTrigger id="delivery-mode" className="w-40">
+              <SelectTrigger id="delivery-mode" className="w-full sm:w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="p-1.5">
@@ -262,12 +262,12 @@ export default function NotificationSettingsPage() {
             </Select>
           </div>
           {deliveryMode === "digest" && (
-            <div className="flex items-center gap-4">
-              <Label htmlFor="digest-time" className="w-32 shrink-0">
+            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+              <Label htmlFor="digest-time" className="sm:w-32 sm:shrink-0">
                 Digest time
               </Label>
               <Select value={digestTime} onValueChange={setDigestTime}>
-                <SelectTrigger id="digest-time" className="w-40">
+                <SelectTrigger id="digest-time" className="w-full sm:w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="p-1.5">
@@ -305,7 +305,11 @@ export default function NotificationSettingsPage() {
       <div className="space-y-4">
         <h3 className="font-medium">Notification Preferences</h3>
         <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
+          {/* Horizontal scroll on narrow viewports — four switch columns plus
+              event labels don't fit under ~480px; the min-width keeps every
+              column legible and lets the row scroll instead of squeezing. */}
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-2 text-left font-medium">Event</th>
@@ -371,6 +375,7 @@ export default function NotificationSettingsPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

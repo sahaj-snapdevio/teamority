@@ -37,17 +37,17 @@ export default function AdminTicketsPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 space-y-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Support Tickets</h1>
         <p className="text-muted-foreground text-sm mt-1">{total.toLocaleString()} tickets</p>
       </div>
 
-      <div className="flex gap-4 items-center">
-        <Input placeholder="Search by subject…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="max-w-sm" />
-        <div className="flex gap-1 border rounded-md p-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Input placeholder="Search by subject…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="sm:max-w-sm" />
+        <div className="flex gap-1 overflow-x-auto border rounded-md p-1">
           {STATUS_TABS.map((tab) => (
-            <button key={tab.key} onClick={() => { setStatus(tab.key); setPage(1); }} className={`px-3 py-1 text-sm rounded transition-colors ${status === tab.key ? "bg-foreground text-background" : "hover:bg-muted"}`}>
+            <button key={tab.key} onClick={() => { setStatus(tab.key); setPage(1); }} className={`shrink-0 px-3 py-1 text-sm rounded transition-colors ${status === tab.key ? "bg-foreground text-background" : "hover:bg-muted"}`}>
               {tab.label}
             </button>
           ))}
@@ -55,38 +55,40 @@ export default function AdminTicketsPage() {
       </div>
 
       <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="text-left px-4 py-2 font-medium">#</th>
-              <th className="text-left px-4 py-2 font-medium">Subject</th>
-              <th className="text-left px-4 py-2 font-medium">Category</th>
-              <th className="text-left px-4 py-2 font-medium">Status</th>
-              <th className="text-left px-4 py-2 font-medium">Submitted By</th>
-              <th className="text-left px-4 py-2 font-medium">Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
-            ) : tickets.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">No tickets found</td></tr>
-            ) : tickets.map((t) => (
-              <tr key={t.id} className="border-t hover:bg-muted/30">
-                <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{t.ticketNumber}</td>
-                <td className="px-4 py-2">
-                  <Link href={`/admin/tickets/${t.id}`} className="hover:underline font-medium">{t.subject}</Link>
-                </td>
-                <td className="px-4 py-2 text-muted-foreground">{t.category}</td>
-                <td className="px-4 py-2">
-                  <Badge variant={STATUS_COLORS[t.status] ?? "secondary"}>{t.status.replace("_", " ")}</Badge>
-                </td>
-                <td className="px-4 py-2 text-muted-foreground">{t.userEmail ?? t.userId}</td>
-                <td className="px-4 py-2 text-muted-foreground">{new Date(t.createdAt).toLocaleDateString()}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-2 font-medium">#</th>
+                <th className="text-left px-4 py-2 font-medium">Subject</th>
+                <th className="text-left px-4 py-2 font-medium">Category</th>
+                <th className="text-left px-4 py-2 font-medium">Status</th>
+                <th className="text-left px-4 py-2 font-medium">Submitted By</th>
+                <th className="text-left px-4 py-2 font-medium">Created</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
+              ) : tickets.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">No tickets found</td></tr>
+              ) : tickets.map((t) => (
+                <tr key={t.id} className="border-t hover:bg-muted/30">
+                  <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{t.ticketNumber}</td>
+                  <td className="px-4 py-2">
+                    <Link href={`/admin/tickets/${t.id}`} className="hover:underline font-medium">{t.subject}</Link>
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">{t.category}</td>
+                  <td className="px-4 py-2">
+                    <Badge variant={STATUS_COLORS[t.status] ?? "secondary"}>{t.status.replace("_", " ")}</Badge>
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">{t.userEmail ?? t.userId}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{new Date(t.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {totalPages > 1 && (
