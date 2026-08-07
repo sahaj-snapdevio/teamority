@@ -139,7 +139,7 @@ function QuickCreateSprintTask({
     return (
       <button
         onClick={show}
-        className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+        className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-base-content/60 hover:text-base-content hover:bg-base-200/40 transition-colors"
       >
         <PlusIcon className="size-3.5 shrink-0" />
         Create task
@@ -148,7 +148,7 @@ function QuickCreateSprintTask({
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-background px-2 py-1.5 ring-1 ring-primary/20">
+    <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-base-100 px-2 py-1.5 ring-1 ring-primary/20">
       <input
         ref={inputRef}
         type="text"
@@ -157,20 +157,20 @@ function QuickCreateSprintTask({
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={onKeyDown}
         disabled={saving}
-        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 disabled:opacity-50"
+        className="flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/50 disabled:opacity-50"
       />
       <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={() => void submit()}
           disabled={saving || !title.trim()}
-          className="rounded px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors"
+          className="rounded px-2 py-0.5 text-xs font-medium bg-primary text-primary-content hover:bg-primary/90 disabled:opacity-40 transition-colors"
         >
           {saving ? "…" : "Add"}
         </button>
         <button
           onClick={cancel}
           disabled={saving}
-          className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="rounded px-1.5 py-0.5 text-xs text-base-content/60 hover:text-base-content transition-colors"
         >
           Esc
         </button>
@@ -215,7 +215,7 @@ function ActiveSprintCard({
           <div className="min-w-0">
             <p className="text-sm font-semibold truncate">{sprint.name}</p>
             {sprint.goal && (
-              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{sprint.goal}</p>
+              <p className="text-xs text-base-content/60 line-clamp-1 mt-0.5">{sprint.goal}</p>
             )}
           </div>
         </div>
@@ -227,7 +227,7 @@ function ActiveSprintCard({
       {progress && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">
+            <span className="text-base-content/60">
               {progress.closed}/{progress.total} tasks
             </span>
             <span className="font-medium">{percent}%</span>
@@ -238,14 +238,14 @@ function ActiveSprintCard({
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs">
-          <CalendarBlankIcon className="size-3 text-muted-foreground" />
+          <CalendarBlankIcon className="size-3 text-base-content/60" />
           {daysRemaining === null ? null : isOverdue ? (
-            <span className="text-destructive font-medium">
+            <span className="text-error font-medium">
               Overdue by {Math.abs(daysRemaining)}{" "}
               {Math.abs(daysRemaining) === 1 ? "day" : "days"}
             </span>
           ) : (
-            <span className="text-muted-foreground">
+            <span className="text-base-content/60">
               {daysRemaining === 0
                 ? "Ends today"
                 : `${daysRemaining} ${daysRemaining === 1 ? "day" : "days"} left`}
@@ -311,18 +311,18 @@ function PlannedSprintRow({
 
   return (
     <>
-      <div className="rounded-md border bg-card group">
+      <div className="rounded-md border bg-elevated group">
         <div className="flex items-center gap-3 px-3 py-2.5">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{sprint.name}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-base-content/60">
               {sprint.startDate ? `Starts ${formatDate(sprint.startDate)}` : "No start date"}
             </p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="hidden items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100 px-1 sm:flex"
+              className="hidden items-center gap-1 text-xs text-base-content/60 hover:text-base-content transition-colors opacity-0 group-hover:opacity-100 px-1 sm:flex"
             >
               <PlusIcon className="size-3" />
               New task
@@ -330,7 +330,7 @@ function PlannedSprintRow({
             {listId && (
               <button
                 onClick={() => onAddTasks(sprint.id)}
-                className="hidden items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100 px-1 sm:flex"
+                className="hidden items-center gap-1 text-xs text-base-content/60 hover:text-base-content transition-colors opacity-0 group-hover:opacity-100 px-1 sm:flex"
               >
                 Add tasks
               </button>
@@ -351,7 +351,7 @@ function PlannedSprintRow({
             )}
             <button
               disabled={deleting || starting}
-              className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 sm:opacity-0 sm:group-hover:opacity-100"
+              className="flex size-7 items-center justify-center rounded-md text-base-content/60 opacity-100 transition-all hover:bg-error/10 hover:text-error disabled:opacity-30 sm:opacity-0 sm:group-hover:opacity-100"
               aria-label="Delete sprint"
               onClick={() => setConfirmDelete(true)}
             >
@@ -385,7 +385,7 @@ function PlannedSprintRow({
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-error text-error-content hover:bg-error/90"
               onClick={() => void handleConfirmDelete()}
             >
               {deleting ? "Deleting…" : "Delete"}
@@ -527,16 +527,16 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
         />
       )}
 
-      <div className="rounded-lg border bg-card">
-        <div className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-lg hover:bg-accent/50 transition-colors">
+      <div className="rounded-lg border bg-elevated">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-lg hover:bg-base-200/50 transition-colors">
           <button
             onClick={() => setExpanded((v) => !v)}
             className="flex flex-1 items-center gap-2 text-left min-w-0"
           >
             {expanded
-              ? <CaretDownIcon className="size-3.5 text-muted-foreground shrink-0" />
-              : <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />}
-            <TargetIcon className="size-4 text-muted-foreground shrink-0" />
+              ? <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />
+              : <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />}
+            <TargetIcon className="size-4 text-base-content/60 shrink-0" />
             <span className="text-sm font-medium">Sprints</span>
           </button>
           <div className="flex items-center gap-2 shrink-0">
@@ -546,13 +546,13 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
               </Badge>
             )}
             {plannedSprints.length > 0 && (
-              <Badge variant="outline" className="border-border text-muted-foreground bg-muted text-xs px-2 py-1 rounded">
+              <Badge variant="outline" className="border-base-300 text-base-content/60 bg-base-200 text-xs px-2 py-1 rounded">
                 {plannedSprints.length} Planned
               </Badge>
             )}
             <button
               onClick={handleCreateClick}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
+              className="flex items-center gap-1 text-xs text-base-content/60 hover:text-base-content transition-colors px-1"
             >
               <PlusIcon className="size-3.5" />
               Create Sprint
@@ -563,13 +563,13 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
         {expanded && (
           <div className="px-4 pb-4 space-y-3">
             {error && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>
+              <p className="rounded-md bg-error/10 px-3 py-2 text-xs text-error">{error}</p>
             )}
 
             {loading ? (
               <div className="space-y-2">
                 {[1, 2].map((i) => (
-                  <div key={i} className="h-12 rounded-md bg-muted animate-pulse" />
+                  <div key={i} className="h-12 rounded-md bg-base-200 animate-pulse" />
                 ))}
               </div>
             ) : (
@@ -595,7 +595,7 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
                 {plannedSprints.length > 0 && (
                   <div className="space-y-1.5">
                     {activeSprints.length > 0 && (
-                      <p className="text-xs font-medium text-muted-foreground px-1">Planned</p>
+                      <p className="text-xs font-medium text-base-content/60 px-1">Planned</p>
                     )}
                     {plannedSprints.map((s) => (
                       <PlannedSprintRow
@@ -616,9 +616,9 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
 
                 {sprints.length === 0 && (
                   <div className="flex flex-col items-center gap-2 py-6 text-center">
-                    <TargetIcon className="size-8 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">No sprints yet</p>
-                    <p className="text-xs text-muted-foreground/70">
+                    <TargetIcon className="size-8 text-base-content/40" />
+                    <p className="text-sm text-base-content/60">No sprints yet</p>
+                    <p className="text-xs text-base-content/70">
                       Create a sprint to start organizing work into iterations
                     </p>
                   </div>
@@ -626,7 +626,7 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
 
                 {sprints.length > 0 && <div className="h-px bg-border" />}
 
-                <div className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 px-1 text-xs text-base-content/60">
                   <span className="font-medium">Backlog</span>
                   <Badge variant="secondary" className="text-xs h-5 px-1.5">{backlogCount}</Badge>
                 </div>
@@ -635,7 +635,7 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
                   <div className="space-y-1">
                     <button
                       onClick={() => setClosedExpanded((v) => !v)}
-                      className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                      className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-xs text-base-content/60 hover:text-base-content hover:bg-base-200/40 transition-colors"
                     >
                       {closedExpanded
                         ? <CaretDownIcon className="size-3 shrink-0" />
@@ -651,13 +651,13 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
                           <button
                             key={s.id}
                             onClick={() => router.push(`/${workspaceId}/${spaceId}/sprint/${s.id}`)}
-                            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-accent/50 transition-colors group/closed"
+                            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-base-200/50 transition-colors group/closed"
                           >
                             <CheckCircleIcon className="size-3.5 shrink-0 text-green-500" weight="fill" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-medium truncate">{s.name}</p>
                               {(s.startDate || s.endDate) && (
-                                <p className="text-[11px] text-muted-foreground/70 truncate">
+                                <p className="text-[11px] text-base-content/70 truncate">
                                   {s.startDate ? format(new Date(s.startDate), "MMM d") : "—"}
                                   {" → "}
                                   {s.endDate ? format(new Date(s.endDate), "MMM d") : "—"}

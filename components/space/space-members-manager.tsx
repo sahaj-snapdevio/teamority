@@ -120,7 +120,7 @@ export function SpaceMembersManager({
   return (
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-base-content/60">
           {members.length} member{members.length !== 1 ? "s" : ""} with explicit access
         </p>
 
@@ -146,7 +146,7 @@ export function SpaceMembersManager({
                       <SelectItem key={m.userId} value={m.userId}>
                         {m.name ?? m.email}
                         {m.name && (
-                          <span className="text-muted-foreground ml-1 text-xs">{m.email}</span>
+                          <span className="text-base-content/60 ml-1 text-xs">{m.email}</span>
                         )}
                       </SelectItem>
                     ))}
@@ -188,7 +188,7 @@ export function SpaceMembersManager({
       </div>
 
       {members.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-6 text-center">
+        <p className="text-sm text-base-content/60 py-6 text-center">
           No explicit members yet. Public Projects are visible to all workspace members with View access.
         </p>
       ) : (
@@ -201,7 +201,7 @@ export function SpaceMembersManager({
                   {member.user.name ?? member.user.email}
                 </p>
                 {member.user.name && (
-                  <p className="text-xs text-muted-foreground truncate">{member.user.email}</p>
+                  <p className="text-xs text-base-content/60 truncate">{member.user.email}</p>
                 )}
               </div>
 
@@ -229,7 +229,7 @@ export function SpaceMembersManager({
                       variant="ghost"
                       size="sm"
                       disabled={pending}
-                      className="text-destructive hover:text-destructive"
+                      className="text-error hover:text-error"
                     >
                       Remove
                     </Button>
@@ -245,7 +245,7 @@ export function SpaceMembersManager({
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => handleRemove(member.userId)}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="bg-error text-error-content hover:bg-error/90"
                     >
                       Remove
                     </AlertDialogAction>

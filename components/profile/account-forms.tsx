@@ -23,14 +23,14 @@ const initialState: ActionState = {};
 function ActionMessage({ state }: { state: ActionState }) {
   if (state.error) {
     return (
-      <p className="rounded-none bg-destructive/10 p-3 text-destructive text-sm">
+      <p className="rounded-none bg-error/10 p-3 text-error text-sm">
         {state.error}
       </p>
     );
   }
   if (state.success) {
     return (
-      <p className="rounded-none bg-success-subtle p-3 text-success-foreground text-sm">
+      <p className="rounded-none bg-success-subtle p-3 text-success-strong text-sm">
         {state.success}
       </p>
     );
@@ -71,7 +71,7 @@ function EmailChangeForm({ email, callbackURL }: { email: string; callbackURL: s
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <label className="block" htmlFor="email">
-        <span className="mb-2 block font-semibold text-foreground text-sm">
+        <span className="mb-2 block font-semibold text-base-content text-sm">
           New email
         </span>
         <Input
@@ -83,7 +83,7 @@ function EmailChangeForm({ email, callbackURL }: { email: string; callbackURL: s
         />
       </label>
       {message && (
-        <p className={`rounded-md p-3 text-sm ${message.type === "error" ? "bg-destructive/10 text-destructive" : "bg-success-subtle text-success-foreground"}`}>
+        <p className={`rounded-md p-3 text-sm ${message.type === "error" ? "bg-error/10 text-error" : "bg-success-subtle text-success-strong"}`}>
           {message.text}
         </p>
       )}
@@ -120,7 +120,7 @@ export function AccountIdentityForms({
         <CardContent>
           <form action={nameAction} className="space-y-4">
             <label className="block" htmlFor="name">
-              <span className="mb-2 block font-semibold text-foreground text-sm">
+              <span className="mb-2 block font-semibold text-base-content text-sm">
                 Name
               </span>
               <Input
@@ -161,9 +161,9 @@ export function DeleteAccountForm({ email }: { email: string }) {
   );
 
   return (
-    <Card className="border-destructive/30">
+    <Card className="border-error/30">
       <CardHeader>
-        <CardTitle className="text-destructive">Delete Account</CardTitle>
+        <CardTitle className="text-error">Delete Account</CardTitle>
         <CardDescription>
           Permanently delete your user, sessions, and linked auth accounts.
           Audit records remain for operator history.
@@ -172,7 +172,7 @@ export function DeleteAccountForm({ email }: { email: string }) {
       <CardContent>
         <form action={action} className="space-y-4">
           <label className="block" htmlFor="confirmEmail">
-            <span className="mb-2 block font-semibold text-foreground text-sm">
+            <span className="mb-2 block font-semibold text-base-content text-sm">
               Type your email to confirm
             </span>
             <Input

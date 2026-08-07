@@ -8,44 +8,48 @@ This is the single source of truth for all visual design decisions in Kanbanica.
 
 ## Color Palette
 
-### Brand Colors
+**This section reflects the actual token system as of the daisyUI migration**
+(`.claude/plans/i-need-complete-migration-refactored-kite.md`). The rest of
+this document predates that migration and describes an earlier, never-
+implemented token vocabulary (`--color-brand`, `theme.extend`, etc.) — treat
+everything below "Typography" as historical/aspirational, not current.
 
-| Token | Hex | Usage |
-|-------|-----|-------|
-| `--color-brand` | `#6366F1` | Primary CTAs, active states, links, focus rings |
-| `--color-brand-hover` | `#4F46E5` | Hover state on brand elements |
-| `--color-brand-light` | `#EEF2FF` | Backgrounds for selected/active items |
+Kanbanica uses daisyUI's semantic color tokens, defined once per light/dark
+mode in `app/globals.css` and overridden per accent theme via `[data-theme]`
+blocks (11 accents × light/dark = 22 combinations, `lib/theme.ts` `THEME_IDS`).
+Use the Tailwind utility, not the raw CSS var, in components:
 
-### Neutrals (used for text, backgrounds, borders)
+| Utility | Token | Usage |
+|---------|-------|-------|
+| `bg-base-100` | `--color-base-100` | Page/app background |
+| `bg-base-200` | `--color-base-200` | Muted surfaces, hover/selected highlights |
+| `border-base-300` | `--color-base-300` | Dividers, input/card borders |
+| `text-base-content` | `--color-base-content` | Primary text |
+| `text-base-content/60` | — | Secondary/muted text (opacity modifier, not a separate token) |
+| `bg-primary` / `text-primary-content` | `--color-primary` / `-content` | Brand CTAs, active states, links, focus rings — the one brand color, overridden per accent theme |
+| `bg-accent` / `text-accent-content` | `--color-accent` / `-content` | Aliases `primary` (daisyUI requires the role to exist; nothing in the app currently opts into a distinct accent hue) |
+| `bg-elevated` | `--color-elevated` (custom, non-daisyUI) | Cards, popovers, modals — one surface level above `base-100` |
+| `bg-error` / `text-error-content` | `--color-error` / `-content` | Destructive actions, error states |
+| `bg-success` / `bg-warning` / `bg-info` (+ `-content`) | matching | Status colors |
+| `bg-success-subtle` / `text-success-strong` (custom) | — | Soft success badge pair (tinted bg + strong text) — not daisyUI's on-solid `-content` semantics |
+| `bg-secondary` / `text-secondary-foreground` | `--color-secondary` / (custom `-foreground` name) | Still the pre-migration pale neutral tone — deliberately not part of the daisyUI migration; do not add new usages without checking current status first |
 
-| Token | Hex | Usage |
-|-------|-----|-------|
-| `--color-bg` | `#FFFFFF` | Main page background |
-| `--color-bg-subtle` | `#F9FAFB` | Sidebar, panels, secondary backgrounds |
-| `--color-bg-muted` | `#F3F4F6` | Hover states, chips, code blocks |
-| `--color-border` | `#E5E7EB` | Dividers, input borders, card borders |
-| `--color-border-strong` | `#D1D5DB` | Focused input borders |
-| `--color-text` | `#111827` | Primary text |
-| `--color-text-secondary` | `#6B7280` | Subtext, labels, timestamps |
-| `--color-text-muted` | `#9CA3AF` | Placeholder text, disabled text |
-| `--color-text-inverse` | `#FFFFFF` | Text on dark/brand backgrounds |
-
-### Semantic Colors
-
-| Token | Hex | Usage |
-|-------|-----|-------|
-| `--color-success` | `#10B981` | Completed states, success toasts |
-| `--color-success-light` | `#D1FAE5` | Success background |
-| `--color-warning` | `#F59E0B` | Warning states, overdue indicators |
-| `--color-warning-light` | `#FEF3C7` | Warning background |
-| `--color-danger` | `#EF4444` | Errors, delete actions, danger zone |
-| `--color-danger-light` | `#FEE2E2` | Error background |
-| `--color-info` | `#3B82F6` | Info states, neutral notifications |
-| `--color-info-light` | `#DBEAFE` | Info background |
+**Do not use**: `bg-background`, `text-foreground`, `bg-muted`, `border-border`,
+`border-input`, `bg-card`, `bg-popover`, `text-card-foreground`,
+`text-popover-foreground`, `text-muted-foreground`, `text-primary-foreground`,
+`bg-destructive`, `text-destructive`, `border-destructive`, `ring-destructive`,
+`text-accent-foreground` — these were the pre-migration shadcn-style names;
+most no longer resolve to a real color at all (`pnpm lint:tokens` catches
+regressions). `bg-accent`/`hover:bg-accent` as a *neutral highlight* were
+retired the same way — use `bg-base-200` instead.
 
 ### Dark Mode
 
-Dark mode uses the same tokens — values swap. Tailwind `dark:` variants handle this. Not in MVP scope but tokens are named to support it cleanly later.
+Handled by a `.dark` class on `<html>` (`@custom-variant dark`), driven by a
+per-user `appearanceMode` (`light`/`dark`/`auto`) — see `lib/theme.ts` and
+`docs/authentication.md`. Every token above has both a `:root` (light) and
+`.dark` value; components should never need a manual `dark:` override for
+color — the token itself is theme-aware.
 
 ---
 

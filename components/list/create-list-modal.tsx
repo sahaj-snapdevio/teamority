@@ -107,7 +107,7 @@ export function CreateListModal({
             </div>
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-sm text-error">{error}</p>}
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={loading}>

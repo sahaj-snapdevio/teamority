@@ -90,7 +90,7 @@ export function ListGeneralSettingsForm({
       <div className="space-y-1.5">
         <Label htmlFor="lg-desc">
           Description{" "}
-          <span className="text-muted-foreground font-normal">(optional)</span>
+          <span className="text-base-content/60 font-normal">(optional)</span>
         </Label>
         <Textarea
           id="lg-desc"
@@ -103,7 +103,7 @@ export function ListGeneralSettingsForm({
         />
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-sm text-error">{error}</p>}
 
       <div className="flex justify-end">
         <Button type="submit" disabled={loading || !name.trim()}>

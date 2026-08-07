@@ -75,7 +75,7 @@ export default function AdminUserDetailPage({
   }
 
   if (!u) {
-    return <div className="p-4 text-muted-foreground sm:p-8">Loading…</div>;
+    return <div className="p-4 text-base-content/60 sm:p-8">Loading…</div>;
   }
 
   return (
@@ -83,7 +83,7 @@ export default function AdminUserDetailPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{u.name}</h1>
-          <p className="text-muted-foreground">{u.email}</p>
+          <p className="text-base-content/60">{u.email}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {u.banned ? (
@@ -166,15 +166,15 @@ export default function AdminUserDetailPage({
           },
         ].map(({ label, value }) => (
           <div className="border rounded-lg p-4" key={label}>
-            <div className="text-xs text-muted-foreground">{label}</div>
+            <div className="text-xs text-base-content/60">{label}</div>
             <div className="mt-1 font-medium">{value}</div>
           </div>
         ))}
       </div>
 
       {u.banReason && (
-        <div className="border border-destructive/30 bg-destructive/5 rounded-lg p-4">
-          <div className="text-sm font-medium text-destructive">Ban Reason</div>
+        <div className="border border-error/30 bg-error/5 rounded-lg p-4">
+          <div className="text-sm font-medium text-error">Ban Reason</div>
           <div className="text-sm mt-1">{u.banReason}</div>
         </div>
       )}
@@ -186,7 +186,7 @@ export default function AdminUserDetailPage({
         <div className="rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50">
+              <thead className="bg-base-200/50">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Workspace</th>
                   <th className="text-left px-4 py-2 font-medium">Role</th>
@@ -198,7 +198,7 @@ export default function AdminUserDetailPage({
                 {workspaces.length === 0 ? (
                   <tr>
                     <td
-                      className="px-4 py-4 text-center text-muted-foreground"
+                      className="px-4 py-4 text-center text-base-content/60"
                       colSpan={4}
                     >
                       No workspaces
@@ -210,7 +210,7 @@ export default function AdminUserDetailPage({
                       <td className="px-4 py-2 font-medium">{w.workspaceName}</td>
                       <td className="px-4 py-2">{w.role}</td>
                       <td className="px-4 py-2">{w.status}</td>
-                      <td className="px-4 py-2 text-muted-foreground">
+                      <td className="px-4 py-2 text-base-content/60">
                         {w.joinedAt
                           ? new Date(w.joinedAt).toLocaleDateString()
                           : "—"}
@@ -231,7 +231,7 @@ export default function AdminUserDetailPage({
         <div className="rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50">
+              <thead className="bg-base-200/50">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Created</th>
                   <th className="text-left px-4 py-2 font-medium">Expires</th>
@@ -245,7 +245,7 @@ export default function AdminUserDetailPage({
                 {sessions.length === 0 ? (
                   <tr>
                     <td
-                      className="px-4 py-4 text-center text-muted-foreground"
+                      className="px-4 py-4 text-center text-base-content/60"
                       colSpan={4}
                     >
                       No active sessions
@@ -254,16 +254,16 @@ export default function AdminUserDetailPage({
                 ) : (
                   sessions.map((s) => (
                     <tr className="border-t" key={s.id}>
-                      <td className="px-4 py-2 text-muted-foreground">
+                      <td className="px-4 py-2 text-base-content/60">
                         {new Date(s.createdAt).toLocaleString()}
                       </td>
-                      <td className="px-4 py-2 text-muted-foreground">
+                      <td className="px-4 py-2 text-base-content/60">
                         {new Date(s.expiresAt).toLocaleString()}
                       </td>
-                      <td className="px-4 py-2 text-muted-foreground">
+                      <td className="px-4 py-2 text-base-content/60">
                         {s.ipAddress ?? "—"}
                       </td>
-                      <td className="px-4 py-2 text-muted-foreground">
+                      <td className="px-4 py-2 text-base-content/60">
                         {s.impersonatedBy ?? "—"}
                       </td>
                     </tr>

@@ -378,7 +378,7 @@ export function WorkspaceShell({
   }
 
   return (
-    <div className="workspace-shell flex h-screen bg-background overflow-hidden">
+    <div className="workspace-shell flex h-screen bg-base-100 overflow-hidden">
       <SearchPalette
         onClose={() => setSearchOpen(false)}
         open={searchOpen}
@@ -478,7 +478,7 @@ export function WorkspaceShell({
       {/* Sidebar — full height */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-60 shrink-0 flex-col border-r border-border bg-(--bg-sidebar) transition-transform duration-200 lg:static lg:h-full",
+          "fixed inset-y-0 left-0 z-30 flex w-60 shrink-0 flex-col border-r border-base-300 bg-(--bg-sidebar) transition-transform duration-200 lg:static lg:h-full",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
@@ -497,12 +497,12 @@ export function WorkspaceShell({
               </button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-64 p-1">
-              <p className="px-2 py-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+              <p className="px-2 py-1.5 font-medium text-base-content/60 text-xs uppercase tracking-wide">
                 Workspaces
               </p>
               {workspaces.map((ws) => (
                 <Link
-                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                   href={`/${ws.id}`}
                   key={ws.id}
                 >
@@ -517,7 +517,7 @@ export function WorkspaceShell({
               ))}
               <Separator className="my-1" />
               <Link
-                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                 href="/onboarding?new=1"
               >
                 <PlusIcon className="size-4" />
@@ -663,32 +663,32 @@ export function WorkspaceShell({
                         side="right"
                       >
                         <Link
-                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                           href={`/${workspace.id}/${s.id}/settings/general`}
                           onClick={() => setSidebarOpen(false)}
                         >
-                          <GearIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                          <GearIcon className="size-3.5 shrink-0 text-base-content/60" />
                           Settings
                         </Link>
                         <Link
-                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                           href={`/${workspace.id}/${s.id}/activity`}
                           onClick={() => setSidebarOpen(false)}
                         >
-                          <ClockIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                          <ClockIcon className="size-3.5 shrink-0 text-base-content/60" />
                           Activity
                         </Link>
                         <Link
-                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                           href={`/${workspace.id}/${s.id}/settings/members`}
                           onClick={() => setSidebarOpen(false)}
                         >
-                          <LockSimpleIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                          <LockSimpleIcon className="size-3.5 shrink-0 text-base-content/60" />
                           Members & Permissions
                         </Link>
                         <div className="my-1 h-px bg-border" />
                         <button
-                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                           onClick={() =>
                             setSpaceAction({
                               id: s.id,
@@ -697,11 +697,11 @@ export function WorkspaceShell({
                             })
                           }
                         >
-                          <ArchiveIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                          <ArchiveIcon className="size-3.5 shrink-0 text-base-content/60" />
                           Archive Project
                         </button>
                         <button
-                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-error transition-colors hover:bg-error/10"
                           onClick={() =>
                             setSpaceAction({
                               id: s.id,
@@ -774,23 +774,23 @@ export function WorkspaceShell({
                                   side="right"
                                 >
                                   <Link
-                                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                                     href={`/${workspace.id}/${s.id}/list/${l.id}/settings/general`}
                                     onClick={() => setSidebarOpen(false)}
                                   >
-                                    <GearIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                                    <GearIcon className="size-3.5 shrink-0 text-base-content/60" />
                                     Settings
                                   </Link>
                                   <Link
-                                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                                     href={`/${workspace.id}/${s.id}/list/${l.id}/settings/statuses`}
                                     onClick={() => setSidebarOpen(false)}
                                   >
-                                    <PencilSimpleIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                                    <PencilSimpleIcon className="size-3.5 shrink-0 text-base-content/60" />
                                     Manage Statuses
                                   </Link>
                                   <button
-                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                                     onClick={() =>
                                       setDuplicateListTarget({
                                         spaceId: s.id,
@@ -798,12 +798,12 @@ export function WorkspaceShell({
                                       })
                                     }
                                   >
-                                    <CopyIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                                    <CopyIcon className="size-3.5 shrink-0 text-base-content/60" />
                                     Duplicate
                                   </button>
                                   <div className="my-1 h-px bg-border" />
                                   <button
-                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                                     onClick={async () => {
                                       const res = await archiveList(
                                         workspace.id,
@@ -835,7 +835,7 @@ export function WorkspaceShell({
                                   </button>
                                   {isAdmin && (
                                     <button
-                                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-error transition-colors hover:bg-error/10"
                                       onClick={() =>
                                         setDeleteList({
                                           spaceId: s.id,
@@ -1118,12 +1118,12 @@ export function WorkspaceShell({
           {/* Channels section — post-MVP, hidden for now */}
           {/* <div>
             <div className="flex items-center px-2 pb-1">
-              <p className="flex-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+              <p className="flex-1 font-medium text-base-content/60 text-xs uppercase tracking-wide">
                 Channels
               </p>
               <button
                 onClick={() => setAddMemberChannel(channels[0] ? { id: channels[0].id, name: channels[0].name } : null)}
-                className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="flex size-5 items-center justify-center rounded text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                 title="Add Member"
                 disabled={channels.length === 0}
               >
@@ -1131,7 +1131,7 @@ export function WorkspaceShell({
               </button>
               <button
                 onClick={() => setCreateChannelOpen(true)}
-                className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="flex size-5 items-center justify-center rounded text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                 title="Create Channel"
               >
                 <PlusIcon className="size-3.5" />
@@ -1149,8 +1149,8 @@ export function WorkspaceShell({
                       className={cn(
                         "flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
                         active
-                          ? "bg-accent font-medium text-accent-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                          ? "bg-base-200 font-medium text-base-content"
+                          : "text-base-content/60 hover:bg-base-200 hover:text-base-content",
                       )}
                     >
                       <HashIcon className="size-4 shrink-0" weight="bold" />
@@ -1158,17 +1158,17 @@ export function WorkspaceShell({
                     </Link>
                     <button
                       onClick={() => setAddMemberChannel({ id: ch.id, name: ch.name })}
-                      className="absolute right-1 opacity-0 transition-opacity group-hover/channel:opacity-100 flex size-5 items-center justify-center rounded hover:bg-accent"
+                      className="absolute right-1 opacity-0 transition-opacity group-hover/channel:opacity-100 flex size-5 items-center justify-center rounded hover:bg-base-200"
                       title="Add members"
                     >
-                      <UserPlusIcon className="size-3.5 text-muted-foreground" />
+                      <UserPlusIcon className="size-3.5 text-base-content/60" />
                     </button>
                   </div>
                 );
               })}
               <button
                 onClick={() => setCreateChannelOpen(true)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
               >
                 <PlusIcon className="size-3" />
                 Add Channel
@@ -1236,10 +1236,10 @@ export function WorkspaceShell({
                 /* Project picker — replaces the menu in-place (single popup, no side panel) */
                 <div>
                   <button
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors hover:bg-accent"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors hover:bg-base-200"
                     onClick={() => setShowProjectPicker(false)}
                   >
-                    <ArrowLeftIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <ArrowLeftIcon className="size-4 shrink-0 text-base-content/60" />
                     <span className="flex-1 text-left">Project settings</span>
                   </button>
                   <Separator className="my-1.5" />
@@ -1250,7 +1250,7 @@ export function WorkspaceShell({
                       const isCurrent = pathname.split("/")[2] === s.id;
                       return (
                         <Link
-                          className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent ${isCurrent ? "bg-accent font-medium" : ""}`}
+                          className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-base-200 ${isCurrent ? "bg-base-200 font-medium" : ""}`}
                           href={`/${workspace.id}/${s.id}/settings/general`}
                           key={s.id}
                           onClick={() => {
@@ -1277,27 +1277,27 @@ export function WorkspaceShell({
                 /* Account menu */
                 <div>
                   <Link
-                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-base-200"
                     href={`/${workspace.id}/profile`}
                     onClick={() => {
                       setProfileOpen(false);
                       setSidebarOpen(false);
                     }}
                   >
-                    <UserCircleIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <UserCircleIcon className="size-4 shrink-0 text-base-content/60" />
                     Edit profile
                   </Link>
                   <Separator className="my-1.5" />
                   {isAdmin && (
                     <Link
-                      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-base-200"
                       href={`/${workspace.id}/settings/general`}
                       onClick={() => {
                         setProfileOpen(false);
                         setSidebarOpen(false);
                       }}
                     >
-                      <GearIcon className="size-4 shrink-0 text-muted-foreground" />
+                      <GearIcon className="size-4 shrink-0 text-base-content/60" />
                       Workspace settings
                     </Link>
                   )}
@@ -1307,19 +1307,19 @@ export function WorkspaceShell({
                     (spaces.length === 1 ? (
                       // Single project — go straight to its settings, no picker needed.
                       <Link
-                        className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                        className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-base-200"
                         href={`/${workspace.id}/${spaces[0].id}/settings/general`}
                         onClick={() => {
                           setProfileOpen(false);
                           setSidebarOpen(false);
                         }}
                       >
-                        <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
+                        <FolderIcon className="size-4 shrink-0 text-base-content/60" />
                         Project settings
                       </Link>
                     ) : (
                       <button
-                        className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                        className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-base-200"
                         onClick={() => {
                           // openProfileMenu() cancels any close already
                           // scheduled by a mouseleave in flight — without it
@@ -1328,52 +1328,52 @@ export function WorkspaceShell({
                           setShowProjectPicker(true);
                         }}
                       >
-                        <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
+                        <FolderIcon className="size-4 shrink-0 text-base-content/60" />
                         <span className="flex-1 text-left">
                           Project settings
                         </span>
-                        <CaretRightIcon className="size-3.5 text-muted-foreground" />
+                        <CaretRightIcon className="size-3.5 text-base-content/60" />
                       </button>
                     ))}
                   <Link
-                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-base-200"
                     href={`/${workspace.id}/notifications/settings`}
                     onClick={() => {
                       setProfileOpen(false);
                       setSidebarOpen(false);
                     }}
                   >
-                    <BellIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <BellIcon className="size-4 shrink-0 text-base-content/60" />
                     Notification settings
                   </Link>
                   <Link
-                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                    className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-base-200"
                     href={`/${workspace.id}/theme`}
                     onClick={() => {
                       setProfileOpen(false);
                       setSidebarOpen(false);
                     }}
                   >
-                    <PaletteIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <PaletteIcon className="size-4 shrink-0 text-base-content/60" />
                     Theme
                   </Link>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-base-200"
                     onClick={() => {
                       setProfileOpen(false);
                       setShortcutsOpen(true);
                     }}
                   >
-                    <KeyboardIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <KeyboardIcon className="size-4 shrink-0 text-base-content/60" />
                     <span className="flex-1 text-left">Keyboard shortcuts</span>
-                    <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-2xs font-medium text-muted-foreground">
+                    <kbd className="rounded border bg-base-200 px-1.5 py-0.5 font-mono text-2xs font-medium text-base-content/60">
                       ?
                     </kbd>
                   </button>
                   <Separator className="my-1.5" />
                   <button
-                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-error transition-colors hover:bg-error/10"
                     onClick={() => {
                       setProfileOpen(false);
                       handleSignOut();
@@ -1456,7 +1456,7 @@ function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
   }
 
   return (
-    <div className="h-9 shrink-0 border-b border-border bg-surface overflow-hidden">
+    <div className="h-9 shrink-0 border-b border-base-300 bg-surface overflow-hidden">
       <div
         className="flex h-full items-center gap-1 px-3 overflow-x-auto [&::-webkit-scrollbar]:hidden"
         onWheel={handleWheel}
@@ -1464,7 +1464,7 @@ function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
         style={{ scrollbarWidth: "none" } as React.CSSProperties}
       >
         <PushPinIcon
-          className="size-3 shrink-0 text-muted-foreground"
+          className="size-3 shrink-0 text-base-content/60"
           weight="fill"
         />
         {pinned.map((item) => {
@@ -1475,7 +1475,7 @@ function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
                 "group/pin relative flex h-5 items-center rounded shrink-0 max-w-40 overflow-hidden border",
                 isActive
                   ? "bg-primary/10 border-primary/30"
-                  : "border-border hover:bg-accent"
+                  : "border-base-300 hover:bg-base-200"
               )}
               key={item.id}
             >
@@ -1484,7 +1484,7 @@ function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
                   "min-w-0 flex-1 flex h-full items-center pl-2 pr-1 text-xs font-medium transition-colors cursor-pointer overflow-hidden",
                   isActive
                     ? "text-primary"
-                    : "text-muted-foreground group-hover/pin:text-foreground"
+                    : "text-base-content/60 group-hover/pin:text-base-content"
                 )}
                 onClick={() =>
                   router.push(`/${workspaceId}/task/${item.taskId}`)
@@ -1496,7 +1496,7 @@ function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
                 <span className="truncate block">{item.taskTitle}</span>
               </button>
               <button
-                className="hidden group-hover/pin:flex shrink-0 h-full items-center px-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="hidden group-hover/pin:flex shrink-0 h-full items-center px-1 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
                 onClick={(e) => handleUnpin(e, item.taskId)}
                 title="Unpin"
               >
@@ -1529,7 +1529,7 @@ function TopbarRightColumn({
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       {/* Top bar */}
-      <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center border-b border-border bg-surface px-4 gap-3">
+      <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center border-b border-base-300 bg-surface px-4 gap-3">
         {/* Mobile sidebar toggle */}
         <Button
           className="size-8 lg:hidden shrink-0"
@@ -1547,12 +1547,12 @@ function TopbarRightColumn({
               {topbar.breadcrumbs.map((crumb, i) => (
                 <React.Fragment key={i}>
                   {i > 0 && (
-                    <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+                    <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
                   )}
                   {crumb.href ? (
                     <Link
                       href={crumb.href}
-                      className="flex items-center gap-1.5 text-muted-foreground font-medium shrink-0 hover:text-foreground transition-colors"
+                      className="flex items-center gap-1.5 text-base-content/60 font-medium shrink-0 hover:text-base-content transition-colors"
                     >
                       {(crumb.emoji || crumb.color) && (
                         <SpaceIcon emoji={crumb.emoji} color={crumb.color} />
@@ -1560,7 +1560,7 @@ function TopbarRightColumn({
                       {crumb.label}
                     </Link>
                   ) : (
-                    <span className="flex items-center gap-1.5 text-muted-foreground font-medium shrink-0">
+                    <span className="flex items-center gap-1.5 text-base-content/60 font-medium shrink-0">
                       {(crumb.emoji || crumb.color) && (
                         <SpaceIcon emoji={crumb.emoji} color={crumb.color} />
                       )}
@@ -1570,9 +1570,9 @@ function TopbarRightColumn({
                 </React.Fragment>
               ))}
               {topbar.breadcrumbs.length > 0 && (
-                <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+                <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
               )}
-              <span className="font-semibold text-foreground truncate">
+              <span className="font-semibold text-base-content truncate">
                 {topbar.title}
               </span>
               {topbar.actions && (
@@ -1593,12 +1593,12 @@ function TopbarRightColumn({
           <MagnifyingGlassIcon className="size-4.5" />
         </Button>
         <button
-          className="hidden sm:flex items-center gap-2 h-8 w-52 shrink-0 rounded-md border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="hidden sm:flex items-center gap-2 h-8 w-52 shrink-0 rounded-md border bg-base-200/50 px-3 text-sm text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
           onClick={onOpenSearch}
         >
           <MagnifyingGlassIcon className="size-4 shrink-0" />
           <span className="flex-1 text-left text-sm">Search…</span>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border bg-background px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border bg-base-100 px-1.5 py-0.5 text-xs font-medium text-base-content/60">
             ⌘K
           </kbd>
         </button>

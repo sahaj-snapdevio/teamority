@@ -169,7 +169,7 @@ export function ListFilterToolbar({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border border-base-300 px-2.5 text-xs font-semibold text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
           >
             <FloppyDiskIcon className="size-3.5" /> Saved
           </button>
@@ -204,7 +204,7 @@ export function ListFilterToolbar({
                       <button
                         type="button"
                         onClick={() => onChange(sf.filters as FilterState)}
-                        className="flex-1 rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-accent"
+                        className="flex-1 rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-base-200"
                       >
                         {sf.name}
                       </button>
@@ -214,14 +214,14 @@ export function ListFilterToolbar({
                           setRenameId(sf.id);
                           setRenameName(sf.name);
                         }}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="text-base-content/60 hover:text-base-content"
                       >
                         <PencilSimpleIcon className="size-3" />
                       </button>
                       <button
                         type="button"
                         onClick={() => void handleDelete(sf.id)}
-                        className="text-muted-foreground hover:text-destructive"
+                        className="text-base-content/60 hover:text-error"
                       >
                         <TrashIcon className="size-3" />
                       </button>
@@ -231,7 +231,7 @@ export function ListFilterToolbar({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">No saved filters yet.</p>
+            <p className="text-xs text-base-content/60">No saved filters yet.</p>
           )}
 
           {count > 0 &&
@@ -252,7 +252,7 @@ export function ListFilterToolbar({
                   type="button"
                   onClick={() => void handleSave()}
                   disabled={!saveName.trim()}
-                  className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-40"
+                  className="rounded bg-primary px-2 py-1 text-xs text-primary-content disabled:opacity-40"
                 >
                   Save
                 </button>
@@ -261,7 +261,7 @@ export function ListFilterToolbar({
               <button
                 type="button"
                 onClick={() => setSavingOpen(true)}
-                className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
+                className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-200"
               >
                 <FloppyDiskIcon className="size-3.5" /> Save these filters
               </button>
@@ -333,7 +333,7 @@ export function ListFilterToolbar({
         <button
           type="button"
           onClick={() => onChange(EMPTY_FILTERS)}
-          className="h-7 rounded-full border border-destructive/30 px-2.5 text-xs text-destructive transition-colors hover:bg-destructive/10"
+          className="h-7 rounded-full border border-error/30 px-2.5 text-xs text-error transition-colors hover:bg-error/10"
         >
           Clear All
         </button>

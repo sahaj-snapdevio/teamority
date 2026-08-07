@@ -85,7 +85,7 @@ function ToolbarButton({
         "flex h-7 min-w-7 items-center justify-center rounded px-1.5 text-sm transition-colors",
         active
           ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground",
+          : "text-base-content/60 hover:bg-base-200 hover:text-base-content",
       )}
     >
       {children}
@@ -286,8 +286,8 @@ export function TaskDescriptionEditor({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card transition-all",
-        focused ? "border-primary/50 ring-1 ring-primary/20" : "border-border",
+        "rounded-lg border bg-elevated transition-all",
+        focused ? "border-primary/50 ring-1 ring-primary/20" : "border-base-300",
         className,
       )}
     >
@@ -410,7 +410,7 @@ export function TaskDescriptionEditor({
                 "flex h-7 min-w-7 items-center justify-center rounded px-1.5 text-sm transition-colors",
                 editor.isActive("link")
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  : "text-base-content/60 hover:bg-base-200 hover:text-base-content",
               )}
             >
               <LinkIcon className="size-4" />
@@ -431,7 +431,7 @@ export function TaskDescriptionEditor({
               <button
                 type="button"
                 onClick={() => applyLink()}
-                className="h-8 shrink-0 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="h-8 shrink-0 rounded-md bg-primary px-3 text-xs font-medium text-primary-content hover:bg-primary/90 transition-colors"
               >
                 {editor.isActive("link") ? "Update" : "Add"}
               </button>
@@ -440,7 +440,7 @@ export function TaskDescriptionEditor({
               <button
                 type="button"
                 onClick={() => applyLink("")}
-                className="mt-2 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                className="mt-2 text-xs text-base-content/60 hover:text-error transition-colors"
               >
                 Remove link
               </button>

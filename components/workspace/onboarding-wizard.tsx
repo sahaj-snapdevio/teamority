@@ -192,7 +192,7 @@ export function OnboardingWizard({
             <div className="space-y-2">
               <Label>
                 Logo{" "}
-                <span className="font-normal text-muted-foreground">
+                <span className="font-normal text-base-content/60">
                   (optional)
                 </span>
               </Label>
@@ -206,7 +206,7 @@ export function OnboardingWizard({
                       setLogoEmoji(logoEmoji === emoji ? null : emoji)
                     }
                     className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition-colors hover:bg-accent",
+                      "flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition-colors hover:bg-base-200",
                       logoEmoji === emoji && "border-primary bg-primary/10",
                     )}
                   >
@@ -277,7 +277,7 @@ export function OnboardingWizard({
                   className={cn(
                     "h-7 w-7 rounded-full border-2 transition-transform hover:scale-110",
                     spaceColor === color
-                      ? "border-foreground scale-110"
+                      ? "border-base-content scale-110"
                       : "border-transparent",
                   )}
                   style={{ backgroundColor: color }}

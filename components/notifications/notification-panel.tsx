@@ -141,16 +141,16 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
             <SheetTitle>Notifications</SheetTitle>
             <div className="flex items-center gap-3">
               <button
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="text-xs text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
                 onClick={markAllRead}
               >
                 Mark all as read
               </button>
-              <span className="text-muted-foreground/40 text-xs select-none">
+              <span className="text-base-content/40 text-xs select-none">
                 |
               </span>
               <button
-                className="text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                className="text-xs text-base-content/60 hover:text-error transition-colors cursor-pointer"
                 onClick={clearAll}
               >
                 Clear all
@@ -188,16 +188,16 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
 
         <div className="flex-1 overflow-y-auto">
           {isLoading && (
-            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center py-12 text-sm text-base-content/60">
               Loading…
             </div>
           )}
           {!isLoading && notifications.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-sm font-medium text-base-content/60">
                 No notifications
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-base-content/60">
                 You&apos;re all caught up!
               </p>
             </div>
@@ -205,7 +205,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
           {notifications.map((n) => (
             <div
               className={cn(
-                "group relative flex cursor-pointer items-start gap-3 border-b px-4 py-3 transition-colors hover:bg-accent/50",
+                "group relative flex cursor-pointer items-start gap-3 border-b px-4 py-3 transition-colors hover:bg-base-200/50",
                 !n.isRead && "bg-blue-50/50 dark:bg-blue-950/20"
               )}
               key={n.id}
@@ -228,11 +228,11 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm leading-snug">{n.title}</p>
                 {n.body && (
-                  <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 italic">
+                  <p className="mt-0.5 text-xs text-base-content/60 line-clamp-2 italic">
                     {n.body}
                   </p>
                 )}
-                <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <p className="mt-1 flex items-center gap-1 text-xs text-base-content/60">
                   {n.workspaceName && (
                     <>
                       <span className="flex min-w-0 items-center gap-1 font-medium">
@@ -255,14 +255,14 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
               {/* Delete button — always visible on mobile (no hover to reveal
                   it there); hidden until hover/focus at sm+ to match desktop. */}
               <button
-                className="absolute right-2 top-2 flex size-5 items-center justify-center rounded hover:bg-accent sm:hidden sm:group-hover:flex"
+                className="absolute right-2 top-2 flex size-5 items-center justify-center rounded hover:bg-base-200 sm:hidden sm:group-hover:flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   void deleteNotification(n.id);
                 }}
                 title="Dismiss"
               >
-                <XIcon className="size-3 text-muted-foreground" />
+                <XIcon className="size-3 text-base-content/60" />
               </button>
             </div>
           ))}

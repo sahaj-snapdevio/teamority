@@ -253,7 +253,7 @@ export function MembersManager({
                         onChange={(e) => setInviteEmail(e.target.value)}
                       />
                       {inviteEmailTrimmed.length > 0 && !inviteEmailValid && (
-                        <p className="text-xs text-destructive">Please enter a valid email address.</p>
+                        <p className="text-xs text-error">Please enter a valid email address.</p>
                       )}
                     </div>
                     <div className="space-y-2">
@@ -292,7 +292,7 @@ export function MembersManager({
 
           <div className="flex flex-wrap gap-2 pt-2">
             <div className="relative flex-1 min-w-44">
-              <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+              <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-base-content/60" />
               <Input
                 placeholder="Search by name or email"
                 value={search}
@@ -335,10 +335,10 @@ export function MembersManager({
                         <div className="font-medium truncate">
                           {member.name}
                           {member.userId === currentUserId && (
-                            <span className="text-muted-foreground font-normal"> (you)</span>
+                            <span className="text-base-content/60 font-normal"> (you)</span>
                           )}
                         </div>
-                        <div className="text-sm text-muted-foreground truncate">{member.email}</div>
+                        <div className="text-sm text-base-content/60 truncate">{member.email}</div>
                       </div>
                     </div>
                   </TableCell>
@@ -365,13 +365,13 @@ export function MembersManager({
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground">
+                  <TableCell className="hidden md:table-cell text-base-content/60">
                     {format(new Date(member.joinedAt), "MMM d, yyyy")}
                   </TableCell>
                   <TableCell className="text-right">
                     {canManage(member) && (
                       <button
-                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        className="flex size-7 items-center justify-center rounded-md text-base-content/60 hover:bg-error/10 hover:text-error transition-colors"
                         onClick={() => setRemoveTarget(member)}
                         title="Remove member"
                       >
@@ -383,7 +383,7 @@ export function MembersManager({
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="py-8 text-center text-base-content/60">
                     No members match your search
                   </TableCell>
                 </TableRow>
@@ -464,16 +464,16 @@ export function MembersManager({
                     <TableRow key={invite.id}>
                       <TableCell>
                         <div className="font-medium">{invite.email}</div>
-                        <div className="text-sm text-muted-foreground">Invited by {invite.invitedByName}</div>
+                        <div className="text-sm text-base-content/60">Invited by {invite.invitedByName}</div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                      <TableCell className="hidden md:table-cell text-base-content/60">
                         {format(new Date(invite.sentAt), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell>
                         {expired ? (
                           <Badge variant="destructive">Expired</Badge>
                         ) : invite.expiresAt ? (
-                          <span className="text-muted-foreground">
+                          <span className="text-base-content/60">
                             {format(new Date(invite.expiresAt), "MMM d, yyyy")}
                           </span>
                         ) : (
@@ -492,7 +492,7 @@ export function MembersManager({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive hover:text-destructive"
+                          className="text-error hover:text-error"
                           disabled={pending}
                           onClick={() => run(() => cancelInvite({ workspaceId, memberId: invite.id }))}
                         >

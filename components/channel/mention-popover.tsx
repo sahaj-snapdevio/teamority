@@ -89,7 +89,7 @@ export function MentionPopover({
 
   return (
     <div
-      className="absolute z-50 w-64 rounded-lg border bg-popover shadow-lg"
+      className="absolute z-50 w-64 rounded-lg border bg-elevated shadow-lg"
       style={
         position
           ? { bottom: position.top, left: position.left }
@@ -108,8 +108,8 @@ export function MentionPopover({
             className={cn(
               "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
               i === selectedIndex
-                ? "bg-accent text-accent-foreground"
-                : "text-foreground hover:bg-accent/50",
+                ? "bg-base-200 text-base-content"
+                : "text-base-content hover:bg-base-200/50",
             )}
           >
             <Avatar className="size-6 shrink-0">
@@ -117,7 +117,7 @@ export function MentionPopover({
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{m.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{m.email}</p>
+              <p className="truncate text-xs text-base-content/60">{m.email}</p>
             </div>
           </button>
         ))}

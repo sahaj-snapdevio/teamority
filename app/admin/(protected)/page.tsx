@@ -57,13 +57,13 @@ export default async function AdminDashboardPage() {
     <div className="p-4 space-y-8 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Platform overview</p>
+        <p className="text-base-content/60 text-sm mt-1">Platform overview</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {STAT_CARDS.map(({ key, label }) => (
-          <div key={key} className="rounded-lg border bg-card p-5 shadow-sm">
-            <div className="text-sm text-muted-foreground">{label}</div>
+          <div key={key} className="rounded-lg border bg-elevated p-5 shadow-sm">
+            <div className="text-sm text-base-content/60">{label}</div>
             <div className="text-3xl font-bold mt-1">{(data[key] as number).toLocaleString()}</div>
           </div>
         ))}
@@ -74,7 +74,7 @@ export default async function AdminDashboardPage() {
         <div className="rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50">
+              <thead className="bg-base-200/50">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Time</th>
                   <th className="text-left px-4 py-2 font-medium">Action</th>
@@ -84,13 +84,13 @@ export default async function AdminDashboardPage() {
               </thead>
               <tbody>
                 {data.recentActivity.map((entry) => (
-                  <tr key={entry.id} className="border-t hover:bg-muted/30">
-                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">
+                  <tr key={entry.id} className="border-t hover:bg-base-200/30">
+                    <td className="px-4 py-2 text-base-content/60 whitespace-nowrap">
                       {new Date(entry.createdAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-2 font-mono text-xs">{entry.action}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{entry.actorEmail ?? entry.actorId ?? "—"}</td>
-                    <td className="px-4 py-2 text-muted-foreground">
+                    <td className="px-4 py-2 text-base-content/60">{entry.actorEmail ?? entry.actorId ?? "—"}</td>
+                    <td className="px-4 py-2 text-base-content/60">
                       {entry.entityType}
                       {entry.entityId ? ` / ${entry.entityId.slice(0, 8)}…` : ""}
                     </td>
@@ -98,7 +98,7 @@ export default async function AdminDashboardPage() {
                 ))}
                 {data.recentActivity.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                    <td colSpan={4} className="px-4 py-6 text-center text-base-content/60">
                       No activity yet
                     </td>
                   </tr>

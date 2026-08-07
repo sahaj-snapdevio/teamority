@@ -5,19 +5,22 @@ import { cn } from "@/lib/utils"
 import { Slot } from "@/components/ui/slot"
 
 const buttonVariants = cva(
-  "btn group/button rounded-md border border-transparent bg-clip-padding text-xs tracking-widest whitespace-nowrap uppercase transition-all outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
+  "btn group/button rounded-md border border-transparent bg-clip-padding text-xs tracking-widest whitespace-nowrap uppercase transition-all outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-error aria-invalid:ring-2 aria-invalid:ring-error/20 dark:aria-invalid:border-error/50 dark:aria-invalid:ring-error/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
   {
     variants: {
       variant: {
-        default: "btn-primary bg-primary text-primary-foreground hover:bg-primary/80",
+        default: "btn-primary bg-primary text-primary-content hover:bg-primary/80",
         outline:
-          "btn-outline border-border bg-transparent hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-input/30",
+          "btn-outline border-base-300 bg-transparent hover:bg-base-200 hover:text-base-content aria-expanded:bg-base-200 aria-expanded:text-base-content dark:hover:bg-base-300/30",
+        /* --secondary/--secondary-foreground are untouched until Phase 5b of
+           the daisyUI migration (still today's pale gray, not primary) — see
+           .claude/plans/i-need-complete-migration-refactored-kite.md. */
         secondary:
           "btn-secondary bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
-          "btn-ghost hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "btn-ghost hover:bg-base-200 hover:text-base-content aria-expanded:bg-base-200 aria-expanded:text-base-content dark:hover:bg-base-200/50",
         destructive:
-          "btn-error btn-soft bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+          "btn-error btn-soft bg-error/10 text-error hover:bg-error/20 focus-visible:border-error/40 focus-visible:ring-error/20 dark:bg-error/20 dark:hover:bg-error/30 dark:focus-visible:ring-error/40",
         link: "btn-link text-primary underline underline-offset-4 hover:underline",
       },
       size: {

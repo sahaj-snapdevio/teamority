@@ -109,7 +109,7 @@ export function InviteMemberModal({
               }}
             />
             {trimmedEmail.length > 0 && !emailValid && (
-              <p className="text-xs text-destructive">Please enter a valid email address.</p>
+              <p className="text-xs text-error">Please enter a valid email address.</p>
             )}
           </div>
           <div className="space-y-2">

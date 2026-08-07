@@ -611,21 +611,21 @@ export function TaskListRow({
           open={assigneeOpen}
         >
           <PopoverTrigger asChild>
-            <button className="inline-flex items-center gap-2 px-2 py-1 rounded-md border border-transparent hover:bg-accent/60 transition-colors cursor-pointer select-none">
+            <button className="inline-flex items-center gap-2 px-2 py-1 rounded-md border border-transparent hover:bg-base-200/60 transition-colors cursor-pointer select-none">
               {task.assignees.length > 0 ? (
                 <TooltipProvider>
                   <div className="flex -space-x-1.5">
                     {task.assignees.slice(0, 3).map((a) => (
                       <Tooltip key={a.userId}>
                         <TooltipTrigger asChild>
-                          <Avatar className="size-6 shrink-0 border border-background shadow-sm">
+                          <Avatar className="size-6 shrink-0 border border-base-100 shadow-sm">
                             {a.image && (
                               <AvatarImage
                                 alt={a.name}
                                 src={avatarSrc(a.image)}
                               />
                             )}
-                            <AvatarFallback className="text-2xs bg-primary text-primary-foreground font-semibold">
+                            <AvatarFallback className="text-2xs bg-primary text-primary-content font-semibold">
                               {userInitials(a.name)}
                             </AvatarFallback>
                           </Avatar>
@@ -639,7 +639,7 @@ export function TaskListRow({
                       </Tooltip>
                     ))}
                     {task.assignees.length > 3 && (
-                      <div className="flex size-6 items-center justify-center rounded-full border border-background bg-muted text-2xs text-muted-foreground font-bold shadow-sm">
+                      <div className="flex size-6 items-center justify-center rounded-full border border-base-100 bg-base-200 text-2xs text-base-content/60 font-bold shadow-sm">
                         +{task.assignees.length - 3}
                       </div>
                     )}
@@ -661,16 +661,16 @@ export function TaskListRow({
               value={memberSearch}
             />
             {members === null ? (
-              <p className="py-2 px-1 text-xs text-muted-foreground">
+              <p className="py-2 px-1 text-xs text-base-content/60">
                 Loading…
               </p>
             ) : filteredMembers.length === 0 ? (
-              <p className="py-2 px-1 text-xs text-muted-foreground">
+              <p className="py-2 px-1 text-xs text-base-content/60">
                 No members found
               </p>
             ) : (
               <div className="max-h-52 overflow-y-auto">
-                <p className="px-1 pb-1 text-2xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <p className="px-1 pb-1 text-2xs font-semibold text-base-content/60 uppercase tracking-wide">
                   People
                 </p>
                 {filteredMembers.map((m) => {
@@ -681,7 +681,7 @@ export function TaskListRow({
                     <button
                       className={cn(
                         "flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors cursor-pointer",
-                        assigned ? "bg-primary/10" : "hover:bg-accent"
+                        assigned ? "bg-primary/10" : "hover:bg-base-200"
                       )}
                       key={m.userId}
                       onClick={() => void handleToggleAssignee(m.userId)}
@@ -706,15 +706,15 @@ export function TaskListRow({
                 })}
               </div>
             )}
-            <div className="mt-1 border-t border-border pt-1">
+            <div className="mt-1 border-t border-base-300 pt-1">
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 hover:bg-base-200 hover:text-base-content cursor-pointer"
                 onClick={() => {
                   setAssigneeOpen(false);
                   setInviteOpen(true);
                 }}
               >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-base-300">
                   <UserPlusIcon className="size-3.5" />
                 </span>
                 <span className="flex-1 truncate text-left">Invite member</span>
@@ -728,19 +728,19 @@ export function TaskListRow({
             <div className="flex -space-x-1.5">
               {task.assignees.slice(0, 3).map((a) => (
                 <Avatar
-                  className="size-6 shrink-0 border border-background shadow-sm"
+                  className="size-6 shrink-0 border border-base-100 shadow-sm"
                   key={a.userId}
                 >
                   {a.image && (
                     <AvatarImage alt={a.name} src={avatarSrc(a.image)} />
                   )}
-                  <AvatarFallback className="text-2xs bg-primary text-primary-foreground font-semibold">
+                  <AvatarFallback className="text-2xs bg-primary text-primary-content font-semibold">
                     {userInitials(a.name)}
                   </AvatarFallback>
                 </Avatar>
               ))}
               {task.assignees.length > 3 && (
-                <div className="flex size-6 items-center justify-center rounded-full border border-background bg-muted text-2xs text-muted-foreground font-bold shadow-sm">
+                <div className="flex size-6 items-center justify-center rounded-full border border-base-100 bg-base-200 text-2xs text-base-content/60 font-bold shadow-sm">
                   +{task.assignees.length - 3}
                 </div>
               )}
@@ -763,7 +763,7 @@ export function TaskListRow({
           <PopoverTrigger asChild>
             <button
               className={cn(
-                "inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-transparent hover:bg-accent/60 transition-all text-xs font-semibold cursor-pointer select-none",
+                "inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-transparent hover:bg-base-200/60 transition-all text-xs font-semibold cursor-pointer select-none",
                 dueDate?.overdue ? "text-red-500" : "text-gray-600",
                 !dueDate && "opacity-0 group-hover/row:opacity-100"
               )}
@@ -830,7 +830,7 @@ export function TaskListRow({
           <PopoverTrigger asChild>
             <button
               className={cn(
-                "inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-transparent hover:bg-accent/60 transition-all cursor-pointer select-none",
+                "inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-transparent hover:bg-base-200/60 transition-all cursor-pointer select-none",
                 localPriority === "NONE" &&
                   "opacity-0 group-hover/row:opacity-100"
               )}
@@ -847,14 +847,14 @@ export function TaskListRow({
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-44 p-1" side="bottom">
-            <p className="px-2 py-1 text-2xs font-bold text-muted-foreground uppercase tracking-wide">
+            <p className="px-2 py-1 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
               Priority
             </p>
             {(["URGENT", "HIGH", "MEDIUM", "LOW"] as const).map((value) => (
               <button
                 className={cn(
-                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent cursor-pointer",
-                  localPriority === value && "bg-accent"
+                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 cursor-pointer",
+                  localPriority === value && "bg-base-200"
                 )}
                 key={value}
                 onClick={() => void handleSetPriority(value)}
@@ -867,7 +867,7 @@ export function TaskListRow({
             ))}
             <div className="h-px bg-border my-1" />
             <button
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent cursor-pointer"
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-base-content/60 hover:bg-base-200 cursor-pointer"
               onClick={() => void handleSetPriority("NONE")}
             >
               <XIcon className="size-3.5 shrink-0" /> Clear
@@ -925,7 +925,7 @@ export function TaskListRow({
     >
       <div className="opacity-0 group-hover/row:opacity-100 transition-all duration-200 flex items-center gap-0.5">
         <button
-          className="flex size-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
           onClick={handleTogglePersonalPin}
           title={localPersonalPin ? "Unpin from sidebar" : "Pin to sidebar"}
         >
@@ -935,7 +935,7 @@ export function TaskListRow({
           />
         </button>
         <button
-          className="flex size-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
           onClick={onOpen}
           title="Edit Task"
         >
@@ -943,7 +943,7 @@ export function TaskListRow({
         </button>
         {canEdit && (
           <button
-            className="flex size-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
             onClick={handleDuplicate}
             title="Duplicate Task"
           >
@@ -953,19 +953,19 @@ export function TaskListRow({
         <Popover>
           <PopoverTrigger asChild>
             <button
-              className="flex size-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
               title="Move Status"
             >
               <ArrowsOutCardinalIcon className="size-4" />
             </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-48 p-1">
-            <p className="px-2 py-1 text-2xs font-bold text-muted-foreground uppercase tracking-wide">
+            <p className="px-2 py-1 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
               Move Status
             </p>
             {statuses.map((s) => (
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 key={s.id}
                 onClick={async () => {
                   await updateTaskStatus(
@@ -1008,7 +1008,7 @@ export function TaskListRow({
             }}
           >
             <PopoverTrigger asChild>
-              <button className="flex size-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+              <button className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer">
                 <DotsThreeIcon className="size-4.5" weight="bold" />
               </button>
             </PopoverTrigger>
@@ -1017,50 +1017,50 @@ export function TaskListRow({
               className="w-56 p-1 max-h-80 overflow-y-auto"
             >
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={startRename}
               >
-                <TextAaIcon className="size-3.5 text-muted-foreground" /> Rename
+                <TextAaIcon className="size-3.5 text-base-content/60" /> Rename
               </button>
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={copyTaskLink}
               >
-                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy
+                <LinkIcon className="size-3.5 text-base-content/60" /> Copy
                 task link
               </button>
               <a
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 href={taskUrl(workspaceId, task.id)}
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <ArrowSquareOutIcon className="size-3.5 text-muted-foreground" />{" "}
+                <ArrowSquareOutIcon className="size-3.5 text-base-content/60" />{" "}
                 Open in new tab
               </a>
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={copyTaskId}
               >
-                <HashIcon className="size-3.5 text-muted-foreground" /> Copy
+                <HashIcon className="size-3.5 text-base-content/60" /> Copy
                 task ID
               </button>
               <div className="h-px bg-border my-1" />
-              <p className="px-2 py-1 text-2xs font-bold text-muted-foreground uppercase tracking-wide">
+              <p className="px-2 py-1 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
                 Move to Sprint
               </p>
               {moveSprints === null ? (
-                <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                <p className="px-2 py-1.5 text-xs text-base-content/60">
                   Loading…
                 </p>
               ) : moveSprints.length === 0 ? (
-                <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                <p className="px-2 py-1.5 text-xs text-base-content/60">
                   No active sprints
                 </p>
               ) : (
                 moveSprints.map((s) => (
                   <button
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent cursor-pointer"
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-base-200 cursor-pointer"
                     key={s.id}
                     onClick={() => void handleMoveToSprint(s.id, s.name)}
                   >
@@ -1069,7 +1069,7 @@ export function TaskListRow({
                         "size-3.5 shrink-0",
                         s.status === "ACTIVE"
                           ? "text-primary"
-                          : "text-muted-foreground"
+                          : "text-base-content/60"
                       )}
                       weight="fill"
                     />
@@ -1079,7 +1079,7 @@ export function TaskListRow({
                         "text-2xs px-1.5 py-0.5 rounded-full shrink-0",
                         s.status === "ACTIVE"
                           ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground"
+                          : "bg-base-200 text-base-content/60"
                       )}
                     >
                       {s.status === "ACTIVE" ? "Active" : "Planned"}
@@ -1089,29 +1089,29 @@ export function TaskListRow({
               )}
               {onMoveToBacklog && (
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-base-200 cursor-pointer"
                   onClick={() => void onMoveToBacklog()}
                 >
-                  <TrayIcon className="size-3.5 shrink-0 text-muted-foreground" />{" "}
+                  <TrayIcon className="size-3.5 shrink-0 text-base-content/60" />{" "}
                   Backlog
                 </button>
               )}
               <div className="h-px bg-border my-1" />
-              <p className="px-2 py-1 text-2xs font-bold text-muted-foreground uppercase tracking-wide">
+              <p className="px-2 py-1 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
                 Move to List
               </p>
               {moveListSpaces === null ? (
-                <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                <p className="px-2 py-1.5 text-xs text-base-content/60">
                   Loading…
                 </p>
               ) : moveListSpaces.length === 0 ? (
-                <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                <p className="px-2 py-1.5 text-xs text-base-content/60">
                   No other lists
                 </p>
               ) : (
                 moveListSpaces.map((sp) => (
                   <div key={sp.id}>
-                    <p className="flex items-center gap-1.5 px-2 py-0.5 text-2xs font-bold text-muted-foreground uppercase">
+                    <p className="flex items-center gap-1.5 px-2 py-0.5 text-2xs font-bold text-base-content/60 uppercase">
                       <SpaceIcon
                         emoji={sp.logoEmoji}
                         color={sp.color ?? "#6B7280"}
@@ -1120,7 +1120,7 @@ export function TaskListRow({
                     </p>
                     {sp.lists.map((l) => (
                       <button
-                        className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-xs hover:bg-accent cursor-pointer"
+                        className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-xs hover:bg-base-200 cursor-pointer"
                         key={l.id}
                         onClick={() => void handleMoveToList(l.id, l.name)}
                       >
@@ -1141,7 +1141,7 @@ export function TaskListRow({
                   <div className="h-px bg-border my-1" />
                   {task.isPinnedToList ? (
                     <button
-                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                       onClick={handleUnpinFromList}
                     >
                       <PushPinIcon
@@ -1152,10 +1152,10 @@ export function TaskListRow({
                     </button>
                   ) : (
                     <button
-                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                       onClick={handlePinToList}
                     >
-                      <PushPinIcon className="size-3.5 text-muted-foreground shrink-0" />{" "}
+                      <PushPinIcon className="size-3.5 text-base-content/60 shrink-0" />{" "}
                       Pin to top
                     </button>
                   )}
@@ -1163,10 +1163,10 @@ export function TaskListRow({
               )}
               <div className="h-px bg-border my-1" />
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={handleArchive}
               >
-                <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
+                <ArchiveIcon className="size-3.5 text-base-content/60" />{" "}
                 Archive
               </button>
             </PopoverContent>
@@ -1176,32 +1176,32 @@ export function TaskListRow({
         {!canEdit && (
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex size-7 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+              <button className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer">
                 <DotsThreeIcon className="size-4.5" weight="bold" />
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-48 p-1">
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={copyTaskLink}
               >
-                <LinkIcon className="size-3.5 text-muted-foreground" /> Copy
+                <LinkIcon className="size-3.5 text-base-content/60" /> Copy
                 task link
               </button>
               <a
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 href={taskUrl(workspaceId, task.id)}
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <ArrowSquareOutIcon className="size-3.5 text-muted-foreground" />{" "}
+                <ArrowSquareOutIcon className="size-3.5 text-base-content/60" />{" "}
                 Open in new tab
               </a>
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={copyTaskId}
               >
-                <HashIcon className="size-3.5 text-muted-foreground" /> Copy
+                <HashIcon className="size-3.5 text-base-content/60" /> Copy
                 task ID
               </button>
             </PopoverContent>
@@ -1237,8 +1237,8 @@ export function TaskListRow({
             <DialogTitle className="text-center text-base">
               Delete task?
             </DialogTitle>
-            <p className="text-sm text-muted-foreground text-center leading-relaxed">
-              <span className="font-medium text-foreground">
+            <p className="text-sm text-base-content/60 text-center leading-relaxed">
+              <span className="font-medium text-base-content">
                 &ldquo;{task.title}&rdquo;
               </span>{" "}
               will be permanently deleted and cannot be recovered.
@@ -1271,7 +1271,7 @@ export function TaskListRow({
         style={dragStyle}
         {...dragProps}
         className={cn(
-          "group/row hidden md:flex items-center border-b border-border cursor-pointer text-foreground bg-card min-h-10 text-sm",
+          "group/row hidden md:flex items-center border-b border-base-300 cursor-pointer text-base-content bg-elevated min-h-10 text-sm",
           "outline-none focus:ring-2 focus:ring-inset focus:ring-primary/50 focus:relative focus:z-[1]",
           isDragging
             ? "opacity-40 shadow-none border-dashed"
@@ -1280,7 +1280,7 @@ export function TaskListRow({
             ? "bg-primary/10 ring-1 ring-inset ring-primary/30 relative z-[1]"
             : selected
               ? "bg-primary/5"
-              : "hover:bg-accent/30"
+              : "hover:bg-base-200/30"
         )}
         data-task-id={task.id}
         data-task-row
@@ -1298,7 +1298,7 @@ export function TaskListRow({
           {dragProps && (
             <DotsSixVerticalIcon
               className={cn(
-                "size-3.5 text-muted-foreground shrink-0 transition duration-200 cursor-grab active:cursor-grabbing hover:text-foreground",
+                "size-3.5 text-base-content/60 shrink-0 transition duration-200 cursor-grab active:cursor-grabbing hover:text-base-content",
                 selected
                   ? "opacity-100"
                   : "opacity-0 group-hover/row:opacity-100"
@@ -1319,8 +1319,8 @@ export function TaskListRow({
               className={cn(
                 "flex size-4 items-center justify-center rounded border transition-colors",
                 selected
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border hover:border-primary/40 bg-background"
+                  ? "border-primary bg-primary text-primary-content"
+                  : "border-base-300 hover:border-primary/40 bg-base-100"
               )}
             >
               {selected && <CheckIcon className="size-2.5" weight="bold" />}
@@ -1341,7 +1341,7 @@ export function TaskListRow({
           {renaming ? (
             <input
               autoFocus
-              className="flex-1 min-w-0 bg-transparent text-[13px] font-medium text-foreground outline-none border-b border-primary/50"
+              className="flex-1 min-w-0 bg-transparent text-[13px] font-medium text-base-content outline-none border-b border-primary/50"
               onBlur={() => void commitRename()}
               onChange={(e) => setTitleDraft(e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -1359,13 +1359,13 @@ export function TaskListRow({
             />
           ) : (
             <>
-              <span className="text-[13px] font-medium text-foreground truncate group-hover/row:text-primary transition-colors">
+              <span className="text-[13px] font-medium text-base-content truncate group-hover/row:text-primary transition-colors">
                 {localTitle}
               </span>
               {canEdit && (
                 <button
                   aria-label={`Rename “${localTitle}”`}
-                  className="flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-colors hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 group-hover/row:opacity-100 cursor-pointer"
+                  className="flex size-5 shrink-0 items-center justify-center rounded-md text-base-content/60 opacity-0 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 group-hover/row:opacity-100 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     startRename();
@@ -1410,7 +1410,7 @@ export function TaskListRow({
       {/* Mobile card */}
       <div
         className={cn(
-          "md:hidden flex flex-col p-4 border-b border-border gap-3 hover:bg-accent/30 bg-card transition-all cursor-pointer relative",
+          "md:hidden flex flex-col p-4 border-b border-base-300 gap-3 hover:bg-base-200/30 bg-elevated transition-all cursor-pointer relative",
           highlighted && "bg-primary/10 ring-1 ring-inset ring-primary/30"
         )}
         onClick={onOpen}
@@ -1431,8 +1431,8 @@ export function TaskListRow({
               className={cn(
                 "flex size-4 items-center justify-center rounded border transition-colors",
                 selected
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border hover:border-primary/40 bg-background"
+                  ? "border-primary bg-primary text-primary-content"
+                  : "border-base-300 hover:border-primary/40 bg-base-100"
               )}
             >
               {selected && <CheckIcon className="size-2.5" weight="bold" />}
@@ -1470,7 +1470,7 @@ export function TaskListRow({
             {renaming ? (
               <input
                 autoFocus
-                className="w-full bg-transparent text-[13px] font-medium text-foreground outline-none border-b border-primary/50"
+                className="w-full bg-transparent text-[13px] font-medium text-base-content outline-none border-b border-primary/50"
                 onBlur={() => void commitRename()}
                 onChange={(e) => setTitleDraft(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -1487,7 +1487,7 @@ export function TaskListRow({
                 value={titleDraft}
               />
             ) : (
-              <p className="text-[13px] font-medium text-foreground line-clamp-2">
+              <p className="text-[13px] font-medium text-base-content line-clamp-2">
                 {localTitle}
               </p>
             )}
@@ -1495,46 +1495,46 @@ export function TaskListRow({
           <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
             <Popover>
               <PopoverTrigger asChild>
-                <button className="flex size-7 items-center justify-center rounded hover:bg-accent text-muted-foreground cursor-pointer">
+                <button className="flex size-7 items-center justify-center rounded hover:bg-base-200 text-base-content/60 cursor-pointer">
                   <DotsThreeIcon className="size-4.5" weight="bold" />
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-44 p-1">
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                   onClick={onOpen}
                 >
-                  <PencilSimpleIcon className="size-3.5 text-muted-foreground" />{" "}
+                  <PencilSimpleIcon className="size-3.5 text-base-content/60" />{" "}
                   Edit
                 </button>
                 {canEdit && (
                   <button
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                     onClick={startRename}
                   >
-                    <TextAaIcon className="size-3.5 text-muted-foreground" />{" "}
+                    <TextAaIcon className="size-3.5 text-base-content/60" />{" "}
                     Rename
                   </button>
                 )}
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                   onClick={copyTaskLink}
                 >
-                  <LinkIcon className="size-3.5 text-muted-foreground" /> Copy
+                  <LinkIcon className="size-3.5 text-base-content/60" /> Copy
                   link
                 </button>
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                   onClick={copyTaskId}
                 >
-                  <HashIcon className="size-3.5 text-muted-foreground" /> Copy
+                  <HashIcon className="size-3.5 text-base-content/60" /> Copy
                   ID
                 </button>
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                   onClick={handleDuplicate}
                 >
-                  <CopyIcon className="size-3.5 text-muted-foreground" />{" "}
+                  <CopyIcon className="size-3.5 text-base-content/60" />{" "}
                   Duplicate
                 </button>
                 {isAdmin ? (
@@ -1549,10 +1549,10 @@ export function TaskListRow({
                   </button>
                 ) : (
                   <button
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent text-left cursor-pointer"
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                     onClick={handleArchive}
                   >
-                    <ArchiveIcon className="size-3.5 text-muted-foreground" />{" "}
+                    <ArchiveIcon className="size-3.5 text-base-content/60" />{" "}
                     Archive
                   </button>
                 )}
@@ -1566,10 +1566,10 @@ export function TaskListRow({
               <PopoverTrigger asChild>
                 <button
                   className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded bg-muted/50 text-2xs font-semibold transition-all cursor-pointer",
+                    "flex items-center gap-1.5 px-2 py-1 rounded bg-base-200/50 text-2xs font-semibold transition-all cursor-pointer",
                     dueDate?.overdue
                       ? "text-red-500 bg-red-50"
-                      : "text-foreground/70"
+                      : "text-base-content/70"
                   )}
                 >
                   <CalendarBlankIcon className="size-3.5" />
@@ -1610,17 +1610,17 @@ export function TaskListRow({
               <div className="flex -space-x-1.5">
                 {task.assignees.slice(0, 3).map((a) => (
                   <Avatar
-                    className="size-5.5 border border-background"
+                    className="size-5.5 border border-base-100"
                     key={a.userId}
                   >
                     {a.image && <AvatarImage src={avatarSrc(a.image)} />}
-                    <AvatarFallback className="text-[8px] bg-primary text-primary-foreground font-semibold">
+                    <AvatarFallback className="text-[8px] bg-primary text-primary-content font-semibold">
                       {userInitials(a.name)}
                     </AvatarFallback>
                   </Avatar>
                 ))}
                 {task.assignees.length > 3 && (
-                  <div className="flex size-5.5 items-center justify-center rounded-full border border-background bg-muted text-[8px] font-bold text-muted-foreground">
+                  <div className="flex size-5.5 items-center justify-center rounded-full border border-base-100 bg-base-200 text-[8px] font-bold text-base-content/60">
                     +{task.assignees.length - 3}
                   </div>
                 )}

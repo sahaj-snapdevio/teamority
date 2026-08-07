@@ -228,7 +228,7 @@ export function RealtimeProvider({
             toast(
               workspaceName ? (
                 <span className="flex flex-col gap-0.5">
-                  <span className="flex items-center gap-1 text-2xs font-medium text-muted-foreground">
+                  <span className="flex items-center gap-1 text-2xs font-medium text-base-content/60">
                     <span aria-hidden>{workspaceIcon ?? "📁"}</span>
                     {workspaceName}
                   </span>

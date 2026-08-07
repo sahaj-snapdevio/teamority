@@ -47,10 +47,10 @@ export function AppearanceSettingsForm() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <button
             className={cn(
-              "flex items-center gap-3 rounded-xl border p-4 text-left hover:bg-accent/50 transition-all focus:outline-none cursor-pointer",
+              "flex items-center gap-3 rounded-xl border p-4 text-left hover:bg-base-200/50 transition-all focus:outline-none cursor-pointer",
               appearanceMode === "light"
-                ? "border-primary ring-2 ring-primary/20 bg-accent"
-                : "border-border bg-card"
+                ? "border-primary ring-2 ring-primary/20 bg-base-200"
+                : "border-base-300 bg-elevated"
             )}
             onClick={() => setAppearance("light")}
             type="button"
@@ -60,7 +60,7 @@ export function AppearanceSettingsForm() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold">Light</p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-xs text-base-content/60 truncate">
                 Clean light interface
               </p>
             </div>
@@ -71,10 +71,10 @@ export function AppearanceSettingsForm() {
 
           <button
             className={cn(
-              "flex items-center gap-3 rounded-xl border p-4 text-left hover:bg-accent/50 transition-all focus:outline-none cursor-pointer",
+              "flex items-center gap-3 rounded-xl border p-4 text-left hover:bg-base-200/50 transition-all focus:outline-none cursor-pointer",
               appearanceMode === "dark"
-                ? "border-primary ring-2 ring-primary/20 bg-accent"
-                : "border-border bg-card"
+                ? "border-primary ring-2 ring-primary/20 bg-base-200"
+                : "border-base-300 bg-elevated"
             )}
             onClick={() => setAppearance("dark")}
             type="button"
@@ -84,7 +84,7 @@ export function AppearanceSettingsForm() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold">Dark</p>
-              <p className="text-xs text-muted-foreground truncate font-normal">
+              <p className="text-xs text-base-content/60 truncate font-normal">
                 Sleek dark interface
               </p>
             </div>
@@ -95,20 +95,20 @@ export function AppearanceSettingsForm() {
 
           <button
             className={cn(
-              "flex items-center gap-3 rounded-xl border p-4 text-left hover:bg-accent/50 transition-all focus:outline-none cursor-pointer",
+              "flex items-center gap-3 rounded-xl border p-4 text-left hover:bg-base-200/50 transition-all focus:outline-none cursor-pointer",
               appearanceMode === "auto"
-                ? "border-primary ring-2 ring-primary/20 bg-accent"
-                : "border-border bg-card"
+                ? "border-primary ring-2 ring-primary/20 bg-base-200"
+                : "border-base-300 bg-elevated"
             )}
             onClick={() => setAppearance("auto")}
             type="button"
           >
-            <div className="p-2 bg-muted text-muted-foreground rounded-lg">
+            <div className="p-2 bg-base-200 text-base-content/60 rounded-lg">
               <MonitorIcon className="size-5" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold">System</p>
-              <p className="text-xs text-muted-foreground truncate font-normal">
+              <p className="text-xs text-base-content/60 truncate font-normal">
                 Sync with OS preferences
               </p>
             </div>
@@ -120,13 +120,13 @@ export function AppearanceSettingsForm() {
 
         <div
           className={cn(
-            "flex items-center justify-end gap-3 border-t border-border pt-4 transition-all duration-300",
+            "flex items-center justify-end gap-3 border-t border-base-300 pt-4 transition-all duration-300",
             hasChanges
               ? "opacity-100 translate-y-0"
               : "opacity-60 pointer-events-none"
           )}
         >
-          <span className="text-xs text-muted-foreground mr-auto">
+          <span className="text-xs text-base-content/60 mr-auto">
             {hasChanges ? "You have unsaved changes" : "All changes saved"}
           </span>
           <Button

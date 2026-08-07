@@ -67,13 +67,13 @@ export function DeleteListDialog({
         </DialogHeader>
 
         <div className="space-y-3 py-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-base-content/60">
             Consider archiving instead — archived lists can be restored any time.
           </p>
           <div className="space-y-1.5">
             <Label htmlFor="delete-confirm" className="flex-wrap sm:flex-nowrap">
               Type{" "}
-              <span className="normal-case font-semibold tracking-normal text-foreground">
+              <span className="normal-case font-semibold tracking-normal text-base-content">
                 {list.name}
               </span>{" "}
               to confirm
@@ -93,7 +93,7 @@ export function DeleteListDialog({
               disabled={loading}
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-sm text-error">{error}</p>}
         </div>
 
         <DialogFooter>

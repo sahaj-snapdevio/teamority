@@ -143,18 +143,18 @@ export function GoogleOAuthSettingsForm({
     >
       <div className="mb-4 space-y-1.5">
         <Label>Authorized redirect URI</Label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-base-content/60">
           Add this URL to your Google Cloud OAuth client&rsquo;s
           &ldquo;Authorized redirect URIs&rdquo;, with {"{your_domain}"}{" "}
           replaced by this app&rsquo;s URL — Google sign-in fails with a
           redirect_uri_mismatch error otherwise.
         </p>
-        <div className="flex items-center gap-2 rounded-md border border-border bg-accent px-3 py-2">
-          <code className="flex-1 break-all text-xs text-foreground">
+        <div className="flex items-center gap-2 rounded-md border border-base-300 bg-base-200 px-3 py-2">
+          <code className="flex-1 break-all text-xs text-base-content">
             {REDIRECT_URI_TEMPLATE}
           </code>
           <button
-            className="shrink-0 text-muted-foreground hover:text-foreground"
+            className="shrink-0 text-base-content/60 hover:text-base-content"
             onClick={copyRedirectUri}
             type="button"
           >

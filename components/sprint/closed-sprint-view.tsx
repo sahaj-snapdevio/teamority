@@ -32,7 +32,7 @@ function formatDate(date: Date | null): string {
 }
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  NONE: { label: "No Priority", color: "text-muted-foreground/40", icon: "😴" },
+  NONE: { label: "No Priority", color: "text-base-content/40", icon: "😴" },
   LOW: { label: "Low", color: "text-blue-500", icon: "🦥" },
   MEDIUM: { label: "Medium", color: "text-yellow-500", icon: "🚶" },
   HIGH: { label: "High", color: "text-orange-500", icon: "🏃" },
@@ -43,7 +43,7 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: stri
 
 function AssigneeAvatars({ assignees }: { assignees: ClosedSprintTask["assignees"] }) {
   if (assignees.length === 0) {
-    return <UserIcon className="size-4 text-muted-foreground/30" />;
+    return <UserIcon className="size-4 text-base-content/30" />;
   }
   return (
     <div className="flex -space-x-1">
@@ -51,7 +51,7 @@ function AssigneeAvatars({ assignees }: { assignees: ClosedSprintTask["assignees
         <div
           key={a.userId}
           title={a.name}
-          className="size-5 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[9px] font-semibold text-muted-foreground overflow-hidden shrink-0"
+          className="size-5 rounded-full border-2 border-base-100 bg-base-200 flex items-center justify-center text-[9px] font-semibold text-base-content/60 overflow-hidden shrink-0"
         >
           {a.image ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -62,7 +62,7 @@ function AssigneeAvatars({ assignees }: { assignees: ClosedSprintTask["assignees
         </div>
       ))}
       {assignees.length > 3 && (
-        <div className="size-5 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[9px] font-semibold text-muted-foreground">
+        <div className="size-5 rounded-full border-2 border-base-100 bg-base-200 flex items-center justify-center text-[9px] font-semibold text-base-content/60">
           +{assignees.length - 3}
         </div>
       )}
@@ -79,16 +79,16 @@ function TaskRow({ task, workspaceId }: { task: ClosedSprintTask; workspaceId: s
 
   return (
     <tr
-      className="group/row border-b border-border/40 hover:bg-accent/30 cursor-pointer transition-colors"
+      className="group/row border-b border-base-300/40 hover:bg-base-200/30 cursor-pointer transition-colors"
       onClick={() => router.push(`/${workspaceId}/task/${task.id}`)}
     >
       {/* Title */}
       <td className="py-2.5 pl-4 pr-3">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-mono text-[11px] text-muted-foreground/50 shrink-0 w-7">
+          <span className="font-mono text-[11px] text-base-content/50 shrink-0 w-7">
             #{task.seqNumber}
           </span>
-          <span className={cn("text-sm truncate", isDone && "line-through text-muted-foreground/60")}>
+          <span className={cn("text-sm truncate", isDone && "line-through text-base-content/60")}>
             {task.title}
           </span>
           {task.tags.slice(0, 2).map((tag) => (
@@ -114,7 +114,7 @@ function TaskRow({ task, workspaceId }: { task: ClosedSprintTask; workspaceId: s
             {task.statusName}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground/40">—</span>
+          <span className="text-xs text-base-content/40">—</span>
         )}
       </td>
 
@@ -131,29 +131,29 @@ function TaskRow({ task, workspaceId }: { task: ClosedSprintTask; workspaceId: s
             {priority.label}
           </span>
         ) : (
-          <FlagIcon className="size-4 text-muted-foreground/30" />
+          <FlagIcon className="size-4 text-base-content/30" />
         )}
       </td>
 
       {/* Story points */}
       <td className="py-2.5 px-3 w-16 text-right">
         {task.storyPoints != null ? (
-          <span className="text-xs font-medium text-muted-foreground tabular-nums">
+          <span className="text-xs font-medium text-base-content/60 tabular-nums">
             {task.storyPoints}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground/30">—</span>
+          <span className="text-xs text-base-content/30">—</span>
         )}
       </td>
 
       {/* Due date */}
       <td className="py-2.5 px-3 w-28">
         {(task.dueDateEnd ?? task.dueDateStart) ? (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-base-content/60">
             {format(new Date((task.dueDateEnd ?? task.dueDateStart)!), "MMM d")}
           </span>
         ) : (
-          <CalendarBlankIcon className="size-4 text-muted-foreground/30" />
+          <CalendarBlankIcon className="size-4 text-base-content/30" />
         )}
       </td>
     </tr>
@@ -172,18 +172,18 @@ function StatusGroup({ statusName, statusColor, tasks, workspaceId }: {
 
   return (
     <>
-      <tr className="bg-muted/20 border-b border-border/40">
+      <tr className="bg-base-200/20 border-b border-base-300/40">
         <td colSpan={6} className="py-2 pl-3 pr-4">
           <button
             onClick={() => setCollapsed((v) => !v)}
             className="flex items-center gap-2 select-none"
           >
             {collapsed
-              ? <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
-              : <CaretDownIcon className="size-3.5 text-muted-foreground shrink-0" />}
+              ? <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
+              : <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />}
             <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
             <span className="text-sm font-semibold">{statusName}</span>
-            <span className="text-xs text-muted-foreground tabular-nums">{tasks.length}</span>
+            <span className="text-xs text-base-content/60 tabular-nums">{tasks.length}</span>
           </button>
         </td>
       </tr>
@@ -214,10 +214,10 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
 
   if (loading) {
     return (
-      <div className="rounded-xl border bg-card animate-pulse">
-        <div className="h-28 bg-muted/40 rounded-t-xl" />
+      <div className="rounded-xl border bg-elevated animate-pulse">
+        <div className="h-28 bg-base-200/40 rounded-t-xl" />
         <div className="p-4 space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-10 rounded bg-muted" />)}
+          {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-10 rounded bg-base-200" />)}
         </div>
       </div>
     );
@@ -225,8 +225,8 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
 
   if (!data || "error" in data) {
     return (
-      <div className="rounded-xl border bg-card flex items-center justify-center py-16">
-        <p className="text-sm text-muted-foreground">
+      <div className="rounded-xl border bg-elevated flex items-center justify-center py-16">
+        <p className="text-sm text-base-content/60">
           {"error" in (data ?? {}) ? (data as { error: string }).error : "Sprint not found"}
         </p>
       </div>
@@ -257,23 +257,23 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
   return (
     <div className="space-y-4">
       {/* Header card */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <div className="rounded-xl border bg-elevated p-5 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-              <LockIcon className="size-4 text-muted-foreground" />
+            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-base-200">
+              <LockIcon className="size-4 text-base-content/60" />
             </div>
             <div className="min-w-0">
               <h2 className="text-lg font-semibold">{sprint.name}</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="text-sm text-base-content/60 mt-0.5">
                 {formatDate(sprint.startDate)} → {formatDate(sprint.endDate)}
               </p>
               {sprint.goal && (
-                <p className="text-sm text-muted-foreground/80 mt-1 line-clamp-2">{sprint.goal}</p>
+                <p className="text-sm text-base-content/80 mt-1 line-clamp-2">{sprint.goal}</p>
               )}
             </div>
           </div>
-          <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-base-200 px-2.5 py-1 text-xs font-medium text-base-content/60">
             <CheckCircleIcon className="size-3.5 text-green-500" weight="fill" />
             Closed
           </span>
@@ -282,7 +282,7 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
         {/* Stats */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
+            <span className="text-base-content/60">
               {stats.closedTasks} / {stats.totalTasks} tasks completed
             </span>
             <span className="font-semibold tabular-nums">{percent}%</span>
@@ -293,7 +293,7 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
         {stats.totalPoints > 0 && (
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Story points:</span>
+              <span className="text-base-content/60">Story points:</span>
               <span className="font-medium tabular-nums">
                 {stats.closedPoints} / {stats.totalPoints}
               </span>
@@ -304,32 +304,32 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
 
       {/* Task table */}
       {tasks.length === 0 ? (
-        <div className="rounded-xl border bg-card flex flex-col items-center gap-2 py-16 text-center">
-          <CheckCircleIcon className="size-10 text-muted-foreground/20" weight="fill" />
-          <p className="text-sm text-muted-foreground">No tasks were in this sprint</p>
+        <div className="rounded-xl border bg-elevated flex flex-col items-center gap-2 py-16 text-center">
+          <CheckCircleIcon className="size-10 text-base-content/20" weight="fill" />
+          <p className="text-sm text-base-content/60">No tasks were in this sprint</p>
         </div>
       ) : (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="rounded-xl border bg-elevated overflow-hidden">
           <div className="overflow-x-auto">
           <table className="w-full min-w-150 border-collapse">
             <thead>
-              <tr className="border-b border-border/60 bg-muted/20">
-                <th className="py-2 pl-4 pr-3 text-left text-xs font-semibold text-muted-foreground">
+              <tr className="border-b border-base-300/60 bg-base-200/20">
+                <th className="py-2 pl-4 pr-3 text-left text-xs font-semibold text-base-content/60">
                   Task
                 </th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground w-36">
+                <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-36">
                   Status
                 </th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground w-24">
+                <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-24">
                   Assignee
                 </th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground w-28">
+                <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-28">
                   Priority
                 </th>
-                <th className="py-2 px-3 text-right text-xs font-semibold text-muted-foreground w-16">
+                <th className="py-2 px-3 text-right text-xs font-semibold text-base-content/60 w-16">
                   Pts
                 </th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground w-28">
+                <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-28">
                   Due Date
                 </th>
               </tr>

@@ -234,7 +234,7 @@ export function ChannelComposer({
   return (
     <div
       ref={composerRef}
-      className="relative border-t bg-card px-4 py-3"
+      className="relative border-t bg-elevated px-4 py-3"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -245,8 +245,8 @@ export function ChannelComposer({
             <div
               key={att.id}
               className={cn(
-                "relative flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm",
-                att.error && "border-destructive/50 bg-destructive/5",
+                "relative flex items-center gap-2 rounded-lg border bg-base-100 px-3 py-2 text-sm",
+                att.error && "border-error/50 bg-error/5",
               )}
             >
               {att.preview ? (
@@ -256,11 +256,11 @@ export function ChannelComposer({
                   className="size-8 rounded object-cover"
                 />
               ) : (
-                <FileIcon className="size-5 shrink-0 text-muted-foreground" />
+                <FileIcon className="size-5 shrink-0 text-base-content/60" />
               )}
               <div className="min-w-0 max-w-32">
                 <p className="truncate text-xs font-medium">{att.file.name}</p>
-                <p className="text-2xs text-muted-foreground">
+                <p className="text-2xs text-base-content/60">
                   {att.uploading
                     ? "Uploading…"
                     : att.error
@@ -273,7 +273,7 @@ export function ChannelComposer({
               )}
               <button
                 onClick={() => removeAttachment(att.id)}
-                className="ml-1 flex size-5 items-center justify-center rounded-full hover:bg-accent"
+                className="ml-1 flex size-5 items-center justify-center rounded-full hover:bg-base-200"
               >
                 <XIcon className="size-3" />
               </button>
@@ -294,7 +294,7 @@ export function ChannelComposer({
 
       {/* Input area */}
       <div className="flex items-end gap-2">
-        <div className="flex flex-1 flex-col rounded-lg border bg-background transition-colors focus-within:ring-1 focus-within:ring-ring">
+        <div className="flex flex-1 flex-col rounded-lg border bg-base-100 transition-colors focus-within:ring-1 focus-within:ring-ring">
           <textarea
             ref={textareaRef}
             value={content}
@@ -303,7 +303,7 @@ export function ChannelComposer({
             placeholder="Type a message… (@ to mention)"
             disabled={disabled || sending}
             rows={1}
-            className="w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50"
+            className="w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-base-content/60 disabled:opacity-50"
           />
           <div className="flex items-center gap-0.5 px-2 pb-1.5">
             {/* Attach button */}
@@ -311,7 +311,7 @@ export function ChannelComposer({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || sending}
-              className="flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50 sm:size-8"
+              className="flex size-10 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:opacity-50 sm:size-8"
               title="Attach files"
             >
               <PaperclipIcon className="size-4" />
@@ -346,8 +346,8 @@ export function ChannelComposer({
               className={cn(
                 "flex size-10 items-center justify-center rounded-md transition-colors sm:size-8",
                 content.trim() || attachments.some((a) => a.uploadedId)
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "text-muted-foreground hover:bg-accent",
+                  ? "bg-primary text-primary-content hover:bg-primary/90"
+                  : "text-base-content/60 hover:bg-base-200",
                 (disabled || sending || isUploadPending) && "opacity-50 cursor-not-allowed",
               )}
               title="Send message"

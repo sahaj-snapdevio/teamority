@@ -95,7 +95,7 @@ export function VoiceInputButton({ onTranscript, disabled }: VoiceInputButtonPro
         "relative flex size-10 items-center justify-center rounded-md transition-colors sm:size-8",
         listening
           ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground",
+          : "text-base-content/60 hover:bg-base-200 hover:text-base-content",
         disabled && "opacity-50 cursor-not-allowed",
       )}
       title={listening ? "Stop voice input" : "Start voice input"}

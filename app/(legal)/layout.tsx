@@ -5,8 +5,8 @@ import { LOGO_PATH, PRODUCT_NAME } from "@/config/platform";
 
 export default function LegalLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="force-light min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
+    <div className="force-light min-h-screen bg-base-100 text-base-content">
+      <header className="border-b border-base-300">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
             <Image
@@ -20,7 +20,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
           </Link>
           <Link
             href="/login"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm font-medium text-base-content/60 transition-colors hover:text-base-content"
           >
             Sign in
           </Link>

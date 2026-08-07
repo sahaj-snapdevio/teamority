@@ -31,8 +31,8 @@ export function ListSettingsNav({ workspaceId, spaceId, listId }: ListSettingsNa
             className={cn(
               "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
               active
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "border-primary text-base-content"
+                : "border-transparent text-base-content/60 hover:text-base-content",
             )}
           >
             {item.label}

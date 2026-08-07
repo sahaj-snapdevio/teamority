@@ -79,7 +79,7 @@ const PRIORITY_OPTIONS: {
   {
     value: "NONE",
     label: "No Priority",
-    color: "text-muted-foreground",
+    color: "text-base-content/60",
     icon: "😴",
   },
   { value: "LOW", label: "Low", color: "text-blue-500", icon: "🦥" },
@@ -298,12 +298,12 @@ export function CreateTaskModal({
 
           {/* Top bar: tab + close button */}
           <div className="flex items-center border-b px-5 shrink-0">
-            <button className="border-b-2 border-primary py-3 px-1 text-sm font-medium text-foreground">
+            <button className="border-b-2 border-primary py-3 px-1 text-sm font-medium text-base-content">
               Task
             </button>
             <div className="flex-1" />
             <button
-              className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex size-7 items-center justify-center rounded-md text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
               onClick={() => onOpenChange(false)}
             >
@@ -317,7 +317,7 @@ export function CreateTaskModal({
             {/* Title */}
             <input
               autoFocus
-              className="w-full text-xl font-semibold bg-transparent outline-none placeholder:text-muted-foreground/40"
+              className="w-full text-xl font-semibold bg-transparent outline-none placeholder:text-base-content/40"
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -343,7 +343,7 @@ export function CreateTaskModal({
               workspaceId={workspaceId}
             />
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="text-sm text-error">{error}</p>}
 
             {/* Quick fields row */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -354,7 +354,7 @@ export function CreateTaskModal({
               >
                 <PopoverTrigger asChild>
                   <button
-                    className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors hover:bg-accent"
+                    className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors hover:bg-base-200"
                     style={{
                       borderColor: currentStatus?.color,
                       color: currentStatus?.color,
@@ -384,14 +384,14 @@ export function CreateTaskModal({
                       return (
                         <div key={type}>
                           <div className="flex items-center px-2 pt-2 pb-0.5">
-                            <span className="flex-1 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <span className="flex-1 text-2xs font-semibold uppercase tracking-wider text-base-content/60">
                               {label}
                             </span>
                             {canManage && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <button
-                                    className="flex size-4 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                                    className="flex size-4 items-center justify-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <DotsThreeIcon
@@ -420,7 +420,7 @@ export function CreateTaskModal({
                           </div>
                           {group.map((s) => (
                             <button
-                              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                               key={s.id}
                               onClick={() => {
                                 setStatusId(s.id);
@@ -450,13 +450,13 @@ export function CreateTaskModal({
                 open={assigneePopoverOpen}
               >
                 <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                  <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors">
                     {selectedMembers.length > 0 ? (
                       <>
                         <div className="flex -space-x-1">
                           {selectedMembers.slice(0, 2).map((m) => (
                             <UserAvatar
-                              className="border border-background"
+                              className="border border-base-100"
                               image={m.image}
                               key={m.userId}
                               name={m.name}
@@ -479,7 +479,7 @@ export function CreateTaskModal({
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-52 p-2">
-                  <p className="text-xs text-muted-foreground px-1 mb-1.5">
+                  <p className="text-xs text-base-content/60 px-1 mb-1.5">
                     Select members
                   </p>
                   <div className="space-y-0.5 max-h-48 overflow-y-auto">
@@ -487,7 +487,7 @@ export function CreateTaskModal({
                       const selected = assigneeIds.includes(m.userId);
                       return (
                         <button
-                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                           key={m.userId}
                           onClick={() =>
                             setAssigneeIds((prev) =>
@@ -524,10 +524,10 @@ export function CreateTaskModal({
                 <PopoverTrigger asChild>
                   <button
                     className={cn(
-                      "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs hover:bg-accent transition-colors",
+                      "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs hover:bg-base-200 transition-colors",
                       dueDate
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "text-base-content"
+                        : "text-base-content/60 hover:text-base-content"
                     )}
                   >
                     <CalendarBlankIcon className="size-3.5" />
@@ -559,7 +559,7 @@ export function CreateTaskModal({
                 <PopoverTrigger asChild>
                   <button
                     className={cn(
-                      "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors hover:bg-accent",
+                      "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors hover:bg-base-200",
                       currentPriority.color
                     )}
                   >
@@ -580,7 +580,7 @@ export function CreateTaskModal({
                   {PRIORITY_OPTIONS.map((p) => (
                     <button
                       className={cn(
-                        "flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent",
+                        "flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200",
                         p.color
                       )}
                       key={p.value}
@@ -602,7 +602,7 @@ export function CreateTaskModal({
               {/* Tags */}
               <Popover onOpenChange={setTagPopoverOpen} open={tagPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                  <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors">
                     <TagIcon className="size-3.5" />
                     {selectedTags.length > 0 ? (
                       <span>{selectedTags.map((t) => t.name).join(", ")}</span>
@@ -624,7 +624,7 @@ export function CreateTaskModal({
                       const selected = tagIds.includes(t.id);
                       return (
                         <button
-                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                           key={t.id}
                           onClick={() =>
                             setTagIds((prev) =>
@@ -649,7 +649,7 @@ export function CreateTaskModal({
                     })}
                     {tagSearch && !exactTagMatch && (
                       <button
-                        className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-accent"
+                        className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-base-200"
                         onClick={async () => {
                           const res = await createTag(
                             workspaceId,
@@ -673,7 +673,7 @@ export function CreateTaskModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end border-t px-6 py-3 bg-muted/30 shrink-0">
+          <div className="flex items-center justify-end border-t px-6 py-3 bg-base-200/30 shrink-0">
             <Button
               className="h-8 text-sm"
               disabled={loading || !title.trim()}

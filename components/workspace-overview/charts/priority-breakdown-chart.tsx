@@ -49,7 +49,7 @@ export function PriorityBreakdownChart({
       </CardHeader>
       <CardContent>
         {total === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
+          <p className="py-10 text-center text-sm text-base-content/60">
             No tasks yet
           </p>
         ) : (
@@ -60,22 +60,22 @@ export function PriorityBreakdownChart({
               return (
                 <button
                   aria-label={`View ${cfg.label} tasks`}
-                  className="group flex w-full items-center gap-3 rounded-md px-1.5 py-1.5 text-left transition-colors cursor-pointer hover:bg-accent/40"
+                  className="group flex w-full items-center gap-3 rounded-md px-1.5 py-1.5 text-left transition-colors cursor-pointer hover:bg-base-200/40"
                   key={p.priority}
                   onClick={() => openDrilldown(p.priority, cfg.label)}
                   type="button"
                 >
-                  <span className="w-24 shrink-0 text-sm text-foreground/80">
+                  <span className="w-24 shrink-0 text-sm text-base-content/80">
                     <span className="mr-1">{cfg.icon}</span>
                     {cfg.label}
                   </span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-base-200">
                     <div
                       className={`h-full rounded-full ${BAR_COLOR[p.priority]} transition-all group-hover:brightness-110`}
                       style={{ width: `${widthPct}%` }}
                     />
                   </div>
-                  <span className="w-8 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
+                  <span className="w-8 shrink-0 text-right text-sm tabular-nums text-base-content/60">
                     {p.count}
                   </span>
                 </button>

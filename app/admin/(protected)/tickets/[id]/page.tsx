@@ -44,15 +44,15 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
     await mutate();
   }
 
-  if (!ticket) return <div className="p-4 text-muted-foreground sm:p-8">Loading…</div>;
+  if (!ticket) return <div className="p-4 text-base-content/60 sm:p-8">Loading…</div>;
 
   return (
     <div className="p-4 space-y-6 sm:p-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="text-xs text-muted-foreground font-mono mb-1">{ticket.ticketNumber}</div>
+          <div className="text-xs text-base-content/60 font-mono mb-1">{ticket.ticketNumber}</div>
           <h1 className="text-2xl font-bold">{ticket.subject}</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-base-content/60 text-sm mt-1">
             {ticket.category} · Submitted by {ticket.userEmail ?? ticket.userId}
           </p>
         </div>
@@ -82,7 +82,7 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
                 ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
                 : msg.isAdmin
                 ? "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 ml-3 sm:ml-8"
-                : "bg-muted/30 mr-3 sm:mr-8"
+                : "bg-base-200/30 mr-3 sm:mr-8"
             )}
           >
             <div className="flex items-center justify-between mb-2">
@@ -91,13 +91,13 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
                 {msg.isAdmin && <Badge variant="secondary" className="text-xs">Admin</Badge>}
                 {msg.isInternalNote && <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">Internal Note</Badge>}
               </div>
-              <span className="text-xs text-muted-foreground">{new Date(msg.createdAt).toLocaleString()}</span>
+              <span className="text-xs text-base-content/60">{new Date(msg.createdAt).toLocaleString()}</span>
             </div>
             <p className="text-sm whitespace-pre-wrap">{msg.body}</p>
           </div>
         ))}
         {messages.length === 0 && (
-          <p className="text-center text-muted-foreground py-6">No messages yet</p>
+          <p className="text-center text-base-content/60 py-6">No messages yet</p>
         )}
       </div>
 

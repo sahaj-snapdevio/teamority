@@ -57,7 +57,7 @@ const PRIORITY_CONFIG = {
   HIGH: { label: "High", color: "text-orange-500", icon: "🏃" },
   MEDIUM: { label: "Medium", color: "text-yellow-500", icon: "🚶" },
   LOW: { label: "Low", color: "text-blue-500", icon: "🦥" },
-  NONE: { label: "—", color: "text-muted-foreground/40", icon: "😴" },
+  NONE: { label: "—", color: "text-base-content/40", icon: "😴" },
 } as const;
 
 function formatDue(task: MyTask): { label: string; overdue: boolean } | null {
@@ -182,13 +182,13 @@ function groupByDueDate(tasks: MyTask[]): Group[] {
     {
       key: "upcoming",
       label: "Upcoming",
-      icon: <CalendarBlankIcon className="size-3.5 text-muted-foreground" />,
+      icon: <CalendarBlankIcon className="size-3.5 text-base-content/60" />,
       tasks: upcoming,
     },
     {
       key: "noDate",
       label: "No Due Date",
-      icon: <CalendarBlankIcon className="size-3.5 text-muted-foreground/40" />,
+      icon: <CalendarBlankIcon className="size-3.5 text-base-content/40" />,
       tasks: noDate,
     },
   ].filter((g) => g.tasks.length > 0);
@@ -361,7 +361,7 @@ function TaskRow({ task, taskNav }: { task: MyTask; taskNav: TaskNavContext }) {
 
   return (
     <tr
-      className="group/row border-b border-border/40 hover:bg-accent/30 cursor-pointer transition-colors"
+      className="group/row border-b border-base-300/40 hover:bg-base-200/30 cursor-pointer transition-colors"
       onClick={() => {
         setTaskNavContext(taskNav);
         router.push(`/${task.workspace.id}/task/${task.id}`);
@@ -377,7 +377,7 @@ function TaskRow({ task, taskNav }: { task: MyTask; taskNav: TaskNavContext }) {
       <td className="py-2.5 pl-10 pr-4">
         <div className="flex min-w-0 max-w-xl flex-col gap-0.5">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="text-xs text-muted-foreground/50 font-mono shrink-0 w-6">
+            <span className="text-xs text-base-content/50 font-mono shrink-0 w-6">
               #{task.seqNumber}
             </span>
             {titleTruncated ? (
@@ -405,8 +405,8 @@ function TaskRow({ task, taskNav }: { task: MyTask; taskNav: TaskNavContext }) {
               </span>
             )}
           </div>
-          <span className="pl-8 text-xs text-muted-foreground/60 truncate">
-            <span className="font-medium text-muted-foreground/80">
+          <span className="pl-8 text-xs text-base-content/60 truncate">
+            <span className="font-medium text-base-content/80">
               {task.workspace.name}
             </span>
             {" › "}
@@ -438,20 +438,20 @@ function TaskRow({ task, taskNav }: { task: MyTask; taskNav: TaskNavContext }) {
           <span
             className={cn(
               "text-sm font-medium",
-              due.overdue ? "text-red-500" : "text-muted-foreground"
+              due.overdue ? "text-red-500" : "text-base-content/60"
             )}
           >
             {due.label}
           </span>
         ) : (
-          <CalendarBlankIcon className="size-4 text-muted-foreground/30" />
+          <CalendarBlankIcon className="size-4 text-base-content/30" />
         )}
       </td>
 
       {/* Priority */}
       <td className="py-2.5 px-4 w-28">
         {task.priority === "NONE" ? (
-          <FlagIcon className="size-4 text-muted-foreground/30" />
+          <FlagIcon className="size-4 text-base-content/30" />
         ) : (
           <span
             className={cn(
@@ -481,22 +481,22 @@ function TaskGroup({
 
   return (
     <>
-      <tr className="bg-muted/20">
+      <tr className="bg-base-200/20">
         <td className="py-2 pl-4 pr-3" colSpan={4}>
           <button
             className="flex items-center gap-2 select-none"
             onClick={() => setCollapsed((v) => !v)}
           >
             {collapsed ? (
-              <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+              <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
             ) : (
-              <CaretDownIcon className="size-3.5 text-muted-foreground shrink-0" />
+              <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />
             )}
             {group.icon}
             <span className={cn("text-sm font-semibold", group.accent)}>
               {group.label}
             </span>
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <span className="text-xs text-base-content/60 tabular-nums">
               {group.tasks.length}
             </span>
           </button>
@@ -579,14 +579,14 @@ export function MyTasksView(_props: MyTasksViewProps) {
           <CheckCircleIcon className="size-5 text-primary" weight="fill" />
           <h1 className="text-lg font-semibold">My Tasks</h1>
         </div>
-        <span className="text-sm text-muted-foreground tabular-nums">
+        <span className="text-sm text-base-content/60 tabular-nums">
           {loading
             ? "…"
             : `${tasks.length} task${tasks.length === 1 ? "" : "s"}`}
         </span>
         {focus && (
           <button
-            className="flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground hover:bg-accent/70 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 rounded-full bg-base-200 px-2.5 py-1 text-xs font-medium text-base-content hover:bg-base-200/70 transition-colors cursor-pointer"
             onClick={() => router.replace(pathname)}
             type="button"
           >
@@ -610,7 +610,7 @@ export function MyTasksView(_props: MyTasksViewProps) {
         {/* Group by */}
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
+            <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/30 transition-colors cursor-pointer select-none">
               <SquaresFourIcon className="size-3.5 text-gray-500" />
               Group By:{" "}
               {GROUP_BY_OPTIONS.find((o) => o.value === groupBy)?.label}
@@ -623,8 +623,8 @@ export function MyTasksView(_props: MyTasksViewProps) {
             {GROUP_BY_OPTIONS.map((o) => (
               <button
                 className={cn(
-                  "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                  groupBy === o.value && "bg-accent text-foreground"
+                  "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200/30 cursor-pointer",
+                  groupBy === o.value && "bg-base-200 text-base-content"
                 )}
                 key={o.value}
                 onClick={() => setGroupBy(o.value)}
@@ -641,8 +641,8 @@ export function MyTasksView(_props: MyTasksViewProps) {
           className={cn(
             "h-8 rounded-md border px-3 text-xs font-medium transition-colors",
             showCompleted
-              ? "bg-primary text-primary-foreground border-primary"
-              : "bg-background text-muted-foreground hover:text-foreground",
+              ? "bg-primary text-primary-content border-primary"
+              : "bg-base-100 text-base-content/60 hover:text-base-content",
           )}
         >
           {showCompleted ? "Hide Completed" : "Show Completed"}
@@ -651,21 +651,21 @@ export function MyTasksView(_props: MyTasksViewProps) {
 
       {/* Table */}
       {loading ? (
-        <div className="rounded-xl border bg-card overflow-hidden animate-pulse">
-          <div className="h-10 bg-muted/40 border-b" />
+        <div className="rounded-xl border bg-elevated overflow-hidden animate-pulse">
+          <div className="h-10 bg-base-200/40 border-b" />
           <div className="p-4 space-y-2">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div className="h-10 rounded bg-muted" key={i} />
+              <div className="h-10 rounded bg-base-200" key={i} />
             ))}
           </div>
         </div>
       ) : groups.length === 0 ? (
-        <div className="rounded-xl border bg-card flex flex-col items-center gap-3 py-20 text-center">
+        <div className="rounded-xl border bg-elevated flex flex-col items-center gap-3 py-20 text-center">
           <CheckCircleIcon
-            className="size-10 text-muted-foreground/20"
+            className="size-10 text-base-content/20"
             weight="fill"
           />
-          <p className="text-sm font-medium text-muted-foreground">
+          <p className="text-sm font-medium text-base-content/60">
             {search
               ? "No tasks match your search"
               : focus
@@ -675,7 +675,7 @@ export function MyTasksView(_props: MyTasksViewProps) {
                   : "You're all caught up!"}
           </p>
           {!showCompleted && tasks.length === 0 && (
-            <p className="text-xs text-muted-foreground/60">
+            <p className="text-xs text-base-content/60">
               Tasks assigned to you will appear here
             </p>
           )}
@@ -692,7 +692,7 @@ export function MyTasksView(_props: MyTasksViewProps) {
             )}
         </div>
       ) : (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="rounded-xl border bg-elevated overflow-hidden">
           {/* Horizontal scroll on narrow viewports — the table below keeps a
               min-width so its fixed Status/Due Date/Priority columns stay
               legible instead of getting squeezed; wide/desktop containers
@@ -704,17 +704,17 @@ export function MyTasksView(_props: MyTasksViewProps) {
                 container, pushing Status/Due Date/Priority out of alignment. */}
             <table className="w-full min-w-[640px] table-fixed border-collapse">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/20">
-                  <th className="py-2 pl-10 pr-4 text-left text-sm font-semibold text-muted-foreground">
+                <tr className="border-b border-base-300/60 bg-base-200/20">
+                  <th className="py-2 pl-10 pr-4 text-left text-sm font-semibold text-base-content/60">
                     Task
                   </th>
-                  <th className="py-2 px-4 text-left text-sm font-semibold text-muted-foreground w-32">
+                  <th className="py-2 px-4 text-left text-sm font-semibold text-base-content/60 w-32">
                     Status
                   </th>
-                  <th className="py-2 px-4 text-left text-sm font-semibold text-muted-foreground w-28">
+                  <th className="py-2 px-4 text-left text-sm font-semibold text-base-content/60 w-28">
                     Due Date
                   </th>
-                  <th className="py-2 px-4 text-left text-sm font-semibold text-muted-foreground w-28">
+                  <th className="py-2 px-4 text-left text-sm font-semibold text-base-content/60 w-28">
                     Priority
                   </th>
                 </tr>

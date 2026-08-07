@@ -57,16 +57,16 @@ export const MentionList = React.forwardRef<MentionListRef, MentionListProps>(
 
     if (items.length === 0) {
       return (
-        <div className="rounded-xl border bg-popover shadow-lg px-3 py-2 text-xs text-muted-foreground">
+        <div className="rounded-xl border bg-elevated shadow-lg px-3 py-2 text-xs text-base-content/60">
           No members found
         </div>
       );
     }
 
     return (
-      <div className="w-64 rounded-xl border bg-popover shadow-lg overflow-hidden">
+      <div className="w-64 rounded-xl border bg-elevated shadow-lg overflow-hidden">
         {/* People section header */}
-        <p className="px-3 pt-2.5 pb-1 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="px-3 pt-2.5 pb-1 text-2xs font-semibold uppercase tracking-wider text-base-content/60">
           People
         </p>
 
@@ -82,7 +82,7 @@ export const MentionList = React.forwardRef<MentionListRef, MentionListProps>(
               onMouseEnter={() => setSelectedIndex(i)}
               className={cn(
                 "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors",
-                i === selectedIndex ? "bg-accent" : "hover:bg-accent/60",
+                i === selectedIndex ? "bg-base-200" : "hover:bg-base-200/60",
               )}
             >
               <div className="relative shrink-0">
@@ -93,20 +93,20 @@ export const MentionList = React.forwardRef<MentionListRef, MentionListProps>(
                   </AvatarFallback>
                 </Avatar>
                 {/* Online indicator placeholder */}
-                <span className="absolute bottom-0 right-0 size-2 rounded-full border-2 border-popover bg-muted-foreground/40" />
+                <span className="absolute bottom-0 right-0 size-2 rounded-full border-2 border-elevated bg-base-content/40" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate text-foreground">{item.name}</p>
-                <p className="text-2xs text-muted-foreground truncate">{item.email}</p>
+                <p className="text-sm font-medium truncate text-base-content">{item.name}</p>
+                <p className="text-2xs text-base-content/60 truncate">{item.email}</p>
               </div>
             </button>
           ))}
         </div>
 
         {/* Footer hint */}
-        <div className="border-t px-3 py-1.5 flex items-center gap-2 text-2xs text-muted-foreground">
-          <span><kbd className="font-mono bg-muted px-1 py-0.5 rounded text-2xs">↑↓</kbd> navigate</span>
-          <span><kbd className="font-mono bg-muted px-1 py-0.5 rounded text-2xs">↵</kbd> select</span>
+        <div className="border-t px-3 py-1.5 flex items-center gap-2 text-2xs text-base-content/60">
+          <span><kbd className="font-mono bg-base-200 px-1 py-0.5 rounded text-2xs">↑↓</kbd> navigate</span>
+          <span><kbd className="font-mono bg-base-200 px-1 py-0.5 rounded text-2xs">↵</kbd> select</span>
         </div>
       </div>
     );

@@ -43,14 +43,14 @@ export default function AdminWorkspaceDetailPage({ params }: { params: Promise<{
     else setDeleting(false);
   }
 
-  if (!ws) return <div className="p-4 text-muted-foreground sm:p-8">Loading…</div>;
+  if (!ws) return <div className="p-4 text-base-content/60 sm:p-8">Loading…</div>;
 
   return (
     <div className="p-4 space-y-8 sm:p-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{ws.name}</h1>
-          <p className="text-muted-foreground text-sm">/{ws.slug}</p>
+          <p className="text-base-content/60 text-sm">/{ws.slug}</p>
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -73,7 +73,7 @@ export default function AdminWorkspaceDetailPage({ params }: { params: Promise<{
               <AlertDialogAction
                 onClick={handleForceDelete}
                 disabled={confirmName !== ws.name || deleting}
-                className="bg-destructive hover:bg-destructive/90"
+                className="bg-error hover:bg-error/90"
               >
                 Delete
               </AlertDialogAction>
@@ -90,7 +90,7 @@ export default function AdminWorkspaceDetailPage({ params }: { params: Promise<{
         ].map(({ label, value }) => (
           <div key={label} className="border rounded-lg p-4 text-center">
             <div className="text-2xl font-bold">{value}</div>
-            <div className="text-sm text-muted-foreground">{label}</div>
+            <div className="text-sm text-base-content/60">{label}</div>
           </div>
         ))}
       </div>
@@ -100,7 +100,7 @@ export default function AdminWorkspaceDetailPage({ params }: { params: Promise<{
         <div className="rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50">
+              <thead className="bg-base-200/50">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Name</th>
                   <th className="text-left px-4 py-2 font-medium">Email</th>
@@ -110,11 +110,11 @@ export default function AdminWorkspaceDetailPage({ params }: { params: Promise<{
               </thead>
               <tbody>
                 {members.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-4 text-center text-muted-foreground">No members</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-4 text-center text-base-content/60">No members</td></tr>
                 ) : members.map((m) => (
                   <tr key={m.id} className="border-t">
                     <td className="px-4 py-2">{m.userName ?? "—"}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{m.userEmail ?? m.email ?? "—"}</td>
+                    <td className="px-4 py-2 text-base-content/60">{m.userEmail ?? m.email ?? "—"}</td>
                     <td className="px-4 py-2"><Badge variant="secondary">{m.role}</Badge></td>
                     <td className="px-4 py-2">{m.status}</td>
                   </tr>

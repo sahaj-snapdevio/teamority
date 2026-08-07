@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @import "tw-animate-css";
 
 @source not "../docs/**";
@@ -87,9 +87,9 @@
    would collide with this app's own data-theme accent-color system
    (lib/theme.ts THEME_IDS includes both names). Disabling built-in themes
    means daisyUI's component CSS (.btn, .card, .input, etc) instead reads the
-   bridge variables (--color-base-100 and friends, --radius-field, --border,
-   --depth, --noise) defined below, mapped onto this app's existing tokens so
-   every daisyUI component renders with the exact current palette. */
+   daisyUI-native tokens defined below (--color-base-100 and friends,
+   --radius-field, --border, --depth, --noise), authored directly as this
+   app's own palette rather than shipping daisyUI's default colors. */
 @plugin "daisyui" {
   themes: false;
 }
@@ -165,38 +165,57 @@ body:has(.workspace-shell) {
   --tracking-eyebrow: 0.16em;
   --tracking-ui: 0.1em;
 
-  /* Page & brand */
+  /* Page & design-system layer tokens — no daisyUI equivalent, kept custom */
   --color-page: var(--page);
-
-  /* Design system layer tokens */
   --color-app: var(--bg-app);
   --color-surface: var(--bg-surface);
   --color-elevated: var(--bg-elevated);
-
-  /* Semantic status */
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
-  --color-success-subtle: var(--success-subtle);
-  --color-warning: var(--warning);
-
   --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border-color);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
+
+  /* ── daisyUI-native base ramp ─────────────────────────────────────────── */
+  --color-base-100: var(--base-100);
+  --color-base-200: var(--base-200);
+  --color-base-300: var(--base-300);
+  --color-base-content: var(--base-content);
+
+  /* ── daisyUI-native brand role. Kanbanica has ONE brand color. Phase 5b of
+     the daisyUI migration retired the app's old --accent token (was a pale
+     theme-tinted neutral-hover surface, never a distinct brand hue — every
+     call site turned out to be hover/selected-surface semantics, confirmed
+     file-by-file, see the migration report) and freed the real daisyUI
+     "accent" role to alias primary, satisfying daisyUI's expectation that
+     every theme defines all 20 semantic colors even though nothing in this
+     app currently opts into btn-accent/badge-accent. --secondary stays
+     bridged to the app's pre-existing --secondary token (still pale,
+     untouched) — out of Phase 5b's scope, not swept. ── */
   --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
+  --color-primary-content: var(--primary-foreground);
+  --color-accent: var(--primary);
+  --color-accent-content: var(--primary-foreground);
+  --color-neutral: var(--neutral);
+  --color-neutral-content: var(--neutral-content);
+
+  /* ── daisyUI-native status roles ──────────────────────────────────────── */
+  --color-info: var(--info);
+  --color-info-content: var(--info-content);
+  --color-success: var(--success);
+  --color-success-content: var(--success-content);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-strong: var(--success-strong);
+  --color-warning: var(--warning);
+  --color-warning-content: var(--warning-content);
+  --color-error: var(--destructive);
+  --color-error-content: var(--error-content);
+
+  /* ── --secondary, deliberately out of scope ─────────────────────────────
+     The only shadcn-style name still alive on purpose: --secondary/
+     --secondary-foreground were never swept (Phase 1/5b explicitly left them
+     untouched — see the brand-role comment above), so button.tsx/badge.tsx/
+     sheet.tsx's `bg-secondary`/`text-secondary-foreground` still need this. */
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  /* Radii */
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
@@ -204,32 +223,13 @@ body:has(.workspace-shell) {
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
-
-  /* DaisyUI v5 bridge — mapped onto the existing tokens above so daisyUI's
-     component CSS (.btn/.card/.input/.badge/.alert/etc) renders with this
-     app's exact current palette instead of daisyUI's own shipped colors. */
-  --color-base-100: var(--background);
-  --color-base-200: var(--muted);
-  --color-base-300: var(--border-color);
-  --color-base-content: var(--foreground);
-  --color-primary-content: var(--primary-foreground);
-  --color-secondary-content: var(--secondary-foreground);
-  --color-accent-content: var(--accent-foreground);
-  --color-neutral: var(--secondary);
-  --color-neutral-content: var(--secondary-foreground);
-  --color-info: var(--info);
-  --color-info-content: #FFFFFF;
-  --color-success-content: var(--success-foreground);
-  --color-warning-content: #451A03;
-  --color-error: var(--destructive);
-  --color-error-content: #FFFFFF;
   --radius-selector: var(--radius-sm);
   --radius-field: var(--radius);
   --radius-box: var(--radius-lg);
 }
 
 :root {
-  /* â”€â”€ 3-layer surface system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── 3-layer surface system ──────────────────────────────────────────── */
   --bg-app:      #F7F9FB;
   --bg-surface:  #FFFFFF;
   --bg-elevated: #FFFFFF;
@@ -237,7 +237,7 @@ body:has(.workspace-shell) {
   --bg-sidebar-item-hover:  rgba(255,255,255,0.06);
   --bg-sidebar-item-active: rgba(255,255,255,0.10);
 
-  /* â”€â”€ Text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Text ─────────────────────────────────────────────────────────────── */
   --text-primary:        #0F1117;
   --text-secondary:      #5E6573;
   --text-muted:          #9AA0AD;
@@ -245,82 +245,99 @@ body:has(.workspace-shell) {
   --text-sidebar:        #C9CDD6;
   --text-sidebar-active: #FFFFFF;
 
-  /* â”€â”€ Brand (indigo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Brand (indigo) ───────────────────────────────────────────────────── */
   --brand:       #5B6BF8;
   --brand-hover: #4554E8;
   --brand-muted: #EEF0FE;
 
-  /* â”€â”€ Shadows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Shadows ──────────────────────────────────────────────────────────── */
   --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
   --shadow-md: 0 2px 8px 0 rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
   --shadow-lg: 0 8px 24px 0 rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06);
   --shadow-xl: 0 20px 40px 0 rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.08);
 
-  /* â”€â”€ Motion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Motion ───────────────────────────────────────────────────────────── */
   --ease-default:    cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out:        cubic-bezier(0.0, 0, 0.2, 1);
   --duration-fast:   120ms;
   --duration-normal: 200ms;
   --duration-slow:   300ms;
 
-  /* â”€â”€ Page background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Page background ──────────────────────────────────────────────────── */
   --page: #F4F5F7;
 
-  /* â”€â”€ Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  --success:          #16A34A;
-  --success-foreground: #14532D;
-  --success-subtle:   #DCFCE7;
-  --warning:          #D97706;
-  --warning-muted:    #FEF3C7;
-  --danger:           #DC2626;
-  --danger-muted:     #FEE2E2;
-  --info:             #2563EB;
-  --info-muted:       #DBEAFE;
+  /* ── daisyUI base ramp ────────────────────────────────────────────────── */
+  --base-100:     #FFFFFF;
+  --base-200:     #F4F5F7;
+  --base-300:     #E4E7EC;
+  --base-content: #0F1117;
 
-  /* â”€â”€ Core design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  --background: #FFFFFF;
-  --foreground: #0F1117;
-  --card:       #FFFFFF;
-  --card-foreground: #0F1117;
-  --popover:    #FFFFFF;
-  --popover-foreground: #0F1117;
-
+  /* ── daisyUI brand role — every :root[data-theme="X"] block below
+     overrides --primary/--primary-foreground/--ring ── */
   --primary:          #5B6BF8;
   --primary-foreground: #FFFFFF;
 
-  --secondary:          #F4F5F7;
-  --secondary-foreground: #5E6573;
+  /* ── daisyUI neutral role. Was `var(--secondary)` — a bug: that rendered
+     any bare btn-neutral/badge-neutral illegibly near-white (confirmed zero
+     current call sites use it). The sidebar's own dark chrome is the
+     correct app-native fit for daisyUI's "always-dark" neutral role. ── */
+  --neutral:         var(--bg-sidebar);
+  --neutral-content: var(--text-sidebar-active);
 
-  --muted:          #F4F5F7;
-  /* --muted-foreground: #9AA0AD; */
---muted-foreground: #94969a;
-  --accent:          #EEF0FE;
-  --accent-foreground: #4554E8;
+  /* ── daisyUI status roles. Every *-content is now a real token — info-
+     content/error-content were previously hardcoded #FFFFFF, only 2.2:1
+     against dark mode's lighter info/error fills (fails WCAG AA);
+     warning-content was already hardcoded correctly and is just tokenized
+     here for symmetry. ── */
+  --info:             #2563EB;
+  --info-content:     #FFFFFF;
+  --success:          #16A34A;
+  --success-content:  #FFFFFF;
+  --warning:          #D97706;
+  --warning-content:  #451A03;
+  --destructive:      #DC2626;
+  --error-content:    #FFFFFF;
 
-  --destructive: #DC2626;
-
-  --border-color: #E4E7EC;
-  --input:  #E4E7EC;
+  /* ── Custom: daisyUI has no ring/focus-outline role ── */
   --ring:   #5B6BF8;
 
+  /* ── Custom: soft-badge pair (tinted bg + strong text) — daisyUI's
+     success-content is for on-solid text, not this pairing, so it stays a
+     custom token. Was --success-foreground. ── */
+  --success-subtle: #DCFCE7;
+  --success-strong: #14532D;
+
+  /* ── Legacy — --secondary is untouched, out of Phase 5b's scope.
+     --accent/--accent-foreground were retired in Phase 5b (every consumer
+     moved to base-200/base-content; --color-accent now aliases primary
+     above instead). ── */
+  --secondary:            #F4F5F7;
+  --secondary-foreground: #5E6573;
+
+  /* ── Legacy raw alias — the last one. --background/--muted/--muted-foreground
+     were deleted in Phase 6 (their only consumers, sonner.tsx and the status
+     chart, were moved onto --base-100/--base-200/a color-mix expression
+     directly). --foreground survives because button.tsx's secondary-variant
+     color-mix() still reads it, alongside --secondary — both stay until
+     --secondary itself is addressed (out of this migration's scope). ── */
+  --foreground: var(--base-content);
 
   /* Radius */
   --radius: 0.5rem;
 
-  /* DaisyUI v5 functional tokens — border-WIDTH (not color; see --border-color
-     above for this app's border-color token), plus depth/noise disabled to
-     match the app's existing flat button/card look (daisyUI's defaults add a
+  /* DaisyUI v5 functional tokens — border-WIDTH (not color; see --base-300
+     for this app's border-color token), plus depth/noise disabled to match
+     the app's existing flat button/card look (daisyUI's defaults add a
      subtle skeuomorphic shading + grain texture we don't want here). */
   --border: 1px;
   --depth: 0;
   --noise: 0;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
-
 }
 
 .dark {
-  /* â”€â”€ 3-layer surface system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── 3-layer surface system ──────────────────────────────────────────── */
   --bg-app:      #0D0F12;
   --bg-surface:  #161A20;
   --bg-elevated: #242A33;
@@ -328,64 +345,60 @@ body:has(.workspace-shell) {
   --bg-sidebar-item-hover:  rgba(255,255,255,0.05);
   --bg-sidebar-item-active: rgba(255,255,255,0.09);
 
-  /* â”€â”€ Text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Text ─────────────────────────────────────────────────────────────── */
   --text-primary:        #F0F2F5;
   --text-secondary:      #8B919E;
   --text-muted:          #545B68;
   --text-sidebar:        #8B919E;
   --text-sidebar-active: #F0F2F5;
 
-  /* â”€â”€ Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Brand ────────────────────────────────────────────────────────────── */
   --brand:       #6475FA;
   --brand-hover: #7585FB;
   --brand-muted: #1E2140;
 
-  /* â”€â”€ Shadows (stronger in dark â€” compensate for low contrast) */
+  /* ── Shadows (stronger in dark — compensate for low contrast) ── */
   --shadow-md: 0 2px 8px 0 rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
   --shadow-lg: 0 8px 24px 0 rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
 
-  /* â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Page ─────────────────────────────────────────────────────────────── */
   --page: #0D0F12;
 
-  /* â”€â”€ Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  --success:          #4ADE80;
-  --success-foreground: #DCFCE7;
-  --success-subtle:   #14532D;
-  --warning:          #FCD34D;
-  --warning-muted:    #451A03;
-  --danger:           #F87171;
-  --danger-muted:     #450A0A;
-  --info:             #60A5FA;
-  --info-muted:       #1E3A5F;
+  /* ── daisyUI base ramp ────────────────────────────────────────────────── */
+  --base-100:     #161A20;
+  --base-200:     #2B323D;
+  --base-300:     #333B47;
+  --base-content: #F0F2F5;
 
-  /* â”€â”€ Core design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  --background: #161A20;
-  --foreground: #F0F2F5;
-  --card:       #242A33;
-  --card-foreground: #F0F2F5;
-  --popover:    #242A33;
-  --popover-foreground: #F0F2F5;
-
-  --primary:          #6475FA;
+  /* ── daisyUI brand role — overridden per :root[data-theme] below ── */
+  --primary:           #6475FA;
   --primary-foreground: #0D0F12;
 
-  --secondary:          #242A33;
-  --secondary-foreground: #8B919E;
+  /* --neutral / --neutral-content re-resolve automatically via the var()
+     indirection declared in :root (they point at --bg-sidebar /
+     --text-sidebar-active, both overridden above) — no redeclaration. */
 
-  --muted:          #2B323D;
-  --muted-foreground: #7C8493;
+  /* ── daisyUI status roles ─────────────────────────────────────────────── */
+  --info:             #60A5FA;
+  --info-content:     #0D1B2E;
+  --success:          #4ADE80;
+  --success-content:  #052E16;
+  --warning:          #FCD34D;
+  --warning-content:  #451A03;
+  --destructive:      #F87171;
+  --error-content:    #450A0A;
 
-  --accent:          #1E2140;
-  --accent-foreground: #7585FB;
-
-  --destructive: #F87171;
-
-  --border-color: #333B47;
-  --input:  #333B47;
   --ring:   #6475FA;
 
+  --success-subtle: #14532D;
+  --success-strong: #DCFCE7;
 
-  /* â”€â”€ Sidebar tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Legacy — --secondary untouched, out of Phase 5b's scope ── */
+  --secondary:            #242A33;
+  --secondary-foreground: #8B919E;
+
+  /* ── Legacy raw alias (consumer listed in :root above) ── */
+  --foreground: var(--base-content);
 }
 
 /* ── Workspace colour themes ──────────────────────────────────────────────
@@ -396,14 +409,21 @@ body:has(.workspace-shell) {
    `forest` (the DB/app default), gets its own explicit block here — `forest`
    is NOT just `:root`, whose base --primary is actually indigo/blue.
    `:root[data-theme]` and `.dark[data-theme]` are both (0,2,0), so source order decides:
-   the dark blocks come last and win when `.dark` is present. */
+   the dark blocks come last and win when `.dark` is present.
+
+   --primary-foreground is aliased to daisyUI's --color-primary-content in the
+   @theme inline block above rather than being renamed here, so these blocks
+   didn't need touching for that. --secondary/--secondary-foreground stay
+   here, untouched — out of Phase 5b's scope. --accent/--accent-foreground
+   were REMOVED from every block below in Phase 5b: nothing reads bg-accent/
+   text-accent-foreground anymore (every call site was hover/selected-surface
+   semantics, moved to base-200/base-content), so daisyUI's real accent role
+   now aliases primary globally instead (see the @theme inline block). */
 
 :root[data-theme="black"] {
   --primary: oklch(0.18 0.018 277);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.52 0.028 277);
-  --accent: oklch(0.94 0.01 277);
-  --accent-foreground: oklch(0.18 0.018 277);
   --secondary: oklch(0.95 0.01 277);
   --secondary-foreground: oklch(0.18 0.018 277);
 }
@@ -412,8 +432,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.56 0.21 250);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.66 0.18 250);
-  --accent: oklch(0.95 0.025 250);
-  --accent-foreground: oklch(0.38 0.12 250);
   --secondary: oklch(0.96 0.02 250);
   --secondary-foreground: oklch(0.38 0.12 250);
 }
@@ -422,8 +440,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.54 0.11 60);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.64 0.09 60);
-  --accent: oklch(0.95 0.02 60);
-  --accent-foreground: oklch(0.38 0.08 60);
   --secondary: oklch(0.96 0.01 60);
   --secondary-foreground: oklch(0.38 0.08 60);
 }
@@ -437,8 +453,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.38 0.07 163);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.48 0.09 163);
-  --accent: oklch(0.95 0.018 163);
-  --accent-foreground: oklch(0.36 0.07 163);
   --secondary: oklch(0.96 0.01 163);
   --secondary-foreground: oklch(0.36 0.07 163);
 }
@@ -447,8 +461,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.513 0.234 278);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.654 0.195 278);
-  --accent: oklch(0.942 0.022 277);
-  --accent-foreground: oklch(0.38 0.12 277);
   --secondary: oklch(0.955 0.018 277);
   --secondary-foreground: oklch(0.38 0.12 277);
 }
@@ -457,8 +469,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.54 0.15 160);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.64 0.13 160);
-  --accent: oklch(0.95 0.02 160);
-  --accent-foreground: oklch(0.36 0.08 160);
   --secondary: oklch(0.96 0.01 160);
   --secondary-foreground: oklch(0.36 0.08 160);
 }
@@ -467,8 +477,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.62 0.21 45);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.72 0.17 45);
-  --accent: oklch(0.96 0.02 45);
-  --accent-foreground: oklch(0.42 0.12 45);
   --secondary: oklch(0.97 0.01 45);
   --secondary-foreground: oklch(0.42 0.12 45);
 }
@@ -477,8 +485,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.61 0.22 350);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.71 0.18 350);
-  --accent: oklch(0.96 0.03 350);
-  --accent-foreground: oklch(0.42 0.14 350);
   --secondary: oklch(0.97 0.02 350);
   --secondary-foreground: oklch(0.42 0.14 350);
 }
@@ -487,8 +493,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.58 0.23 295);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.68 0.20 295);
-  --accent: oklch(0.96 0.025 295);
-  --accent-foreground: oklch(0.40 0.15 295);
   --secondary: oklch(0.97 0.02 295);
   --secondary-foreground: oklch(0.40 0.15 295);
 }
@@ -497,8 +501,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.52 0.16 180);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.62 0.13 180);
-  --accent: oklch(0.95 0.02 180);
-  --accent-foreground: oklch(0.35 0.10 180);
   --secondary: oklch(0.96 0.01 180);
   --secondary-foreground: oklch(0.35 0.10 180);
 }
@@ -507,8 +509,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.53 0.23 280);
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.63 0.19 280);
-  --accent: oklch(0.95 0.03 280);
-  --accent-foreground: oklch(0.36 0.14 280);
   --secondary: oklch(0.96 0.02 280);
   --secondary-foreground: oklch(0.36 0.14 280);
 }
@@ -517,8 +517,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.94 0.012 277);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.6 0.04 277);
-  --accent: oklch(0.23 0.02 277);
-  --accent-foreground: oklch(0.94 0.012 277);
   --secondary: oklch(0.22 0.02 277);
   --secondary-foreground: oklch(0.94 0.012 277);
 }
@@ -527,8 +525,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.66 0.18 250);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.56 0.21 250);
-  --accent: oklch(0.24 0.04 250);
-  --accent-foreground: oklch(0.88 0.03 250);
   --secondary: oklch(0.22 0.03 250);
   --secondary-foreground: oklch(0.84 0.04 250);
 }
@@ -537,8 +533,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.64 0.09 60);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.54 0.11 60);
-  --accent: oklch(0.23 0.02 60);
-  --accent-foreground: oklch(0.88 0.02 60);
   --secondary: oklch(0.21 0.02 60);
   --secondary-foreground: oklch(0.84 0.02 60);
 }
@@ -551,8 +545,6 @@ body:has(.workspace-shell) {
      the light-mode forest block. */
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.38 0.07 163);
-  --accent: oklch(0.22 0.025 163);
-  --accent-foreground: oklch(0.88 0.018 163);
   --secondary: oklch(0.20 0.018 163);
   --secondary-foreground: oklch(0.84 0.018 163);
 }
@@ -561,8 +553,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.654 0.195 278);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.513 0.234 278);
-  --accent: oklch(0.255 0.038 277);
-  --accent-foreground: oklch(0.88 0.025 277);
   --secondary: oklch(0.24 0.036 277);
   --secondary-foreground: oklch(0.84 0.04 277);
 }
@@ -571,8 +561,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.64 0.13 160);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.54 0.15 160);
-  --accent: oklch(0.23 0.03 160);
-  --accent-foreground: oklch(0.88 0.02 160);
   --secondary: oklch(0.21 0.02 160);
   --secondary-foreground: oklch(0.84 0.02 160);
 }
@@ -581,8 +569,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.72 0.17 45);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.62 0.21 45);
-  --accent: oklch(0.25 0.04 45);
-  --accent-foreground: oklch(0.92 0.03 45);
   --secondary: oklch(0.22 0.03 45);
   --secondary-foreground: oklch(0.86 0.03 45);
 }
@@ -591,8 +577,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.71 0.18 350);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.61 0.22 350);
-  --accent: oklch(0.25 0.05 350);
-  --accent-foreground: oklch(0.92 0.04 350);
   --secondary: oklch(0.22 0.04 350);
   --secondary-foreground: oklch(0.86 0.04 350);
 }
@@ -601,8 +585,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.68 0.20 295);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.58 0.23 295);
-  --accent: oklch(0.25 0.04 295);
-  --accent-foreground: oklch(0.90 0.03 295);
   --secondary: oklch(0.22 0.03 295);
   --secondary-foreground: oklch(0.85 0.04 295);
 }
@@ -611,8 +593,6 @@ body:has(.workspace-shell) {
   --primary: oklch(0.62 0.13 180);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.52 0.16 180);
-  --accent: oklch(0.23 0.03 180);
-  --accent-foreground: oklch(0.88 0.02 180);
   --secondary: oklch(0.21 0.02 180);
   --secondary-foreground: oklch(0.83 0.03 180);
 }
@@ -621,13 +601,11 @@ body:has(.workspace-shell) {
   --primary: oklch(0.63 0.19 280);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.53 0.23 280);
-  --accent: oklch(0.24 0.05 280);
-  --accent-foreground: oklch(0.88 0.04 280);
   --secondary: oklch(0.21 0.04 280);
   --secondary-foreground: oklch(0.84 0.04 280);
 }
 
-/* â”€â”€ Tiptap / ProseMirror editor styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Tiptap / ProseMirror editor styles ──────────────────────────────────── */
 .ProseMirror {
   outline: none;
 }
@@ -635,7 +613,7 @@ body:has(.workspace-shell) {
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--base-content) 60%, transparent);
   pointer-events: none;
   height: 0;
 }
@@ -674,21 +652,21 @@ body:has(.workspace-shell) {
   margin: 0.15rem 0;
 }
 .ProseMirror blockquote {
-  border-left: 3px solid var(--border-color);
+  border-left: 3px solid var(--base-300);
   padding-left: 1rem;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--base-content) 60%, transparent);
   margin: 0.5rem 0;
   font-style: italic;
 }
 .ProseMirror code {
-  background: var(--muted);
+  background: var(--base-200);
   border-radius: 0.25rem;
   padding: 0.1em 0.35em;
   font-size: 0.875em;
   font-family: monospace;
 }
 .ProseMirror pre {
-  background: var(--muted);
+  background: var(--base-200);
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
   overflow-x: auto;
@@ -712,7 +690,7 @@ body:has(.workspace-shell) {
 }
 .ProseMirror hr {
   border: none;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--base-300);
   margin: 1rem 0;
 }
 
@@ -732,7 +710,7 @@ body:has(.workspace-shell) {
   cursor: default;
 }
 
-/* Tippy mention popup â€” reset default tippy theme */
+/* Tippy mention popup — reset default tippy theme */
 .tippy-box[data-theme~="mention-popup"] {
   background: transparent;
   box-shadow: none;
@@ -764,36 +742,48 @@ body:has(.workspace-shell) {
   --bg-elevated: #FFFFFF;
   --scrollbar-thumb: #c9cdd4;
   --scrollbar-thumb-hover: #aeb5bf;
-  --background:  #FFFFFF;
-  --foreground:  #0F1117;
-  --card:        #FFFFFF;
-  --card-foreground: #0F1117;
-  --popover:     #FFFFFF;
-  --popover-foreground: #0F1117;
-  --muted:       #F4F5F7;
-  /* AA-compliant on white (#9AA0AD was ~2.3:1 and failed AA for small text) */
-  --muted-foreground: #5E6573;
+
+  --base-100:     #FFFFFF;
+  --base-200:     #F4F5F7;
+  --base-300:     #E4E7EC;
+  --base-content: #0F1117;
+
+  /* Legacy raw alias — the last one still standing (see :root for why). */
+  --foreground: #0F1117;
+
+  /* --secondary stays untouched, out of Phase 5b's scope — keep overriding
+     force-light's own brand-tinted variant, unchanged from before this
+     migration. */
   --secondary:   #F4F5F7;
   --secondary-foreground: #5E6573;
-  --accent:      rgba(23, 77, 56, 0.08);
-  --accent-foreground: #174D38;
-  --border-color: #E4E7EC;
-  --input:       #E4E7EC;
-  /* Brand green â€” matches landing page */
+
+  /* Brand green — matches landing page */
   --primary:           #174D38;
   --primary-foreground: #FFFFFF;
   --ring:              #174D38;
-  --color-primary:     #174D38;
-  --color-primary-foreground: #FFFFFF;
-  --color-ring:        #174D38;
+
+  /* Belt-and-suspenders: also pin the daisyUI-facing names directly, same as
+     this block already did for primary/ring before this migration. Only
+     names still generated by @theme inline are listed — background/card/
+     popover/muted/primary-foreground were retired there in Phase 6, so
+     overriding them here would be dead weight. */
+  --color-base-100: #FFFFFF;
+  --color-base-200: #F4F5F7;
+  --color-base-300: #E4E7EC;
+  --color-base-content: #0F1117;
+  --color-primary: #174D38;
+  --color-primary-content: #FFFFFF;
+  --color-accent: #174D38;
+  --color-accent-content: #FFFFFF;
+  --color-ring: #174D38;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-base-300 outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-base-100 text-base-content;
   }
   html {
     @apply font-sans;

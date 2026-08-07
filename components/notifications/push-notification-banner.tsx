@@ -52,28 +52,28 @@ export function PushNotificationBanner({ workspaceId }: { workspaceId: string })
     >
       <div className="flex items-start gap-3 sm:flex-1 sm:items-center">
         <BellIcon className="size-4 shrink-0 text-primary" weight="fill" />
-        <p className="min-w-0 flex-1 text-foreground">
+        <p className="min-w-0 flex-1 text-base-content">
           Stay updated in real time —{" "}
-          <span className="text-muted-foreground">enable browser notifications to get alerts even when the app is in the background.</span>
+          <span className="text-base-content/60">enable browser notifications to get alerts even when the app is in the background.</span>
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0 pl-7 sm:pl-0">
         <button
           onClick={handleEnable}
           disabled={enabling}
-          className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
+          className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-content hover:bg-primary/90 transition-colors disabled:opacity-60"
         >
           {enabling ? "Enabling…" : "Enable"}
         </button>
         <button
           onClick={dismiss}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="text-xs text-base-content/60 hover:text-base-content transition-colors"
         >
           Not now
         </button>
         <button
           onClick={dismiss}
-          className="ml-1 flex size-6 items-center justify-center rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+          className="ml-1 flex size-6 items-center justify-center rounded-md hover:bg-base-200 transition-colors text-base-content/60 hover:text-base-content"
           aria-label="Dismiss"
         >
           <XIcon className="size-3.5" />

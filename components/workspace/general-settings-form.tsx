@@ -73,7 +73,7 @@ export function GeneralSettingsForm({ workspace }: GeneralSettingsFormProps) {
               pattern="[a-z0-9]+(-[a-z0-9]+)*"
               required
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-base-content/60">
               Vanity alias only — changing it never breaks existing links.
             </p>
           </div>
@@ -88,7 +88,7 @@ export function GeneralSettingsForm({ workspace }: GeneralSettingsFormProps) {
                   aria-pressed={logoEmoji === emoji}
                   onClick={() => setLogoEmoji(logoEmoji === emoji ? null : emoji)}
                   className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition-colors hover:bg-accent",
+                    "flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition-colors hover:bg-base-200",
                     logoEmoji === emoji && "border-primary bg-primary/10",
                   )}
                 >
@@ -96,7 +96,7 @@ export function GeneralSettingsForm({ workspace }: GeneralSettingsFormProps) {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-base-content/60">
               Image upload arrives with the avatar system.
             </p>
           </div>

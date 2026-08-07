@@ -42,7 +42,7 @@ export function TaskDependencyBadge({
               "inline-flex items-center gap-0.5 text-2xs font-medium tabular-nums",
               blocked
                 ? "text-amber-600 dark:text-amber-400"
-                : "text-muted-foreground",
+                : "text-base-content/60",
               className
             )}
           >

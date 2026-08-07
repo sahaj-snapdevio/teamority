@@ -180,9 +180,9 @@ export function ListContainer({
       canManage || isAdmin ? (
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex size-7 items-center justify-center rounded-md hover:bg-accent transition-colors">
+            <button className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 transition-colors">
               <DotsThreeIcon
-                className="size-4.5 text-foreground/70"
+                className="size-4.5 text-base-content/70"
                 weight="bold"
               />
             </button>
@@ -191,26 +191,26 @@ export function ListContainer({
             {canManage && (
               <>
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                   onClick={() =>
                     router.push(
                       `/${workspaceId}/${space.id}/list/${list.id}/settings/general`
                     )
                   }
                 >
-                  <GearIcon className="size-4 shrink-0 text-foreground/70" />{" "}
+                  <GearIcon className="size-4 shrink-0 text-base-content/70" />{" "}
                   Settings
                 </button>
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                   onClick={() => setDuplicateOpen(true)}
                 >
-                  <CopyIcon className="size-4 shrink-0 text-foreground/70" />{" "}
+                  <CopyIcon className="size-4 shrink-0 text-base-content/70" />{" "}
                   Duplicate
                 </button>
                 <div className="my-1 h-px bg-border" />
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                   onClick={async () => {
                     const res = await archiveList(
                       workspaceId,
@@ -234,14 +234,14 @@ export function ListContainer({
                     }
                   }}
                 >
-                  <ArchiveIcon className="size-4 shrink-0 text-foreground/70" />{" "}
+                  <ArchiveIcon className="size-4 shrink-0 text-base-content/70" />{" "}
                   Archive List
                 </button>
               </>
             )}
             {isAdmin && (
               <button
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-error transition-colors hover:bg-error/10"
                 onClick={() => setDeleteOpen(true)}
               >
                 <TrashIcon className="size-3.5 shrink-0" /> Delete List
@@ -384,8 +384,8 @@ export function ListContainer({
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer",
               view === key
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? "border-primary text-base-content"
+                : "border-transparent text-base-content/60 hover:text-base-content"
             )}
             key={key}
             onClick={() => switchView(key)}

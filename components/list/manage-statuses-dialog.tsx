@@ -61,7 +61,7 @@ export function ManageStatusesDialog({
         </DialogHeader>
         <div className="overflow-y-auto flex-1 pr-1" onWheel={(e) => e.stopPropagation()}>
           {loading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
+            <div className="py-8 text-center text-sm text-base-content/60">Loading…</div>
           ) : (
             <ListStatusesSettings
               workspaceId={workspaceId}

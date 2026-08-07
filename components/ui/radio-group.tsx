@@ -84,7 +84,7 @@ function RadioGroupItem({
       data-slot="radio-group-item"
       data-state={checked ? "checked" : "unchecked"}
       className={cn(
-        "group/radio-group-item peer relative flex aspect-square size-4.5 shrink-0 rounded-full border border-input bg-transparent outline-none has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/30 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 has-[[aria-invalid]]:border-destructive has-[[aria-invalid]]:ring-2 has-[[aria-invalid]]:ring-destructive/20 data-[state=checked]:border-foreground",
+        "group/radio-group-item peer relative flex aspect-square size-4.5 shrink-0 rounded-full border border-base-300 bg-transparent outline-none has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/30 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 has-[[aria-invalid]]:border-error has-[[aria-invalid]]:ring-2 has-[[aria-invalid]]:ring-error/20 data-[state=checked]:border-base-content",
         className
       )}
     >
@@ -104,7 +104,7 @@ function RadioGroupItem({
           data-slot="radio-group-indicator"
           className="pointer-events-none flex size-4.5 items-center justify-center"
         >
-          <span className="absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground" />
+          <span className="absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content" />
         </span>
       )}
     </span>

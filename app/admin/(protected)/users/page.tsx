@@ -43,7 +43,7 @@ export default function AdminUsersPage() {
     <div className="p-4 space-y-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Users</h1>
-        <p className="text-muted-foreground text-sm mt-1">{total.toLocaleString()} total users</p>
+        <p className="text-base-content/60 text-sm mt-1">{total.toLocaleString()} total users</p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -58,7 +58,7 @@ export default function AdminUsersPage() {
             <button
               key={tab.key}
               onClick={() => { setStatus(tab.key); setPage(1); }}
-              className={`px-3 py-1 text-sm rounded transition-colors ${status === tab.key ? "bg-foreground text-background" : "hover:bg-muted"}`}
+              className={`px-3 py-1 text-sm rounded transition-colors ${status === tab.key ? "bg-base-content text-base-100" : "hover:bg-base-200"}`}
             >
               {tab.label}
             </button>
@@ -69,7 +69,7 @@ export default function AdminUsersPage() {
       <div className="rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50">
+            <thead className="bg-base-200/50">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Name</th>
                 <th className="text-left px-4 py-2 font-medium">Email</th>
@@ -80,18 +80,18 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-base-content/60">Loading…</td></tr>
               ) : users.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">No users found</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-base-content/60">No users found</td></tr>
               ) : (
                 users.map((u) => (
-                  <tr key={u.id} className="border-t hover:bg-muted/30 cursor-pointer">
+                  <tr key={u.id} className="border-t hover:bg-base-200/30 cursor-pointer">
                     <td className="px-4 py-2">
                       <Link href={`/admin/users/${u.id}`} className="hover:underline font-medium">
                         {u.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground">{u.email}</td>
+                    <td className="px-4 py-2 text-base-content/60">{u.email}</td>
                     <td className="px-4 py-2">
                       {u.banned ? (
                         <Badge variant="destructive">Banned</Badge>
@@ -100,9 +100,9 @@ export default function AdminUsersPage() {
                       )}
                     </td>
                     <td className="px-4 py-2">
-                      {u.role === "admin" ? <Badge>Admin</Badge> : <span className="text-muted-foreground">User</span>}
+                      {u.role === "admin" ? <Badge>Admin</Badge> : <span className="text-base-content/60">User</span>}
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground">
+                    <td className="px-4 py-2 text-base-content/60">
                       {new Date(u.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
@@ -118,7 +118,7 @@ export default function AdminUsersPage() {
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border rounded text-sm disabled:opacity-50">
             Previous
           </button>
-          <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+          <span className="text-sm text-base-content/60">Page {page} of {totalPages}</span>
           <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 border rounded text-sm disabled:opacity-50">
             Next
           </button>

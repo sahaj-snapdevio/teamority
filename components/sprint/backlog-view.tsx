@@ -93,7 +93,7 @@ function BacklogTaskRow({
 
   return (
     <div
-      className="group flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent/40 cursor-pointer transition-colors"
+      className="group flex items-center gap-3 px-3 py-2 rounded-md hover:bg-base-200/40 cursor-pointer transition-colors"
       onClick={() => {
         setTaskNavContext({ taskIds: taskNavIds });
         router.push(
@@ -119,7 +119,7 @@ function BacklogTaskRow({
       <span className="flex-1 truncate text-sm">{task.title}</span>
 
       {/* Seq number */}
-      <span className="shrink-0 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+      <span className="shrink-0 text-xs text-base-content/60 opacity-0 group-hover:opacity-100 transition-opacity">
         #{task.seqNumber}
       </span>
 
@@ -140,14 +140,14 @@ function BacklogTaskRow({
       {task.assignees.length > 0 && (
         <div className="flex -space-x-1.5 shrink-0">
           {task.assignees.slice(0, 3).map((a) => (
-            <Avatar key={a.userId} className="h-5 w-5 border border-background">
+            <Avatar key={a.userId} className="h-5 w-5 border border-base-100">
               <AvatarFallback className="text-[9px]">
                 {(a.name ?? a.email ?? "?").slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
           ))}
           {task.assignees.length > 3 && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-background bg-muted text-[9px] font-medium">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-base-100 bg-base-200 text-[9px] font-medium">
               +{task.assignees.length - 3}
             </span>
           )}
@@ -177,19 +177,19 @@ function BacklogTaskRow({
           onClick={(e) => e.stopPropagation()}
         >
           {sprints.length === 0 ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            <p className="px-2 py-1.5 text-xs text-base-content/60">
               No active or planned sprints
             </p>
           ) : (
             sprints.map((s) => (
               <button
                 key={s.id}
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent cursor-pointer text-left"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200 cursor-pointer text-left"
                 onClick={() => void handleAddToSprint(s.id, s.name)}
               >
                 <LightningIcon className="size-3.5 shrink-0 text-violet-500" />
                 <span className="truncate">{s.name}</span>
-                <span className="ml-auto text-2xs text-muted-foreground capitalize">
+                <span className="ml-auto text-2xs text-base-content/60 capitalize">
                   {s.status.toLowerCase()}
                 </span>
               </button>
@@ -221,26 +221,26 @@ function BacklogListGroup({
   const [open, setOpen] = React.useState(true);
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className="rounded-lg border border-base-300 bg-elevated">
       {/* Header */}
       <button
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium hover:bg-accent/30 rounded-t-lg transition-colors"
+        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium hover:bg-base-200/30 rounded-t-lg transition-colors"
         onClick={() => setOpen((v) => !v)}
       >
         {open ? (
-          <CaretDownIcon className="size-3.5 shrink-0 text-muted-foreground" />
+          <CaretDownIcon className="size-3.5 shrink-0 text-base-content/60" />
         ) : (
-          <CaretRightIcon className="size-3.5 shrink-0 text-muted-foreground" />
+          <CaretRightIcon className="size-3.5 shrink-0 text-base-content/60" />
         )}
         <span className="truncate">{group.listName}</span>
-        <span className="ml-auto shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+        <span className="ml-auto shrink-0 rounded-full bg-base-200 px-2 py-0.5 text-xs text-base-content/60">
           {group.tasks.length}
         </span>
       </button>
 
       {/* Tasks */}
       {open && (
-        <div className="px-1 pb-1 border-t border-border">
+        <div className="px-1 pb-1 border-t border-base-300">
           {group.tasks.map((task) => (
             <BacklogTaskRow
               key={task.id}
@@ -307,10 +307,10 @@ export function BacklogView({
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <TrayIcon className="size-4 text-muted-foreground" />
+        <TrayIcon className="size-4 text-base-content/60" />
         <h2 className="font-semibold text-sm">Backlog</h2>
         {!loading && (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+          <span className="rounded-full bg-base-200 px-2 py-0.5 text-xs text-base-content/60">
             {totalTasks}
           </span>
         )}
@@ -324,12 +324,12 @@ export function BacklogView({
           ))}
         </div>
       ) : lists.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-10 text-center">
-          <TrayIcon className="size-8 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-base-300 py-10 text-center">
+          <TrayIcon className="size-8 text-base-content/40" />
+          <p className="text-sm text-base-content/60">
             All tasks are in a sprint
           </p>
-          <p className="text-xs text-muted-foreground/70">
+          <p className="text-xs text-base-content/70">
             Tasks not in any sprint will appear here
           </p>
         </div>

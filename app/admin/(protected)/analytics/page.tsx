@@ -29,7 +29,7 @@ export default async function AdminAnalyticsPage() {
     <div className="p-4 space-y-8 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Analytics</h1>
-        <p className="text-muted-foreground text-sm mt-1">Platform usage statistics</p>
+        <p className="text-base-content/60 text-sm mt-1">Platform usage statistics</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -38,9 +38,9 @@ export default async function AdminAnalyticsPage() {
           { label: "Total Comments", value: data.totals?.comments ?? 0 },
           { label: "Total Spaces", value: data.totals?.spaces ?? 0 },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-lg border bg-card p-6 text-center shadow-sm">
+          <div key={label} className="rounded-lg border bg-elevated p-6 text-center shadow-sm">
             <div className="text-4xl font-bold">{Number(value).toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground mt-2">{label}</div>
+            <div className="text-sm text-base-content/60 mt-2">{label}</div>
           </div>
         ))}
       </div>
@@ -50,7 +50,7 @@ export default async function AdminAnalyticsPage() {
         <div className="rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50">
+              <thead className="bg-base-200/50">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Date</th>
                   <th className="text-left px-4 py-2 font-medium">Tasks Created</th>
@@ -58,10 +58,10 @@ export default async function AdminAnalyticsPage() {
               </thead>
               <tbody>
                 {(data.tasksPerDay ?? []).length === 0 ? (
-                  <tr><td colSpan={2} className="px-4 py-4 text-center text-muted-foreground">No data</td></tr>
+                  <tr><td colSpan={2} className="px-4 py-4 text-center text-base-content/60">No data</td></tr>
                 ) : (data.tasksPerDay ?? []).map((row: any) => (
                   <tr key={row.date} className="border-t">
-                    <td className="px-4 py-2 text-muted-foreground">{row.date}</td>
+                    <td className="px-4 py-2 text-base-content/60">{row.date}</td>
                     <td className="px-4 py-2 font-medium">{row.count}</td>
                   </tr>
                 ))}

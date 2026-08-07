@@ -210,7 +210,7 @@ function DialogContent({
         aria-describedby={descriptionId}
         tabIndex={-1}
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] max-h-[85vh] -translate-x-1/2 -translate-y-1/2 gap-6 overflow-y-auto rounded-lg bg-popover p-6 text-popover-foreground text-sm shadow-lg ring-1 ring-foreground/10 duration-100 fill-mode-forwards outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] max-h-[85vh] -translate-x-1/2 -translate-y-1/2 gap-6 overflow-y-auto rounded-xl bg-elevated p-6 text-base-content text-sm shadow-lg ring-1 ring-base-content/10 duration-100 fill-mode-forwards outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className,
         )}
         {...props}
@@ -263,7 +263,7 @@ function DialogDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       id={descriptionId}
       data-slot="dialog-description"
-      className={cn("mt-0.5 text-muted-foreground text-sm leading-relaxed", className)}
+      className={cn("mt-0.5 text-base-content/60 text-sm leading-relaxed", className)}
       {...props}
     />
   );

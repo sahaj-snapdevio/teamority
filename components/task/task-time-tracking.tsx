@@ -194,7 +194,7 @@ export function TaskTimeTracking({
     <div>
       {!hideHeader && (
         <div className="mb-2 flex items-center gap-2">
-          <ClockIcon className="size-4 text-muted-foreground" />
+          <ClockIcon className="size-4 text-base-content/60" />
           <h3 className="text-sm font-semibold">Time Tracking</h3>
         </div>
       )}
@@ -202,7 +202,7 @@ export function TaskTimeTracking({
       {/* Total + control */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
         <div>
-          <div className="text-xs text-muted-foreground">Tracked Time</div>
+          <div className="text-xs text-base-content/60">Tracked Time</div>
           <div className="text-lg font-semibold tabular-nums">
             {formatDuration(displayedTotal)}
           </div>
@@ -212,7 +212,7 @@ export function TaskTimeTracking({
           <div className="flex items-center gap-2">
             {running ? (
               <>
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5 text-xs text-base-content/60">
                   <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
                   Running…{" "}
                   <span className="tabular-nums">
@@ -241,7 +241,7 @@ export function TaskTimeTracking({
 
       {canEdit && (
         <button
-          className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          className="mt-3 flex items-center gap-1.5 text-xs text-base-content/60 transition-colors hover:text-base-content"
           onClick={() => setLogOpen(true)}
           type="button"
         >
@@ -255,7 +255,7 @@ export function TaskTimeTracking({
         <div className="mt-4 space-y-3">
           {groupHistory(history).map((day) => (
             <div key={day.label}>
-              <Label className="mb-1.5 block text-xs text-muted-foreground">
+              <Label className="mb-1.5 block text-xs text-base-content/60">
                 {day.label}
               </Label>
               <div className="space-y-1">
@@ -273,7 +273,7 @@ export function TaskTimeTracking({
                       >
                         <CaretRightIcon
                           className={cn(
-                            "size-3 shrink-0 text-muted-foreground transition-transform",
+                            "size-3 shrink-0 text-base-content/60 transition-transform",
                             isOpen && "rotate-90"
                           )}
                           weight="bold"
@@ -299,10 +299,10 @@ export function TaskTimeTracking({
                               className="group flex items-start gap-2"
                               key={e.id}
                             >
-                              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-base-content/40" />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="shrink-0 text-2xs text-muted-foreground tabular-nums">
+                                  <span className="shrink-0 text-2xs text-base-content/60 tabular-nums">
                                     {sessionTimeLabel(e)}
                                   </span>
                                   <span className="ml-auto shrink-0 text-sm font-medium tabular-nums">
@@ -311,7 +311,7 @@ export function TaskTimeTracking({
                                   {canEdit && e.userId === currentUserId && (
                                     <button
                                       aria-label="Delete time entry"
-                                      className="flex size-5 shrink-0 items-center justify-center rounded text-destructive opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
+                                      className="flex size-5 shrink-0 items-center justify-center rounded text-error opacity-0 transition-opacity hover:bg-error/10 group-hover:opacity-100"
                                       onClick={() => handleDelete(e.id)}
                                       type="button"
                                     >
@@ -320,7 +320,7 @@ export function TaskTimeTracking({
                                   )}
                                 </div>
                                 {e.description && (
-                                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                                  <div className="mt-0.5 truncate text-xs text-base-content/60">
                                     {e.description}
                                   </div>
                                 )}
@@ -339,7 +339,7 @@ export function TaskTimeTracking({
       )}
 
       {history.length === 0 && !running && (
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="mt-3 text-xs text-base-content/60">
           No time tracked yet.
         </p>
       )}

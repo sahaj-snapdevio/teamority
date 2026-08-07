@@ -69,19 +69,19 @@ function DrilldownRow({
     : null;
   return (
     <Link
-      className="flex items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-accent/30 transition-colors"
+      className="flex items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-base-200/30 transition-colors"
       href={`/${workspaceId}/task/${task.id}`}
     >
       <span className="shrink-0">{cfg.icon}</span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-foreground/90">{task.title}</p>
-        <p className="truncate text-sm text-muted-foreground">
+        <p className="truncate text-base-content/90">{task.title}</p>
+        <p className="truncate text-sm text-base-content/60">
           {task.spaceName} · {task.listName}
         </p>
       </div>
       {deadline && (
         <span
-          className={`shrink-0 text-sm tabular-nums ${deadline.overdue ? "text-destructive" : "text-muted-foreground"}`}
+          className={`shrink-0 text-sm tabular-nums ${deadline.overdue ? "text-error" : "text-base-content/60"}`}
         >
           {deadline.text}
         </span>
@@ -124,18 +124,18 @@ export function TaskDrilldownSheet({
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="p-0">
-        <SheetHeader className="border-b border-border p-5">
+        <SheetHeader className="border-b border-base-300 p-5">
           <SheetTitle className="normal-case text-lg font-semibold tracking-normal">
             {label} {tasks !== null && `(${tasks.length})`}
           </SheetTitle>
         </SheetHeader>
         <div className="flex-1 space-y-0.5 overflow-y-auto p-3">
           {tasks === null ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
+            <p className="py-10 text-center text-sm text-base-content/60">
               Loading…
             </p>
           ) : tasks.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
+            <p className="py-10 text-center text-sm text-base-content/60">
               No tasks here
             </p>
           ) : (
@@ -145,7 +145,7 @@ export function TaskDrilldownSheet({
           )}
         </div>
         {request?.kind === "focus" && tasks !== null && tasks.length > 0 && (
-          <SheetFooter className="border-t border-border p-3">
+          <SheetFooter className="border-t border-base-300 p-3">
             <Link
               className="flex items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium text-primary hover:underline"
               href={`/${workspaceId}/my-tasks?focus=${request.focusKind}`}

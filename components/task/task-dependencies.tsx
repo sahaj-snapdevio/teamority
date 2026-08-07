@@ -121,7 +121,7 @@ export function TaskDependencies({
     <div>
       {!hideHeader && (
         <div className="mb-2 flex items-center gap-2">
-          <LinkIcon className="size-4 text-muted-foreground" />
+          <LinkIcon className="size-4 text-base-content/60" />
           <h3 className="text-sm font-semibold">Dependencies</h3>
         </div>
       )}
@@ -166,14 +166,14 @@ export function TaskDependencies({
           )}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-base-content/60">
           No dependencies added yet.
         </p>
       )}
 
       {canEdit && (
         <button
-          className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          className="mt-3 flex items-center gap-1.5 text-xs text-base-content/60 transition-colors hover:text-base-content"
           onClick={() => setAddOpen(true)}
           type="button"
         >
@@ -213,7 +213,7 @@ function DependencyGroup({
 }) {
   return (
     <div>
-      <Label className="mb-1.5 block text-xs text-muted-foreground">
+      <Label className="mb-1.5 block text-xs text-base-content/60">
         {title}
       </Label>
       <div className="space-y-1">
@@ -227,19 +227,19 @@ function DependencyGroup({
               onClick={() => onOpen(row)}
               type="button"
             >
-              <span className="shrink-0 font-mono text-xs text-muted-foreground">
+              <span className="shrink-0 font-mono text-xs text-base-content/60">
                 #{row.seqNumber}
               </span>
               <span className="truncate text-sm">{row.title}</span>
             </button>
             <StatusBadge color={row.statusColor} name={row.statusName} />
-            <span className="hidden shrink-0 truncate text-2xs text-muted-foreground sm:inline">
+            <span className="hidden shrink-0 truncate text-2xs text-base-content/60 sm:inline">
               {[row.spaceName, row.listName].filter(Boolean).join(" › ")}
             </span>
             {canEdit && (
               <button
                 aria-label="Remove dependency"
-                className="flex size-5 shrink-0 items-center justify-center rounded text-destructive opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
+                className="flex size-5 shrink-0 items-center justify-center rounded text-error opacity-0 transition-opacity hover:bg-error/10 group-hover:opacity-100"
                 onClick={() => onRemove(row)}
                 type="button"
               >
@@ -264,7 +264,7 @@ function StatusBadge({
     return null;
   }
   return (
-    <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+    <span className="flex shrink-0 items-center gap-1.5 text-xs text-base-content/60">
       <span
         className="size-2 rounded-full"
         style={{ backgroundColor: color ?? FALLBACK_STATUS_COLOR }}
@@ -364,7 +364,7 @@ function AddDependencyDialog({
         </DialogHeader>
 
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">This task…</Label>
+          <Label className="text-xs text-base-content/60">This task…</Label>
           <RadioGroup
             className="gap-2"
             onValueChange={(v) => setDirection(v as Direction)}
@@ -373,7 +373,7 @@ function AddDependencyDialog({
             <label
               className={cn(
                 "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
-                direction === "depends" ? "border-primary" : "hover:bg-accent"
+                direction === "depends" ? "border-primary" : "hover:bg-base-200"
               )}
               htmlFor="dep-depends"
             >
@@ -383,7 +383,7 @@ function AddDependencyDialog({
             <label
               className={cn(
                 "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
-                direction === "blocks" ? "border-primary" : "hover:bg-accent"
+                direction === "blocks" ? "border-primary" : "hover:bg-base-200"
               )}
               htmlFor="dep-blocks"
             >
@@ -422,7 +422,7 @@ function AddDependencyDialog({
               >
                 {results.map((r) => (
                   <ComboboxOption key={r.id} value={r}>
-                    <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                    <span className="shrink-0 font-mono text-xs text-base-content/60">
                       #{r.seqNumber}
                     </span>
                     <span className="truncate">{r.title}</span>

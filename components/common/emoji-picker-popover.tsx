@@ -22,16 +22,16 @@ const EmojiPicker = dynamic(() => import("@emoji-mart/react"), {
   ssr: false,
   loading: () => (
     <div className="w-88 p-3 space-y-2">
-      <div className="h-8 rounded-md bg-muted animate-pulse" />
-      <div className="flex gap-1 pb-1 border-b border-border">
+      <div className="h-8 rounded-md bg-base-200 animate-pulse" />
+      <div className="flex gap-1 pb-1 border-b border-base-300">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div className="size-7 rounded bg-muted animate-pulse" key={i} />
+          <div className="size-7 rounded bg-base-200 animate-pulse" key={i} />
         ))}
       </div>
-      <div className="h-3 w-20 rounded bg-muted animate-pulse" />
+      <div className="h-3 w-20 rounded bg-base-200 animate-pulse" />
       <div className="grid grid-cols-8 gap-1">
         {Array.from({ length: 40 }).map((_, i) => (
-          <div className="size-8 rounded bg-muted animate-pulse" key={i} />
+          <div className="size-8 rounded bg-base-200 animate-pulse" key={i} />
         ))}
       </div>
     </div>
@@ -67,7 +67,7 @@ export function EmojiPickerPopover({
         <button
           aria-label="Choose icon"
           className={cn(
-            "flex size-10 items-center justify-center rounded-md border border-border bg-background transition-colors hover:bg-accent",
+            "flex size-10 items-center justify-center rounded-md border border-base-300 bg-base-100 transition-colors hover:bg-base-200",
             className
           )}
           type="button"
@@ -78,7 +78,7 @@ export function EmojiPickerPopover({
       <PopoverContent align="start" className="w-auto p-0 border-0 shadow-lg">
         {value && (
           <button
-            className="flex w-full items-center gap-1.5 border-b border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="flex w-full items-center gap-1.5 border-b border-base-300 px-3 py-2 text-sm text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
             onClick={() => {
               onChange(null);
               setOpen(false);

@@ -93,16 +93,16 @@ const EmojiPicker = dynamic(() => import("@emoji-mart/react"), {
   ssr: false,
   loading: () => (
     <div className="w-88 max-w-[calc(100vw-2rem)] p-3 space-y-2">
-      <div className="h-8 rounded-md bg-muted animate-pulse" />
-      <div className="flex gap-1 pb-1 border-b border-border">
+      <div className="h-8 rounded-md bg-base-200 animate-pulse" />
+      <div className="flex gap-1 pb-1 border-b border-base-300">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="size-7 rounded bg-muted animate-pulse" />
+          <div key={i} className="size-7 rounded bg-base-200 animate-pulse" />
         ))}
       </div>
-      <div className="h-3 w-20 rounded bg-muted animate-pulse" />
+      <div className="h-3 w-20 rounded bg-base-200 animate-pulse" />
       <div className="grid grid-cols-8 gap-1">
         {Array.from({ length: 40 }).map((_, i) => (
-          <div key={i} className="size-8 rounded bg-muted animate-pulse" />
+          <div key={i} className="size-8 rounded bg-base-200 animate-pulse" />
         ))}
       </div>
     </div>
@@ -346,7 +346,7 @@ function CommentEditor({
   splitListItemRef.current = () => { editor?.chain().splitListItem("listItem").run(); };
 
   return (
-    <div className="rounded-xl border bg-background shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40 transition-all">
+    <div className="rounded-xl border bg-base-100 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40 transition-all">
       <EditorContent editor={editor} />
       <SlashCommandMenu menu={slashMenu} />
 
@@ -356,7 +356,7 @@ function CommentEditor({
           {pendingFiles.map((file, i) => (
             <div
               key={`${file.name}-${i}`}
-              className="flex items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-1 text-xs"
+              className="flex items-center gap-1.5 rounded-md border bg-base-200/40 px-2 py-1 text-xs"
             >
               {file.type.startsWith("image/") ? (
                 <img
@@ -367,12 +367,12 @@ function CommentEditor({
               ) : file.type === "application/pdf" ? (
                 <FilePdfIcon className="size-4 text-red-500 shrink-0" />
               ) : (
-                <FileIcon className="size-4 text-muted-foreground shrink-0" />
+                <FileIcon className="size-4 text-base-content/60 shrink-0" />
               )}
               <span className="truncate max-w-28">{file.name}</span>
               <button
                 onClick={() => removeFile(i)}
-                className="text-muted-foreground hover:text-destructive shrink-0"
+                className="text-base-content/60 hover:text-error shrink-0"
               >
                 <XIcon className="size-3" />
               </button>
@@ -388,7 +388,7 @@ function CommentEditor({
         {/* Plus — formatting menu */}
         <Popover open={plusOpen} onOpenChange={setPlusOpen}>
           <PopoverTrigger asChild>
-            <button className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+            <button className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors">
               <PlusIcon className="size-3.5" />
             </button>
           </PopoverTrigger>
@@ -412,7 +412,7 @@ function CommentEditor({
         {/* Emoji */}
         <Popover>
           <PopoverTrigger asChild>
-            <button className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+            <button className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors">
               <SmileyIcon className="size-4" />
             </button>
           </PopoverTrigger>
@@ -434,7 +434,7 @@ function CommentEditor({
           <>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors"
               title="Attach file"
             >
               <PaperclipIcon className="size-4" />
@@ -454,7 +454,7 @@ function CommentEditor({
           <>
             <button
               onClick={() => imageInputRef.current?.click()}
-              className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors"
               title="Add image"
             >
               <ImageIcon className="size-4" />
@@ -473,7 +473,7 @@ function CommentEditor({
         {/* Mention */}
         <button
           onClick={() => editor?.chain().focus().insertContent("@").run()}
-          className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          className="size-11 sm:size-7 flex items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors"
         >
           <AtIcon className="size-4" />
         </button>
@@ -484,7 +484,7 @@ function CommentEditor({
         {onCancel && (
           <button
             onClick={onCancel}
-            className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-accent transition-colors mr-1"
+            className="text-xs text-base-content/60 hover:text-base-content px-2 py-1 rounded-md hover:bg-base-200 transition-colors mr-1"
           >
             Cancel
           </button>
@@ -493,7 +493,7 @@ function CommentEditor({
         {/* Submit group */}
         <div className={cn(
           "flex items-stretch rounded-lg overflow-hidden border transition-colors",
-          canSubmit ? "border-primary bg-primary" : "border-border bg-muted/40",
+          canSubmit ? "border-primary bg-primary" : "border-base-300 bg-base-200/40",
         )}>
           <button
             onClick={handleSubmit}
@@ -501,8 +501,8 @@ function CommentEditor({
             className={cn(
               "flex items-center px-3 py-1.5 text-xs font-medium transition-colors",
               canSubmit
-                ? "text-primary-foreground hover:bg-white/10"
-                : "text-muted-foreground cursor-not-allowed",
+                ? "text-primary-content hover:bg-white/10"
+                : "text-base-content/60 cursor-not-allowed",
             )}
           >
             {submitting ? <span>Sending…</span> : <span>Comment</span>}
@@ -514,8 +514,8 @@ function CommentEditor({
             className={cn(
               "flex items-center justify-center px-2 transition-colors",
               canSubmit
-                ? "text-primary-foreground hover:bg-white/10"
-                : "text-muted-foreground cursor-not-allowed",
+                ? "text-primary-content hover:bg-white/10"
+                : "text-base-content/60 cursor-not-allowed",
             )}
           >
             <PaperPlaneRightIcon className="size-3.5" />
@@ -602,7 +602,7 @@ function CommentAttachments({ attachments }: { attachments: CommentAttachment[] 
               key={img.id}
               type="button"
               onClick={() => openAttachment(img)}
-              className="block overflow-hidden rounded-lg border bg-muted/30 hover:opacity-90 transition-opacity"
+              className="block overflow-hidden rounded-lg border bg-base-200/30 hover:opacity-90 transition-opacity"
             >
               <img
                 src={img.url}
@@ -625,15 +625,15 @@ function CommentAttachments({ attachments }: { attachments: CommentAttachment[] 
               key={file.id}
               type="button"
               onClick={() => openAttachment(file)}
-              className="flex w-full items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-left hover:bg-accent transition-colors"
+              className="flex w-full items-center gap-2 rounded-lg border bg-base-200/30 px-3 py-2 text-left hover:bg-base-200 transition-colors"
             >
               {file.mimeType === "application/pdf" ? (
                 <FilePdfIcon className="size-4 text-red-500 shrink-0" />
               ) : (
-                <FileIcon className="size-4 text-muted-foreground shrink-0" />
+                <FileIcon className="size-4 text-base-content/60 shrink-0" />
               )}
               <span className="text-xs font-medium truncate flex-1">{file.fileName}</span>
-              <span className="text-2xs text-muted-foreground shrink-0">
+              <span className="text-2xs text-base-content/60 shrink-0">
                 {(file.fileSize / 1024).toFixed(0)} KB
               </span>
             </button>
@@ -742,9 +742,9 @@ function CommentItem({
       {/* Comment card */}
       <div
         className={cn(
-          "rounded-xl border bg-card transition-colors",
+          "rounded-xl border bg-elevated transition-colors",
           comment.isResolved && "opacity-60",
-          depth > 0 && "border-border/60",
+          depth > 0 && "border-base-300/60",
         )}
       >
         {/* Header */}
@@ -758,13 +758,13 @@ function CommentItem({
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <span className="text-sm font-semibold leading-none">{displayName}</span>
             <span
-              className="text-2xs text-muted-foreground"
+              className="text-2xs text-base-content/60"
               title={format(new Date(comment.createdAt), "PPpp")}
             >
               {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
             </span>
             {comment.editedAt && (
-              <span className="text-2xs text-muted-foreground italic">(edited)</span>
+              <span className="text-2xs text-base-content/60 italic">(edited)</span>
             )}
             {comment.isResolved && (
               <span className="text-2xs text-green-600 font-medium flex items-center gap-0.5">
@@ -779,7 +779,7 @@ function CommentItem({
               <button
                 onClick={handleResolve}
                 title={comment.isResolved ? "Unresolve" : "Resolve"}
-                className="size-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground"
+                className="size-6 flex items-center justify-center rounded hover:bg-base-200 text-base-content/60 hover:text-base-content"
               >
                 {comment.isResolved
                   ? <XCircleIcon className="size-3.5" />
@@ -789,7 +789,7 @@ function CommentItem({
             {isAuthor && !comment.isDeleted && (
               <button
                 onClick={() => setEditing((v) => !v)}
-                className="size-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground"
+                className="size-6 flex items-center justify-center rounded hover:bg-base-200 text-base-content/60 hover:text-base-content"
               >
                 <PencilSimpleIcon className="size-3.5" />
               </button>
@@ -798,7 +798,7 @@ function CommentItem({
               <>
                 <button
                   onClick={() => setDeleteOpen(true)}
-                  className="size-6 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                  className="size-6 flex items-center justify-center rounded hover:bg-error/10 text-base-content/60 hover:text-error"
                 >
                   <TrashIcon className="size-3.5" />
                 </button>
@@ -814,7 +814,7 @@ function CommentItem({
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => void handleDelete()}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        className="bg-error text-error-content hover:bg-error/90"
                       >
                         Delete
                       </AlertDialogAction>
@@ -829,7 +829,7 @@ function CommentItem({
         {/* Body */}
         <div className="px-3 pb-1">
           {comment.isDeleted ? (
-            <p className="text-sm italic text-muted-foreground py-1">[Comment deleted]</p>
+            <p className="text-sm italic text-base-content/60 py-1">[Comment deleted]</p>
           ) : editing ? (
             <CommentEditor
               initialContent={comment.body}
@@ -853,7 +853,7 @@ function CommentItem({
         {/* Footer */}
         {!comment.isDeleted && (
           <TooltipProvider delayDuration={200}>
-          <div className="flex flex-wrap items-center gap-1 px-3 pb-2 pt-1 border-t border-border/40">
+          <div className="flex flex-wrap items-center gap-1 px-3 pb-2 pt-1 border-t border-base-300/40">
             {/* Existing emoji reactions (👍 is shown on the dedicated like button) */}
             {comment.reactions
               .filter((r) => r.emoji !== "👍")
@@ -868,7 +868,7 @@ function CommentItem({
                         "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors",
                         reacted
                           ? "border-primary/40 bg-primary/10 text-primary"
-                          : "border-border hover:bg-accent",
+                          : "border-base-300 hover:bg-base-200",
                       )}
                     >
                       <span>{r.emoji}</span>
@@ -892,7 +892,7 @@ function CommentItem({
                     "h-7 flex items-center justify-center gap-1 rounded-md border px-2 transition-colors",
                     hasThumbsUp
                       ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border hover:bg-accent text-muted-foreground hover:text-foreground",
+                      : "border-base-300 hover:bg-base-200 text-base-content/60 hover:text-base-content",
                   )}
                   aria-label="Like"
                 >
@@ -919,7 +919,7 @@ function CommentItem({
             {/* Emoji picker */}
             <Popover>
               <PopoverTrigger asChild>
-                <button className="size-7 flex items-center justify-center rounded-md border border-border hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+                <button className="size-7 flex items-center justify-center rounded-md border border-base-300 hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors">
                   <SmileyIcon className="size-3.5" />
                 </button>
               </PopoverTrigger>
@@ -942,7 +942,7 @@ function CommentItem({
             {depth === 0 && (
               <button
                 onClick={() => setReplying((v) => !v)}
-                className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-1"
+                className="text-xs font-medium text-base-content/60 hover:text-base-content transition-colors px-1"
               >
                 Reply
               </button>
@@ -972,7 +972,7 @@ function CommentItem({
         <div className="mt-2">
           <button
             onClick={() => setRepliesOpen((v) => !v)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-3 mb-2 transition-colors"
+            className="flex items-center gap-1 text-xs text-base-content/60 hover:text-base-content ml-3 mb-2 transition-colors"
           >
             {repliesOpen
               ? <CaretDownIcon className="size-3" />
@@ -1014,13 +1014,13 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
     <div className="flex items-center gap-2 py-1 px-1">
       <Avatar className="size-6 shrink-0 md:size-5">
         {entry.image && <AvatarImage src={avatarSrc(entry.image)} />}
-        <AvatarFallback className="text-[9px] bg-muted">
+        <AvatarFallback className="text-[9px] bg-base-200">
           {initials(entry.name, entry.email)}
         </AvatarFallback>
       </Avatar>
-      <div className="flex-1 min-w-0 text-xs text-muted-foreground">
+      <div className="flex-1 min-w-0 text-xs text-base-content/60">
         <div>
-          <span className="font-medium text-foreground">{entry.name ?? entry.email ?? "System"}</span>
+          <span className="font-medium text-base-content">{entry.name ?? entry.email ?? "System"}</span>
           {" "}
           {describeEvent(entry.eventType, meta)}
           {/* Own line below `md:` for a clearer User/Action/Timestamp split
@@ -1033,7 +1033,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
           </span>
         </div>
         {timeNote && (
-          <p className="mt-0.5 text-2xs text-muted-foreground/80 italic truncate">
+          <p className="mt-0.5 text-2xs text-base-content/80 italic truncate">
             &ldquo;{timeNote}&rdquo;
           </p>
         )}
@@ -1120,7 +1120,7 @@ function TaskActivityFeed({
   }
 
   const header = hideHeader ? null : (
-    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+    <p className="text-xs font-semibold text-base-content/60 uppercase tracking-wide">
       Activity
     </p>
   );
@@ -1129,8 +1129,8 @@ function TaskActivityFeed({
     <div className="space-y-3 animate-pulse">
       {[1, 2, 3].map((i) => (
         <div key={i} className="flex gap-2">
-          <div className="size-7 rounded-full bg-muted shrink-0" />
-          <div className="flex-1 h-20 rounded-xl bg-muted" />
+          <div className="size-7 rounded-full bg-base-200 shrink-0" />
+          <div className="flex-1 h-20 rounded-xl bg-base-200" />
         </div>
       ))}
     </div>
@@ -1156,7 +1156,7 @@ function TaskActivityFeed({
         ) : null,
       )}
       {feed.length === 0 && (
-        <p className="text-xs text-muted-foreground py-2">No activity yet.</p>
+        <p className="text-xs text-base-content/60 py-2">No activity yet.</p>
       )}
     </div>
   );
@@ -1181,7 +1181,7 @@ function TaskActivityFeed({
           {header}
           {body}
         </div>
-        <div className="shrink-0 border-t bg-background px-3 py-3 sm:px-5">
+        <div className="shrink-0 border-t bg-base-100 px-3 py-3 sm:px-5">
           {composer}
         </div>
       </div>
@@ -1196,7 +1196,7 @@ function TaskActivityFeed({
     <div className="space-y-3">
       {header}
       {body}
-      <div className="sticky bottom-0 z-10 -mx-4 border-t bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-6 sm:px-6">
+      <div className="sticky bottom-0 z-10 -mx-4 border-t bg-base-100 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-6 sm:px-6">
         {composer}
       </div>
     </div>

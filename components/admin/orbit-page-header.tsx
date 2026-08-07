@@ -8,7 +8,7 @@ export function OrbitPageHeader({
   description?: string;
 }) {
   return (
-    <div className="mb-8 border-b border-border pb-5">
+    <div className="mb-8 border-b border-base-300 pb-5">
       {eyebrow && (
         <p className="mb-2 font-bold text-xs text-success uppercase tracking-eyebrow">
           {eyebrow}
@@ -16,7 +16,7 @@ export function OrbitPageHeader({
       )}
       <h1 className="font-black text-2xl tracking-normal">{title}</h1>
       {description && (
-        <p className="mt-1.5 text-muted-foreground text-sm">{description}</p>
+        <p className="mt-1.5 text-base-content/60 text-sm">{description}</p>
       )}
     </div>
   );

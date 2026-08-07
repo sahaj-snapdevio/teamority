@@ -52,3 +52,6 @@ next-env.d.ts
 *.dump
 kanbanica-db-*
 krova-db-*
+
+# daisyUI migration Phase 0 baseline screenshots/token dumps (QA scaffolding, not app code)
+/.claude-migration-baselines-phase0

@@ -70,13 +70,13 @@ export default function TicketDetailPage({
   }
 
   if (isLoading) {
-    return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
+    return <div className="p-8 text-sm text-base-content/60">Loading…</div>;
   }
 
   if (!ticket) {
     return (
       <div className="p-8 text-center">
-        <p className="text-muted-foreground">Ticket not found.</p>
+        <p className="text-base-content/60">Ticket not found.</p>
         <Link href={`/${workspaceId}/support`} className="text-sm text-primary hover:underline mt-2 inline-block">
           Back to Support
         </Link>
@@ -87,21 +87,21 @@ export default function TicketDetailPage({
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
       <div className="flex items-center gap-3">
-        <Link href={`/${workspaceId}/support`} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+        <Link href={`/${workspaceId}/support`} className="shrink-0 text-base-content/60 hover:text-base-content transition-colors">
           <ArrowLeftIcon className="h-4 w-4" />
         </Link>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-mono text-xs text-muted-foreground">{ticket.ticketNumber}</span>
+          <span className="font-mono text-xs text-base-content/60">{ticket.ticketNumber}</span>
           <Badge variant={STATUS_COLORS[ticket.status] ?? "secondary"}>
             {ticket.status.replace("_", " ")}
           </Badge>
-          <span className="text-xs text-muted-foreground">{ticket.category}</span>
+          <span className="text-xs text-base-content/60">{ticket.category}</span>
         </div>
       </div>
 
       <div>
         <h1 className="text-xl font-semibold">{ticket.subject}</h1>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-base-content/60 mt-1">
           Opened {new Date(ticket.createdAt).toLocaleDateString()}
           {ticket.closedAt && ` · Closed ${new Date(ticket.closedAt).toLocaleDateString()}`}
         </p>
@@ -116,14 +116,14 @@ export default function TicketDetailPage({
               "rounded-lg border p-4",
               msg.isAdmin
                 ? "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 ml-3 sm:ml-6"
-                : "bg-muted/30 mr-3 sm:mr-6",
+                : "bg-base-200/30 mr-3 sm:mr-6",
             )}
           >
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-2">
               <span className="text-xs font-medium">
                 {msg.isAdmin ? "Support Team" : "You"}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-base-content/60">
                 {new Date(msg.createdAt).toLocaleString()}
               </span>
             </div>
@@ -131,7 +131,7 @@ export default function TicketDetailPage({
           </div>
         ))}
         {messages.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground py-6">No messages yet</p>
+          <p className="text-center text-sm text-base-content/60 py-6">No messages yet</p>
         )}
       </div>
 
@@ -144,8 +144,8 @@ export default function TicketDetailPage({
           rows={4}
           maxLength={5000}
         />
-        <p className="text-xs text-muted-foreground text-right">{reply.length}/5000</p>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        <p className="text-xs text-base-content/60 text-right">{reply.length}/5000</p>
+        {error && <p className="text-sm text-error">{error}</p>}
         <div className="flex items-center justify-between">
           {ticket.status !== "CLOSED" && (
             <Button
@@ -154,7 +154,7 @@ export default function TicketDetailPage({
               size="sm"
               onClick={handleClose}
               disabled={closing}
-              className="text-muted-foreground"
+              className="text-base-content/60"
             >
               {closing ? "Closing…" : "Close Ticket"}
             </Button>

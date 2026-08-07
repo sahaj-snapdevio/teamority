@@ -83,23 +83,23 @@ export function IntegrationCard({
         : { defaultValue: value })}
     >
       <AccordionItem
-        className="overflow-hidden rounded-xl border border-border bg-card"
+        className="overflow-hidden rounded-xl border border-base-300 bg-elevated"
         value={value}
       >
         <AccordionTrigger className="items-center px-5 py-4 hover:no-underline sm:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3.5">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-foreground">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-base-200 text-base-content">
               {icon}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-semibold text-foreground">
+                <h3 className="text-sm font-semibold text-base-content">
                   {title}
                 </h3>
                 <IntegrationStatusBadge status={status} />
                 {usingEnv && <UsingEnvBadge />}
               </div>
-              <p className="mt-0.5 line-clamp-2 text-xs font-normal text-muted-foreground">
+              <p className="mt-0.5 line-clamp-2 text-xs font-normal text-base-content/60">
                 {description}
               </p>
             </div>
@@ -109,22 +109,22 @@ export function IntegrationCard({
           </div>
         </AccordionTrigger>
 
-        <AccordionContent className="border-t border-border px-5 pt-5 sm:px-6">
+        <AccordionContent className="border-t border-base-300 px-5 pt-5 sm:px-6">
           <div className="space-y-5">
             <div className="space-y-4">{children}</div>
 
             {note && (
-              <p className="rounded-md bg-accent/40 px-3 py-2 text-xs text-muted-foreground">
+              <p className="rounded-md bg-base-200/40 px-3 py-2 text-xs text-base-content/60">
                 {note}
               </p>
             )}
 
-            <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+            <div className="flex items-center justify-between gap-3 border-t border-base-300 pt-4">
               {(status === "configured" || status === "restart-required") &&
               !usingEnv &&
               onRemove ? (
                 <Button
-                  className="text-destructive hover:text-destructive"
+                  className="text-error hover:text-error"
                   disabled={saving || removing || testing}
                   onClick={onRemove}
                   size="sm"

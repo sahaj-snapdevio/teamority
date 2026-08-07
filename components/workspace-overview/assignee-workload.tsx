@@ -53,7 +53,7 @@ export function AssigneeWorkload({
       </CardHeader>
       <CardContent>
         {members.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
+          <p className="py-10 text-center text-sm text-base-content/60">
             No members yet
           </p>
         ) : (
@@ -63,7 +63,7 @@ export function AssigneeWorkload({
               const levelConfig = WORKLOAD_LEVEL_CONFIG[level];
               return (
                 <button
-                  className="flex w-full items-start gap-3 rounded-md px-1.5 py-2 text-left transition-colors hover:bg-accent/20 cursor-pointer"
+                  className="flex w-full items-start gap-3 rounded-md px-1.5 py-2 text-left transition-colors hover:bg-base-200/20 cursor-pointer"
                   key={m.userId}
                   onClick={() =>
                     setDrilldown({
@@ -82,24 +82,24 @@ export function AssigneeWorkload({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium text-foreground">
+                      <span className="truncate text-sm font-medium text-base-content">
                         {m.name}
                       </span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
+                      <span className="shrink-0 text-xs text-base-content/60">
                         {levelConfig.emoji} {levelConfig.label}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-base-content/60">
                       {m.activeCount} active task
                       {m.activeCount === 1 ? "" : "s"}
                     </p>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-base-200">
                       <div
                         className={`h-full rounded-full transition-all ${completionBarColor(m.completionPercent, level === "heavy")}`}
                         style={{ width: `${m.completionPercent}%` }}
                       />
                     </div>
-                    <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                    <div className="mt-1.5 space-y-0.5 text-xs text-base-content/60">
                       <p>
                         {m.completedCount} / {m.assignedCount} completed
                       </p>

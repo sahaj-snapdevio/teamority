@@ -40,14 +40,14 @@ export default function AdminTicketsPage() {
     <div className="p-4 space-y-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Support Tickets</h1>
-        <p className="text-muted-foreground text-sm mt-1">{total.toLocaleString()} tickets</p>
+        <p className="text-base-content/60 text-sm mt-1">{total.toLocaleString()} tickets</p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Input placeholder="Search by subject…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="sm:max-w-sm" />
         <div className="flex gap-1 overflow-x-auto border rounded-md p-1">
           {STATUS_TABS.map((tab) => (
-            <button key={tab.key} onClick={() => { setStatus(tab.key); setPage(1); }} className={`shrink-0 px-3 py-1 text-sm rounded transition-colors ${status === tab.key ? "bg-foreground text-background" : "hover:bg-muted"}`}>
+            <button key={tab.key} onClick={() => { setStatus(tab.key); setPage(1); }} className={`shrink-0 px-3 py-1 text-sm rounded transition-colors ${status === tab.key ? "bg-base-content text-base-100" : "hover:bg-base-200"}`}>
               {tab.label}
             </button>
           ))}
@@ -57,7 +57,7 @@ export default function AdminTicketsPage() {
       <div className="rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50">
+            <thead className="bg-base-200/50">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">#</th>
                 <th className="text-left px-4 py-2 font-medium">Subject</th>
@@ -69,21 +69,21 @@ export default function AdminTicketsPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-base-content/60">Loading…</td></tr>
               ) : tickets.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">No tickets found</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-base-content/60">No tickets found</td></tr>
               ) : tickets.map((t) => (
-                <tr key={t.id} className="border-t hover:bg-muted/30">
-                  <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{t.ticketNumber}</td>
+                <tr key={t.id} className="border-t hover:bg-base-200/30">
+                  <td className="px-4 py-2 font-mono text-xs text-base-content/60">{t.ticketNumber}</td>
                   <td className="px-4 py-2">
                     <Link href={`/admin/tickets/${t.id}`} className="hover:underline font-medium">{t.subject}</Link>
                   </td>
-                  <td className="px-4 py-2 text-muted-foreground">{t.category}</td>
+                  <td className="px-4 py-2 text-base-content/60">{t.category}</td>
                   <td className="px-4 py-2">
                     <Badge variant={STATUS_COLORS[t.status] ?? "secondary"}>{t.status.replace("_", " ")}</Badge>
                   </td>
-                  <td className="px-4 py-2 text-muted-foreground">{t.userEmail ?? t.userId}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{new Date(t.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-2 text-base-content/60">{t.userEmail ?? t.userId}</td>
+                  <td className="px-4 py-2 text-base-content/60">{new Date(t.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -94,7 +94,7 @@ export default function AdminTicketsPage() {
       {totalPages > 1 && (
         <div className="flex items-center gap-2">
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Previous</button>
-          <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+          <span className="text-sm text-base-content/60">Page {page} of {totalPages}</span>
           <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Next</button>
         </div>
       )}

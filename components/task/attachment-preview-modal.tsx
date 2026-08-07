@@ -190,18 +190,18 @@ function AttachmentPreviewModal({
         {attachment && (
           <TooltipProvider delayDuration={300}>
             {/* Header / toolbar */}
-            <div className="flex items-center gap-3 border-b bg-popover px-4 py-2.5">
+            <div className="flex items-center gap-3 border-b bg-elevated px-4 py-2.5">
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 {isPdf ? (
                   <FilePdfIcon className="size-4 shrink-0 text-red-500" />
                 ) : (
-                  <FileIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <FileIcon className="size-4 shrink-0 text-base-content/60" />
                 )}
                 <DialogTitle className="truncate text-sm font-medium leading-none">
                   {attachment.fileName}
                 </DialogTitle>
                 {formatBytes(attachment.fileSize) && (
-                  <span className="shrink-0 text-2xs text-muted-foreground">
+                  <span className="shrink-0 text-2xs text-base-content/60">
                     {formatBytes(attachment.fileSize)}
                   </span>
                 )}
@@ -259,7 +259,7 @@ function AttachmentPreviewModal({
             {/* Body */}
             <div
               className={cn(
-                "relative flex-1 bg-muted/40",
+                "relative flex-1 bg-base-200/40",
                 isImage ? "select-none overflow-hidden" : "overflow-auto",
               )}
               onPointerDown={isImage ? onPointerDown : undefined}
@@ -332,7 +332,7 @@ function ToolbarButton({
         <Button
           variant="ghost"
           size="icon-xs"
-          className="text-muted-foreground hover:text-foreground"
+          className="text-base-content/60 hover:text-base-content"
           asChild={asChild}
           {...props}
         >
@@ -349,12 +349,12 @@ function ToolbarButton({
 function UnpreviewableState({ attachment }: { attachment: PreviewAttachment }) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-8 text-center">
-      <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-        <FileIcon className="size-8 text-muted-foreground" />
+      <div className="flex size-16 items-center justify-center rounded-full bg-base-200">
+        <FileIcon className="size-8 text-base-content/60" />
       </div>
       <div className="space-y-1">
         <p className="text-sm font-medium">{attachment.fileName}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-base-content/60">
           This file type can&apos;t be previewed here.
         </p>
       </div>

@@ -27,8 +27,8 @@ export function SettingsNav({ workspaceId, isOwner }: SettingsNavProps) {
           className={cn(
             "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors",
             pathname === item.href
-              ? "bg-accent font-medium text-accent-foreground"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              ? "bg-base-200 font-medium text-base-content"
+              : "text-base-content/60 hover:bg-base-200 hover:text-base-content",
           )}
         >
           {item.label}

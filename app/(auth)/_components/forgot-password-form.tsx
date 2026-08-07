@@ -42,15 +42,15 @@ export function ForgotPasswordForm() {
           <CheckCircleIcon className="size-6 text-primary" weight="duotone" />
         </div>
         <div className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Check your inbox</h2>
-          <p className="text-sm leading-relaxed text-foreground/70">
+          <h2 className="text-xl font-bold tracking-tight text-base-content">Check your inbox</h2>
+          <p className="text-sm leading-relaxed text-base-content/70">
             If an account exists for{" "}
-            <span className="font-semibold text-foreground">{form.getValues("email")}</span>, we sent
+            <span className="font-semibold text-base-content">{form.getValues("email")}</span>, we sent
             it a link to reset the password. The link expires in 1 hour.
           </p>
         </div>
-        <p className="text-muted-foreground text-xs">
-          <Link href="/login" className="underline underline-offset-4 transition-colors hover:text-foreground">
+        <p className="text-base-content/60 text-xs">
+          <Link href="/login" className="underline underline-offset-4 transition-colors hover:text-base-content">
             Back to sign in
           </Link>
         </p>
@@ -66,9 +66,9 @@ export function ForgotPasswordForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-foreground">Email address</FormLabel>
+              <FormLabel className="text-sm font-semibold text-base-content">Email address</FormLabel>
               <FormControl>
-                <Input type="email" autoComplete="email" placeholder="you@example.com" className="h-11 rounded-lg font-medium text-foreground" {...field} />
+                <Input type="email" autoComplete="email" placeholder="you@example.com" className="h-11 rounded-lg font-medium text-base-content" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -78,7 +78,7 @@ export function ForgotPasswordForm() {
         <Button
           type="submit"
           disabled={!isValid || isSubmitting}
-          className="h-11 w-full gap-2 rounded-lg text-sm font-semibold shadow-sm disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none"
+          className="h-11 w-full gap-2 rounded-lg text-sm font-semibold shadow-sm disabled:bg-base-200 disabled:text-base-content/60 disabled:opacity-100 disabled:shadow-none"
         >
           {isSubmitting ? (
             <><Spinner className="size-4" />Sending…</>
@@ -87,8 +87,8 @@ export function ForgotPasswordForm() {
           )}
         </Button>
 
-        <p className="pt-1 text-center text-sm text-foreground/70">
-          <Link href="/login" className="font-semibold text-foreground underline underline-offset-4 transition-opacity hover:opacity-80">
+        <p className="pt-1 text-center text-sm text-base-content/70">
+          <Link href="/login" className="font-semibold text-base-content underline underline-offset-4 transition-opacity hover:opacity-80">
             Back to sign in
           </Link>
         </p>

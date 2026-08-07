@@ -129,7 +129,7 @@ export function SpaceGeneralSettingsForm({
                 onClick={() => setColor(c)}
                 className={cn(
                   "h-7 w-7 rounded-full border-2 transition-transform hover:scale-110",
-                  color === c ? "border-foreground scale-110" : "border-transparent",
+                  color === c ? "border-base-content scale-110" : "border-transparent",
                 )}
                 style={{ backgroundColor: c }}
               />
@@ -149,11 +149,11 @@ export function SpaceGeneralSettingsForm({
                   "flex-1 rounded-md border px-3 py-2 text-sm transition-colors text-left",
                   (v === "private") === priv
                     ? "border-primary bg-primary/5 font-medium"
-                    : "border-border hover:bg-accent",
+                    : "border-base-300 hover:bg-base-200",
                 )}
               >
                 {v === "public" ? "🌐 Public" : "🔒 Private"}
-                <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                <p className="text-xs text-base-content/60 font-normal mt-0.5">
                   {v === "public" ? "All workspace members" : "Only invited members"}
                 </p>
               </button>
@@ -172,13 +172,13 @@ export function SpaceGeneralSettingsForm({
       <Separator />
 
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
+        <h3 className="text-sm font-semibold text-error">Danger Zone</h3>
 
         {!isArchived && (
-          <div className="flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-md border border-base-300 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="text-sm font-medium">Archive Project</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-base-content/60 mt-0.5">
                 Hides the Project from the sidebar. Data is preserved and searchable.
               </p>
             </div>
@@ -205,10 +205,10 @@ export function SpaceGeneralSettingsForm({
         )}
 
         {isAdmin && (
-          <div className="flex flex-col gap-3 rounded-md border border-destructive/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-md border border-error/30 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="text-sm font-medium">Delete Project</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-base-content/60 mt-0.5">
                 Permanently deletes this Project and all its Lists, Tasks, and files. Cannot be undone.
               </p>
             </div>
@@ -229,7 +229,7 @@ export function SpaceGeneralSettingsForm({
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    className="bg-error text-error-content hover:bg-error/90"
                   >
                     Delete permanently
                   </AlertDialogAction>

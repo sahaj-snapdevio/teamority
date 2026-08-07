@@ -43,16 +43,16 @@ export function IntegrationConfigCard({
 }: Props) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-foreground">
+      <div className="flex items-center gap-3 rounded-xl border border-base-300 bg-elevated p-4 shadow-sm">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-base-200 text-base-content">
           {icon}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-medium text-foreground">{title}</h3>
+            <h3 className="text-sm font-medium text-base-content">{title}</h3>
             <IntegrationStatusBadge status={status} />
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          <p className="mt-0.5 truncate text-xs text-base-content/60">
             {description}
           </p>
         </div>

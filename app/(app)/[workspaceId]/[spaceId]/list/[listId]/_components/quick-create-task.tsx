@@ -102,7 +102,7 @@ export function QuickCreateTask({
   if (!open) {
     return (
       <button
-        className={`flex items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-muted-foreground text-sm transition-colors hover:border-border hover:bg-accent hover:text-foreground w-full ${className ?? ""}`}
+        className={`flex items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-base-content/60 text-sm transition-colors hover:border-base-300 hover:bg-base-200 hover:text-base-content w-full ${className ?? ""}`}
         onClick={show}
         type="button"
       >
@@ -114,11 +114,11 @@ export function QuickCreateTask({
 
   return (
     <div
-      className={`space-y-2 rounded-lg border bg-background px-3 py-2 shadow-sm ${className ?? ""}`}
+      className={`space-y-2 rounded-lg border bg-base-100 px-3 py-2 shadow-sm ${className ?? ""}`}
       ref={containerRef}
     >
       <input
-        className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        className="w-full bg-transparent text-sm outline-none placeholder:text-base-content/60"
         disabled={loading}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
@@ -144,7 +144,7 @@ export function QuickCreateTask({
       />
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <p className="text-xs text-muted-foreground whitespace-nowrap">
+        <p className="text-xs text-base-content/60 whitespace-nowrap">
           Enter to save · Esc to cancel
         </p>
         <div className="flex gap-1.5 shrink-0">

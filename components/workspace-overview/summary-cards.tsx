@@ -35,11 +35,11 @@ interface Subtitle {
 type IconTone = "neutral" | "primary" | "success" | "info" | "warning";
 
 const ICON_TONE_CLASSES: Record<IconTone, string> = {
-  neutral: "bg-muted text-foreground/70 dark:text-foreground/80",
-  primary: "bg-primary/10 text-primary dark:bg-muted dark:text-foreground/80",
-  success: "bg-success/10 text-success dark:bg-muted dark:text-foreground/80",
-  info: "bg-info/10 text-info dark:bg-muted dark:text-foreground/80",
-  warning: "bg-warning/10 text-warning dark:bg-muted dark:text-foreground/80",
+  neutral: "bg-base-200 text-base-content/70 dark:text-base-content/80",
+  primary: "bg-primary/10 text-primary dark:bg-base-200 dark:text-base-content/80",
+  success: "bg-success/10 text-success dark:bg-base-200 dark:text-base-content/80",
+  info: "bg-info/10 text-info dark:bg-base-200 dark:text-base-content/80",
+  warning: "bg-warning/10 text-warning dark:bg-base-200 dark:text-base-content/80",
 };
 
 interface Tile {
@@ -91,12 +91,12 @@ function StatTile({ label, value, icon, anchor, iconTone, subtitle }: Tile) {
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <span className="truncate text-sm font-medium text-muted-foreground">
+        <span className="truncate text-sm font-medium text-base-content/60">
           {label}
         </span>
         <p
           className={cn(
-            "mt-1.5 text-[28px] font-bold leading-none tracking-tight tabular-nums text-foreground",
+            "mt-1.5 text-[28px] font-bold leading-none tracking-tight tabular-nums text-base-content",
             warningActive && "text-warning"
           )}
         >
@@ -104,7 +104,7 @@ function StatTile({ label, value, icon, anchor, iconTone, subtitle }: Tile) {
         </p>
         <p
           className={cn(
-            "mt-1.5 text-xs leading-none text-foreground/70",
+            "mt-1.5 text-xs leading-none text-base-content/70",
             subtitle.tone === "good" && "text-success",
             subtitle.tone === "bad" && "text-warning"
           )}
@@ -116,8 +116,8 @@ function StatTile({ label, value, icon, anchor, iconTone, subtitle }: Tile) {
   );
 
   const className =
-    "rounded-xl border border-border bg-card p-4 transition-colors" +
-    (anchor ? " hover:bg-accent/30 cursor-pointer" : "");
+    "rounded-xl border border-base-300 bg-elevated p-4 transition-colors" +
+    (anchor ? " hover:bg-base-200/30 cursor-pointer" : "");
 
   if (anchor) {
     return (
@@ -205,22 +205,22 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
           <StatTile key={tile.label} {...tile} />
         ))}
       </div>
-      <div className="rounded-xl border border-border bg-card p-4">
+      <div className="rounded-xl border border-base-300 bg-elevated p-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">
+          <span className="text-sm font-medium text-base-content/60">
             Overall Completion
           </span>
-          <span className="text-sm font-semibold tabular-nums text-foreground">
+          <span className="text-sm font-semibold tabular-nums text-base-content">
             {summary.completionPercent}%
           </span>
         </div>
-        <div className="mt-3.5 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div className="mt-3.5 h-2 w-full overflow-hidden rounded-full bg-base-200">
           <div
             className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${summary.completionPercent}%` }}
           />
         </div>
-        <p className="mt-3 text-sm tabular-nums text-foreground/70">
+        <p className="mt-3 text-sm tabular-nums text-base-content/70">
           {summary.completedTasks} of {summary.totalTasks} tasks completed
         </p>
       </div>

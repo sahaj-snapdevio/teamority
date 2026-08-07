@@ -176,7 +176,7 @@ export function SubtaskRow({
 
   return (
     <div
-      className="group flex items-center gap-2 rounded-md border bg-card px-3 py-2 hover:bg-accent/30 cursor-pointer"
+      className="group flex items-center gap-2 rounded-md border bg-elevated px-3 py-2 hover:bg-base-200/30 cursor-pointer"
       onClick={onNavigate}
     >
       {/* Status — click the dot to change */}
@@ -201,12 +201,12 @@ export function SubtaskRow({
               if (group.length === 0) return null;
               return (
                 <div key={type}>
-                  <p className="px-2 pt-2 pb-0.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="px-2 pt-2 pb-0.5 text-2xs font-semibold uppercase tracking-wider text-base-content/60">
                     {label}
                   </p>
                   {group.map((s) => (
                     <button
-                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                       key={s.id}
                       onClick={() => chooseStatus(s)}
                       type="button"
@@ -228,13 +228,13 @@ export function SubtaskRow({
         </PopoverContent>
       </Popover>
 
-      <span className="shrink-0 font-mono text-xs text-muted-foreground">
+      <span className="shrink-0 font-mono text-xs text-base-content/60">
         #{subtask.seqNumber}
       </span>
       <span
         className={cn(
           "min-w-0 flex-1 truncate text-sm",
-          isClosed && "text-muted-foreground line-through"
+          isClosed && "text-base-content/60 line-through"
         )}
       >
         {subtask.title}
@@ -245,12 +245,12 @@ export function SubtaskRow({
         <PopoverTrigger asChild disabled={!canEdit}>
           <button
             className={cn(
-              "flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs transition-colors hover:bg-accent disabled:cursor-default",
+              "flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs transition-colors hover:bg-base-200 disabled:cursor-default",
               dueEnd
                 ? overdue
                   ? "text-red-500"
-                  : "text-foreground"
-                : "text-muted-foreground opacity-0 group-hover:opacity-100"
+                  : "text-base-content"
+                : "text-base-content/60 opacity-0 group-hover:opacity-100"
             )}
             onClick={stop}
             title="Due date"
@@ -268,7 +268,7 @@ export function SubtaskRow({
           />
           {dueEnd && (
             <button
-              className="w-full border-t px-3 py-2 text-left text-xs text-muted-foreground hover:text-destructive transition-colors"
+              className="w-full border-t px-3 py-2 text-left text-xs text-base-content/60 hover:text-error transition-colors"
               onClick={() => setDueDate(null)}
               type="button"
             >
@@ -283,9 +283,9 @@ export function SubtaskRow({
         <PopoverTrigger asChild disabled={!canEdit}>
           <button
             className={cn(
-              "flex shrink-0 items-center rounded-md transition-colors hover:bg-accent disabled:cursor-default",
+              "flex shrink-0 items-center rounded-md transition-colors hover:bg-base-200 disabled:cursor-default",
               assignees.length === 0 &&
-                "size-6 justify-center text-muted-foreground opacity-0 group-hover:opacity-100"
+                "size-6 justify-center text-base-content/60 opacity-0 group-hover:opacity-100"
             )}
             onClick={stop}
             title="Assignees"
@@ -297,7 +297,7 @@ export function SubtaskRow({
               <span className="flex -space-x-1.5">
                 {assignees.slice(0, 3).map((a) => (
                   <UserAvatar
-                    className="ring-2 ring-card"
+                    className="ring-2 ring-elevated"
                     email={a.email}
                     image={a.image}
                     key={a.userId}
@@ -306,7 +306,7 @@ export function SubtaskRow({
                   />
                 ))}
                 {assignees.length > 3 && (
-                  <span className="flex size-5 items-center justify-center rounded-full bg-muted text-2xs font-medium text-muted-foreground ring-2 ring-card">
+                  <span className="flex size-5 items-center justify-center rounded-full bg-base-200 text-2xs font-medium text-base-content/60 ring-2 ring-elevated">
                     +{assignees.length - 3}
                   </span>
                 )}
@@ -324,7 +324,7 @@ export function SubtaskRow({
           />
           <div className="max-h-52 space-y-0.5 overflow-y-auto">
             {filteredMembers.length === 0 && (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              <p className="px-2 py-1.5 text-xs text-base-content/60">
                 No members
               </p>
             )}
@@ -332,7 +332,7 @@ export function SubtaskRow({
               const selected = assignees.some((a) => a.userId === m.userId);
               return (
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                   key={m.userId}
                   onClick={() => toggleAssignee(m)}
                   type="button"
@@ -353,7 +353,7 @@ export function SubtaskRow({
 
       {canEdit && (
         <button
-          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+          className="flex size-6 shrink-0 items-center justify-center rounded-md text-base-content/60 opacity-0 transition-colors hover:bg-error/10 hover:text-error group-hover:opacity-100"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
@@ -364,7 +364,7 @@ export function SubtaskRow({
           <TrashIcon className="size-3.5" />
         </button>
       )}
-      <CaretRightIcon className="size-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100" />
+      <CaretRightIcon className="size-3.5 shrink-0 text-base-content/60 opacity-0 group-hover:opacity-100" />
     </div>
   );
 }

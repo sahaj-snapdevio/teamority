@@ -126,26 +126,26 @@ export default function AdminHelpCenterPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Help Center</h1>
-          <p className="text-muted-foreground text-sm mt-1">{articles.length} article{articles.length !== 1 ? "s" : ""}</p>
+          <p className="text-base-content/60 text-sm mt-1">{articles.length} article{articles.length !== 1 ? "s" : ""}</p>
         </div>
         <Button className="sm:self-auto self-start" onClick={openNew}>New Article</Button>
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">Loading…</div>
+        <div className="py-12 text-center text-base-content/60">Loading…</div>
       ) : articles.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">
+        <div className="py-12 text-center text-base-content/60">
           No help articles yet. Create the first one.
         </div>
       ) : (
         <div className="space-y-8">
           {Object.entries(grouped).map(([cat, items]) => (
             <div key={cat}>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">{cat}</h2>
+              <h2 className="text-sm font-semibold text-base-content/60 uppercase tracking-wider mb-3">{cat}</h2>
               <div className="rounded-lg border overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
+                    <thead className="bg-base-200/50">
                       <tr>
                         <th className="text-left px-4 py-2 font-medium">Title</th>
                         <th className="text-left px-4 py-2 font-medium">Slug</th>
@@ -156,22 +156,22 @@ export default function AdminHelpCenterPage() {
                     </thead>
                     <tbody>
                       {items.map((a) => (
-                        <tr key={a.id} className="border-t hover:bg-muted/30">
+                        <tr key={a.id} className="border-t hover:bg-base-200/30">
                           <td className="px-4 py-2 font-medium">{a.title}</td>
-                          <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{a.slug}</td>
+                          <td className="px-4 py-2 font-mono text-xs text-base-content/60">{a.slug}</td>
                           <td className="px-4 py-2">
                             <Badge variant={a.isPublished ? "default" : "outline"}>
                               {a.isPublished ? "Published" : "Draft"}
                             </Badge>
                           </td>
-                          <td className="px-4 py-2 text-muted-foreground">{new Date(a.updatedAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-2 text-base-content/60">{new Date(a.updatedAt).toLocaleDateString()}</td>
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-2 justify-end">
                               <Button size="sm" variant="ghost" onClick={() => openEdit(a)}>Edit</Button>
                               <Button size="sm" variant="ghost" onClick={() => handleTogglePublish(a)}>
                                 {a.isPublished ? "Unpublish" : "Publish"}
                               </Button>
-                              <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(a.id, a.title)}>
+                              <Button size="sm" variant="ghost" className="text-error" onClick={() => handleDelete(a.id, a.title)}>
                                 Delete
                               </Button>
                             </div>
@@ -191,12 +191,12 @@ export default function AdminHelpCenterPage() {
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent className="sm:max-w-xs text-center">
           <div className="flex flex-col items-center gap-3 pt-2">
-            <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
-              <TrashIcon className="size-6 text-destructive" weight="fill" />
+            <div className="flex size-12 items-center justify-center rounded-full bg-error/10">
+              <TrashIcon className="size-6 text-error" weight="fill" />
             </div>
             <div>
               <DialogTitle className="text-base font-bold">Delete Article</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-base-content/60 mt-1">
                 Delete &ldquo;{deleteTarget?.title}&rdquo;? This cannot be undone.
               </p>
             </div>
@@ -250,7 +250,7 @@ export default function AdminHelpCenterPage() {
               />
               <Label htmlFor="published">Published (visible to all users)</Label>
             </div>
-            {formError && <p className="text-sm text-destructive">{formError}</p>}
+            {formError && <p className="text-sm text-error">{formError}</p>}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
               <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save Article"}</Button>

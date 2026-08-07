@@ -47,8 +47,8 @@ export default async function LoginPage({
 
           {/* Heading */}
           <div className="mb-7">
-            <h1 className="text-[28px] font-bold text-foreground tracking-tight leading-tight">Sign in</h1>
-            <p className="mt-1 text-sm leading-relaxed text-foreground/70">
+            <h1 className="text-[28px] font-bold text-base-content tracking-tight leading-tight">Sign in</h1>
+            <p className="mt-1 text-sm leading-relaxed text-base-content/70">
               {methods.passwordSignup
                 ? "Welcome back. Sign in to pick up where you left off."
                 : "Enter your work email and we'll send a secure sign-in link — no password to remember."}

@@ -145,20 +145,20 @@ export function SprintSettingsModal({
             {isFirstTime ? "Sprint Setup" : "Sprint Settings"}
           </DialogTitle>
           {isFirstTime && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Configure how sprints work in <span className="font-medium text-foreground">{spaceName}</span>.
+            <p className="text-sm text-base-content/60 mt-1">
+              Configure how sprints work in <span className="font-medium text-base-content">{spaceName}</span>.
               You can change these later in project settings.
             </p>
           )}
         </DialogHeader>
 
         {loading ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
+          <div className="py-8 text-center text-sm text-base-content/60">Loading…</div>
         ) : (
           <div className="space-y-6 py-1">
             {/* Sprint cadence */}
             <div className="space-y-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">Schedule</h3>
 
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-1.5">
@@ -202,7 +202,7 @@ export function SprintSettingsModal({
 
             {/* Naming */}
             <div className="space-y-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Naming</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">Naming</h3>
 
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-1.5">
@@ -231,7 +231,7 @@ export function SprintSettingsModal({
                       {DATE_FORMATS.map((f) => (
                         <SelectItem key={f.value} value={f.value}>
                           <span>{f.label}</span>
-                          <span className="ml-2 text-muted-foreground text-xs">{f.example}</span>
+                          <span className="ml-2 text-base-content/60 text-xs">{f.example}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -239,25 +239,25 @@ export function SprintSettingsModal({
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-base-content/60">
                 Name preview:{" "}
-                <span className="font-medium text-foreground">{namePreview}</span>
+                <span className="font-medium text-base-content">{namePreview}</span>
                 {", "}
-                <span className="font-medium text-foreground">{namePreview2}</span>
+                <span className="font-medium text-base-content">{namePreview2}</span>
                 {", …"}
               </p>
             </div>
 
             {/* Automations */}
             <div className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Automations</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">Automations</h3>
 
-              <div className="space-y-3 rounded-md border border-border p-3">
+              <div className="space-y-3 rounded-md border border-base-300 p-3">
                 {/* Auto-mark done */}
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium">Auto-mark sprint as done</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-base-content/60">
                       Automatically close the sprint when its end date passes
                     </p>
                   </div>
@@ -270,7 +270,7 @@ export function SprintSettingsModal({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium">Auto-create next sprint</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-base-content/60">
                       When a sprint is completed, automatically create the next one
                     </p>
                   </div>
@@ -285,10 +285,10 @@ export function SprintSettingsModal({
 
                 {/* Auto-move incomplete */}
                 {autoCreateNext && (
-                  <div className="ml-4 flex items-start justify-between gap-3 border-l-2 border-border pl-4">
+                  <div className="ml-4 flex items-start justify-between gap-3 border-l-2 border-base-300 pl-4">
                     <div>
                       <p className="text-sm font-medium">Move incomplete tasks to next sprint</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-base-content/60">
                         Unfinished tasks carry over automatically
                       </p>
                     </div>
@@ -302,7 +302,7 @@ export function SprintSettingsModal({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium">Auto-archive old sprints</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-base-content/60">
                       Keep the sidebar clean by archiving completed sprints
                     </p>
                   </div>
@@ -316,8 +316,8 @@ export function SprintSettingsModal({
                 </div>
 
                 {archiveEnabled && (
-                  <div className="ml-4 flex flex-wrap items-center gap-2 border-l-2 border-border pl-4">
-                    <p className="text-sm text-muted-foreground shrink-0">Keep last</p>
+                  <div className="ml-4 flex flex-wrap items-center gap-2 border-l-2 border-base-300 pl-4">
+                    <p className="text-sm text-base-content/60 shrink-0">Keep last</p>
                     <Input
                       type="number"
                       min={1}
@@ -326,14 +326,14 @@ export function SprintSettingsModal({
                       onChange={(e) => setAutoArchiveAfterN(Math.max(1, Math.min(20, Number(e.target.value))))}
                       className="w-16 h-8 text-center"
                     />
-                    <p className="text-sm text-muted-foreground shrink-0">sprints visible</p>
+                    <p className="text-sm text-base-content/60 shrink-0">sprints visible</p>
                   </div>
                 )}
               </div>
             </div>
 
             {error && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
                 {error}
               </p>
             )}

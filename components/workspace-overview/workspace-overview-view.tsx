@@ -38,14 +38,14 @@ function OverviewSkeleton() {
           "sprints",
         ].map((key) => (
           <div
-            className="h-24 rounded-xl border border-border bg-card"
+            className="h-24 rounded-xl border border-base-300 bg-elevated"
             key={key}
           />
         ))}
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="h-64 rounded-xl border border-border bg-card" />
-        <div className="h-64 rounded-xl border border-border bg-card" />
+        <div className="h-64 rounded-xl border border-base-300 bg-elevated" />
+        <div className="h-64 rounded-xl border border-base-300 bg-elevated" />
       </div>
     </div>
   );
@@ -76,7 +76,7 @@ export function WorkspaceOverviewView({
       {/* Header */}
       <div className="flex items-center gap-2.5">
         <ChartPieSliceIcon className="size-5 text-primary" weight="fill" />
-        <h1 className="text-[34px] font-bold tracking-normal text-foreground">
+        <h1 className="text-[34px] font-bold tracking-normal text-base-content">
           Overview
         </h1>
       </div>
@@ -85,13 +85,13 @@ export function WorkspaceOverviewView({
         <OverviewSkeleton />
       ) : data.projects.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 py-16 text-center">
-          <div className="flex size-14 items-center justify-center rounded-xl bg-accent text-muted-foreground">
+          <div className="flex size-14 items-center justify-center rounded-xl bg-base-200 text-base-content/60">
             <FolderOpenIcon className="size-7" />
           </div>
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-lg font-semibold text-base-content">
             Nothing to summarize yet
           </h2>
-          <p className="max-w-sm text-sm text-muted-foreground">
+          <p className="max-w-sm text-sm text-base-content/60">
             Once you have a project with some tasks in it, this page will fill
             up with a workspace-wide summary of progress, workload, and
             activity.

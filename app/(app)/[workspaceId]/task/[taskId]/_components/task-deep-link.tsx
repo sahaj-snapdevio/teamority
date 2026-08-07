@@ -21,7 +21,7 @@ export function TaskDeepLink({ workspaceId, spaceId, listId, taskId }: TaskDeepL
   }
 
   return (
-    <div className="flex h-full items-center justify-center p-8 text-muted-foreground text-sm">
+    <div className="flex h-full items-center justify-center p-8 text-base-content/60 text-sm">
       <p>Opening task…</p>
       <TaskDetailPanel
         open={open}

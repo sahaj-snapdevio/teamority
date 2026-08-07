@@ -84,14 +84,14 @@ function CheckboxRow({
       <Label
         className={
           disabled
-            ? "font-normal text-muted-foreground"
+            ? "font-normal text-base-content/60"
             : "font-normal cursor-pointer"
         }
         htmlFor={id}
       >
         {label}
         {hint && (
-          <span className="ml-1.5 text-xs text-muted-foreground">{hint}</span>
+          <span className="ml-1.5 text-xs text-base-content/60">{hint}</span>
         )}
       </Label>
     </div>
@@ -213,9 +213,9 @@ export function DuplicateListDialog({
             </div>
           </div>
 
-          <div className="rounded-xl bg-muted/50 px-3.5 py-3 text-sm">
+          <div className="rounded-xl bg-base-200/50 px-3.5 py-3 text-sm">
             {showEmpty ? (
-              <p className="text-muted-foreground">
+              <p className="text-base-content/60">
                 This will create an empty list with the same settings only.
               </p>
             ) : (
@@ -224,18 +224,18 @@ export function DuplicateListDialog({
                   {taskCount} {taskCount === 1 ? "task" : "tasks"} will be
                   copied.
                 </p>
-                <p className="text-muted-foreground">
+                <p className="text-base-content/60">
                   Completed tasks:{" "}
                   {opts.keepCompleted ? "Included" : "Excluded"}
                 </p>
-                <p className="text-muted-foreground">
+                <p className="text-base-content/60">
                   Archived tasks: {opts.copyArchived ? "Included" : "Excluded"}
                 </p>
               </div>
             )}
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-sm text-error">{error}</p>}
         </div>
 
         <DialogFooter>

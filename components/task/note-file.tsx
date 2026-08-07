@@ -54,7 +54,7 @@ function iconForFile(mimeType: string | null, fileName: string | null): {
   if (type.includes("zip") || /\.(zip|rar|7z|tar|gz)$/.test(name)) {
     return { Icon: FileZipIcon, className: "text-amber-500" };
   }
-  return { Icon: FileIcon, className: "text-muted-foreground" };
+  return { Icon: FileIcon, className: "text-base-content/60" };
 }
 
 interface NoteFileAttrs {
@@ -98,15 +98,15 @@ function NoteFileView({ node, selected, editor, deleteNode }: NodeViewProps) {
     <NodeViewWrapper className="note-file my-2" data-drag-handle>
       <div
         className={cn(
-          "group relative flex max-w-sm items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2 transition-colors",
-          ready && "cursor-pointer hover:bg-accent",
+          "group relative flex max-w-sm items-center gap-3 rounded-lg border bg-base-200/30 px-3 py-2 transition-colors",
+          ready && "cursor-pointer hover:bg-base-200",
           selected && "ring-2 ring-primary"
         )}
         onClick={ready ? openPreview : undefined}
         role={ready ? "button" : undefined}
       >
         {uploading ? (
-          <SpinnerGapIcon className="size-6 shrink-0 animate-spin text-foreground/60" />
+          <SpinnerGapIcon className="size-6 shrink-0 animate-spin text-base-content/60" />
         ) : (
           <FileTypeIcon
             className={cn("size-7 shrink-0", iconClass)}
@@ -114,15 +114,15 @@ function NoteFileView({ node, selected, editor, deleteNode }: NodeViewProps) {
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground">
+          <p className="truncate text-sm font-medium text-base-content">
             {fileName ?? "Attachment"}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-base-content/60">
             {uploading ? "Uploading…" : formatBytes(fileSize)}
           </p>
         </div>
         {ready && (
-          <DownloadSimpleIcon className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+          <DownloadSimpleIcon className="size-4 shrink-0 text-base-content/60 opacity-0 transition-opacity group-hover:opacity-100" />
         )}
         {editable && !uploading && (
           <button

@@ -107,11 +107,11 @@ export function AddChannelMemberModal({
               {Array.from(selected.entries()).map(([id, { member, role }]) => (
                 <div
                   key={id}
-                  className="flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-xs"
+                  className="flex items-center gap-1.5 rounded-full bg-base-200 px-2.5 py-1 text-xs"
                 >
                   <span className="font-medium">{member.name}</span>
                   <Select value={role} onValueChange={(v) => updateRole(id, v as "ADMIN" | "MEMBER")}>
-                    <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-xs text-muted-foreground shadow-none focus:ring-0 [&>svg]:size-3 [&>svg]:ml-0.5">
+                    <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-xs text-base-content/60 shadow-none focus:ring-0 [&>svg]:size-3 [&>svg]:ml-0.5">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -121,7 +121,7 @@ export function AddChannelMemberModal({
                   </Select>
                   <button
                     onClick={() => toggleSelect(member)}
-                    className="ml-0.5 rounded-full p-0.5 hover:bg-background"
+                    className="ml-0.5 rounded-full p-0.5 hover:bg-base-100"
                   >
                     <XIcon className="size-3" />
                   </button>
@@ -132,7 +132,7 @@ export function AddChannelMemberModal({
 
           {/* Search */}
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-2.5 top-2.5 z-10 size-4 text-muted-foreground" />
+            <MagnifyingGlassIcon className="absolute left-2.5 top-2.5 z-10 size-4 text-base-content/60" />
             <Input
               placeholder="Search by name or email…"
               value={search}
@@ -144,24 +144,24 @@ export function AddChannelMemberModal({
 
           {/* Member list */}
           <div className="max-h-60 space-y-0.5 overflow-y-auto">
-            {loading && <p className="py-4 text-center text-sm text-muted-foreground">Loading members…</p>}
+            {loading && <p className="py-4 text-center text-sm text-base-content/60">Loading members…</p>}
             {!loading && filteredMembers.length === 0 && (
-              <p className="py-4 text-center text-sm text-muted-foreground">No members found</p>
+              <p className="py-4 text-center text-sm text-base-content/60">No members found</p>
             )}
             {filteredMembers.map((m) => (
               <button
                 key={m.id}
                 onClick={() => toggleSelect(m)}
-                className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent"
+                className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-base-200"
               >
                 <Avatar className="size-7 shrink-0">
                   <AvatarFallback className="text-xs">{getInitials(m.name)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{m.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">{m.email}</p>
+                  <p className="truncate text-xs text-base-content/60">{m.email}</p>
                 </div>
-                <PlusIcon className="size-4 shrink-0 text-muted-foreground" />
+                <PlusIcon className="size-4 shrink-0 text-base-content/60" />
               </button>
             ))}
           </div>

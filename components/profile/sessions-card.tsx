@@ -78,7 +78,7 @@ export function SessionsCard({ sessions }: { sessions: SessionRow[] }) {
                         <Badge className="text-success">Current</Badge>
                       )}
                     </div>
-                    <span className="max-w-md truncate text-muted-foreground text-xs">
+                    <span className="max-w-md truncate text-base-content/60 text-xs">
                       {session.userAgent ?? "No user agent recorded"}
                     </span>
                   </div>
@@ -90,7 +90,7 @@ export function SessionsCard({ sessions }: { sessions: SessionRow[] }) {
                 <TableCell>{formatDateTime(session.expiresAt)}</TableCell>
                 <TableCell>
                   {session.isCurrent ? (
-                    <span className="text-muted-foreground text-sm">Protected</span>
+                    <span className="text-base-content/60 text-sm">Protected</span>
                   ) : (
                     <form action={revokeSessionAction}>
                       <input

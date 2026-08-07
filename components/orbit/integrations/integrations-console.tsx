@@ -94,7 +94,7 @@ function ProviderGroup({
 }) {
   return (
     <section>
-      <h2 className="mb-3 px-1 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
+      <h2 className="mb-3 px-1 font-semibold text-base-content/60 text-xs uppercase tracking-wider">
         {title}
       </h2>
       <div className="space-y-3">{children}</div>

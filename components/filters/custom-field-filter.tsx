@@ -122,7 +122,7 @@ export function CustomFieldFilterControl({
 function ValuePickerTrigger({ children }: { children: React.ReactNode }) {
   return (
     <button
-      className="flex h-8 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-background px-2 text-xs"
+      className="flex h-8 w-full items-center justify-between gap-1.5 rounded-md border border-base-300 bg-base-100 px-2 text-xs"
       type="button"
     >
       <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left">
@@ -335,13 +335,13 @@ function DatePickerButton({
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <button
-          className="flex h-8 flex-1 items-center justify-between rounded-md border border-input bg-background px-2 text-xs"
+          className="flex h-8 flex-1 items-center justify-between rounded-md border border-base-300 bg-base-100 px-2 text-xs"
           type="button"
         >
           {date ? (
             format(date, "MMM d, yyyy")
           ) : (
-            <span className="text-muted-foreground">{placeholder}</span>
+            <span className="text-base-content/60">{placeholder}</span>
           )}
         </button>
       </PopoverTrigger>
@@ -529,7 +529,7 @@ function SingleSelectFieldFilter({
               {selected ? (
                 optionChip(selected)
               ) : (
-                <span className="text-muted-foreground">Pick option…</span>
+                <span className="text-base-content/60">Pick option…</span>
               )}
             </ValuePickerTrigger>
           </PopoverTrigger>
@@ -618,7 +618,7 @@ function MultiSelectFieldFilter({
                   {selected.map((o) => o.label).join(", ")}
                 </span>
               ) : (
-                <span className="text-muted-foreground">Pick options…</span>
+                <span className="text-base-content/60">Pick options…</span>
               )}
             </ValuePickerTrigger>
           </PopoverTrigger>
@@ -705,7 +705,7 @@ function PersonFieldFilter({
                   </span>
                 </>
               ) : (
-                <span className="text-muted-foreground">Pick person…</span>
+                <span className="text-base-content/60">Pick person…</span>
               )}
             </ValuePickerTrigger>
           </PopoverTrigger>

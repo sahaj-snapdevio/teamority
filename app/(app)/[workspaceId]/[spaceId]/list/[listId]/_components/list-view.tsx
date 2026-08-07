@@ -345,8 +345,8 @@ function PinnedSection({
           className={cn(
             "flex size-4 items-center justify-center rounded border transition-colors cursor-pointer",
             allSelected || someSelected
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-primary/30 hover:border-primary/60 bg-background"
+              ? "border-primary bg-primary text-primary-content"
+              : "border-primary/30 hover:border-primary/60 bg-base-100"
           )}
           onClick={(e) => {
             e.stopPropagation();
@@ -465,8 +465,8 @@ function SortableColumnHeader({
     <button
       aria-label={`${label}, ${state}`}
       className={cn(
-        "group/sort flex items-center gap-1 py-2 px-4 text-left uppercase tracking-wider transition-colors cursor-pointer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50",
-        active && "text-foreground",
+        "group/sort flex items-center gap-1 py-2 px-4 text-left uppercase tracking-wider transition-colors cursor-pointer hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50",
+        active && "text-base-content",
         className
       )}
       onClick={() => control.onSort(sortKey)}
@@ -575,7 +575,7 @@ function QuickCreateRow({
   if (!open) {
     return (
       <button
-        className="flex w-full items-center gap-1.5 pl-16 pr-4 py-2 text-xs font-semibold text-muted-foreground hover:text-primary hover:bg-accent/30 transition-colors border-b border-border bg-card cursor-pointer select-none text-left"
+        className="flex w-full items-center gap-1.5 pl-16 pr-4 py-2 text-xs font-semibold text-base-content/60 hover:text-primary hover:bg-base-200/30 transition-colors border-b border-base-300 bg-elevated cursor-pointer select-none text-left"
         onClick={() => onOpenChange(true)}
       >
         <PlusIcon className="size-3.5 shrink-0" />
@@ -585,10 +585,10 @@ function QuickCreateRow({
   }
 
   return (
-    <div className="flex flex-col gap-2 pl-16 pr-4 py-2 border-b border-border bg-card">
+    <div className="flex flex-col gap-2 pl-16 pr-4 py-2 border-b border-base-300 bg-elevated">
       <div className="flex items-center gap-2">
         <input
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/50"
           disabled={saving}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => {
@@ -614,7 +614,7 @@ function QuickCreateRow({
           {saving ? "…" : "Save"}
         </button>
         <button
-          className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+          className="text-xs text-base-content/60 hover:text-base-content shrink-0"
           onClick={cancel}
           type="button"
         >
@@ -754,11 +754,11 @@ function StatusGroup({
       <div className="flex flex-col">
         {/* Status Group Header */}
         <div
-          className="group/header flex items-center gap-2.5 py-1.5 px-3 hover:bg-accent/30 transition-colors cursor-pointer select-none border-b border-border"
+          className="group/header flex items-center gap-2.5 py-1.5 px-3 hover:bg-base-200/30 transition-colors cursor-pointer select-none border-b border-base-300"
           onClick={() => onCollapsedChange(!collapsed)}
         >
           {/* Arrow */}
-          <div className="flex size-5 items-center justify-center rounded hover:bg-accent transition-colors shrink-0 text-muted-foreground group-hover/header:text-foreground">
+          <div className="flex size-5 items-center justify-center rounded hover:bg-base-200 transition-colors shrink-0 text-base-content/60 group-hover/header:text-base-content">
             {collapsed ? (
               <CaretRightIcon className="size-3" weight="fill" />
             ) : (
@@ -794,9 +794,9 @@ function StatusGroup({
           >
             <Popover onOpenChange={setMenuOpen} open={menuOpen}>
               <PopoverTrigger asChild>
-                <button className="flex size-6 items-center justify-center rounded hover:bg-accent transition-colors cursor-pointer">
+                <button className="flex size-6 items-center justify-center rounded hover:bg-base-200 transition-colors cursor-pointer">
                   <DotsThreeIcon
-                    className="size-4.5 text-muted-foreground"
+                    className="size-4.5 text-base-content/60"
                     weight="bold"
                   />
                 </button>
@@ -806,42 +806,42 @@ function StatusGroup({
                 className="w-48 p-1 mt-1"
                 side="bottom"
               >
-                <p className="px-2 py-1 text-2xs font-bold text-muted-foreground uppercase tracking-wide">
+                <p className="px-2 py-1 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
                   Group Options
                 </p>
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent cursor-pointer text-left"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 cursor-pointer text-left"
                   onClick={() => {
                     setMenuOpen(false);
                     setRenameName(status.name);
                     setRenameOpen(true);
                   }}
                 >
-                  <PencilSimpleIcon className="size-3.5 text-muted-foreground shrink-0" />
+                  <PencilSimpleIcon className="size-3.5 text-base-content/60 shrink-0" />
                   Rename Status
                 </button>
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent cursor-pointer text-left"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 cursor-pointer text-left"
                   onClick={() => {
                     setMenuOpen(false);
                     setNewStatusOpen(true);
                   }}
                 >
-                  <PlusIcon className="size-3.5 text-muted-foreground shrink-0" />
+                  <PlusIcon className="size-3.5 text-base-content/60 shrink-0" />
                   New Status
                 </button>
                 <div className="h-px bg-border my-1" />
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-accent cursor-pointer text-left"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 cursor-pointer text-left"
                   onClick={() => {
                     onCollapsedChange(!collapsed);
                     setMenuOpen(false);
                   }}
                 >
                   {collapsed ? (
-                    <CaretRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+                    <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
                   ) : (
-                    <CaretDownIcon className="size-3.5 text-muted-foreground shrink-0" />
+                    <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />
                   )}
                   {collapsed ? "Expand group" : "Collapse group"}
                 </button>
@@ -849,13 +849,13 @@ function StatusGroup({
             </Popover>
 
             <button
-              className="flex size-6 items-center justify-center rounded hover:bg-accent transition-colors cursor-pointer"
+              className="flex size-6 items-center justify-center rounded hover:bg-base-200 transition-colors cursor-pointer"
               onClick={() => {
                 onCollapsedChange(false);
                 onAddOpenChange(true);
               }}
             >
-              <PlusIcon className="size-3.5 text-muted-foreground" />
+              <PlusIcon className="size-3.5 text-base-content/60" />
             </button>
           </div>
         </div>
@@ -867,7 +867,7 @@ function StatusGroup({
             strategy={verticalListSortingStrategy}
           >
             {/* Column Header (Desktop Only) */}
-            <div className="hidden md:flex items-center border-b border-border text-2xs font-bold text-gray-400 select-none uppercase tracking-wider bg-card">
+            <div className="hidden md:flex items-center border-b border-base-300 text-2xs font-bold text-gray-400 select-none uppercase tracking-wider bg-elevated">
               <div className="w-0.75 self-stretch shrink-0 bg-transparent" />
               <div className="flex items-center pl-2 shrink-0 w-14">
                 <button
@@ -879,8 +879,8 @@ function StatusGroup({
                   className={cn(
                     "flex size-4 items-center justify-center rounded border transition-colors cursor-pointer",
                     groupAllSelected || groupSomeSelected
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border hover:border-primary/40 bg-background"
+                      ? "border-primary bg-primary text-primary-content"
+                      : "border-base-300 hover:border-primary/40 bg-base-100"
                   )}
                   onClick={toggleGroupSelection}
                   title={groupAllSelected ? "Deselect all" : "Select all"}
@@ -934,7 +934,7 @@ function StatusGroup({
             <div
               className={cn(
                 "flex flex-col overflow-x-auto transition-all min-h-1",
-                isOver && "bg-accent/20 border-y border-dashed border-border"
+                isOver && "bg-base-200/20 border-y border-dashed border-base-300"
               )}
               ref={setNodeRef}
             >
@@ -981,7 +981,7 @@ function StatusGroup({
       <Dialog onOpenChange={setRenameOpen} open={renameOpen}>
         <DialogContent className="sm:max-w-xs">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-foreground">
+            <DialogTitle className="text-sm font-bold text-base-content">
               Rename Status
             </DialogTitle>
           </DialogHeader>
@@ -1019,7 +1019,7 @@ function StatusGroup({
       <Dialog onOpenChange={setNewStatusOpen} open={newStatusOpen}>
         <DialogContent className="sm:max-w-xs">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-foreground">
+            <DialogTitle className="text-sm font-bold text-base-content">
               New Status
             </DialogTitle>
           </DialogHeader>
@@ -1042,7 +1042,7 @@ function StatusGroup({
                   className={cn(
                     "size-6 rounded-full transition-transform cursor-pointer",
                     newStatusColor === color
-                      ? "scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-popover"
+                      ? "scale-110 ring-2 ring-base-content ring-offset-2 ring-offset-popover"
                       : ""
                   )}
                   key={color}
@@ -1052,7 +1052,7 @@ function StatusGroup({
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground shrink-0">
+              <span className="text-xs text-base-content/60 shrink-0">
                 Dashboard category
               </span>
               <Select
@@ -1411,14 +1411,14 @@ function BulkActionBar({
       <Dialog onOpenChange={setDeleteOpen} open={deleteOpen}>
         <DialogContent className="sm:max-w-xs text-center">
           <div className="flex flex-col items-center gap-3 pt-2">
-            <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
-              <TrashIcon className="size-6 text-destructive" weight="fill" />
+            <div className="flex size-12 items-center justify-center rounded-full bg-error/10">
+              <TrashIcon className="size-6 text-error" weight="fill" />
             </div>
             <div>
               <DialogTitle className="text-base font-bold">
                 Delete {count} Task{count > 1 ? "s" : ""}
               </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-base-content/60 mt-1">
                 This action cannot be undone.
               </p>
             </div>
@@ -1450,7 +1450,7 @@ function BulkActionBar({
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <p className="mb-1.5 text-xs font-semibold text-base-content/60 uppercase tracking-wide">
                 Members
               </p>
               <FacetOptionList
@@ -1473,7 +1473,7 @@ function BulkActionBar({
               />
             </div>
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <p className="mb-1.5 text-xs font-semibold text-base-content/60 uppercase tracking-wide">
                 Assignment Mode
               </p>
               <RadioGroup
@@ -1625,7 +1625,7 @@ function BulkActionBar({
                     className={cn(
                       "text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0",
                       s.status === "ACTIVE"
-                        ? "bg-primary/20 text-primary-foreground"
+                        ? "bg-primary/20 text-primary-content"
                         : "bg-neutral-700 text-gray-300"
                     )}
                   >
@@ -2624,13 +2624,13 @@ export function ListView({
         {/* `overflow-clip` (not `overflow-hidden`) still clips the rounded
             corners but is NOT a scroll container, so the sticky toolbar inside
             can pin to `<main>` instead of scrolling away with this card. */}
-        <div className="w-full bg-card border border-border rounded-2xl px-5 pb-5 pt-3 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)] overflow-clip flex flex-col gap-4">
+        <div className="w-full bg-elevated border border-base-300 rounded-2xl px-5 pb-5 pt-3 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)] overflow-clip flex flex-col gap-4">
           {/* Sticky Toolbar + Table Header Section. `top-14` clears the sticky
-              List/Board/Calendar tabs above; `pt-3` (bg-card) keeps a bit of
+              List/Board/Calendar tabs above; `pt-3` (bg-elevated) keeps a bit of
               breathing room between the tabs and the pinned toolbar. z-10 keeps
               it above the scrolling rows but BELOW the mobile sidebar drawer +
               backdrop (z-20/z-30). */}
-          <div className="sticky top-14 z-10 bg-card pt-5 pb-3 border-b border-border flex flex-col gap-3">
+          <div className="sticky top-14 z-10 bg-elevated pt-5 pb-3 border-b border-base-300 flex flex-col gap-3">
             {/* Action Bar / Toolbar — desktop/tablet only; mobile gets its
                 own compact toolbar below (same state/handlers, different
                 presentation). */}
@@ -2719,7 +2719,7 @@ export function ListView({
                     the two controls can never disagree or read ambiguously. */}
                   <Popover onOpenChange={setSortMenuOpen} open={sortMenuOpen}>
                     <PopoverTrigger asChild>
-                      <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
+                      <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/30 transition-colors cursor-pointer select-none">
                         <ArrowsDownUpIcon className="size-3.5 text-gray-500" />
                         Sort: {sortBy ? SORT_OPTION_LABEL[sortBy] : "None"}
                         {sortBy &&
@@ -2742,8 +2742,8 @@ export function ListView({
                     >
                       <button
                         className={cn(
-                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                          !sortBy && "bg-accent text-foreground"
+                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200/30 cursor-pointer",
+                          !sortBy && "bg-base-200 text-base-content"
                         )}
                         onClick={() => {
                           setSortBy(null);
@@ -2758,8 +2758,8 @@ export function ListView({
                         return (
                           <button
                             className={cn(
-                              "flex items-center justify-between gap-2 px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                              active && "bg-accent text-foreground"
+                              "flex items-center justify-between gap-2 px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200/30 cursor-pointer",
+                              active && "bg-base-200 text-base-content"
                             )}
                             key={key}
                             onClick={() => {
@@ -2801,7 +2801,7 @@ export function ListView({
                     open={groupByMenuOpen}
                   >
                     <PopoverTrigger asChild>
-                      <button className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-semibold text-foreground/70 hover:bg-accent/30 transition-colors cursor-pointer select-none">
+                      <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/30 transition-colors cursor-pointer select-none">
                         <GearIcon className="size-3.5 text-gray-500" />
                         Group By:{" "}
                         {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
@@ -2813,8 +2813,8 @@ export function ListView({
                     >
                       <button
                         className={cn(
-                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                          groupBy === "status" && "bg-accent text-foreground"
+                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200/30 cursor-pointer",
+                          groupBy === "status" && "bg-base-200 text-base-content"
                         )}
                         onClick={() => {
                           setGroupBy("status");
@@ -2825,8 +2825,8 @@ export function ListView({
                       </button>
                       <button
                         className={cn(
-                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                          groupBy === "priority" && "bg-accent text-foreground"
+                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200/30 cursor-pointer",
+                          groupBy === "priority" && "bg-base-200 text-base-content"
                         )}
                         onClick={() => {
                           setGroupBy("priority");
@@ -2837,8 +2837,8 @@ export function ListView({
                       </button>
                       <button
                         className={cn(
-                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-accent/30 cursor-pointer",
-                          groupBy === "assignee" && "bg-accent text-foreground"
+                          "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200/30 cursor-pointer",
+                          groupBy === "assignee" && "bg-base-200 text-base-content"
                         )}
                         onClick={() => {
                           setGroupBy("assignee");
@@ -2865,7 +2865,7 @@ export function ListView({
                             "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
                             visibleColumnIds.length > 0
                               ? "border-primary bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                              : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
                           )}
                           type="button"
                         >
@@ -2883,7 +2883,7 @@ export function ListView({
                         align="start"
                         className="w-56 rounded-xl p-1.5"
                       >
-                        <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                           Built-in
                         </p>
                         {/* Read-only for now — no show/hide mechanism exists for
@@ -2892,7 +2892,7 @@ export function ListView({
                         <div className="mb-1.5 space-y-0.5">
                           {BUILT_IN_COLUMN_LABELS.map((label) => (
                             <div
-                              className="px-2 py-1.5 text-xs text-muted-foreground/70"
+                              className="px-2 py-1.5 text-xs text-base-content/70"
                               key={label}
                             >
                               {label}
@@ -2900,7 +2900,7 @@ export function ListView({
                           ))}
                         </div>
                         <div className="my-1 h-px bg-border" />
-                        <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                           Custom Fields
                         </p>
                         <FacetOptionList
@@ -2938,7 +2938,7 @@ export function ListView({
                       create the first one when the Filters button is hidden. */}
                   {canManage && (
                     <button
-                      className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
+                      className="flex items-center justify-center size-8 rounded-lg border border-base-300 text-base-content/60 hover:bg-base-200/30 hover:text-base-content transition-colors cursor-pointer"
                       onClick={() =>
                         router.push(
                           `/${workspaceId}/${spaceId}/settings/custom-fields`
@@ -2958,7 +2958,7 @@ export function ListView({
                         "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
                         showArchived
                           ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                          : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
                       )}
                       onClick={() => onToggleArchived()}
                       type="button"
@@ -2970,7 +2970,7 @@ export function ListView({
                   {/* Keyboard shortcuts */}
                   <button
                     aria-label="Keyboard shortcuts"
-                    className="flex items-center justify-center size-8 rounded-lg border border-border text-foreground/60 hover:bg-accent/30 hover:text-foreground transition-colors cursor-pointer"
+                    className="flex items-center justify-center size-8 rounded-lg border border-base-300 text-base-content/60 hover:bg-base-200/30 hover:text-base-content transition-colors cursor-pointer"
                     onClick={() => setShortcutsOpen(true)}
                     title="Keyboard Shortcuts (?)"
                     type="button"
@@ -2982,7 +2982,7 @@ export function ListView({
 
               {/* Right actions: Create Task button */}
               <button
-                className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
+                className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-content hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
                 onClick={() => setCreateForStatusId(statuses[0]?.id || "")}
               >
                 <PlusIcon className="size-3.5" weight="bold" />
@@ -3011,7 +3011,7 @@ export function ListView({
                 />
                 <button
                   aria-label="Create task"
-                  className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/95"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-content shadow-sm transition-all hover:bg-primary/95"
                   onClick={() => setCreateForStatusId(statuses[0]?.id || "")}
                   type="button"
                 >
@@ -3027,7 +3027,7 @@ export function ListView({
                         "flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border text-sm font-semibold transition-colors",
                         mobileFilterCount > 0
                           ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                          : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content"
                       )}
                       type="button"
                     >
@@ -3047,7 +3047,7 @@ export function ListView({
                     </SheetHeader>
                     <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-4">
                       <div>
-                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                           Status
                         </p>
                         <FacetOptionList
@@ -3058,7 +3058,7 @@ export function ListView({
                       </div>
 
                       <div>
-                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                           Priority
                         </p>
                         <FacetOptionList
@@ -3070,7 +3070,7 @@ export function ListView({
 
                       {members.length > 0 && (
                         <div>
-                          <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                          <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                             Assignee
                           </p>
                           <FacetOptionList
@@ -3086,14 +3086,14 @@ export function ListView({
                       <div className="h-px bg-border" />
 
                       <div>
-                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                           Sort
                         </p>
                         <div className="flex flex-col gap-0.5">
                           <button
                             className={cn(
-                              "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
-                              !sortBy && "bg-accent text-foreground"
+                              "rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-base-200",
+                              !sortBy && "bg-base-200 text-base-content"
                             )}
                             onClick={() => {
                               setSortBy(null);
@@ -3108,8 +3108,8 @@ export function ListView({
                             return (
                               <button
                                 className={cn(
-                                  "flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent",
-                                  active && "bg-accent text-foreground"
+                                  "flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-base-200",
+                                  active && "bg-base-200 text-base-content"
                                 )}
                                 key={key}
                                 onClick={() => cycleSort(key)}
@@ -3138,7 +3138,7 @@ export function ListView({
                       </div>
 
                       <div>
-                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                           Group By
                         </p>
                         <div className="flex flex-col gap-0.5">
@@ -3146,8 +3146,8 @@ export function ListView({
                             (g) => (
                               <button
                                 className={cn(
-                                  "rounded-md px-2.5 py-2 text-left text-sm font-medium capitalize hover:bg-accent",
-                                  groupBy === g && "bg-accent text-foreground"
+                                  "rounded-md px-2.5 py-2 text-left text-sm font-medium capitalize hover:bg-base-200",
+                                  groupBy === g && "bg-base-200 text-base-content"
                                 )}
                                 key={g}
                                 onClick={() => setGroupBy(g)}
@@ -3179,7 +3179,7 @@ export function ListView({
                         <>
                           <div className="h-px bg-border" />
                           <div>
-                            <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                            <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                               More filters
                             </p>
                             <FilterBuilder
@@ -3192,9 +3192,9 @@ export function ListView({
                         </>
                       )}
                     </div>
-                    <SheetFooter className="flex-row gap-2 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                    <SheetFooter className="flex-row gap-2 border-t border-base-300 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                       <button
-                        className="h-11 flex-1 rounded-lg border border-border text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent"
+                        className="h-11 flex-1 rounded-lg border border-base-300 text-sm font-semibold text-base-content/70 transition-colors hover:bg-base-200"
                         onClick={resetMobileFilters}
                         type="button"
                       >
@@ -3202,7 +3202,7 @@ export function ListView({
                       </button>
                       <SheetClose asChild>
                         <button
-                          className="h-11 flex-1 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/95"
+                          className="h-11 flex-1 rounded-lg bg-primary text-sm font-semibold text-primary-content transition-all hover:bg-primary/95"
                           type="button"
                         >
                           Apply
@@ -3216,7 +3216,7 @@ export function ListView({
                   <PopoverTrigger asChild>
                     <button
                       aria-label="More actions"
-                      className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border text-foreground/60 transition-colors hover:bg-accent/30 hover:text-foreground"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-base-300 text-base-content/60 transition-colors hover:bg-base-200/30 hover:text-base-content"
                       type="button"
                     >
                       <DotsThreeIcon className="size-5" weight="bold" />
@@ -3225,7 +3225,7 @@ export function ListView({
                   <PopoverContent align="end" className="w-64 rounded-xl p-1.5">
                     {canManage && (
                       <button
-                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-accent"
+                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-base-200"
                         onClick={() =>
                           router.push(
                             `/${workspaceId}/${spaceId}/settings/custom-fields`
@@ -3233,13 +3233,13 @@ export function ListView({
                         }
                         type="button"
                       >
-                        <ManageFieldsIcon className="size-4 text-muted-foreground" />
+                        <ManageFieldsIcon className="size-4 text-base-content/60" />
                         Manage Custom Fields
                       </button>
                     )}
                     {columnOptions.length > 0 && (
                       <div className="px-1 py-1.5">
-                        <p className="px-1.5 pb-1 text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+                        <p className="px-1.5 pb-1 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                           Columns
                         </p>
                         <FacetOptionList
@@ -3257,11 +3257,11 @@ export function ListView({
                     )}
                     <div className="my-1 h-px bg-border" />
                     <button
-                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-accent"
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-base-200"
                       onClick={() => setShortcutsOpen(true)}
                       type="button"
                     >
-                      <KeyboardIcon className="size-4 text-muted-foreground" />
+                      <KeyboardIcon className="size-4 text-base-content/60" />
                       Keyboard Shortcuts
                     </button>
                   </PopoverContent>
@@ -3328,13 +3328,13 @@ export function ListView({
               task like any other row; the Unarchive button stops
               propagation so it doesn't also trigger that navigation. */}
           {showArchived && (
-            <div className="mb-6 border border-border rounded-xl overflow-hidden bg-muted/20">
-              <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 text-xs font-bold text-muted-foreground uppercase tracking-wide border-b border-border select-none">
+            <div className="mb-6 border border-base-300 rounded-xl overflow-hidden bg-base-200/20">
+              <div className="flex items-center gap-2 px-4 py-2 bg-base-200/50 text-xs font-bold text-base-content/60 uppercase tracking-wide border-b border-base-300 select-none">
                 <ArchiveIcon className="size-4" />
                 Archived ({archivedTasks?.length ?? 0})
               </div>
               {(!archivedTasks || archivedTasks.length === 0) && (
-                <div className="px-4 py-6 text-center text-xs text-muted-foreground italic">
+                <div className="px-4 py-6 text-center text-xs text-base-content/60 italic">
                   {archivedLoading
                     ? "Loading archived tasks…"
                     : "No archived tasks"}
@@ -3343,21 +3343,21 @@ export function ListView({
               <div className="divide-y divide-border">
                 {archivedTasks?.map((t) => (
                   <div
-                    className="group flex cursor-pointer items-center gap-3 px-4 py-2 transition-colors hover:bg-accent/30"
+                    className="group flex cursor-pointer items-center gap-3 px-4 py-2 transition-colors hover:bg-base-200/30"
                     key={t.id}
                     onClick={() => {
                       setTaskNavContext({ taskIds: visibleOrderedTaskIds });
                       router.push(`/${workspaceId}/task/${t.id}?from=list`);
                     }}
                   >
-                    <span className="text-2xs text-muted-foreground font-mono shrink-0 select-none">
+                    <span className="text-2xs text-base-content/60 font-mono shrink-0 select-none">
                       #{t.seqNumber}
                     </span>
-                    <span className="flex-1 text-[13px] text-muted-foreground font-medium line-through truncate">
+                    <span className="flex-1 text-[13px] text-base-content/60 font-medium line-through truncate">
                       {t.title}
                     </span>
                     <button
-                      className="invisible flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-2xs font-semibold text-muted-foreground transition-colors group-hover:visible hover:text-foreground cursor-pointer select-none"
+                      className="invisible flex shrink-0 items-center gap-1.5 rounded-lg border border-base-300 bg-base-100 px-2.5 py-1 text-2xs font-semibold text-base-content/60 transition-colors group-hover:visible hover:text-base-content cursor-pointer select-none"
                       onClick={async (e) => {
                         e.stopPropagation();
                         await unarchiveTask(workspaceId, spaceId, listId, t.id);
@@ -3368,7 +3368,7 @@ export function ListView({
                         });
                       }}
                     >
-                      <ArchiveIcon className="size-3.5 text-muted-foreground" />
+                      <ArchiveIcon className="size-3.5 text-base-content/60" />
                       Unarchive
                     </button>
                   </div>
