@@ -1,5 +1,7 @@
 # Contributor Covenant Code of Conduct
 
+> ⚠️ **TODO before publishing:** the Enforcement section below has no monitored contact address yet. Maintainers must add one (see that section) before treating this repository as public/open-source-ready.
+
 ## Our Pledge
 
 We as members, contributors, and leaders pledge to make participation in our

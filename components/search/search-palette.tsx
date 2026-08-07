@@ -502,20 +502,21 @@ export function SearchPalette({
           />
           {query && (
             <button
-              className="text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+              className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
               onClick={() => setQuery("")}
               type="button"
             >
-              <XIcon className="size-5" />
+              <XIcon className="size-3.5" weight="bold" />
             </button>
           )}
           <button
             aria-label="Close"
-            className="text-muted-foreground hover:text-foreground"
+            className="flex size-7 shrink-0 items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30"
             onClick={onClose}
             type="button"
           >
-            <XIcon className="size-5" />
+            <XIcon className="size-4" weight="bold" />
           </button>
         </div>
 

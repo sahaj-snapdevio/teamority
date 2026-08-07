@@ -1,4 +1,4 @@
-﻿# Notifications
+# Notifications
 
 ## Overview
 
@@ -34,6 +34,7 @@ Every event below creates a `Notification` record. Each trigger has:
 
 | Trigger | Who gets notified | In-App | Email | Push | Configurable | Notification text |
 |---------|------------------|:------:|:-----:|:----:|:------------|------------------|
+| Task created | All project members not already assigned | [x] | [ ] | [ ] | Yes (default off) | *"[Actor] created \"[Task title]\""* — recipients computed via `spaceRecipientUserIds()`, same helper as the project-wide events below |
 | Task assigned to you | New assignee | [x] | [x] | [x] | Yes | *"[Actor] assigned you to [Task title]"* |
 | Task unassigned from you | Former assignee | [x] | [x] | [ ] | Yes | *"[Actor] unassigned you from [Task title]"* |
 | Task status changed | Assignees + Watchers | [x] | [x] | [ ] | Yes | *"[Actor] changed status of [Task title] to [New Status]"* |
@@ -125,8 +126,8 @@ These are sent by the system on a schedule — no human actor. Shown with a syst
 
 ### Access
 
-- Bell icon `ðŸ””` in the top navigation bar
-- Unread count badge on the bell icon (e.g. `ðŸ”” 5`)
+- Bell icon `🔔` in the top navigation bar
+- Unread count badge on the bell icon (e.g. `🔔 5`)
 - Clicking the bell opens the notification panel (slide-out from the right)
 
 ### Notification panel
@@ -276,7 +277,8 @@ Users can configure notification preferences from their profile settings.
 **Global defaults (apply across all workspaces):**
 - Email delivery mode: Instant / Daily Digest / Off
 - Browser push: On / Off
-- For each trigger type: In-App On/Off, Email On/Off, Push On/Off
+- In-app notification sound: master On/Off switch (`userEmailPreference.soundEnabled`, default on) — when off, no trigger plays a sound regardless of its own Sound column below. `soundVolume` (default 70) and `soundType` (default `"default"`) columns already exist on the same row for a future volume slider / sound-pack picker, but neither has a UI control yet — only the on/off switch does.
+- For each trigger type: In-App On/Off, Email On/Off, Push On/Off, **Sound** On/Off (`userNotificationPreference.soundEnabled`, default on per trigger — gates whether that specific event plays a sound, in addition to the global master switch above)
 
 **Per-workspace overrides:**
 - Can override global defaults for a specific workspace
@@ -301,13 +303,15 @@ Notification Settings
 |     L-- Digest time: [08:00 AM] [Timezone: Auto-detect]
 +-- Browser Push
 |     L-- Enable push notifications: [On/Off]
++-- In-App Notification Sound
+|     L-- Master switch: [On/Off]  <- gates the per-trigger Sound column below
 +-- Notification Events
-|     +-- Task assigned to me        [In-App [x]] [Email [x]] [Push [x]]
-|     +-- @mention                   [In-App [x]] [Email [x]] [Push [x]]
-|     +-- New comment on my task     [In-App [x]] [Email [x]] [Push [x]]
-|     +-- Task status changed        [In-App [x]] [Email [x]] [Push -]
-|     +-- Due date reminder          [In-App [x]] [Email [x]] [Push [x]]
-|     +-- Task completed             [In-App [x]] [Email -] [Push -]
+|     +-- Task assigned to me        [In-App [x]] [Email [x]] [Push [x]] [Sound [x]]
+|     +-- @mention                   [In-App [x]] [Email [x]] [Push [x]] [Sound [x]]
+|     +-- New comment on my task     [In-App [x]] [Email [x]] [Push [x]] [Sound [x]]
+|     +-- Task status changed        [In-App [x]] [Email [x]] [Push -]  [Sound [x]]
+|     +-- Due date reminder          [In-App [x]] [Email [x]] [Push [x]] [Sound [x]]
+|     +-- Task completed             [In-App [x]] [Email -] [Push -]    [Sound [x]]
 |     L-- ... (all trigger types)
 L-- Muted Spaces & Tasks
       L-- List of muted items with unmute option
@@ -396,8 +400,7 @@ L-- created_at          (timestamp)
 | Screen | Route | Access |
 |--------|-------|--------|
 | Notification panel | Bell icon -> slide-out panel (global) | All workspace members |
-| Notification settings | `/settings/notifications` | All workspace members |
-| Muted items list | `/settings/notifications#muted` | All workspace members |
+| Notification settings | `/[workspaceId]/notifications/settings` | All workspace members |
 
 ---
 
@@ -544,6 +547,10 @@ lib/sse-clients.ts                            ← in-memory registry
 app/api/me/notifications/stream/route.ts      ← SSE endpoint
 ```
 
+### Sound playback
+
+The SSE payload for a new notification includes a server-computed `soundEligible` flag (based on `userNotificationPreference.soundEnabled` for that trigger). `RealtimeProvider`/`NotificationBell` (`components/realtime/`) plays a sound via `playNotificationSound()` (`lib/notifications/sound.ts`) only when both `soundEligible` is true **and** the client's cached global `soundEnabled` preference (`userEmailPreference.soundEnabled`, fetched via `GET /api/me/email-preferences` and kept in a ref) is true — so muting is enforceable from either the per-trigger or the global switch. With multiple tabs open, an elected-leader mechanism in `lib/notifications/sound.ts` ensures only one tab actually plays the sound, not one per open tab.
+
 ---
 
 ## Implementation Notes
@@ -563,7 +570,7 @@ VAPID_PRIVATE_KEY=...       # ~43 chars
 VAPID_SUBJECT=mailto:push@Kanbanica.com
 ```
 
-These are **optional** env vars -- if missing, push notifications are silently disabled (graceful degradation). Add to `src/lib/env.ts` Zod schema as optional:
+These are **optional** env vars -- if missing, push notifications are silently disabled (graceful degradation). They can also be configured from Settings → Integrations instead of `.env` — see `docs/integrations.md`; a DB value takes priority. Schema: `lib/env.ts` (not `src/lib/env.ts` — there is no `src/` prefix in this project):
 
 ```typescript
 vapidPublicKey: z.string().optional(),

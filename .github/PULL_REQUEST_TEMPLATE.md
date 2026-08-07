@@ -22,6 +22,7 @@
 ## Checklist
 
 - [ ] `pnpm typecheck` passes
+- [ ] `pnpm test` passes
 - [ ] `pnpm build` succeeds
 - [ ] I ran `pnpm format` on my changes and introduced no new lint errors
 - [ ] I updated relevant docs (`docs/`, `README.md`, `SETUP.md`, `DEPLOYMENT.md`) if needed

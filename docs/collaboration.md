@@ -345,14 +345,14 @@ Clicking a previewable attachment opens an in-app preview modal (`components/tas
 
 - Uploader can delete their own attachment
 - Members with Full Access, Admin, Owner can delete any attachment
-- Deletion removes the DB record and the file from storage (S3-compatible storage)
+- Deletion removes the file from storage first, then the DB record (never the reverse — see Implementation Notes)
 - Deletion is recorded in the Activity Log
 
 ### Storage
 
-- Files stored in **S3-compatible storage**
-- Each file gets a unique, signed URL for access
-- URLs are not publicly accessible — require authenticated session to view
+- Files go through the same `files-sdk` storage adapter as every other upload in the app (local `fs` in dev, S3/R2/GCS in production — see `lib/storage.ts`)
+- Each file's serving URL is generated on demand from its storage key, never persisted
+- Serving is gated by the authenticated-session check on the attachments API — not a publicly guessable URL
 
 ---
 
@@ -400,33 +400,36 @@ TaskAttachment
 ├── comment_id          (foreign key → Comment, nullable — set if attached inside a comment)
 ├── uploaded_by         (foreign key → User)
 ├── file_name           (string)
-├── r2_key              (string — R2 object key, e.g. attachments/{workspaceId}/{taskId}/{uuid}/{filename})
+├── file_url            (string — storage key, e.g. attachments/{workspaceId}/{taskId}/{uuid}/{filename}; despite the column name, this is NOT a full URL)
 ├── file_size           (integer — bytes)
 ├── mime_type           (string)
+├── is_inline           (boolean, default: false — true for images/files pasted into a comment/note body; excluded from the task's Attachments section and doesn't generate its own activity log/notification)
 └── created_at          (timestamp)
 
-> Store `r2_key` (the object key), NOT a full URL. Full URLs break if the R2 bucket domain changes.
-> Generate presigned GET URLs on demand when serving the file -- never store them.
+> Store `file_url` as the storage key (not a full URL) — the files-sdk adapter is what turns a key into a URL, and doing that on demand means switching storage drivers (local → S3/R2/GCS) never requires a data migration.
+> Generate the serving URL on demand when serving the file (`storage.url(key)`) -- never store it.
 ```
 
 ---
 
-## API Endpoints
+## API Endpoints & Server Actions
 
-| Method | Endpoint | Description | Access |
+Only file attachments go through real `/api/` REST routes; comments, reactions, watchers, and activity are all server actions (`app/actions/*.ts`).
+
+| Method / Action | Location | Description | Access |
 |--------|----------|-------------|--------|
-| GET | `/api/tasks/:taskId/comments` | Get all comments (with replies) for a task | Space member |
-| POST | `/api/tasks/:taskId/comments` | Add a comment | Space member (any permission) |
-| PATCH | `/api/comments/:id` | Edit a comment | Author only |
-| DELETE | `/api/comments/:id` | Delete a comment | Author / Full Access / Admin+ |
-| POST | `/api/comments/:id/resolve` | Resolve a comment thread | Assignee / Full Access / Admin+ |
-| POST | `/api/comments/:id/unresolve` | Unresolve a comment thread | Assignee / Full Access / Admin+ |
-| POST | `/api/comments/:id/reactions` | Add emoji reaction | Space member |
-| DELETE | `/api/comments/:id/reactions/:emoji` | Remove own emoji reaction | Reaction owner |
-| GET | `/api/tasks/:taskId/activity` | Get activity log for a task | Space member |
-| GET | `/api/spaces/:spaceId/activity` | Get Space-level activity feed | Space member |
-| GET | `/api/tasks/:taskId/attachments` | Get all attachments for a task | Space member |
-| POST | `/api/tasks/:taskId/attachments` | Upload an attachment | Edit / Full Access / Admin+ |
+| `getTaskComments(...)` | `app/actions/comment.ts` | Get all comments (with replies) for a task | Space member |
+| `createComment(...)` | `app/actions/comment.ts` | Add a comment | Space member (any permission) |
+| `editComment(...)` | `app/actions/comment.ts` | Edit a comment | Author only |
+| `deleteComment(...)` | `app/actions/comment.ts` | Delete a comment (soft if it has replies, hard otherwise) | Author / Full Access / Admin+ |
+| `resolveComment(...)` | `app/actions/comment.ts` | Resolve a comment thread | Assignee / Full Access / Admin+ |
+| `unresolveComment(...)` | `app/actions/comment.ts` | Unresolve a comment thread | Assignee / Full Access / Admin+ |
+| `toggleReaction(...)` | `app/actions/comment.ts` | Add/remove an emoji reaction | Space member |
+| `getTaskActivity(...)` | `app/actions/task.ts` | Get activity log for a task | Space member |
+| `getSpaceActivity(...)` | `app/actions/space-activity.ts` | Get Space-level activity feed | Space member |
+| `addWatcher` / `removeWatcher` / `toggleWatcher(...)` | `app/actions/task-assignee.ts` | Manage task watchers | Space member |
+| GET | `/api/tasks/:taskId/attachments` | Get all attachments for a task, with serving URLs | Space member |
+| POST | `/api/tasks/:taskId/attachments` | Upload an attachment (multipart) | Any workspace role except Guest, plus Space access |
 | DELETE | `/api/attachments/:id` | Delete an attachment | Uploader / Full Access / Admin+ |
 
 ---
@@ -514,215 +517,47 @@ TaskAttachment
 
 ## Implementation Notes
 
-### File Attachment Upload Pipeline (Presigned URL Flow)
+> An earlier draft of this doc described a two-step presigned-URL upload flow (browser uploads directly to R2, server only issues/confirms a signed URL) with a direct `@aws-sdk/client-s3` client and an `r2Key` column. That was never built. The sections below describe what's actually shipped.
 
-Attachments are uploaded directly to R2 from the browser -- the server never proxies file bytes. This keeps the Next.js server load minimal and avoids the 4.5 MB Vercel body limit.
+### File Attachment Upload — server-proxied, via files-sdk
 
-**Step-by-step flow:**
+Uploads are a single `multipart/form-data` POST that the Next.js server proxies straight into storage — there's no separate presigned-URL step (`app/api/tasks/[taskId]/attachments/route.ts`):
 
-```
-1. Client -> POST /api/tasks/:taskId/attachments/upload-url
-   Body: { filename: "mockup.png", mimeType: "image/png", fileSize: 2048000 }
+1. `POST /api/tasks/:taskId/attachments` — session check, then rate limit (60 uploads/user/minute), then a role check (any workspace role except `GUEST`, plus space access).
+2. Validates `file.size <= MAX_FILE_SIZE` (10 MB, from `lib/storage.ts`) — there's no separate MIME-type allowlist; any type is accepted, non-image/PDF/video types just render as a generic file card.
+3. Builds the storage key `attachments/{workspaceId}/{taskId}/{attachmentId}/{safeFileName}` (filename sanitized to `[a-zA-Z0-9._-]`) and calls `storage.upload(storageKey, buffer, { contentType })` — the same `files-sdk` adapter used for every other upload in the app (local `fs` in dev, S3/R2/GCS in production via `STORAGE_DRIVER`).
+4. Inserts the `taskAttachment` row (`fileUrl: storageKey` — the DB column is named `file_url` but stores a storage key, not a URL; there's no `r2Key` column) in the same request, since the file is already durably stored by this point — no separate "confirm" step is needed.
+5. Writes the `attachment_uploaded` activity log entry and notifies assignees, **unless** the upload is inline (`isInline: true` — an image/file pasted into a comment/note body; those skip activity-log + notification since the note's own `comment_added` notification is the event).
 
-2. Server validates:
-   - User has Edit+ permission on the task's Space
-   - fileSize <= plan.maxFileSizeMb * 1024 * 1024
-   - mimeType in ALLOWED_MIME_TYPES list
-   - Workspace storage usage + fileSize <= plan.maxStorageMb * 1024 * 1024
+Serving a file: `storage.url(a.fileUrl)` generates the URL on demand (`GET /api/tasks/:taskId/attachments` does this per-row) — never persisted.
 
-3. Server generates presigned PUT URL:
-   import { PutObjectCommand } from '@aws-sdk/client-s3'
-   import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+### Attachment delete ordering
 
-   const key = `attachments/${workspaceId}/${taskId}/${attachmentId}/${filename}`
-   const url = await getSignedUrl(r2Client, new PutObjectCommand({
-     Bucket: env.R2_BUCKET_NAME,
-     Key: key,
-     ContentType: mimeType,
-     ContentLength: fileSize,
-   }), { expiresIn: 900 })  // 15-minute expiry
+`DELETE /api/attachments/:id` (`app/api/attachments/[id]/route.ts`) deletes the storage file first via `storage.delete(attachment.fileUrl)`; if that throws, it returns `503` and does **not** touch the DB row. Only after the storage delete succeeds does it delete the `taskAttachment` row and write the `attachment_deleted` activity log entry. Deleting a comment that has its own attachments does the same storage-then-DB order for each one first (best-effort on the storage side there, since a missing file must not block the comment delete itself — see `deleteComment` below).
 
-   Server returns: { uploadUrl, key, attachmentId }
+### Comment delete logic (soft vs. hard)
 
-4. Client -> PUT <uploadUrl>
-   Body: the raw file bytes
-   Headers: Content-Type: <mimeType>
+`deleteComment` (`app/actions/comment.ts`) is **not** wrapped in a database transaction — it's a sequence of plain Drizzle queries, not a `db.transaction()` block:
 
-5. Client -> POST /api/tasks/:taskId/attachments/confirm
-   Body: { key, filename, fileSize, mimeType }
+1. Permission check (author, or `full_access`+).
+2. Delete any attachments belonging to the comment (storage best-effort, then the `taskAttachment` rows — required because that FK has no `ON DELETE` rule).
+3. Check for non-deleted replies (`parentCommentId` match). If any exist: soft-delete — set `isDeleted: true` and clear `body` to an empty Tiptap doc (`{ type: "doc", content: [] }`, since the column is `NOT NULL`; the UI shows "[Comment deleted]" based on `isDeleted`, not the body content). If none: hard-delete the row.
+4. Fire-and-forget `writeActivityLog(...)` for `comment_deleted`.
 
-6. Server:
-   - Creates TaskAttachment record: { taskId, r2Key: key, fileName: filename, fileSize, mimeType, uploadedBy }
-   - Writes ActivityLog: attachment_uploaded
-   - Returns the TaskAttachment object with a fresh presigned GET URL for immediate display
-```
+### ActivityLog write pattern (fire-and-forget)
 
-**Why this split:** If the server created the DB record before upload (step 6 before step 4), a failed upload would leave a DB record pointing to a non-existent R2 object. The confirm endpoint only creates the DB record after the client confirms the upload succeeded.
-
-**R2 key format:**
-```
-attachments/{workspaceId}/{taskId}/{uuid}/{originalFilename}
-```
-
-Use a fresh `uuid` in each key to prevent filename collisions (two uploads of "screenshot.png" get different keys).
-
-**Allowed MIME types:**
-```typescript
-// src/lib/storage/allowed-types.ts
-export const ALLOWED_MIME_TYPES = [
-  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  // docx
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',        // xlsx
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // pptx
-  'text/plain', 'text/csv',
-  'application/zip',
-]
-```
-
-All other MIME types are accepted but rendered as a generic file card (no type restriction in MVP -- only the list above gets a specific icon).
-
-### Attachment Delete Ordering (Critical)
-
-When deleting an attachment, always delete the R2 object BEFORE the DB record:
-
-```typescript
-// src/lib/collaboration/delete-attachment.ts
-
-async function deleteAttachment(attachmentId: string, actorId: string) {
-  const attachment = await db.taskAttachment.findUniqueOrThrow({
-    where: { id: attachmentId }
-  })
-
-  // 1. Delete from R2 first -- use r2Key directly (never parse a URL)
-  try {
-    await r2Client.send(new DeleteObjectCommand({
-      Bucket: env.R2_BUCKET_NAME,
-      Key: attachment.r2Key,
-    }))
-  } catch (err) {
-    // R2 delete failed -- do NOT delete DB record
-    console.error('R2 delete failed for attachment', attachmentId, err)
-    throw new ServiceUnavailableError('Failed to delete file from storage')
-  }
-
-  // 2. Only delete DB record if R2 delete succeeded
-  await db.taskAttachment.delete({ where: { id: attachmentId } })
-
-  // 3. Write ActivityLog
-  await writeActivityLog(attachment.taskId, actorId, 'attachment_deleted', {
-    file_name: attachment.fileName
-  })
-}
-```
-
-### Serving Attachments -- Presigned GET URLs
-
-Since `r2Key` is stored (not a URL), generate a presigned GET URL on demand when the client needs to display or download a file:
-
-```typescript
-// src/lib/storage/r2-client.ts
-import { GetObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-
-export async function getAttachmentUrl(r2Key: string): Promise<string> {
-  return getSignedUrl(r2Client, new GetObjectCommand({
-    Bucket: env.R2_BUCKET_NAME,
-    Key: r2Key,
-  }), { expiresIn: 3600 })  // 1-hour expiry
-}
-```
-
-Call this when serializing `TaskAttachment` records in `GET /api/tasks/:taskId/attachments` -- add a transient `url` field to each record in the response. Do not persist this URL.
-
-```typescript
-const attachments = await db.taskAttachment.findMany({ where: { taskId } })
-return Promise.all(
-  attachments.map(async (a) => ({
-    ...a,
-    url: await getAttachmentUrl(a.r2Key),
-  }))
-)
-```
-
-### Comment Delete Logic (Soft vs Hard)
-
-The check for replies must happen inside a transaction to prevent a race condition where a reply is posted concurrently with the parent delete:
-
-```typescript
-// src/lib/collaboration/delete-comment.ts
-
-async function deleteComment(commentId: string, actorId: string) {
-  return db.$transaction(async (tx) => {
-    const comment = await tx.comment.findUniqueOrThrow({ where: { id: commentId } })
-
-    const replyCount = await tx.comment.count({
-      where: { parentCommentId: commentId, isDeleted: false }
-    })
-
-    if (replyCount > 0) {
-      // Soft delete: keep record, clear body, mark deleted
-      await tx.comment.update({
-        where: { id: commentId },
-        data: { body: null, isDeleted: true }
-      })
-    } else {
-      // Hard delete: no replies, no tombstone needed
-      await tx.comment.delete({ where: { id: commentId } })
-    }
-  })
-}
-```
-
-### ActivityLog Write Pattern (Fire-and-Forget)
-
-`ActivityLog` writes should never block the main mutation response. Wrap in fire-and-forget:
-
-```typescript
-// src/lib/activity-log.ts
-
-export function writeActivityLog(
-  taskId: string,
-  userId: string,
-  eventType: string,
-  meta: Record<string, unknown> = {}
-): void {
-  db.activityLog.create({
-    data: { taskId, userId, eventType, meta }
-  }).catch(err => {
-    console.error('ActivityLog write failed', { taskId, eventType, err })
-    // Never throw -- activity log failure must not break the mutation
-  })
-}
-```
+`writeActivityLog` (`lib/activity-log.ts`) is an `async` function with an internal `try/catch` that swallows insert failures — call sites use `void writeActivityLog(...)` rather than awaiting it, so a logging failure never blocks or fails the calling mutation.
 
 ### Folder Mapping
 
 ```
-src/
-  app/api/
-    tasks/[taskId]/
-      comments/route.ts               <- GET (list), POST (create)
-      attachments/route.ts            <- GET (list)
-      attachments/upload-url/route.ts <- POST (get presigned URL)
-      attachments/confirm/route.ts    <- POST (create DB record after upload)
-      activity/route.ts               <- GET
-      watchers/route.ts               <- POST, DELETE
-    comments/[id]/
-      route.ts                        <- PATCH (edit), DELETE
-      resolve/route.ts                <- POST
-      unresolve/route.ts              <- POST
-      reactions/route.ts              <- POST
-      reactions/[emoji]/route.ts      <- DELETE
-    attachments/[id]/route.ts         <- DELETE
-    spaces/[spaceId]/activity/route.ts
-  lib/
-    collaboration/
-      comments.ts           <- createComment, editComment, deleteComment
-      reactions.ts          <- addReaction, removeReaction
-      attachments.ts        <- requestPresignedUrl, confirmAttachment, deleteAttachment
-    activity-log.ts         <- writeActivityLog (fire-and-forget)
-  lib/storage/
-    r2-client.ts            <- @aws-sdk/client-s3 singleton
-    allowed-types.ts        <- ALLOWED_MIME_TYPES
+app/api/tasks/[taskId]/attachments/route.ts <- GET (list), POST (upload)
+app/api/attachments/[id]/route.ts           <- DELETE
+app/actions/comment.ts        <- getTaskComments, createComment, editComment, deleteComment,
+                                  resolveComment, unresolveComment, toggleReaction
+app/actions/task.ts           <- getTaskActivity (among many other task actions)
+app/actions/space-activity.ts <- getSpaceActivity
+app/actions/task-assignee.ts  <- addWatcher, removeWatcher, toggleWatcher
+lib/activity-log.ts           <- writeActivityLog (fire-and-forget)
+lib/storage.ts                <- files-sdk adapter (storage.upload/delete/url), MAX_FILE_SIZE
 ```

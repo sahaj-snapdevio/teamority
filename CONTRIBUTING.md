@@ -29,6 +29,7 @@ By participating in this project you agree to abide by our [Code of Conduct](./C
 
   ```bash
   pnpm typecheck   # must pass — this is a required CI gate
+  pnpm test        # must pass — this is a required CI gate
   pnpm build       # must succeed — required CI gate
   pnpm format      # format your changed files
   pnpm lint        # advisory: keep new code clean (see note below)
@@ -38,6 +39,15 @@ By participating in this project you agree to abide by our [Code of Conduct](./C
 > lint findings that we're cleaning up incrementally, so `pnpm lint` is **not**
 > yet a blocking CI gate. Please don't introduce *new* lint errors in code you
 > touch, and run `pnpm format` on your changes.
+
+- **Changed the database schema?** Run `pnpm db:generate` and commit the
+  generated migration file (`db/migrations/`) alongside your schema change —
+  don't leave a schema edit without its migration.
+- **Added a new environment variable?** Add it to both `.env.example` and the
+  `envSchema` in `lib/env.ts`, and document it wherever the related feature is
+  documented (e.g. `DEPLOYMENT.md`'s variable table, `docs/integrations.md`).
+- **Changed a user-facing feature?** Update the relevant doc in `docs/` (see
+  the feature doc table in [CLAUDE.md](./CLAUDE.md)) in the same PR.
 
 ## Commit messages
 
@@ -55,7 +65,7 @@ Common types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`.
 
 1. Push your branch to your fork and open a PR against `main`.
 2. Fill out the PR template (what changed, why, how you tested it).
-3. Ensure CI is green (`typecheck` + `build`).
+3. Ensure CI is green (`typecheck` + `test` + `build`).
 4. Link any related issue (`Closes #123`).
 5. A maintainer will review — please be responsive to feedback.
 

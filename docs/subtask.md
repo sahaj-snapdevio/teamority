@@ -113,21 +113,15 @@ Subtasks share the same fields as Tasks:
 
 ---
 
-### 6. Convert Checklist Item to Subtask
+### 6. Convert Checklist Item to Subtask (not implemented)
 
-- Any checklist item can be converted into a Subtask
-- On convert:
-  - A new Subtask is created with the checklist item's title
-  - The checklist item is removed from the checklist
-  - All other subtask fields start empty (assignee, due date, etc.)
-- Action available from the checklist item's context menu (`...` → Convert to Subtask)
+Not built — there's no "Convert to Subtask" action on checklist items, and no route/action for it (`components/task/subtask-row.tsx` is the only subtask UI component). Kept here as a design reference for a possible future addition, not current behavior.
 
 ---
 
-### 7. Reorder Subtasks
+### 7. Reorder Subtasks (not implemented)
 
-- Subtasks can be reordered via drag-and-drop inside the Task detail panel
-- Order is global — all users see the same order
+There is no drag-and-drop reordering for subtasks — `subtask-row.tsx` has no dnd-kit integration. Subtasks render ordered by `task.orderIndex` ascending (the same column used for manual task ordering elsewhere), with no UI to change it directly. Kept here as a design reference, not current behavior.
 
 ---
 
@@ -266,22 +260,21 @@ Task
 
 ### Required Schema Index
 
-These indexes are already defined in `db/schema/task.ts`:
+This index is already defined in `db/schema/task.ts`:
 
 ```ts
-index("task_parent_task_id_idx").on(t.parentTaskId)        // required for progress rollup and subtask list queries
-index("task_list_parent_idx").on(t.listId, t.parentTaskId) // for filtering subtasks within a list
+index("task_parent_task_id_idx").on(t.parentTaskId)
 ```
 
-Without `task_parent_task_id_idx`, the progress rollup query runs a full table scan for every task card rendered in List View -- an N+1 problem at scale.
+(An earlier draft of this doc also listed a composite `task_list_parent_idx` on `(listId, parentTaskId)` — that one was never added; only `task_parent_task_id_idx` exists.)
+
+Without `task_parent_task_id_idx`, a progress rollup query would run a full table scan for every task card rendered in List View -- an N+1 problem at scale.
 
 ### Progress Rollup Query
 
-Compute on the fly. Do NOT cache per task -- the count is small and the index makes it fast. Called when rendering a task card or task detail panel:
+Compute on the fly. Do NOT cache per task -- the count is small and the index makes it fast. Called when rendering a task card or task detail panel. (Illustrative shape below — not verified against a specific named function in the codebase; the point is the query pattern, not an exact function to look up.)
 
 ```typescript
-// src/lib/tasks/get-subtask-progress.ts
-
 async function getSubtaskProgress(parentTaskId: string) {
   // Single query: count total and closed subtasks
   const result = await db.execute<{ total: string; closed: string }>(sql`

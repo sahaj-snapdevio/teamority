@@ -69,8 +69,8 @@ Workspace
 - Changes Sprint status from **Planned** → **Active**
 - Can only start if no other Sprint in the same Project is already Active
 - On start:
-  - Sprint start date is locked (cannot be changed after start)
-  - Notification sent to all members who have tasks in the Sprint
+  - Sprint's `start_date` is set to the current date/time (`startSprint` in `app/actions/sprint.ts` sets `startDate: now` on the update, overwriting whatever start date was configured at creation) — not merely "locked"
+  - No notification is sent to sprint task members on start (there's no such call in the real implementation)
 
 ---
 
@@ -276,7 +276,7 @@ TaskSprint
 ├── id                  (uuid, primary key)
 ├── task_id             (foreign key → Task)
 ├── sprint_id           (foreign key → Sprint)
-├── story_points        (integer, nullable)
+├── points              (integer, nullable — the app layer maps this to `storyPoints` in returned objects, but the DB column itself is `points`)
 └── added_at            (timestamp)
 ```
 
@@ -286,21 +286,26 @@ TaskSprint
 
 ---
 
-## API Endpoints
+## Server Actions
 
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| POST | `/api/spaces/:spaceId/sprints` | Create a Sprint | Full Access / Admin+ |
-| GET | `/api/spaces/:spaceId/sprints` | Get all Sprints for a Project | Project member |
-| GET | `/api/sprints/:id` | Get Sprint details and progress | Project member |
-| PATCH | `/api/sprints/:id` | Update Sprint (name, goal, end date) | Full Access / Admin+ |
-| DELETE | `/api/sprints/:id` | Delete a Planned sprint | Full Access / Admin+ |
-| POST | `/api/sprints/:id/start` | Start Sprint | Full Access / Admin+ |
-| POST | `/api/sprints/:id/close` | Close Sprint | Full Access / Admin+ |
-| POST | `/api/sprints/:id/tasks` | Add task to Sprint | Edit / Full Access / Admin+ |
-| DELETE | `/api/sprints/:id/tasks/:taskId` | Remove task from Sprint | Edit / Full Access / Admin+ |
-| PATCH | `/api/sprints/:id/tasks/:taskId` | Update story points | Edit / Full Access / Admin+ |
-| GET | `/api/spaces/:spaceId/backlog` | Get all backlog tasks in the Project (not in any sprint) | Project member |
+There is no `/api/sprints` REST surface — all sprint operations are Server Actions in `app/actions/sprint.ts`.
+
+| Action | Description | Access |
+|--------|-------------|--------|
+| `createSprint(...)` | Create a Sprint | Full Access / Admin+ |
+| `getSprints(...)` | Get all Sprints for a Project | Project member |
+| `getSprintWithTasks(...)` | Get Sprint details, tasks, and progress | Project member |
+| `deleteSprint(...)` | Delete a Planned sprint | Full Access / Admin+ |
+| `startSprint(workspaceId, spaceId, sprintId)` | Start Sprint | Full Access / Admin+ |
+| `closeSprint(...)` | Close Sprint (delegates to `closeSprintAndRollover()`, see Implementation Notes) | Full Access / Admin+ |
+| `markAllSprintTasksDone(...)` | "Mark all as Done" shortcut (step 1 of Close Sprint modal) | Full Access / Admin+ |
+| `addTaskToSprint(...)` / `removeTaskFromSprint(...)` | Add/remove task from Sprint | Edit / Full Access / Admin+ |
+| `updateStoryPoints(...)` | Update story points on a task in a sprint | Edit / Full Access / Admin+ |
+| `getBacklogTasks(workspaceId, spaceId)` | Get all backlog tasks in the Project (not in any sprint) | Project member |
+| `getActiveSprintView(...)` / `getClosedSprintView(...)` | Data for the active/closed sprint views | Project member |
+| `bulkMoveTasksToSprint(...)` / `bulkRemoveTasksFromSprint(...)` | Bulk operations (§4a) | Edit+ / Full Access+ per §4a rules |
+| `getCreateSprintDefaults(...)` | Smart defaults for the Create Sprint modal | Full Access / Admin+ |
+| `getSprintSettings(...)` / `saveSprintSettings(...)` | Sprint Settings page | Full Access / Admin+ |
 
 ---
 

@@ -59,22 +59,20 @@ Clicking a result opens the Task detail panel directly.
 - **Space:** Name + member count → click to navigate to that Space
 - **Member:** Avatar + name + email → click to open their profile
 
-### Full results page
+### Full results page (not implemented)
 
-- Triggered by pressing Enter or "View all results"
-- Shows all matching results with filters on the left:
-  - Filter by type (Tasks / Lists / Spaces / Members)
-  - Filter by Space
-  - Filter by Assignee
-  - Filter by Status
-  - Filter by Date range (created or updated)
+There is no dedicated `/search` results page — `globalSearch()` results render directly inside the `Ctrl+K`/`Cmd+K` palette (`components/search/search-palette.tsx`), and selecting a result navigates straight to it. The filter-sidebar / sort-by-Relevance design below was never built as a separate page; kept here as design-intent reference only.
+
+- Filter by type (Tasks / Lists / Spaces / Members)
+- Filter by Space
+- Filter by Assignee
+- Filter by Status
+- Filter by Date range (created or updated)
 - Results sortable by: Relevance (default) / Created Date / Last Updated
 
-### Recent & Suggested
+### Recent
 
-When the search palette opens with no input:
-- **Recent:** Last 5 items the user visited (tasks, lists, spaces)
-- **Suggested:** Frequently visited items by the user
+When the search palette opens with no input, it shows the **last 5 items** the user visited in this workspace (tasks, lists, spaces — `getRecentSearches()`, ordered by `visitedAt`). There is no separate "frequently visited" suggestion feature — only recency-based history.
 
 ---
 
@@ -204,30 +202,34 @@ UserSearchHistory
 
 ---
 
-## API Endpoints
+## Server Actions
+
+Search and filtering are implemented entirely as server actions (`app/actions/search.ts`) — there are no dedicated `/api/` REST routes for this feature.
 
 ### Global Search
 
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| GET | `/api/workspaces/:workspaceId/search?q=:query` | Global search across workspace | Workspace member |
-| GET | `/api/workspaces/:workspaceId/search/recent` | Get recent + suggested items for the user | Workspace member |
+| Action | Description | Access |
+|--------|-------------|--------|
+| `globalSearch(workspaceId, query)` | Global search across the workspace | Workspace member |
+| `getRecentSearches(workspaceId)` | Recent + suggested items for the user | Workspace member |
+| `recordSearchVisit(...)` | Records an item visit for search history | Workspace member |
 
 ### List Filters & Sort
 
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| GET | `/api/lists/:listId/tasks?status=&priority=&assignee=&due=&sort=&dir=` | Get tasks with filters and sort applied | Space member |
-| GET | `/api/lists/:listId/saved-filters` | Get saved filters for a List | Space member |
-| POST | `/api/lists/:listId/saved-filters` | Save a new filter | Space member |
-| PATCH | `/api/saved-filters/:id` | Rename a saved filter | Filter owner |
-| DELETE | `/api/saved-filters/:id` | Delete a saved filter | Filter owner |
+| Action | Description | Access |
+|--------|-------------|--------|
+| `getFilteredTasks(listId, filters, sort)` | Get tasks with filters and sort applied | Space member |
+| `getSearchFilterOptions(...)` | Available filter facets (assignees, tags, etc.) for the current List | Space member |
+| `getSavedFilters(listId)` | Get saved filters for a List | Space member |
+| `createSavedFilter(...)` | Save a new filter | Space member |
+| `renameSavedFilter(id, name)` | Rename a saved filter | Filter owner |
+| `deleteSavedFilter(id)` | Delete a saved filter | Filter owner |
 
 ### My Tasks
 
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| GET | `/api/me/tasks?space=&priority=&status=&due=&show_completed=&sort=&dir=` | Get My Tasks with filters and sort | Authenticated user |
+| Action | Description | Access |
+|--------|-------------|--------|
+| `getMyTasks(...)` (`app/actions/my-tasks.ts`) | Get My Tasks with filters and sort, cross-workspace — see CLAUDE.md's "My Tasks (global)" section | Authenticated user |
 
 ---
 
@@ -235,8 +237,7 @@ UserSearchHistory
 
 | Screen | Description | Access |
 |--------|-------------|--------|
-| Global Search palette | `Ctrl+K` / `Cmd+K` overlay — instant results as you type | All workspace members |
-| Full search results page | `/search?q=:query` — paginated results with sidebar filters | All workspace members |
+| Global Search palette | `Ctrl+K` / `Cmd+K` overlay (`components/search/search-palette.tsx`) — instant results as you type, selecting a result navigates straight to it (task, list, or space) | All workspace members |
 | List filter toolbar | Filter chips + filter panel in List / Board / Calendar views | All Space members |
 | Saved filters dropdown | Quick-apply saved filter combinations in List toolbar | All Space members |
 | My Tasks filter panel | Filter sidebar in My Tasks view | All workspace members |
@@ -268,123 +269,22 @@ Global search queries **`title` and `name` fields only**. The Out of Scope secti
 
 ### Global Search Query
 
-```typescript
-// src/server/search.ts
+`globalSearch(workspaceId, query, filters?)` in `app/actions/search.ts` (Drizzle, not the ORM-agnostic pseudocode in earlier drafts of this doc):
 
-export async function globalSearch(
-  query: string,
-  workspaceId: string,
-  userId: string
-) {
-  if (query.length < 2) return { tasks: [], lists: [], spaces: [], members: [] }
+- Requires either a text query of 2+ characters or at least one active structured filter (a filter-only search, e.g. "assigned to John" with no text, returns tasks only — lists/spaces/members have no structured filters and need text).
+- Scopes every result type to `getAccessibleSpaceIds(userId, workspaceId)` first.
+- Text matching uses `ILIKE '%query%'`-equivalent conditions (`matchesTaskTextSearch` and similar helpers) — sufficient for MVP; the Out of Scope section below covers the post-MVP `tsvector` + GIN index path.
+- Runs the tasks/lists/spaces/members lookups as parallel queries, each capped and filtered to non-archived rows.
 
-  // Scope all results to spaces the user can access
-  const accessibleSpaceIds = await getAccessibleSpaceIds(userId, workspaceId)
+### Search History -- Deduplicate and Trim
 
-  const [tasks, lists, spaces, members] = await Promise.all([
-    db.task.findMany({
-      where: {
-        isArchived: false,
-        parentTaskId: null,
-        list: {
-          isArchived: false,
-          space: { id: { in: accessibleSpaceIds } }
-        },
-        title: { contains: query, mode: 'insensitive' }
-      },
-      include: {
-        status: true,
-        list: { include: { space: true } },
-        assignees: { include: { user: true } }
-      },
-      take: 10,
-      orderBy: { updatedAt: 'desc' }
-    }),
+`recordSearchVisit(workspaceId, entityType, entityId)` in `app/actions/search.ts` tracks recent visits in `userSearchHistory`. It's a delete-then-insert (not a DB-level `ON CONFLICT` upsert): delete any existing row for `(userId, workspaceId, entityType, entityId)`, insert a fresh row with the current `visitedAt`, then read back all of that user+workspace's history ordered by `visitedAt DESC` and delete anything past the 20 most recent.
 
-    db.list.findMany({
-      where: {
-        isArchived: false,
-        spaceId: { in: accessibleSpaceIds },
-        name: { contains: query, mode: 'insensitive' }
-      },
-      include: { space: true },
-      take: 10
-    }),
-
-    db.space.findMany({
-      where: {
-        workspaceId,
-        id: { in: accessibleSpaceIds },
-        name: { contains: query, mode: 'insensitive' }
-      },
-      take: 10
-    }),
-
-    db.workspaceMember.findMany({
-      where: {
-        workspaceId,
-        user: {
-          OR: [
-            { name: { contains: query, mode: 'insensitive' } },
-            { email: { contains: query, mode: 'insensitive' } }
-          ]
-        }
-      },
-      include: { user: true },
-      take: 10
-    })
-  ])
-
-  return { tasks, lists, spaces, members }
-}
-```
-
-`contains` with `mode: 'insensitive'` maps to `ILIKE '%query%'` in PostgreSQL. This is sufficient for MVP. Post-MVP: replace with `search` mode + a GIN index for performance at scale.
-
-### Search History -- Upsert and Trim
-
-Track recent visits in `UserSearchHistory`. Upsert on `(userId, workspaceId, entityType, entityId)` to avoid duplicate rows, then trim to the last 20 entries per user per workspace:
-
-```typescript
-// src/server/search.ts
-
-export async function recordSearchVisit(
-  userId: string,
-  workspaceId: string,
-  entityType: 'task' | 'list' | 'space' | 'member',
-  entityId: string
-) {
-  await db.userSearchHistory.upsert({
-    where: { userId_workspaceId_entityType_entityId: { userId, workspaceId, entityType, entityId } },
-    create: { userId, workspaceId, entityType, entityId, visitedAt: new Date() },
-    update: { visitedAt: new Date() }
-  })
-
-  // Keep only the 20 most recent entries per user per workspace
-  const oldest = await db.userSearchHistory.findMany({
-    where: { userId, workspaceId },
-    orderBy: { visitedAt: 'desc' },
-    skip: 20,
-    select: { id: true }
-  })
-  if (oldest.length > 0) {
-    await db.userSearchHistory.deleteMany({
-      where: { id: { in: oldest.map(r => r.id) } }
-    })
-  }
-}
-```
-
-Add a unique index to `user_search_history` for the upsert to work (already in `db/schema/search.ts`):
-
-```ts
-uniqueIndex("user_search_history_unique_idx").on(t.userId, t.workspaceId, t.entityType, t.entityId)
-index("user_search_history_visited_idx").on(t.userId, t.workspaceId, t.visitedAt)  // for ORDER BY visitedAt DESC
-```
+`db/schema/search.ts` has one index on `userSearchHistory`: `index("user_search_history_idx").on(userId, workspaceId)` — there is no unique constraint on the full `(userId, workspaceId, entityType, entityId)` tuple; de-duplication is handled in application code via the delete-then-insert above, not the database.
 
 ### Filter-to-Drizzle Query Builder
 
-`GET /api/lists/:listId/tasks` accepts filter params and must translate them into Drizzle `where` conditions. Build it incrementally with `and()`:
+`getFilteredTasks(workspaceId, spaceId, listId, filters)` (`app/actions/search.ts`) is the real server action — there's no `GET /api/lists/:listId/tasks` route. It builds its `where` conditions via a shared `buildTaskFilterConditions(filters)` helper (the same one the global-search omnibox uses) rather than the standalone `buildTaskFilters`/`buildTaskOrderBy` functions shown below — the illustrative approach below (incremental `and()` of Drizzle conditions per filter, `EXISTS` subqueries for assignee/tags, date-range buckets for `due`) is representative of the strategy used, not a byte-for-byte copy of the current code:
 
 ```typescript
 // server/task-filters.ts
@@ -498,24 +398,12 @@ export function buildTaskOrderBy(sort?: string, dir: 'asc' | 'desc' = 'asc') {
 
 ### Saved Filter Limit -- Server-Side Check
 
-The 10-per-user-per-List limit must be enforced server-side (not just frontend):
-
-```typescript
-// POST /api/lists/:listId/saved-filters handler
-
-const count = await db.savedFilter.count({ where: { userId, listId } })
-if (count >= 10) {
-  return NextResponse.json(
-    { error: 'Saved filter limit reached (10 per list). Delete one to save a new filter.' },
-    { status: 422 }
-  )
-}
-```
+The 10-per-user-per-List limit is enforced server-side in `createSavedFilter(listId, name, filters)` (`app/actions/search.ts`), not just the frontend — it counts the user's existing rows for that List and returns `{ error: "Saved filter limit reached (10 per list). Delete one to save a new filter." }` (a server-action error result, not an HTTP status) once the count reaches 10, before inserting.
 
 ### Debounce -- Client Hook
 
 ```typescript
-// src/hooks/use-debounced-search.ts
+// hooks/use-debounced-search.ts
 
 export function useDebouncedSearch(delay = 300) {
   const [query, setQuery] = useState('')
@@ -531,34 +419,21 @@ export function useDebouncedSearch(delay = 300) {
 }
 ```
 
-Use `debouncedQuery` as the SWR key -- SWR will re-fetch only when it changes:
-
-```typescript
-const { data } = useSWR(
-  debouncedQuery ? `/api/workspaces/${workspaceId}/search?q=${debouncedQuery}` : null
-)
-```
+`search-palette.tsx` calls `globalSearch(workspaceId, debouncedQuery, filters)` directly (a server action call, not a `useSWR` fetch against a REST endpoint) inside a `useEffect` keyed on `[debouncedQuery, filters, workspaceId]` — so it re-runs only when the debounced query or filters change, same effect as an SWR key change would give.
 
 ### Folder Mapping
 
 ```
-src/
-  server/
-    search.ts              <- globalSearch, recordSearchVisit
-    task-filters.ts        <- buildTaskWhere, buildTaskOrderBy
-  hooks/
-    use-debounced-search.ts
-  app/api/
-    workspaces/[workspaceId]/
-      search/route.ts      <- GET (?q=)
-      search/recent/route.ts <- GET
-    lists/[listId]/
-      tasks/route.ts       <- GET (uses buildTaskWhere + buildTaskOrderBy)
-      saved-filters/route.ts <- GET, POST
-    saved-filters/[id]/route.ts <- PATCH (rename), DELETE
-    me/
-      tasks/route.ts       <- GET (My Tasks with filters)
+app/actions/search.ts                          <- globalSearch, getRecentSearches, recordSearchVisit,
+                                                    getSavedFilters/createSavedFilter/renameSavedFilter/
+                                                    deleteSavedFilter, getFilteredTasks, getSearchFilterOptions
+app/actions/my-tasks.ts                         <- getMyTasks
+hooks/use-debounced-search.ts                   <- useDebouncedSearch
+components/search/search-palette.tsx            <- the Ctrl+K/Cmd+K palette UI
+db/schema/search.ts                             <- userSearchHistory, savedFilter
 ```
+
+There are no `/api/` routes for search, filters, or saved filters — everything above is a server action.
 
 ---
 

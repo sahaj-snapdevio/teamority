@@ -227,7 +227,7 @@ L-- created_at          (timestamp)
 
 ### Archive
 - Workspaces cannot be archived — only deleted or kept active.
-- Individual Spaces, Folders, Lists, and Tasks within the workspace can be archived independently.
+- Individual Spaces, Lists, and Tasks within the workspace can be archived independently. (Folder is post-MVP and not implemented — see `docs/folder.md`.)
 
 ### Soft Delete / Async Deletion Pattern
 

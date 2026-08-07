@@ -233,9 +233,8 @@ Two fixed items are pinned at the very bottom of the sidebar, above the collapse
 [Avatar]  Full Name
           email@example.com
 --------------------------
-Profile & Account      ->  /settings/account
-Sessions               ->  /settings/sessions
-Notifications          ->  /settings/notifications
+Profile & Account      ->  /[workspaceId]/profile   (Sessions is on this same page)
+Notifications          ->  /[workspaceId]/notifications/settings
 --------------------------
 Sign out
 ```
