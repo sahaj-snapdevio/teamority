@@ -165,12 +165,9 @@ export async function setInviteLinkRole(
 }
 
 /**
- * Join a workspace via its shared invite link. Authenticated users only.
- * Idempotent — an existing active member just gets routed back in, and no
- * duplicate membership row is ever created. A disabled/regenerated/deleted
- * link (token no longer matches an ACTIVE workspace) resolves to a single
- * friendly error. The granted role is clamped to the MEMBER/GUEST allow-list
- * so a bad stored value can never grant ADMIN/OWNER.
+ * Joins a workspace via its shared invite link. Idempotent — an existing
+ * member is just routed back in. Granted role is clamped to MEMBER/GUEST so
+ * a bad stored value can never grant ADMIN/OWNER.
  */
 export async function joinViaLink(
   token: string
@@ -557,15 +554,10 @@ export async function declineInvite(
 }
 
 /**
- * Auto-accept any pending (INVITED) memberships addressed to the signed-in
- * user's email. Called right after sign-in (from `/post-auth`) so a user who
- * was invited by email is joined automatically — without ever receiving the
- * invite email or opening the invite link. This is what makes invitations work
- * with Google-only auth and no SMTP configured.
- *
- * Matching is by email, which is safe because the email is proven by the auth
- * provider (Google / magic link) — this action only ever acts on the caller's
- * own session, never an email passed by the client.
+ * Auto-accepts pending (INVITED) memberships for the signed-in user's email,
+ * called from `/post-auth` so email invites work with Google-only auth and
+ * no SMTP configured. Matching by email is safe since it's proven by the
+ * auth provider and scoped to the caller's own session.
  */
 export async function activatePendingInvites(): Promise<{ activated: number }> {
   const session = await requireSession();

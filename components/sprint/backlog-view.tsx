@@ -16,7 +16,7 @@ import {
   getBacklogTasks,
   getSprints,
 } from "@/app/actions/sprint";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -24,6 +24,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { avatarSrc } from "@/lib/priority-config";
 import { setTaskNavContext } from "@/lib/task-nav-context";
 import { cn } from "@/lib/utils";
 
@@ -155,6 +156,9 @@ function BacklogTaskRow({
         <div className="flex -space-x-1.5 shrink-0">
           {task.assignees.slice(0, 3).map((a) => (
             <Avatar className="h-5 w-5 border border-base-100" key={a.userId}>
+              {a.image && (
+                <AvatarImage alt={a.name ?? a.email ?? ""} src={avatarSrc(a.image)} />
+              )}
               <AvatarFallback className="text-[9px]">
                 {(a.name ?? a.email ?? "?").slice(0, 2).toUpperCase()}
               </AvatarFallback>

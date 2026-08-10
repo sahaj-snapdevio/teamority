@@ -12,13 +12,11 @@ const MIN_PASSWORD_LENGTH = 8;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Create the very first platform administrator from the `/setup` first-run
- * wizard. Unauthenticated by necessity, so it is strictly gated: it ONLY
- * succeeds when the `user` table is empty, re-checked inside the transaction so
- * a double-submit / race can never create a second admin. Mirrors
- * `scripts/create-admin.ts` (direct user + credential-account insert) rather
- * than `auth.api.signUpEmail`, which is blocked server-side when
- * `ALLOW_PASSWORD_SIGNUP` is off — exactly the closed-instance first-run case.
+ * Creates the first platform admin from the unauthenticated `/setup`
+ * wizard. Only succeeds when the `user` table is empty (re-checked inside
+ * the transaction against double-submit races). Mirrors
+ * `scripts/create-admin.ts`'s direct insert rather than `auth.api.signUpEmail`,
+ * which is blocked when `ALLOW_PASSWORD_SIGNUP` is off.
  */
 export async function createFirstAdmin(input: {
   name: string;

@@ -1988,14 +1988,10 @@ export function BoardView({
     [statuses, tasksByStatus]
   );
 
-  // Split mouse/touch instead of a single PointerSensor: a touchstart on a
-  // card needs `touch-action: none` (below) to stop the browser's native
-  // scroll from winning the gesture before dnd-kit sees enough movement to
-  // activate — but with that CSS in place, a *plain* distance-based
-  // constraint (fine for a mouse) would turn every scroll-swipe starting on
-  // a card into a drag. TouchSensor's delay+tolerance requires a brief
-  // press-and-hold before a touch counts as a drag, so a quick swipe still
-  // reads as "scrolling" and is left alone.
+  // Split mouse/touch instead of one PointerSensor: touch needs
+  // `touch-action: none` to beat native scroll, which would turn a plain
+  // distance-based swipe into a drag — TouchSensor's delay+tolerance
+  // requires a press-and-hold first, so a quick swipe still scrolls.
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, {

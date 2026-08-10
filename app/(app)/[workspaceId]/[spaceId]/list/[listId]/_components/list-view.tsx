@@ -449,11 +449,10 @@ type SortControl = {
 };
 
 /**
- * A clickable table header that both reflects and controls the sort. The arrow
- * is the point: the toolbar's Sort dropdown could tell you *which* column was
- * sorted but never *which direction*, so the same label meant two opposite
- * orderings. Inactive sortable columns show a ghosted arrow on hover so it's
- * discoverable that they can be clicked at all.
+ * A clickable table header that both reflects and controls the sort. The
+ * arrow is the point: the toolbar's Sort dropdown showed which column was
+ * sorted but never which direction, so the same label meant two opposite
+ * orderings.
  */
 function SortableColumnHeader({
   sortKey,

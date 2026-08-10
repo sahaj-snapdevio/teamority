@@ -18,11 +18,9 @@ interface ArchivedProject {
 }
 
 /**
- * Shown when a workspace has projects but they are ALL archived. Instead of
- * bouncing the user to the create-project onboarding (which locked members out),
- * we keep them in the workspace and let them restore a project right here.
- * Restore is Owner/Admin-only, mirroring the permission model; members see the
- * list read-only and ask an admin.
+ * Shown when every project in a workspace is archived — restores here
+ * instead of bouncing to create-project onboarding, which locked members
+ * out. Restore is Owner/Admin-only; members see the list read-only.
  */
 export function ArchivedProjectsEmptyState({
   workspaceId,

@@ -1,7 +1,16 @@
 "use server";
 
 import { createId } from "@paralleldrive/cuid2";
-import { and, asc, desc, eq, inArray, isNull, notInArray } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  notInArray,
+} from "drizzle-orm";
 import { headers } from "next/headers";
 import {
   list,
@@ -366,6 +375,64 @@ export async function getSprintWithTasks(
   return { sprint: targetSprint, tasks };
 }
 
+// ─── getDefaultListForSprint ──────────────────────────────────────────────────
+
+// The list a new task created from a sprint (which itself spans multiple
+// lists) should belong to, so it gets a real status instead of landing
+// list-less/status-less as "No Status". Mirrors the defaultListId logic in
+// getActiveSprintView: prefer a list already used by this sprint's tasks,
+// else fall back to the space's first non-archived list.
+async function resolveDefaultListForSprint(
+  spaceId: string,
+  sprintId: string
+): Promise<string | null> {
+  const [existing] = await db
+    .select({ listId: task.listId })
+    .from(taskSprint)
+    .innerJoin(task, eq(task.id, taskSprint.taskId))
+    .where(
+      and(
+        eq(taskSprint.sprintId, sprintId),
+        eq(task.isArchived, false),
+        isNotNull(task.listId)
+      )
+    )
+    .orderBy(asc(task.orderIndex))
+    .limit(1);
+
+  if (existing?.listId) {
+    return existing.listId;
+  }
+
+  const [firstList] = await db
+    .select({ id: list.id })
+    .from(list)
+    .where(and(eq(list.spaceId, spaceId), eq(list.isArchived, false)))
+    .orderBy(asc(list.createdAt))
+    .limit(1);
+
+  return firstList?.id ?? null;
+}
+
+export async function getDefaultListForSprint(
+  workspaceId: string,
+  spaceId: string,
+  sprintId: string
+): Promise<{ listId: string | null } | { error: string }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
+
+  const err = await requireAccess(session.user.id, workspaceId, spaceId);
+  if (err) {
+    return err;
+  }
+
+  const listId = await resolveDefaultListForSprint(spaceId, sprintId);
+  return { listId };
+}
+
 // ─── addTaskToSprint ──────────────────────────────────────────────────────────
 
 export async function addTaskToSprint(
@@ -635,7 +702,12 @@ export type BacklogTask = {
   statusType: string | null;
   listId: string;
   orderIndex: number;
-  assignees: { userId: string; name: string | null; email: string | null }[];
+  assignees: {
+    userId: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  }[];
 };
 
 export type BacklogList = {
@@ -735,6 +807,7 @@ export async function getBacklogTasks(
       userId: taskAssignee.userId,
       name: user.name,
       email: user.email,
+      image: user.image,
     })
     .from(taskAssignee)
     .leftJoin(user, eq(user.id, taskAssignee.userId))
@@ -743,11 +816,21 @@ export async function getBacklogTasks(
   // 6. Group assignees by taskId
   const assigneesByTask = new Map<
     string,
-    { userId: string; name: string | null; email: string | null }[]
+    {
+      userId: string;
+      name: string | null;
+      email: string | null;
+      image: string | null;
+    }[]
   >();
   for (const a of assigneeRows) {
     const arr = assigneesByTask.get(a.taskId) ?? [];
-    arr.push({ userId: a.userId, name: a.name, email: a.email });
+    arr.push({
+      userId: a.userId,
+      name: a.name,
+      email: a.email,
+      image: a.image,
+    });
     assigneesByTask.set(a.taskId, arr);
   }
 

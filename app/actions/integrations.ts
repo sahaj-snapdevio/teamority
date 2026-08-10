@@ -64,12 +64,9 @@ interface SaveInput {
 }
 
 /**
- * Partial update, one section (smtp/google/storage/webPush) at a time; only
- * fields present in that section's object are changed. Within a section: key
- * omitted = unchanged, "" = clear, non-empty = set (encrypted for secret
- * fields). Mirrors the shape of a PATCH request, kept as a server action per
- * this project's convention (CLAUDE.md: "Server actions are the primary
- * mutation location").
+ * Partial update, one section (smtp/google/storage/webPush) at a time.
+ * Within a section: key omitted = unchanged, "" = clear, non-empty = set
+ * (encrypted for secret fields).
  */
 export async function saveIntegrationSettingsAction(
   body: SaveInput

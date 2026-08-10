@@ -87,16 +87,11 @@ export type GlobalSearchResults = {
   members: SearchMemberResult[];
 };
 
-// Title OR description OR any custom field value on the task matches `q`
-// (already `%...%`-wrapped). One correlated EXISTS per task row — a single
-// query plan, not a per-task round trip — so this stays N+1-free even though
-// it reaches into two extra tables.
-//
-// Custom field values are stored as an opaque id for SINGLE_SELECT/
-// MULTI_SELECT (not the human-readable label), so a plain value ILIKE would
-// miss "Critical" for a Severity field storing e.g. "opt_abc123". The nested
-// EXISTS resolves the field's own option list (customFieldDefinition.config)
-// and matches a value against any option whose label matches the query.
+// Title OR description OR any custom field value matches `q` (already
+// `%...%`-wrapped), via a correlated EXISTS so this stays N+1-free.
+// SINGLE_SELECT/MULTI_SELECT values are stored as opaque option ids, not
+// labels, so the nested EXISTS resolves customFieldDefinition.config's
+// option list and matches the query against option labels instead.
 function matchesTaskTextSearch(q: string): SQL {
   return sql`(
     ${task.title} ILIKE ${q}

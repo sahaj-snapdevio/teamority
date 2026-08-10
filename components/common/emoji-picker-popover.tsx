@@ -18,6 +18,18 @@ import { cn } from "@/lib/utils";
 const loadEmojiData = () =>
   import("@emoji-mart/data").then((mod) => mod.default);
 
+// Kicks off the same dynamic import + data fetch the Picker itself would
+// trigger on mount, so hovering/focusing the trigger warms the module and
+// dataset ahead of the click. Without this, opening the popover for the
+// first time shows the skeleton and then visibly resizes/jumps into the
+// real picker once the chunk resolves — that resize reads as a glitch.
+// Both calls are idempotent (import()/loadEmojiData results are cached), so
+// re-triggering on repeated hovers is a no-op.
+function preloadEmojiPicker() {
+  import("@emoji-mart/react");
+  loadEmojiData();
+}
+
 const EmojiPicker = dynamic(() => import("@emoji-mart/react"), {
   ssr: false,
   loading: () => (
@@ -78,6 +90,8 @@ export function EmojiPickerPopover({
             "flex size-10 items-center justify-center rounded-md border border-base-300 bg-base-100 transition-colors hover:bg-base-200",
             className
           )}
+          onFocus={preloadEmojiPicker}
+          onPointerEnter={preloadEmojiPicker}
           type="button"
         >
           <SpaceIcon color={color} emoji={value} size="md" />
