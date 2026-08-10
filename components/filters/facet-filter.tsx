@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CaretDownIcon, CheckIcon, PlusIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CheckIcon, FunnelIcon, PlusIcon } from "@phosphor-icons/react";
 import {
   Popover,
   PopoverContent,
@@ -165,7 +165,7 @@ export function FacetOptionList({
       </div>
       {selected.length > 0 && !single && (
         <>
-          {showClearDivider && <div className="my-1 h-px bg-border" />}
+          {showClearDivider && <div className="my-1 h-px bg-base-300" />}
           <button
             type="button"
             onClick={() => onChange([])}
@@ -252,6 +252,77 @@ export function FacetFilter({
             if (single) setOpen(false);
           }}
         />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export interface FacetFilterGroup {
+  key: string;
+  label: string;
+  options: FacetOption[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+  single?: boolean;
+  searchable?: boolean;
+}
+
+/**
+ * Collapses several standalone `FacetFilter` buttons (Status/Priority/
+ * Assignee, ...) into one "Filters" entry point, each group under its own
+ * section label inside a single popover. Used at narrower toolbar widths
+ * where the individual buttons would otherwise wrap onto a second row —
+ * list-view.tsx / board-view.tsx swap between the two by breakpoint, they
+ * never render both at once for the same fields.
+ */
+export function CombinedFacetFilter({
+  groups,
+  className,
+}: {
+  groups: FacetFilterGroup[];
+  className?: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const totalCount = groups.reduce((sum, g) => sum + g.selected.length, 0);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
+            totalCount > 0
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content",
+            className,
+          )}
+        >
+          <FunnelIcon className="size-3.5" />
+          Filters
+          {totalCount > 0 && <span className="font-bold">({totalCount})</span>}
+          <CaretDownIcon className="size-3 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="flex max-h-[75vh] w-64 flex-col gap-3 overflow-y-auto rounded-xl p-2"
+      >
+        {groups.map((group, i) => (
+          <div key={group.key}>
+            {i > 0 && <div className="mb-3 h-px bg-base-300" />}
+            <p className="mb-1 px-1 text-2xs font-bold uppercase tracking-wide text-base-content/60">
+              {group.label}
+            </p>
+            <FacetOptionList
+              options={group.options}
+              selected={group.selected}
+              onChange={group.onChange}
+              single={group.single}
+              searchable={group.searchable}
+            />
+          </div>
+        ))}
       </PopoverContent>
     </Popover>
   );

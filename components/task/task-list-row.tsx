@@ -865,7 +865,7 @@ export function TaskListRow({
                 </span>
               </button>
             ))}
-            <div className="h-px bg-border my-1" />
+            <div className="h-px bg-base-300 my-1" />
             <button
               className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-base-content/60 hover:bg-base-200 cursor-pointer"
               onClick={() => void handleSetPriority("NONE")}
@@ -1045,7 +1045,7 @@ export function TaskListRow({
                 <HashIcon className="size-3.5 text-base-content/60" /> Copy
                 task ID
               </button>
-              <div className="h-px bg-border my-1" />
+              <div className="h-px bg-base-300 my-1" />
               <p className="px-2 py-1 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
                 Move to Sprint
               </p>
@@ -1096,7 +1096,7 @@ export function TaskListRow({
                   Backlog
                 </button>
               )}
-              <div className="h-px bg-border my-1" />
+              <div className="h-px bg-base-300 my-1" />
               <p className="px-2 py-1 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
                 Move to List
               </p>
@@ -1138,7 +1138,7 @@ export function TaskListRow({
               )}
               {canPinToList && (
                 <>
-                  <div className="h-px bg-border my-1" />
+                  <div className="h-px bg-base-300 my-1" />
                   {task.isPinnedToList ? (
                     <button
                       className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
@@ -1161,7 +1161,7 @@ export function TaskListRow({
                   )}
                 </>
               )}
-              <div className="h-px bg-border my-1" />
+              <div className="h-px bg-base-300 my-1" />
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={handleArchive}

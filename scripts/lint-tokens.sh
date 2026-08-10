@@ -8,7 +8,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PATTERN='\b(bg-background|text-foreground|bg-muted\b|border-border|border-input|bg-card\b|bg-popover\b|text-card-foreground|text-popover-foreground|text-muted-foreground|text-primary-foreground|bg-destructive|text-destructive\b|border-destructive|ring-destructive|bg-accent|text-accent-foreground)\b'
+PATTERN='\b(bg-background|text-foreground|bg-muted\b|bg-border\b|border-border|border-input|bg-card\b|bg-popover\b|text-card-foreground|text-popover-foreground|text-muted-foreground|text-primary-foreground|bg-destructive|text-destructive\b|border-destructive|ring-destructive|bg-accent|text-accent-foreground)\b'
 
 # components/ui/ is excluded from Biome entirely (see biome.jsonc) and from
 # this gate too: button.tsx's --secondary color-mix() and the deferred

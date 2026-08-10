@@ -118,11 +118,11 @@ export function ChannelMessageList({ messages, currentUserId }: ChannelMessageLi
               {/* Date separator */}
               {showDateSep && (
                 <div className="flex items-center gap-3 py-3">
-                  <div className="h-px flex-1 bg-border" />
+                  <div className="h-px flex-1 bg-base-300" />
                   <span className="text-xs font-medium text-base-content/60">
                     {formatDate(msg.createdAt)}
                   </span>
-                  <div className="h-px flex-1 bg-border" />
+                  <div className="h-px flex-1 bg-base-300" />
                 </div>
               )}
 

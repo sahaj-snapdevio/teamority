@@ -232,7 +232,7 @@ function AttachmentPreviewModal({
                     <ToolbarButton label="Reset zoom (100%)" onClick={zoomReset}>
                       <ArrowCounterClockwiseIcon className="size-4" />
                     </ToolbarButton>
-                    <div className="mx-1 h-5 w-px bg-border" />
+                    <div className="mx-1 h-5 w-px bg-base-300" />
                   </>
                 )}
                 <ToolbarButton label="Download" asChild>
@@ -249,7 +249,7 @@ function AttachmentPreviewModal({
                     <ArrowSquareOutIcon className="size-4" />
                   </a>
                 </ToolbarButton>
-                <div className="mx-1 h-5 w-px bg-border" />
+                <div className="mx-1 h-5 w-px bg-base-300" />
                 <ToolbarButton label="Close" onClick={() => onOpenChange(false)}>
                   <XIcon className="size-4" />
                 </ToolbarButton>

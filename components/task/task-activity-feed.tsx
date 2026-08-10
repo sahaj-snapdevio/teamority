@@ -407,7 +407,7 @@ function CommentEditor({
           </PopoverContent>
         </Popover>
 
-        <div className="w-px h-4 bg-border mx-1" />
+        <div className="w-px h-4 bg-base-300 mx-1" />
 
         {/* Emoji */}
         <Popover>
@@ -507,7 +507,7 @@ function CommentEditor({
           >
             {submitting ? <span>Sending…</span> : <span>Comment</span>}
           </button>
-          <div className={cn("w-px shrink-0", canSubmit ? "bg-white/25" : "bg-border")} />
+          <div className={cn("w-px shrink-0", canSubmit ? "bg-white/25" : "bg-base-300")} />
           <button
             onClick={handleSubmit}
             disabled={submitting || !canSubmit}

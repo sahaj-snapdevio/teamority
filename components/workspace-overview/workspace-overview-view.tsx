@@ -75,7 +75,7 @@ export function WorkspaceOverviewView({
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2.5">
-        <ChartPieSliceIcon className="size-5 text-primary" weight="fill" />
+        <ChartPieSliceIcon className="size-8 text-primary" weight="fill" />
         <h1 className="text-[34px] font-bold tracking-normal text-base-content">
           Overview
         </h1>

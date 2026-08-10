@@ -142,7 +142,7 @@ export function SprintSettingsForm({
         </div>
       </section>
 
-      <div className="h-px bg-border" />
+      <div className="h-px bg-base-300" />
 
       {/* Naming */}
       <section className="space-y-4">
@@ -193,7 +193,7 @@ export function SprintSettingsForm({
         </p>
       </section>
 
-      <div className="h-px bg-border" />
+      <div className="h-px bg-base-300" />
 
       {/* Automations */}
       <section className="space-y-4">

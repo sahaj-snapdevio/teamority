@@ -264,7 +264,7 @@ export function SprintSettingsModal({
                   <Switch checked={autoMarkDone} onCheckedChange={setAutoMarkDone} />
                 </div>
 
-                <div className="h-px bg-border" />
+                <div className="h-px bg-base-300" />
 
                 {/* Auto-create next */}
                 <div className="flex items-start justify-between gap-3">
@@ -296,7 +296,7 @@ export function SprintSettingsModal({
                   </div>
                 )}
 
-                <div className="h-px bg-border" />
+                <div className="h-px bg-base-300" />
 
                 {/* Auto-archive */}
                 <div className="flex items-start justify-between gap-3">

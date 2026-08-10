@@ -624,7 +624,7 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
                   </div>
                 )}
 
-                {sprints.length > 0 && <div className="h-px bg-border" />}
+                {sprints.length > 0 && <div className="h-px bg-base-300" />}
 
                 <div className="flex items-center gap-1.5 px-1 text-xs text-base-content/60">
                   <span className="font-medium">Backlog</span>
