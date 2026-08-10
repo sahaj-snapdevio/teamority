@@ -643,7 +643,7 @@ export function SearchPalette({
             </PopoverContent>
           </Popover>
 
-          <span className="mx-1 h-5 w-px shrink-0 bg-border" />
+          <span className="mx-1 h-5 w-px shrink-0 bg-base-300" />
 
           {/* Quick filters — toggle chips over the same filter state. */}
           {QUICK_FILTERS.map((q) => {

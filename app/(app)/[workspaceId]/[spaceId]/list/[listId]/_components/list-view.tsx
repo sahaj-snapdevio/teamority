@@ -86,6 +86,7 @@ import { SpaceIcon } from "@/components/common/space-icon";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { CustomFieldFilterControl } from "@/components/filters/custom-field-filter";
 import {
+  CombinedFacetFilter,
   FacetFilter,
   FacetOptionList,
 } from "@/components/filters/facet-filter";
@@ -830,7 +831,7 @@ function StatusGroup({
                   <PlusIcon className="size-3.5 text-base-content/60 shrink-0" />
                   New Status
                 </button>
-                <div className="h-px bg-border my-1" />
+                <div className="h-px bg-base-300 my-1" />
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 cursor-pointer text-left"
                   onClick={() => {
@@ -2667,8 +2668,12 @@ export function ListView({
                   {/* Filters — shared facet controls (same state + filter
                     logic). Kept exactly as standalone toolbar buttons — the
                     Filters builder is an additional entry point onto this
-                    same state, not a replacement for these. */}
-                  <div className="flex items-center gap-2 flex-wrap">
+                    same state, not a replacement for these. Below 1300px
+                    they'd wrap onto a second row one at a time, so under
+                    that width they collapse into one CombinedFacetFilter
+                    button instead — same state, same options, just grouped
+                    under one popover. Only one of the two ever renders. */}
+                  <div className="hidden min-[1300px]:flex items-center gap-2 flex-wrap">
                     <FacetFilter
                       label="Status"
                       onChange={setStatusFilter}
@@ -2691,6 +2696,37 @@ export function ListView({
                       />
                     )}
                   </div>
+                  <CombinedFacetFilter
+                    className="min-[1300px]:hidden"
+                    groups={[
+                      {
+                        key: "status",
+                        label: "Status",
+                        options: statusOptions,
+                        selected: statusFilter,
+                        onChange: setStatusFilter,
+                      },
+                      {
+                        key: "priority",
+                        label: "Priority",
+                        options: PRIORITY_OPTIONS,
+                        selected: priorityFilter,
+                        onChange: setPriorityFilter,
+                      },
+                      ...(members.length > 0
+                        ? [
+                            {
+                              key: "assignee",
+                              label: "Assignee",
+                              options: assigneeOptions,
+                              selected: assigneeFilter,
+                              onChange: setAssigneeFilter,
+                              searchable: true,
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
 
                   {/* One compact "Filters" entry for custom fields only —
                     Status/Priority/Assignee already have dedicated buttons
@@ -2710,7 +2746,7 @@ export function ListView({
                     />
                   )}
 
-                  <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+                  <div className="mx-1 h-5 w-px shrink-0 bg-base-300" />
 
                   {/* Sort — kept alongside the clickable column headers because
                     the header row is desktop-only (`hidden md:flex`); on mobile
@@ -2899,7 +2935,7 @@ export function ListView({
                             </div>
                           ))}
                         </div>
-                        <div className="my-1 h-px bg-border" />
+                        <div className="my-1 h-px bg-base-300" />
                         <p className="px-2 py-1 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                           Custom Fields
                         </p>
@@ -2927,7 +2963,7 @@ export function ListView({
                     non-breaking — it either sits on the primary row or wraps
                     to a new row entirely, never split mid-group. */}
                 <div className="flex items-center gap-4 shrink-0">
-                  <div className="h-5 w-px shrink-0 bg-border" />
+                  <div className="h-5 w-px shrink-0 bg-base-300" />
 
                   {/* Manage Custom Fields — a discoverability shortcut straight
                       to Project Settings → Custom Fields, not a general
@@ -3083,7 +3119,7 @@ export function ListView({
                         </div>
                       )}
 
-                      <div className="h-px bg-border" />
+                      <div className="h-px bg-base-300" />
 
                       <div>
                         <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
@@ -3162,7 +3198,7 @@ export function ListView({
 
                       {onToggleArchived && (
                         <>
-                          <div className="h-px bg-border" />
+                          <div className="h-px bg-base-300" />
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium">
                               Show archived
@@ -3177,7 +3213,7 @@ export function ListView({
 
                       {filterFields.length > 0 && (
                         <>
-                          <div className="h-px bg-border" />
+                          <div className="h-px bg-base-300" />
                           <div>
                             <p className="mb-1.5 text-2xs font-bold uppercase tracking-wide text-base-content/60">
                               More filters
@@ -3255,7 +3291,7 @@ export function ListView({
                         />
                       </div>
                     )}
-                    <div className="my-1 h-px bg-border" />
+                    <div className="my-1 h-px bg-base-300" />
                     <button
                       className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-base-200"
                       onClick={() => setShortcutsOpen(true)}

@@ -208,9 +208,9 @@ export function ListContainer({
                   <CopyIcon className="size-4 shrink-0 text-base-content/70" />{" "}
                   Duplicate
                 </button>
-                <div className="my-1 h-px bg-border" />
+                <div className="my-1 h-px bg-base-300" />
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                   onClick={async () => {
                     const res = await archiveList(
                       workspaceId,

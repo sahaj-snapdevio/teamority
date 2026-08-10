@@ -311,7 +311,7 @@ Use the `Sonner` toast component (`components/ui/sonner.tsx`, wrapping `sonner`)
 | Type | Color |
 |------|-------|
 | Success | Green (`--color-success`) |
-| Error | Red (`--color-danger`) |
+| Error | Red (`--color-error`) |
 | Info | Default (neutral) |
 
 Position: Bottom-right. Duration: 4 seconds.
@@ -400,13 +400,14 @@ Build this before building any component that displays a timestamp (task detail 
 
 ## Tailwind Config Notes
 
-Define these as CSS custom properties in `globals.css` and reference via Tailwind's `theme.extend`. Use the `--color-*` tokens above as the source. Example:
+Tailwind v4 is CSS-first — there is no `tailwind.config.*`/`theme.extend`. Define tokens as CSS custom properties (`:root`, `.dark`, `[data-theme="..."]`) in `globals.css`, then re-expose them to Tailwind utilities via a single `@theme inline { ... }` block. Example (from `app/globals.css`):
 
 ```css
 :root {
-  --color-brand: #6366F1;
-  --color-brand-hover: #4F46E5;
-  --color-brand-light: #EEF2FF;
-  /* ... etc */
+  --secondary: #F4F5F7;
+}
+
+@theme inline {
+  --color-secondary: var(--secondary);
 }
 ```

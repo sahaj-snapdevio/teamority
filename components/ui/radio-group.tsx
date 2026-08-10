@@ -15,8 +15,6 @@ const RadioGroupContext = React.createContext<RadioGroupContextValue | null>(
   null
 )
 
-let radioGroupIdCounter = 0
-
 function RadioGroup({
   className,
   value,
@@ -33,9 +31,8 @@ function RadioGroup({
   name?: string
 }) {
   const [internalValue, setInternalValue] = React.useState(defaultValue)
-  const groupName = React.useState(
-    () => name ?? `radio-group-${++radioGroupIdCounter}`
-  )[0]
+  const generatedName = React.useId()
+  const groupName = name ?? generatedName
   const currentValue = value ?? internalValue
 
   const handleValueChange = React.useCallback(

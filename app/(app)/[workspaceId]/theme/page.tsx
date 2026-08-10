@@ -37,8 +37,8 @@ export default async function ThemePage({ params }: ThemePageProps) {
       />
 
       <div className="space-y-6">
-        {isAdmin && <ThemeSettingsForm />}
         <AppearanceSettingsForm />
+        {isAdmin && <ThemeSettingsForm />}
       </div>
     </div>
   );

@@ -161,6 +161,11 @@ export function MobileCalendar({
       ? `${format(weekDays[0], "MMM d")} – ${format(weekDays[6], "MMM d")}`
       : format(viewDate, "MMMM yyyy");
 
+  const isCurrentPeriod =
+    mobileMode === "week"
+      ? weekDays.some((d) => isToday(d))
+      : isSameMonth(viewDate, new Date());
+
   const assigneeOptions = [
     { value: "unassigned", label: "Unassigned" },
     ...members.map((m) => ({
@@ -336,7 +341,8 @@ export function MobileCalendar({
             <CaretRightIcon className="size-5" />
           </button>
           <button
-            className="ml-0.5 h-8 shrink-0 rounded-md border border-base-300 px-2.5 text-xs font-semibold text-base-content transition-colors hover:bg-base-200"
+            className="ml-0.5 h-8 shrink-0 rounded-md border border-base-300 px-2.5 text-xs font-semibold text-base-content transition-colors hover:bg-base-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+            disabled={isCurrentPeriod}
             onClick={() => onNavigate(new Date())}
             type="button"
           >

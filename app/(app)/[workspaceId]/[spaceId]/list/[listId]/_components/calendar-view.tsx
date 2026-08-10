@@ -444,6 +444,7 @@ export function CalendarView({
               </button>
               <Button
                 className="ml-1 h-8 text-xs"
+                disabled={isSameMonth(viewDate, new Date())}
                 onClick={() => goToMonth(new Date())}
                 size="sm"
                 variant="outline"

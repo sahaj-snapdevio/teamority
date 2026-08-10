@@ -143,7 +143,7 @@ function DropdownMenuContent({
   React.useEffect(() => {
     if (!open) return
     const firstItem = focusableMenuItems(contentRef.current as HTMLElement)[0]
-    firstItem?.focus()
+    firstItem?.focus({ preventScroll: true })
   }, [open, contentRef])
 
   if (!mounted) return null

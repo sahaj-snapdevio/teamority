@@ -515,7 +515,7 @@ function StatusGroup({
                   <PlusIcon className="size-3.5 text-base-content/60 shrink-0" />
                   New status
                 </button>
-                <div className="h-px bg-border my-1" />
+                <div className="h-px bg-base-300 my-1" />
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                   onClick={() => {
@@ -1061,7 +1061,7 @@ function BulkActionBar({
               ))}
 
             {/* Divider */}
-            <div className="h-px bg-border my-1" />
+            <div className="h-px bg-base-300 my-1" />
 
             {/* List section */}
             <p className="px-2 py-1 text-xs font-semibold text-base-content/60 uppercase tracking-wide">
@@ -1364,7 +1364,7 @@ function SprintBoardColumn({
       >
         <div
           className={cn(
-            "flex flex-col gap-2 rounded-lg p-1 transition-all flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border",
+            "flex flex-col gap-2 rounded-lg p-1 transition-all flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-base-300",
             tasks.length === 0 && "min-h-8"
           )}
           ref={setNodeRef}
@@ -1414,7 +1414,7 @@ function NoStatusColumn({
           {tasks.length}
         </span>
       </div>
-      <div className="flex flex-col gap-2 rounded-lg p-1 flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+      <div className="flex flex-col gap-2 rounded-lg p-1 flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-base-300">
         {tasks.map((t) => (
           <SprintBoardStaticCard
             key={t.id}

@@ -305,7 +305,7 @@ export function TaskDescriptionEditor({
           </svg>
         </ToolbarButton>
 
-        <div className="mx-1.5 h-4 w-px bg-border shrink-0" />
+        <div className="mx-1.5 h-4 w-px bg-base-300 shrink-0" />
 
         {/* Text formatting */}
         <ToolbarButton title="Bold (Ctrl+B)" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
@@ -326,7 +326,7 @@ export function TaskDescriptionEditor({
           </svg>
         </ToolbarButton>
 
-        <div className="mx-1.5 h-4 w-px bg-border shrink-0" />
+        <div className="mx-1.5 h-4 w-px bg-base-300 shrink-0" />
 
         {/* Lists */}
         <ToolbarButton title="Bullet list" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
@@ -348,7 +348,7 @@ export function TaskDescriptionEditor({
           </svg>
         </ToolbarButton>
 
-        <div className="mx-1.5 h-4 w-px bg-border shrink-0" />
+        <div className="mx-1.5 h-4 w-px bg-base-300 shrink-0" />
 
         {/* Headings */}
         {([1, 2, 3] as const).map((level) => (
@@ -362,7 +362,7 @@ export function TaskDescriptionEditor({
           </ToolbarButton>
         ))}
 
-        <div className="mx-1.5 h-4 w-px bg-border shrink-0" />
+        <div className="mx-1.5 h-4 w-px bg-base-300 shrink-0" />
 
         {/* Align */}
         <ToolbarButton title="Align left" active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>
@@ -381,7 +381,7 @@ export function TaskDescriptionEditor({
           </svg>
         </ToolbarButton>
 
-        <div className="mx-1.5 h-4 w-px bg-border shrink-0" />
+        <div className="mx-1.5 h-4 w-px bg-base-300 shrink-0" />
 
         {/* Extras */}
         <ToolbarButton title="Code block" active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
