@@ -81,7 +81,7 @@ function NoteImageView({ node, selected, editor, deleteNode }: NodeViewProps) {
               {/* biome-ignore lint/performance/noImgElement: served from auth-gated /api/files storage keys; next/image can't optimize these */}
               <img
                 alt={alt ?? ""}
-                className="max-h-96 max-w-full object-contain"
+                className="size-40 object-cover"
                 draggable={false}
                 src={src}
               />
@@ -96,7 +96,7 @@ function NoteImageView({ node, selected, editor, deleteNode }: NodeViewProps) {
             <img
               alt={alt ?? ""}
               className={cn(
-                "max-h-96 max-w-full object-contain",
+                "size-40 object-cover",
                 isUploading && "opacity-60"
               )}
               draggable={false}

@@ -585,15 +585,11 @@ function TaskOverflowMenuItems({
   );
 }
 
-// ─── Mobile-breakpoint hook ───────────────────────────────────────────────────
-// Used only to decide WHERE a single TaskActivityFeed instance mounts (the
-// left column, ahead of Subtasks/Dependencies, vs the desktop right column) —
-// everything else in this file is a pure CSS (`md:`) split. Mounting the feed
-// twice would double its data fetch and give it two independent comment
-// composers, so its placement needs a real breakpoint check, not just
-// hidden/md:hidden. Defaults to `false` (desktop) for the SSR pass; this page
-// only renders real content after the client-side fetch resolves (see
-// `loading` below), so there's no hydration mismatch from correcting on mount.
+// Decides where the single TaskActivityFeed instance mounts (left column vs
+// desktop right column) — mounting it twice would double its data fetch and
+// give it two comment composers, so this needs a real breakpoint check
+// rather than hidden/md:hidden. Defaults to desktop; safe since this page
+// only renders real content after the client-side fetch resolves.
 function useIsBelowMd() {
   const [isBelow, setIsBelow] = React.useState(false);
   React.useEffect(() => {

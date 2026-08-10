@@ -383,28 +383,29 @@ export function ListContainer({
         />
       )}
 
-      {/* View tabs — sticky to the top of the scroll area. Full-bleed (`-mx-6
-          px-6`) so scrolling rows pass under it; `-mt-6 pt-6` pins it flush to
-          the container top without a gap. Offsets are scaled down to match
-          the container's reduced `p-3` padding on mobile (`sm:` restores the
-          original `-mx-6`/`px-6`/`-mt-6`/`pt-6` at the container's `sm:p-6`). */}
-      <div className="sticky top-0 z-20 -mx-3 -mt-3 flex items-center gap-1 overflow-x-auto border-b bg-app px-3 pt-3 sm:-mx-6 sm:-mt-6 sm:px-6 sm:pt-6">
-        {VIEWS.map(({ key, label, icon }) => (
-          <button
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer",
-              view === key
-                ? "border-primary text-base-content"
-                : "border-transparent text-base-content/60 hover:text-base-content"
-            )}
-            key={key}
-            onClick={() => switchView(key)}
-            type="button"
-          >
-            {icon}
-            {label}
-          </button>
-        ))}
+      {/* Negative margin lives on this outer wrapper, not the sticky element
+          itself — Chromium/WebKit include a sticky element's own negative
+          margins in its static position, inflating scrollHeight and causing
+          a phantom scrollbar. */}
+      <div className="-mx-3 -mt-3 sm:-mx-6 sm:-mt-6">
+        <div className="sticky top-0 z-20 flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b bg-app px-3 pt-3 sm:px-6 sm:pt-6">
+          {VIEWS.map(({ key, label, icon }) => (
+            <button
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer",
+                view === key
+                  ? "border-primary text-base-content"
+                  : "border-transparent text-base-content/60 hover:text-base-content"
+              )}
+              key={key}
+              onClick={() => switchView(key)}
+              type="button"
+            >
+              {icon}
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Active view — while switching into Board, show a board-shaped skeleton

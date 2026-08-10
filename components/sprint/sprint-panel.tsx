@@ -19,6 +19,7 @@ import {
   addTaskToSprint,
   deleteSprint,
   getBacklogTasks,
+  getDefaultListForSprint,
   getSprintSettings,
   getSprints,
   getSprintWithTasks,
@@ -125,7 +126,13 @@ function QuickCreateSprintTask({
     }
     setSaving(true);
     try {
-      const res = await createTask(workspaceId, spaceId, null, {
+      const listRes = await getDefaultListForSprint(
+        workspaceId,
+        spaceId,
+        sprintId
+      );
+      const defaultListId = "error" in listRes ? null : listRes.listId;
+      const res = await createTask(workspaceId, spaceId, defaultListId, {
         title: trimmed,
       });
       if ("error" in res) {

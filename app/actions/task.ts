@@ -704,15 +704,10 @@ export async function updateTask(
       writeActivityLog(taskId, session.user.id, "description_updated")
     );
 
-    // Reconcile inline images: delete the storage object + row for any inline
-    // image removed from the description. Scoped to THIS task's DESCRIPTION
-    // inline images (isInline + no commentId) — never touches comment images,
-    // file attachments, or other tasks. Mirrors editComment.
-    //
-    // SAFETY: only run the deletion when the new description is actually
-    // readable. The description is persisted as a JSON *string*; if we can't
-    // parse it we must NOT treat it as "no images kept" — doing so previously
-    // deleted every description image on save, so other users saw broken images.
+    // Delete the storage object + row for any inline image removed from the
+    // description (isInline + no commentId; mirrors editComment). Only runs
+    // once the new description actually parses — treating an unparseable
+    // JSON string as "no images kept" previously wiped every image on save.
     const newDescDoc = toTiptapDoc(data.description);
     if (newDescDoc !== null && newDescDoc !== undefined) {
       const keptIds = extractInlineAttachmentIds(newDescDoc);

@@ -1130,11 +1130,10 @@ export async function getWorkspaceTasksByAssignee(
 }
 
 /**
- * Drill-down behind the My Focus Today widget — tasks assigned to the
- * current session user, workspace-wide, narrowed to one focus bucket.
- * Unlike `getWorkspaceTasksByAssignee`/`getWorkspaceTasksByDeadline`, this
- * combines assignee + due-date/status, which neither existing drill-down
- * does. Also an on-demand fetch, not part of the cached aggregate.
+ * Drill-down behind the My Focus Today widget — the current user's tasks,
+ * workspace-wide, narrowed to one focus bucket. Combines assignee +
+ * due-date/status, unlike the assignee/deadline drill-downs; fetched
+ * on-demand, not part of the cached aggregate.
  */
 export async function getWorkspaceMyFocusTasks(
   workspaceId: string,

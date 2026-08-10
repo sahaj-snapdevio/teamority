@@ -4,12 +4,10 @@ import { env } from "@/lib/env";
 import { clearPendingJoin, readPendingJoin } from "@/lib/pending-join";
 
 /**
- * Consumes the pending shared-invite-link cookie after authentication.
- * `/post-auth` redirects here when the cookie is present (cookie mutations
- * aren't allowed during a page render, so the clear happens here). On a
- * successful join we redirect straight into the workspace; on any failure
- * (link disabled/regenerated, workspace deleted mid-sign-in) we clear the
- * cookie and bounce back to `/post-auth` for normal routing.
+ * Consumes the pending shared-invite-link cookie after authentication (in a
+ * route handler since cookie mutations aren't allowed during page render).
+ * Redirects into the workspace on success; on failure clears the cookie and
+ * bounces back to `/post-auth`.
  */
 export async function GET() {
   const token = await readPendingJoin();
