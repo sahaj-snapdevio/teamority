@@ -1,17 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { GearIcon, LightningIcon } from "@phosphor-icons/react";
+import { GearIcon } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import {
+  getSprintSettings,
+  type SprintSettings,
+  saveSprintSettings,
+} from "@/app/actions/sprint";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -19,26 +24,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { getSprintSettings, saveSprintSettings, type SprintSettings } from "@/app/actions/sprint";
+import { Switch } from "@/components/ui/switch";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SprintSettingsModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  workspaceId: string;
-  spaceId: string;
-  spaceName?: string;
-  /** Called after settings are saved — proceed to create-sprint if desired */
-  onSaved: (settings: SprintSettings) => void;
   /** If true, shows "First time setup" heading */
   isFirstTime?: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Called after settings are saved — proceed to create-sprint if desired */
+  onSaved: (settings: SprintSettings) => void;
+  open: boolean;
+  spaceId: string;
+  spaceName?: string;
+  workspaceId: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 const NAME_FORMATS = [
   { value: "Sprint {n}", label: "Sprint {n}" },
@@ -56,7 +68,9 @@ const DATE_FORMATS = [
 ];
 
 function previewName(format: string, n: number, projectName: string): string {
-  return format.replace("{n}", String(n)).replace("{project}", projectName || "Project");
+  return format
+    .replace("{n}", String(n))
+    .replace("{project}", projectName || "Project");
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -82,17 +96,23 @@ export function SprintSettingsModal({
   const [autoMarkDone, setAutoMarkDone] = useState(false);
   const [autoCreateNext, setAutoCreateNext] = useState(false);
   const [autoMoveIncomplete, setAutoMoveIncomplete] = useState(false);
-  const [autoArchiveAfterN, setAutoArchiveAfterN] = useState<number | null>(null);
+  const [autoArchiveAfterN, setAutoArchiveAfterN] = useState<number | null>(
+    null
+  );
   const [archiveEnabled, setArchiveEnabled] = useState(false);
 
   // Load existing settings
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     setLoading(true);
     setError(null);
     getSprintSettings(workspaceId, spaceId).then((result) => {
       setLoading(false);
-      if ("error" in result) return;
+      if ("error" in result) {
+        return;
+      }
       setStartDay(result.sprintStartDay ?? 1);
       setDurationWeeks(result.sprintDefaultDurationWeeks);
       setNameFormat(result.sprintNameFormat);
@@ -137,7 +157,7 @@ export function SprintSettingsModal({
   const namePreview2 = previewName(nameFormat, 2, spaceName);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -146,33 +166,38 @@ export function SprintSettingsModal({
           </DialogTitle>
           {isFirstTime && (
             <p className="text-sm text-base-content/60 mt-1">
-              Configure how sprints work in <span className="font-medium text-base-content">{spaceName}</span>.
-              You can change these later in project settings.
+              Configure how sprints work in{" "}
+              <span className="font-medium text-base-content">{spaceName}</span>
+              . You can change these later in project settings.
             </p>
           )}
         </DialogHeader>
 
         {loading ? (
-          <div className="py-8 text-center text-sm text-base-content/60">Loading…</div>
+          <div className="py-8 text-center text-sm text-base-content/60">
+            Loading…
+          </div>
         ) : (
           <div className="space-y-6 py-1">
             {/* Sprint cadence */}
             <div className="space-y-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">Schedule</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">
+                Schedule
+              </h3>
 
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Sprint starts on</Label>
                   <Select
-                    value={String(startDay)}
                     onValueChange={(v) => setStartDay(Number(v))}
+                    value={String(startDay)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="p-1.5">
                       {DAY_NAMES.map((day, i) => (
-                        <SelectItem key={i} value={String(i)}>
+                        <SelectItem key={day} value={String(i)}>
                           {day}
                         </SelectItem>
                       ))}
@@ -183,8 +208,8 @@ export function SprintSettingsModal({
                 <div className="space-y-1.5">
                   <Label>Default duration</Label>
                   <Select
-                    value={String(durationWeeks)}
                     onValueChange={(v) => setDurationWeeks(Number(v))}
+                    value={String(durationWeeks)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue />
@@ -202,12 +227,14 @@ export function SprintSettingsModal({
 
             {/* Naming */}
             <div className="space-y-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">Naming</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">
+                Naming
+              </h3>
 
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Sprint name format</Label>
-                  <Select value={nameFormat} onValueChange={setNameFormat}>
+                  <Select onValueChange={setNameFormat} value={nameFormat}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -223,7 +250,7 @@ export function SprintSettingsModal({
 
                 <div className="space-y-1.5">
                   <Label>Date format</Label>
-                  <Select value={dateFormat} onValueChange={setDateFormat}>
+                  <Select onValueChange={setDateFormat} value={dateFormat}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -231,7 +258,9 @@ export function SprintSettingsModal({
                       {DATE_FORMATS.map((f) => (
                         <SelectItem key={f.value} value={f.value}>
                           <span>{f.label}</span>
-                          <span className="ml-2 text-base-content/60 text-xs">{f.example}</span>
+                          <span className="ml-2 text-base-content/60 text-xs">
+                            {f.example}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -241,27 +270,38 @@ export function SprintSettingsModal({
 
               <p className="text-xs text-base-content/60">
                 Name preview:{" "}
-                <span className="font-medium text-base-content">{namePreview}</span>
+                <span className="font-medium text-base-content">
+                  {namePreview}
+                </span>
                 {", "}
-                <span className="font-medium text-base-content">{namePreview2}</span>
+                <span className="font-medium text-base-content">
+                  {namePreview2}
+                </span>
                 {", …"}
               </p>
             </div>
 
             {/* Automations */}
             <div className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">Automations</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">
+                Automations
+              </h3>
 
               <div className="space-y-3 rounded-md border border-base-300 p-3">
                 {/* Auto-mark done */}
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium">Auto-mark sprint as done</p>
+                    <p className="text-sm font-medium">
+                      Auto-mark sprint as done
+                    </p>
                     <p className="text-xs text-base-content/60">
                       Automatically close the sprint when its end date passes
                     </p>
                   </div>
-                  <Switch checked={autoMarkDone} onCheckedChange={setAutoMarkDone} />
+                  <Switch
+                    checked={autoMarkDone}
+                    onCheckedChange={setAutoMarkDone}
+                  />
                 </div>
 
                 <div className="h-px bg-base-300" />
@@ -269,16 +309,21 @@ export function SprintSettingsModal({
                 {/* Auto-create next */}
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium">Auto-create next sprint</p>
+                    <p className="text-sm font-medium">
+                      Auto-create next sprint
+                    </p>
                     <p className="text-xs text-base-content/60">
-                      When a sprint is completed, automatically create the next one
+                      When a sprint is completed, automatically create the next
+                      one
                     </p>
                   </div>
                   <Switch
                     checked={autoCreateNext}
                     onCheckedChange={(v) => {
                       setAutoCreateNext(v);
-                      if (!v) setAutoMoveIncomplete(false);
+                      if (!v) {
+                        setAutoMoveIncomplete(false);
+                      }
                     }}
                   />
                 </div>
@@ -287,12 +332,17 @@ export function SprintSettingsModal({
                 {autoCreateNext && (
                   <div className="ml-4 flex items-start justify-between gap-3 border-l-2 border-base-300 pl-4">
                     <div>
-                      <p className="text-sm font-medium">Move incomplete tasks to next sprint</p>
+                      <p className="text-sm font-medium">
+                        Move incomplete tasks to next sprint
+                      </p>
                       <p className="text-xs text-base-content/60">
                         Unfinished tasks carry over automatically
                       </p>
                     </div>
-                    <Switch checked={autoMoveIncomplete} onCheckedChange={setAutoMoveIncomplete} />
+                    <Switch
+                      checked={autoMoveIncomplete}
+                      onCheckedChange={setAutoMoveIncomplete}
+                    />
                   </div>
                 )}
 
@@ -301,7 +351,9 @@ export function SprintSettingsModal({
                 {/* Auto-archive */}
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium">Auto-archive old sprints</p>
+                    <p className="text-sm font-medium">
+                      Auto-archive old sprints
+                    </p>
                     <p className="text-xs text-base-content/60">
                       Keep the sidebar clean by archiving completed sprints
                     </p>
@@ -310,23 +362,33 @@ export function SprintSettingsModal({
                     checked={archiveEnabled}
                     onCheckedChange={(v) => {
                       setArchiveEnabled(v);
-                      if (v && autoArchiveAfterN === null) setAutoArchiveAfterN(3);
+                      if (v && autoArchiveAfterN === null) {
+                        setAutoArchiveAfterN(3);
+                      }
                     }}
                   />
                 </div>
 
                 {archiveEnabled && (
                   <div className="ml-4 flex flex-wrap items-center gap-2 border-l-2 border-base-300 pl-4">
-                    <p className="text-sm text-base-content/60 shrink-0">Keep last</p>
+                    <p className="text-sm text-base-content/60 shrink-0">
+                      Keep last
+                    </p>
                     <Input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={autoArchiveAfterN ?? 3}
-                      onChange={(e) => setAutoArchiveAfterN(Math.max(1, Math.min(20, Number(e.target.value))))}
                       className="w-16 h-8 text-center"
+                      max={20}
+                      min={1}
+                      onChange={(e) =>
+                        setAutoArchiveAfterN(
+                          Math.max(1, Math.min(20, Number(e.target.value)))
+                        )
+                      }
+                      type="number"
+                      value={autoArchiveAfterN ?? 3}
                     />
-                    <p className="text-sm text-base-content/60 shrink-0">sprints visible</p>
+                    <p className="text-sm text-base-content/60 shrink-0">
+                      sprints visible
+                    </p>
                   </div>
                 )}
               </div>
@@ -343,16 +405,20 @@ export function SprintSettingsModal({
         <DialogFooter>
           {!isFirstTime && (
             <Button
+              disabled={saving}
+              onClick={() => onOpenChange(false)}
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={saving}
             >
               Cancel
             </Button>
           )}
-          <Button onClick={handleSave} disabled={saving || loading}>
-            {saving ? "Saving…" : isFirstTime ? "Save & Continue" : "Save Settings"}
+          <Button disabled={saving || loading} onClick={handleSave}>
+            {saving
+              ? "Saving…"
+              : isFirstTime
+                ? "Save & Continue"
+                : "Save Settings"}
           </Button>
         </DialogFooter>
       </DialogContent>

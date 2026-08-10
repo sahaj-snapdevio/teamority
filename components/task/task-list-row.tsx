@@ -25,6 +25,11 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
+import {
+  type CustomFieldRow,
+  deleteCustomFieldValue,
+  setCustomFieldValue,
+} from "@/app/actions/custom-field";
 import { getWorkspaceLists } from "@/app/actions/list";
 import { bulkMoveTasksToSprint, getSprints } from "@/app/actions/sprint";
 import {
@@ -38,25 +43,16 @@ import {
   updateTaskStatus,
 } from "@/app/actions/task";
 import { addAssignee, removeAssignee } from "@/app/actions/task-assignee";
-import {
-  deleteCustomFieldValue,
-  setCustomFieldValue,
-  type CustomFieldRow,
-} from "@/app/actions/custom-field";
+import { SpaceIcon } from "@/components/common/space-icon";
 import {
   CustomFieldEditor,
   type CustomFieldMember,
 } from "@/components/task/custom-field-editors";
 import {
-  CUSTOM_FIELD_COLUMN_WIDTH_CLASS,
-  describeCustomFieldValue,
-} from "@/lib/custom-fields/column-display";
-import {
   TaskDependencyBadge,
   type TaskDependencyIndicator,
 } from "@/components/task/task-dependency-badge";
 import { TrackedTimeBadge } from "@/components/task/tracked-time-badge";
-import { SpaceIcon } from "@/components/common/space-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -76,6 +72,10 @@ import {
 import { InviteMemberModal } from "@/components/workspace/invite-member-modal";
 import { taskUrl } from "@/lib/app-url";
 import {
+  CUSTOM_FIELD_COLUMN_WIDTH_CLASS,
+  describeCustomFieldValue,
+} from "@/lib/custom-fields/column-display";
+import {
   flashDuplicatedTask,
   useIsDuplicateHighlighted,
 } from "@/lib/duplicate-highlight";
@@ -94,7 +94,6 @@ export interface TaskListRowData {
   assignees: { userId: string; name: string; image: string | null }[];
   customFieldValues?: Record<string, unknown>;
   dependencyInfo?: TaskDependencyIndicator;
-  trackedSeconds?: number;
   dueDateEnd?: Date | null;
   dueDateStart: Date | null;
   id: string;
@@ -105,6 +104,7 @@ export interface TaskListRowData {
   statusId: string | null;
   tags: { id: string; name: string; color: string }[];
   title: string;
+  trackedSeconds?: number;
 }
 
 type WorkspaceMember = {
@@ -191,7 +191,7 @@ export function TaskListRow({
   customFields = [],
   workspaceMembers = [],
 }: TaskListRowProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const { mutate } = useSWRConfig();
 
   const effectiveListId = listIdProp || task.listId || null;
@@ -486,7 +486,13 @@ export function TaskListRow({
     const res =
       value === null || value === undefined
         ? await deleteCustomFieldValue(workspaceId, spaceId, task.id, fieldId)
-        : await setCustomFieldValue(workspaceId, spaceId, task.id, fieldId, value);
+        : await setCustomFieldValue(
+            workspaceId,
+            spaceId,
+            task.id,
+            fieldId,
+            value
+          );
     if ("error" in res) {
       setLocalCustomFieldValues((p) => ({ ...p, [fieldId]: prev }));
       toast.error(res.error);
@@ -596,9 +602,19 @@ export function TaskListRow({
   // ── Shared column sections ─────────────────────────────────────────────────
 
   const assigneeCell = (
+    // biome-ignore lint/a11y/noStaticElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
     <div
       className="w-36 shrink-0 self-stretch flex items-center justify-center px-2"
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (e.key === "Enter") {
+          e.stopPropagation();
+        }
+      }}
     >
       {canEdit ? (
         <Popover
@@ -611,7 +627,10 @@ export function TaskListRow({
           open={assigneeOpen}
         >
           <PopoverTrigger asChild>
-            <button className="inline-flex items-center gap-2 px-2 py-1 rounded-md border border-transparent hover:bg-base-200/60 transition-colors cursor-pointer select-none">
+            <button
+              className="inline-flex items-center gap-2 px-2 py-1 rounded-md border border-transparent hover:bg-base-200/60 transition-colors cursor-pointer select-none"
+              type="button"
+            >
               {task.assignees.length > 0 ? (
                 <TooltipProvider>
                   <div className="flex -space-x-1.5">
@@ -661,9 +680,7 @@ export function TaskListRow({
               value={memberSearch}
             />
             {members === null ? (
-              <p className="py-2 px-1 text-xs text-base-content/60">
-                Loading…
-              </p>
+              <p className="py-2 px-1 text-xs text-base-content/60">Loading…</p>
             ) : filteredMembers.length === 0 ? (
               <p className="py-2 px-1 text-xs text-base-content/60">
                 No members found
@@ -685,6 +702,7 @@ export function TaskListRow({
                       )}
                       key={m.userId}
                       onClick={() => void handleToggleAssignee(m.userId)}
+                      type="button"
                     >
                       <Avatar className="size-6 shrink-0">
                         {m.image && <AvatarImage src={avatarSrc(m.image)} />}
@@ -713,6 +731,7 @@ export function TaskListRow({
                   setAssigneeOpen(false);
                   setInviteOpen(true);
                 }}
+                type="button"
               >
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-base-300">
                   <UserPlusIcon className="size-3.5" />
@@ -754,9 +773,19 @@ export function TaskListRow({
   );
 
   const dueDateCell = (
+    // biome-ignore lint/a11y/noStaticElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
     <div
       className="w-28 shrink-0 self-stretch flex items-center px-2"
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (e.key === "Enter") {
+          e.stopPropagation();
+        }
+      }}
     >
       {canEdit ? (
         <Popover onOpenChange={setDateOpen} open={dateOpen}>
@@ -767,6 +796,7 @@ export function TaskListRow({
                 dueDate?.overdue ? "text-red-500" : "text-gray-600",
                 !dueDate && "opacity-0 group-hover/row:opacity-100"
               )}
+              type="button"
             >
               <CalendarBlankIcon className="size-3.5 shrink-0" />
               {dueDate ? (
@@ -821,9 +851,19 @@ export function TaskListRow({
   );
 
   const priorityCell = (
+    // biome-ignore lint/a11y/noStaticElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
     <div
       className="w-32 shrink-0 self-stretch flex items-center px-2"
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (e.key === "Enter") {
+          e.stopPropagation();
+        }
+      }}
     >
       {canEdit ? (
         <Popover onOpenChange={setPriorityOpen} open={priorityOpen}>
@@ -834,6 +874,7 @@ export function TaskListRow({
                 localPriority === "NONE" &&
                   "opacity-0 group-hover/row:opacity-100"
               )}
+              type="button"
             >
               <span
                 className={cn(
@@ -858,6 +899,7 @@ export function TaskListRow({
                 )}
                 key={value}
                 onClick={() => void handleSetPriority(value)}
+                type="button"
               >
                 <span>{PRIORITY_CONFIG[value].icon}</span>
                 <span className={PRIORITY_CONFIG[value].color}>
@@ -869,6 +911,7 @@ export function TaskListRow({
             <button
               className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-base-content/60 hover:bg-base-200 cursor-pointer"
               onClick={() => void handleSetPriority("NONE")}
+              type="button"
             >
               <XIcon className="size-3.5 shrink-0" /> Clear
             </button>
@@ -894,6 +937,8 @@ export function TaskListRow({
   // owns 100% of the per-type rendering/editing; this component never
   // branches on field.type.
   const customFieldCells = customFields.map((field) => (
+    // biome-ignore lint/a11y/noStaticElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
     <div
       className={cn(
         "self-stretch flex min-w-0 items-center overflow-hidden px-2",
@@ -901,6 +946,14 @@ export function TaskListRow({
       )}
       key={field.id}
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (e.key === "Enter") {
+          e.stopPropagation();
+        }
+      }}
       title={describeCustomFieldValue(
         field,
         localCustomFieldValues[field.id],
@@ -919,15 +972,26 @@ export function TaskListRow({
   ));
 
   const actionsCell = (
+    // biome-ignore lint/a11y/noStaticElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: cell only swallows clicks so they don't bubble to the row; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children
     <div
       className="w-48 shrink-0 py-1.5 pr-4 flex items-center justify-end gap-0.5"
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (e.key === "Enter") {
+          e.stopPropagation();
+        }
+      }}
     >
       <div className="opacity-0 group-hover/row:opacity-100 transition-all duration-200 flex items-center gap-0.5">
         <button
           className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
           onClick={handleTogglePersonalPin}
           title={localPersonalPin ? "Unpin from sidebar" : "Pin to sidebar"}
+          type="button"
         >
           <PushPinIcon
             className="size-4"
@@ -938,6 +1002,7 @@ export function TaskListRow({
           className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
           onClick={onOpen}
           title="Edit Task"
+          type="button"
         >
           <PencilSimpleIcon className="size-4" />
         </button>
@@ -946,6 +1011,7 @@ export function TaskListRow({
             className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
             onClick={handleDuplicate}
             title="Duplicate Task"
+            type="button"
           >
             <CopyIcon className="size-4" />
           </button>
@@ -955,6 +1021,7 @@ export function TaskListRow({
             <button
               className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
               title="Move Status"
+              type="button"
             >
               <ArrowsOutCardinalIcon className="size-4" />
             </button>
@@ -977,6 +1044,7 @@ export function TaskListRow({
                   );
                   onRefresh();
                 }}
+                type="button"
               >
                 <span
                   className="size-2 rounded-full shrink-0"
@@ -995,6 +1063,7 @@ export function TaskListRow({
               setDeleteOpen(true);
             }}
             title="Delete Task"
+            type="button"
           >
             <TrashIcon className="size-4" />
           </button>
@@ -1008,7 +1077,10 @@ export function TaskListRow({
             }}
           >
             <PopoverTrigger asChild>
-              <button className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer">
+              <button
+                className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
+                type="button"
+              >
                 <DotsThreeIcon className="size-4.5" weight="bold" />
               </button>
             </PopoverTrigger>
@@ -1019,15 +1091,17 @@ export function TaskListRow({
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={startRename}
+                type="button"
               >
                 <TextAaIcon className="size-3.5 text-base-content/60" /> Rename
               </button>
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={copyTaskLink}
+                type="button"
               >
-                <LinkIcon className="size-3.5 text-base-content/60" /> Copy
-                task link
+                <LinkIcon className="size-3.5 text-base-content/60" /> Copy task
+                link
               </button>
               <a
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
@@ -1041,9 +1115,10 @@ export function TaskListRow({
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={copyTaskId}
+                type="button"
               >
-                <HashIcon className="size-3.5 text-base-content/60" /> Copy
-                task ID
+                <HashIcon className="size-3.5 text-base-content/60" /> Copy task
+                ID
               </button>
               <div className="h-px bg-base-300 my-1" />
               <p className="px-2 py-1 text-2xs font-bold text-base-content/60 uppercase tracking-wide">
@@ -1063,6 +1138,7 @@ export function TaskListRow({
                     className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-base-200 cursor-pointer"
                     key={s.id}
                     onClick={() => void handleMoveToSprint(s.id, s.name)}
+                    type="button"
                   >
                     <LightningIcon
                       className={cn(
@@ -1091,6 +1167,7 @@ export function TaskListRow({
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-base-200 cursor-pointer"
                   onClick={() => void onMoveToBacklog()}
+                  type="button"
                 >
                   <TrayIcon className="size-3.5 shrink-0 text-base-content/60" />{" "}
                   Backlog
@@ -1113,8 +1190,8 @@ export function TaskListRow({
                   <div key={sp.id}>
                     <p className="flex items-center gap-1.5 px-2 py-0.5 text-2xs font-bold text-base-content/60 uppercase">
                       <SpaceIcon
-                        emoji={sp.logoEmoji}
                         color={sp.color ?? "#6B7280"}
+                        emoji={sp.logoEmoji}
                       />
                       {sp.name}
                     </p>
@@ -1123,6 +1200,7 @@ export function TaskListRow({
                         className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-xs hover:bg-base-200 cursor-pointer"
                         key={l.id}
                         onClick={() => void handleMoveToList(l.id, l.name)}
+                        type="button"
                       >
                         <span
                           className="size-1.5 rounded-full shrink-0"
@@ -1143,6 +1221,7 @@ export function TaskListRow({
                     <button
                       className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                       onClick={handleUnpinFromList}
+                      type="button"
                     >
                       <PushPinIcon
                         className="size-3.5 text-primary shrink-0"
@@ -1154,6 +1233,7 @@ export function TaskListRow({
                     <button
                       className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                       onClick={handlePinToList}
+                      type="button"
                     >
                       <PushPinIcon className="size-3.5 text-base-content/60 shrink-0" />{" "}
                       Pin to top
@@ -1165,6 +1245,7 @@ export function TaskListRow({
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={handleArchive}
+                type="button"
               >
                 <ArchiveIcon className="size-3.5 text-base-content/60" />{" "}
                 Archive
@@ -1176,7 +1257,10 @@ export function TaskListRow({
         {!canEdit && (
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer">
+              <button
+                className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
+                type="button"
+              >
                 <DotsThreeIcon className="size-4.5" weight="bold" />
               </button>
             </PopoverTrigger>
@@ -1184,9 +1268,10 @@ export function TaskListRow({
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={copyTaskLink}
+                type="button"
               >
-                <LinkIcon className="size-3.5 text-base-content/60" /> Copy
-                task link
+                <LinkIcon className="size-3.5 text-base-content/60" /> Copy task
+                link
               </button>
               <a
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
@@ -1200,9 +1285,10 @@ export function TaskListRow({
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                 onClick={copyTaskId}
+                type="button"
               >
-                <HashIcon className="size-3.5 text-base-content/60" /> Copy
-                task ID
+                <HashIcon className="size-3.5 text-base-content/60" /> Copy task
+                ID
               </button>
             </PopoverContent>
           </Popover>
@@ -1266,6 +1352,8 @@ export function TaskListRow({
       </Dialog>
 
       {/* Desktop row */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: row has nested interactive controls (buttons, popovers); keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children */}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: row has nested interactive controls (buttons, popovers); keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children */}
       <div
         ref={dragRef}
         style={dragStyle}
@@ -1285,6 +1373,14 @@ export function TaskListRow({
         data-task-id={task.id}
         data-task-row
         onClick={onOpen}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) {
+            return;
+          }
+          if (e.key === "Enter") {
+            onOpen();
+          }
+        }}
         tabIndex={-1}
       >
         <div
@@ -1305,7 +1401,7 @@ export function TaskListRow({
               )}
             />
           )}
-          <div
+          <button
             className={cn(
               "flex size-4 items-center justify-center rounded border transition-opacity duration-200 cursor-pointer",
               selected ? "opacity-100" : "opacity-0 group-hover/row:opacity-100"
@@ -1314,6 +1410,7 @@ export function TaskListRow({
               e.stopPropagation();
               onSelect(task.id, !selected);
             }}
+            type="button"
           >
             <div
               className={cn(
@@ -1325,7 +1422,7 @@ export function TaskListRow({
             >
               {selected && <CheckIcon className="size-2.5" weight="bold" />}
             </div>
-          </div>
+          </button>
         </div>
         <div className="flex flex-1 items-center gap-2.5 min-w-0 py-1.5 pr-4 pl-1">
           <span className="text-2xs text-gray-400 font-mono shrink-0 select-none flex items-center gap-1.5">
@@ -1398,7 +1495,10 @@ export function TaskListRow({
               total={task.dependencyInfo.total}
             />
           )}
-          <TrackedTimeBadge className="shrink-0" seconds={task.trackedSeconds} />
+          <TrackedTimeBadge
+            className="shrink-0"
+            seconds={task.trackedSeconds}
+          />
         </div>
         {assigneeCell}
         {dueDateCell}
@@ -1408,24 +1508,37 @@ export function TaskListRow({
       </div>
 
       {/* Mobile card */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: card has nested interactive controls (buttons, popovers); keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children */}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: card has nested interactive controls (buttons, popovers); keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children */}
       <div
         className={cn(
           "md:hidden flex flex-col p-4 border-b border-base-300 gap-3 hover:bg-base-200/30 bg-elevated transition-all cursor-pointer relative",
           highlighted && "bg-primary/10 ring-1 ring-inset ring-primary/30"
         )}
         onClick={onOpen}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) {
+            return;
+          }
+          if (e.key === "Enter") {
+            onOpen();
+          }
+        }}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: card has no alternative keyboard entry point (unlike the desktop row, it isn't part of the roving-tabindex list nav), and no ARIA role fits with nested interactive children
+        tabIndex={0}
       >
         <div
           className="absolute left-0 top-0 bottom-0 w-1"
           style={{ backgroundColor: statusColor }}
         />
         <div className="flex items-start gap-2.5 pl-2">
-          <div
+          <button
             className="flex size-4.5 items-center justify-center rounded border transition-colors cursor-pointer shrink-0 mt-0.5"
             onClick={(e) => {
               e.stopPropagation();
               onSelect(task.id, !selected);
             }}
+            type="button"
           >
             <div
               className={cn(
@@ -1437,7 +1550,7 @@ export function TaskListRow({
             >
               {selected && <CheckIcon className="size-2.5" weight="bold" />}
             </div>
-          </div>
+          </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
               <span className="text-2xs text-gray-400 font-mono font-bold">
@@ -1492,10 +1605,26 @@ export function TaskListRow({
               </p>
             )}
           </div>
-          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: wrapper only swallows clicks so they don't bubble to the card; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: wrapper only swallows clicks so they don't bubble to the card; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children */}
+          <div
+            className="shrink-0"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.target !== e.currentTarget) {
+                return;
+              }
+              if (e.key === "Enter") {
+                e.stopPropagation();
+              }
+            }}
+          >
             <Popover>
               <PopoverTrigger asChild>
-                <button className="flex size-7 items-center justify-center rounded hover:bg-base-200 text-base-content/60 cursor-pointer">
+                <button
+                  className="flex size-7 items-center justify-center rounded hover:bg-base-200 text-base-content/60 cursor-pointer"
+                  type="button"
+                >
                   <DotsThreeIcon className="size-4.5" weight="bold" />
                 </button>
               </PopoverTrigger>
@@ -1503,6 +1632,7 @@ export function TaskListRow({
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                   onClick={onOpen}
+                  type="button"
                 >
                   <PencilSimpleIcon className="size-3.5 text-base-content/60" />{" "}
                   Edit
@@ -1511,6 +1641,7 @@ export function TaskListRow({
                   <button
                     className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                     onClick={startRename}
+                    type="button"
                   >
                     <TextAaIcon className="size-3.5 text-base-content/60" />{" "}
                     Rename
@@ -1519,6 +1650,7 @@ export function TaskListRow({
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                   onClick={copyTaskLink}
+                  type="button"
                 >
                   <LinkIcon className="size-3.5 text-base-content/60" /> Copy
                   link
@@ -1526,13 +1658,14 @@ export function TaskListRow({
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                   onClick={copyTaskId}
+                  type="button"
                 >
-                  <HashIcon className="size-3.5 text-base-content/60" /> Copy
-                  ID
+                  <HashIcon className="size-3.5 text-base-content/60" /> Copy ID
                 </button>
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                   onClick={handleDuplicate}
+                  type="button"
                 >
                   <CopyIcon className="size-3.5 text-base-content/60" />{" "}
                   Duplicate
@@ -1544,6 +1677,7 @@ export function TaskListRow({
                       e.stopPropagation();
                       setDeleteOpen(true);
                     }}
+                    type="button"
                   >
                     <TrashIcon className="size-3.5" /> Delete
                   </button>
@@ -1551,6 +1685,7 @@ export function TaskListRow({
                   <button
                     className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-base-200 text-left cursor-pointer"
                     onClick={handleArchive}
+                    type="button"
                   >
                     <ArchiveIcon className="size-3.5 text-base-content/60" />{" "}
                     Archive
@@ -1561,7 +1696,19 @@ export function TaskListRow({
           </div>
         </div>
         <div className="flex items-center justify-between pl-2 mt-1">
-          <div onClick={(e) => e.stopPropagation()}>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: wrapper only swallows clicks so they don't bubble to the card; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: wrapper only swallows clicks so they don't bubble to the card; keyboard access via tabIndex+onKeyDown below, ARIA role would be invalid with nested interactive children */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.target !== e.currentTarget) {
+                return;
+              }
+              if (e.key === "Enter") {
+                e.stopPropagation();
+              }
+            }}
+          >
             <Popover>
               <PopoverTrigger asChild>
                 <button
@@ -1571,6 +1718,7 @@ export function TaskListRow({
                       ? "text-red-500 bg-red-50"
                       : "text-base-content/70"
                   )}
+                  type="button"
                 >
                   <CalendarBlankIcon className="size-3.5" />
                   <span>{dueDate ? dueDate.label : "Set date"}</span>
@@ -1602,9 +1750,10 @@ export function TaskListRow({
               </PopoverContent>
             </Popover>
           </div>
-          <div
+          <button
             className="flex items-center gap-1"
             onClick={(e) => e.stopPropagation()}
+            type="button"
           >
             {task.assignees.length > 0 && (
               <div className="flex -space-x-1.5">
@@ -1626,7 +1775,7 @@ export function TaskListRow({
                 )}
               </div>
             )}
-          </div>
+          </button>
         </div>
       </div>
     </>

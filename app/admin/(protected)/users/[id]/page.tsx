@@ -17,6 +17,22 @@ import {
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+interface AdminUserSession {
+  createdAt: string;
+  expiresAt: string;
+  id: string;
+  impersonatedBy: string | null;
+  ipAddress: string | null;
+}
+
+interface AdminUserWorkspace {
+  joinedAt: string | null;
+  role: string;
+  status: string;
+  workspaceId: string;
+  workspaceName: string;
+}
+
 export default function AdminUserDetailPage({
   params,
 }: {
@@ -30,8 +46,8 @@ export default function AdminUserDetailPage({
   const [deleting, setDeleting] = useState(false);
 
   const u = data?.user;
-  const sessions: any[] = data?.sessions ?? [];
-  const workspaces: any[] = data?.workspaces ?? [];
+  const sessions: AdminUserSession[] = data?.sessions ?? [];
+  const workspaces: AdminUserWorkspace[] = data?.workspaces ?? [];
 
   async function handleBan() {
     setLoading(true);
@@ -207,7 +223,9 @@ export default function AdminUserDetailPage({
                 ) : (
                   workspaces.map((w) => (
                     <tr className="border-t" key={w.workspaceId}>
-                      <td className="px-4 py-2 font-medium">{w.workspaceName}</td>
+                      <td className="px-4 py-2 font-medium">
+                        {w.workspaceName}
+                      </td>
                       <td className="px-4 py-2">{w.role}</td>
                       <td className="px-4 py-2">{w.status}</td>
                       <td className="px-4 py-2 text-base-content/60">

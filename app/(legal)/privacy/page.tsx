@@ -24,8 +24,8 @@ export default function PrivacyPage() {
 
       <p className="text-sm leading-relaxed text-base-content/80">
         This Privacy Policy explains how {PRODUCT_NAME} collects, uses, and
-        protects your information when you use the Service. By using
-        {" "}{PRODUCT_NAME}, you agree to the practices described here.
+        protects your information when you use the Service. By using{" "}
+        {PRODUCT_NAME}, you agree to the practices described here.
       </p>
 
       <section className="space-y-2">
@@ -62,8 +62,8 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">4. Data retention</h2>
         <p className="text-sm leading-relaxed text-base-content/80">
-          We retain your information for as long as your account is active.
-          When you delete your account, we remove your personal data, subject to
+          We retain your information for as long as your account is active. When
+          you delete your account, we remove your personal data, subject to
           limited retention required for legal or security purposes.
         </p>
       </section>
@@ -91,8 +91,8 @@ export default function PrivacyPage() {
         <p className="text-sm leading-relaxed text-base-content/80">
           Questions about this policy or your data? Email us at{" "}
           <a
-            href={`mailto:${SUPPORT_EMAIL}`}
             className="font-medium text-primary underline underline-offset-4"
+            href={`mailto:${SUPPORT_EMAIL}`}
           >
             {SUPPORT_EMAIL}
           </a>

@@ -1,14 +1,29 @@
+import type { Editor, Range } from "@tiptap/core";
+import type { MentionNodeAttrs } from "@tiptap/extension-mention";
 import { ReactRenderer } from "@tiptap/react";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
 import "tippy.js/dist/tippy.css";
-import { MentionList, type MentionListRef } from "./mention-list";
 import type { MentionMember } from "@/app/actions/mention";
+import { MentionList, type MentionListRef } from "./mention-list";
+
+// Minimal local shape for the Tiptap `Suggestion` plugin's render-callback props —
+// `@tiptap/suggestion` (the package that actually declares `SuggestionProps`) is
+// only a transitive dependency of `@tiptap/extension-mention`, not resolvable
+// from app code, so we mirror the subset of fields this file actually reads.
+// `MentionNodeAttrs` (the `command` callback's item type) is imported directly
+// since `@tiptap/extension-mention` is a direct dependency.
+interface MentionSuggestionRenderProps {
+  clientRect?: (() => DOMRect | null) | null;
+  command: (item: MentionNodeAttrs) => void;
+  editor: Editor;
+  items: MentionMember[];
+}
 
 // Accepts a getter so the suggestion always reads the latest members list,
 // even though the Tiptap extension is instantiated only once.
 export function buildMentionSuggestion(
   getMembers: () => MentionMember[],
-  onActiveChange?: (active: boolean) => void,
+  onActiveChange?: (active: boolean) => void
 ) {
   return {
     char: "@",
@@ -17,58 +32,53 @@ export function buildMentionSuggestion(
       const q = query.toLowerCase();
       return getMembers().filter(
         (m) =>
-          m.name.toLowerCase().includes(q) ||
-          m.email.toLowerCase().includes(q),
+          m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
       );
     },
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    command: ({ editor, range, props }: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      const id: string = props.id;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      const label: string = props.label;
+    command: ({
+      editor,
+      range,
+      props,
+    }: {
+      editor: Editor;
+      range: Range;
+      props: MentionNodeAttrs;
+    }) => {
+      const { id, label } = props;
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const mentionNodeType = editor.schema.nodes.mention;
-      if (!mentionNodeType) return;
+      if (!mentionNodeType) {
+        return;
+      }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       const mentionNode = mentionNodeType.create({ id, label });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       const spaceNode = editor.schema.text(" ");
 
       // Dispatch a raw ProseMirror transaction — most direct path
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const tr = editor.view.state.tr;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       tr.replaceWith(range.from, range.to, [mentionNode, spaceNode]);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       editor.view.dispatch(tr);
     },
 
     render: () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let renderer: ReactRenderer<MentionListRef, any>;
+      let renderer: ReactRenderer<MentionListRef>;
       let popup: TippyInstance[];
 
       return {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onStart(props: any) {
+        onStart(props: MentionSuggestionRenderProps) {
           onActiveChange?.(true);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           renderer = new ReactRenderer(MentionList, {
             props,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             editor: props.editor,
           });
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          if (!props.clientRect) return;
+          if (!props.clientRect) {
+            return;
+          }
 
           popup = tippy("body" as unknown as Element, {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            getReferenceClientRect: () => props.clientRect() ?? new DOMRect(),
+            getReferenceClientRect: () => props.clientRect?.() ?? new DOMRect(),
             appendTo: () => document.body,
             content: renderer.element,
             showOnCreate: true,
@@ -80,15 +90,12 @@ export function buildMentionSuggestion(
           }) as unknown as TippyInstance[];
         },
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onUpdate(props: any) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        onUpdate(props: MentionSuggestionRenderProps) {
           renderer.updateProps(props);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (props.clientRect) {
             popup[0]?.setProps({
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-              getReferenceClientRect: () => props.clientRect() ?? new DOMRect(),
+              getReferenceClientRect: () =>
+                props.clientRect?.() ?? new DOMRect(),
             });
           }
         },

@@ -1,6 +1,11 @@
 import { env } from "@/lib/env";
 
-type NotificationEntityType = "TASK" | "COMMENT" | "SPACE" | "WORKSPACE" | "SPRINT";
+type NotificationEntityType =
+  | "TASK"
+  | "COMMENT"
+  | "SPACE"
+  | "WORKSPACE"
+  | "SPRINT";
 
 /**
  * Absolute deep link for a notification, for use in email.
@@ -13,7 +18,7 @@ type NotificationEntityType = "TASK" | "COMMENT" | "SPACE" | "WORKSPACE" | "SPRI
 export function notificationUrl(
   workspaceId: string,
   entityType: NotificationEntityType,
-  entityId: string,
+  entityId: string
 ): string {
   if (entityType === "TASK") {
     return `${env.APP_URL}/${workspaceId}/task/${entityId}`;

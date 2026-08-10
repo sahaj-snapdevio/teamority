@@ -1,10 +1,16 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import {
+  CrownIcon,
+  MagnifyingGlassIcon,
+  PaperPlaneTiltIcon,
+  TrashIcon,
+  UserPlusIcon,
+} from "@phosphor-icons/react";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { CrownIcon, MagnifyingGlassIcon, PaperPlaneTiltIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
 import {
   cancelInvite,
   changeMemberRole,
@@ -13,13 +19,16 @@ import {
   resendInvite,
   transferOwnership,
 } from "@/app/actions/workspace";
-
-import type { InviteLinkRole } from "@/db/schema/workspace";
-import { InviteLinkCard } from "@/components/workspace/invite-link-card";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -47,38 +56,40 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { InviteLinkCard } from "@/components/workspace/invite-link-card";
+import type { InviteLinkRole } from "@/db/schema/workspace";
 
 type WorkspaceRole = "OWNER" | "ADMIN" | "MEMBER" | "GUEST";
 
 interface Member {
-  id: string;
-  userId: string;
-  name: string;
   email: string;
+  id: string;
   image: string | null;
-  role: WorkspaceRole;
   joinedAt: string;
+  name: string;
+  role: WorkspaceRole;
+  userId: string;
 }
 
 interface PendingInvite {
-  id: string;
   email: string;
-  role: WorkspaceRole;
-  invitedByName: string;
-  sentAt: string;
   expiresAt: string | null;
+  id: string;
+  invitedByName: string;
+  role: WorkspaceRole;
+  sentAt: string;
 }
 
 interface MembersManagerProps {
-  workspaceId: string;
-  workspaceName: string;
+  actorRole: WorkspaceRole;
+  appUrl: string;
+  currentUserId: string;
+  inviteLinkRole: InviteLinkRole;
+  inviteLinkToken: string | null;
   members: Member[];
   pendingInvites: PendingInvite[];
-  currentUserId: string;
-  actorRole: WorkspaceRole;
-  inviteLinkToken: string | null;
-  inviteLinkRole: InviteLinkRole;
-  appUrl: string;
+  workspaceId: string;
+  workspaceName: string;
 }
 
 const ROLE_LABELS: Record<WorkspaceRole, string> = {
@@ -87,7 +98,6 @@ const ROLE_LABELS: Record<WorkspaceRole, string> = {
   MEMBER: "Member",
   GUEST: "Guest",
 };
-
 
 export function MembersManager({
   workspaceId,
@@ -107,9 +117,13 @@ export function MembersManager({
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"ADMIN" | "MEMBER" | "GUEST">("MEMBER");
+  const [inviteRole, setInviteRole] = useState<"ADMIN" | "MEMBER" | "GUEST">(
+    "MEMBER"
+  );
   const inviteEmailTrimmed = inviteEmail.trim();
-  const inviteEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmailTrimmed);
+  const inviteEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    inviteEmailTrimmed
+  );
 
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
 
@@ -122,13 +136,24 @@ export function MembersManager({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return members.filter((m) => {
-      if (roleFilter !== "ALL" && m.role !== roleFilter) return false;
-      if (q && !m.name.toLowerCase().includes(q) && !m.email.toLowerCase().includes(q)) return false;
+      if (roleFilter !== "ALL" && m.role !== roleFilter) {
+        return false;
+      }
+      if (
+        q &&
+        !m.name.toLowerCase().includes(q) &&
+        !m.email.toLowerCase().includes(q)
+      ) {
+        return false;
+      }
       return true;
     });
   }, [members, search, roleFilter]);
 
-  function run(action: () => Promise<{ ok?: true; error?: string } | { error: string }>, onSuccess?: () => void) {
+  function run(
+    action: () => Promise<{ ok?: true; error?: string } | { error: string }>,
+    onSuccess?: () => void
+  ) {
     startTransition(async () => {
       const result = await action();
       if (result && "error" in result && result.error) {
@@ -141,8 +166,12 @@ export function MembersManager({
   }
 
   function canManage(target: Member) {
-    if (target.userId === currentUserId || target.role === "OWNER") return false;
-    if (actorRole === "ADMIN" && target.role === "ADMIN") return false;
+    if (target.userId === currentUserId || target.role === "OWNER") {
+      return false;
+    }
+    if (actorRole === "ADMIN" && target.role === "ADMIN") {
+      return false;
+    }
     return true;
   }
 
@@ -156,14 +185,15 @@ export function MembersManager({
                 Members
               </CardTitle>
               <CardDescription>
-                {members.length} {members.length === 1 ? "person" : "people"} in this workspace
+                {members.length} {members.length === 1 ? "person" : "people"} in
+                this workspace
               </CardDescription>
             </div>
             <div className="flex gap-2">
               {isOwner && members.length > 1 && (
-                <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+                <Dialog onOpenChange={setTransferOpen} open={transferOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2">
+                    <Button className="gap-2" variant="outline">
                       <CrownIcon className="size-4" />
                       Transfer ownership
                     </Button>
@@ -172,19 +202,27 @@ export function MembersManager({
                     <DialogHeader>
                       <DialogTitle>Transfer ownership</DialogTitle>
                       <DialogDescription>
-                        The new Owner gets full control. You become an Admin. This cannot be undone by you.
+                        The new Owner gets full control. You become an Admin.
+                        This cannot be undone by you.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label>New owner</Label>
-                        <Select value={transferTarget} onValueChange={setTransferTarget}>
+                        <Select
+                          onValueChange={setTransferTarget}
+                          value={transferTarget}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select a member" />
                           </SelectTrigger>
                           <SelectContent className="p-1.5">
                             {members
-                              .filter((m) => m.userId !== currentUserId && m.role !== "GUEST")
+                              .filter(
+                                (m) =>
+                                  m.userId !== currentUserId &&
+                                  m.role !== "GUEST"
+                              )
                               .map((m) => (
                                 <SelectItem key={m.id} value={m.id}>
                                   {m.name} ({m.email})
@@ -203,21 +241,33 @@ export function MembersManager({
                         </Label>
                         <Input
                           id="transfer-confirm"
-                          value={transferConfirm}
                           onChange={(e) => setTransferConfirm(e.target.value)}
+                          value={transferConfirm}
                         />
                       </div>
                     </div>
                     <DialogFooter>
                       <Button
-                        disabled={pending || !transferTarget || transferConfirm !== workspaceName}
+                        className="gap-2"
+                        disabled={
+                          pending ||
+                          !transferTarget ||
+                          transferConfirm !== workspaceName
+                        }
                         onClick={() =>
                           run(
-                            () => transferOwnership({ workspaceId, targetMemberId: transferTarget, confirmName: transferConfirm }),
-                            () => { setTransferOpen(false); toast.success("Ownership transferred"); },
+                            () =>
+                              transferOwnership({
+                                workspaceId,
+                                targetMemberId: transferTarget,
+                                confirmName: transferConfirm,
+                              }),
+                            () => {
+                              setTransferOpen(false);
+                              toast.success("Ownership transferred");
+                            }
                           )
                         }
-                        className="gap-2"
                       >
                         {pending && <Spinner className="size-4" />}
                         Transfer ownership
@@ -227,7 +277,7 @@ export function MembersManager({
                 </Dialog>
               )}
 
-              <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+              <Dialog onOpenChange={setInviteOpen} open={inviteOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2">
                     <UserPlusIcon className="size-4" />
@@ -245,25 +295,36 @@ export function MembersManager({
                     <div className="space-y-2">
                       <Label htmlFor="invite-email">Email address</Label>
                       <Input
+                        aria-invalid={
+                          inviteEmailTrimmed.length > 0 && !inviteEmailValid
+                        }
                         id="invite-email"
-                        type="email"
-                        placeholder="teammate@example.com"
-                        value={inviteEmail}
-                        aria-invalid={inviteEmailTrimmed.length > 0 && !inviteEmailValid}
                         onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="teammate@example.com"
+                        type="email"
+                        value={inviteEmail}
                       />
                       {inviteEmailTrimmed.length > 0 && !inviteEmailValid && (
-                        <p className="text-xs text-error">Please enter a valid email address.</p>
+                        <p className="text-xs text-error">
+                          Please enter a valid email address.
+                        </p>
                       )}
                     </div>
                     <div className="space-y-2">
                       <Label>Role</Label>
-                      <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as typeof inviteRole)}>
+                      <Select
+                        onValueChange={(v) =>
+                          setInviteRole(v as typeof inviteRole)
+                        }
+                        value={inviteRole}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="p-1.5">
-                          {isOwner && <SelectItem value="ADMIN">Admin</SelectItem>}
+                          {isOwner && (
+                            <SelectItem value="ADMIN">Admin</SelectItem>
+                          )}
                           <SelectItem value="MEMBER">Member</SelectItem>
                           <SelectItem value="GUEST">Guest</SelectItem>
                         </SelectContent>
@@ -272,16 +333,31 @@ export function MembersManager({
                   </div>
                   <DialogFooter>
                     <Button
+                      className="gap-2"
                       disabled={pending || !inviteEmailValid}
                       onClick={() =>
                         run(
-                          () => inviteMember({ workspaceId, email: inviteEmailTrimmed, role: inviteRole }),
-                          () => { setInviteOpen(false); setInviteEmail(""); toast.success(`Invite sent to ${inviteEmailTrimmed}`); },
+                          () =>
+                            inviteMember({
+                              workspaceId,
+                              email: inviteEmailTrimmed,
+                              role: inviteRole,
+                            }),
+                          () => {
+                            setInviteOpen(false);
+                            setInviteEmail("");
+                            toast.success(
+                              `Invite sent to ${inviteEmailTrimmed}`
+                            );
+                          }
                         )
                       }
-                      className="gap-2"
                     >
-                      {pending ? <Spinner className="size-4" /> : <PaperPlaneTiltIcon className="size-4" />}
+                      {pending ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        <PaperPlaneTiltIcon className="size-4" />
+                      )}
                       Send invite
                     </Button>
                   </DialogFooter>
@@ -294,13 +370,16 @@ export function MembersManager({
             <div className="relative flex-1 min-w-44">
               <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-base-content/60" />
               <Input
+                className="pl-8"
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name or email"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8"
               />
             </div>
-            <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as typeof roleFilter)}>
+            <Select
+              onValueChange={(v) => setRoleFilter(v as typeof roleFilter)}
+              value={roleFilter}
+            >
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -330,37 +409,59 @@ export function MembersManager({
                 <TableRow key={member.id}>
                   <TableCell>
                     <div className="flex items-center gap-2.5">
-                      <UserAvatar name={member.name} email={member.email} image={member.image} size="md" />
+                      <UserAvatar
+                        email={member.email}
+                        image={member.image}
+                        name={member.name}
+                        size="md"
+                      />
                       <div className="min-w-0">
                         <div className="font-medium truncate">
                           {member.name}
                           {member.userId === currentUserId && (
-                            <span className="text-base-content/60 font-normal"> (you)</span>
+                            <span className="text-base-content/60 font-normal">
+                              {" "}
+                              (you)
+                            </span>
                           )}
                         </div>
-                        <div className="text-sm text-base-content/60 truncate">{member.email}</div>
+                        <div className="text-sm text-base-content/60 truncate">
+                          {member.email}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     {canManage(member) ? (
                       <Select
-                        value={member.role}
                         onValueChange={(role) =>
-                          run(() => changeMemberRole({ workspaceId, memberId: member.id, role: role as "ADMIN" | "MEMBER" | "GUEST" }))
+                          run(() =>
+                            changeMemberRole({
+                              workspaceId,
+                              memberId: member.id,
+                              role: role as "ADMIN" | "MEMBER" | "GUEST",
+                            })
+                          )
                         }
+                        value={member.role}
                       >
                         <SelectTrigger className="h-8 w-28">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="p-1.5">
-                          {isOwner && <SelectItem value="ADMIN">Admin</SelectItem>}
+                          {isOwner && (
+                            <SelectItem value="ADMIN">Admin</SelectItem>
+                          )}
                           <SelectItem value="MEMBER">Member</SelectItem>
                           <SelectItem value="GUEST">Guest</SelectItem>
                         </SelectContent>
                       </Select>
                     ) : (
-                      <Badge variant={member.role === "OWNER" ? "default" : "secondary"}>
+                      <Badge
+                        variant={
+                          member.role === "OWNER" ? "default" : "secondary"
+                        }
+                      >
                         {ROLE_LABELS[member.role]}
                       </Badge>
                     )}
@@ -374,6 +475,7 @@ export function MembersManager({
                         className="flex size-7 items-center justify-center rounded-md text-base-content/60 hover:bg-error/10 hover:text-error transition-colors"
                         onClick={() => setRemoveTarget(member)}
                         title="Remove member"
+                        type="button"
                       >
                         <TrashIcon className="size-4" />
                       </button>
@@ -383,7 +485,10 @@ export function MembersManager({
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-8 text-center text-base-content/60">
+                  <TableCell
+                    className="py-8 text-center text-base-content/60"
+                    colSpan={4}
+                  >
                     No members match your search
                   </TableCell>
                 </TableRow>
@@ -394,29 +499,37 @@ export function MembersManager({
       </Card>
 
       {/* Remove confirmation */}
-      <Dialog open={!!removeTarget} onOpenChange={(open) => !open && setRemoveTarget(null)}>
+      <Dialog
+        onOpenChange={(open) => !open && setRemoveTarget(null)}
+        open={!!removeTarget}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Remove {removeTarget?.name}?</DialogTitle>
             <DialogDescription>
-              They lose access to this workspace and all its Spaces. Tasks they created or were assigned to are kept.
+              They lose access to this workspace and all its Spaces. Tasks they
+              created or were assigned to are kept.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRemoveTarget(null)}>
+            <Button onClick={() => setRemoveTarget(null)} variant="outline">
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              className="gap-2"
               disabled={pending}
               onClick={() =>
                 removeTarget &&
                 run(
-                  () => removeMember({ workspaceId, memberId: removeTarget.id }),
-                  () => { toast.success(`${removeTarget.name} removed`); setRemoveTarget(null); },
+                  () =>
+                    removeMember({ workspaceId, memberId: removeTarget.id }),
+                  () => {
+                    toast.success(`${removeTarget.name} removed`);
+                    setRemoveTarget(null);
+                  }
                 )
               }
-              className="gap-2"
+              variant="destructive"
             >
               {pending && <Spinner className="size-4" />}
               Remove member
@@ -427,11 +540,11 @@ export function MembersManager({
 
       {/* Invite via link */}
       <InviteLinkCard
-        workspaceId={workspaceId}
-        inviteLinkToken={inviteLinkToken}
-        inviteLinkRole={inviteLinkRole}
         appUrl={appUrl}
         canManage={actorRole === "OWNER" || actorRole === "ADMIN"}
+        inviteLinkRole={inviteLinkRole}
+        inviteLinkToken={inviteLinkToken}
+        workspaceId={workspaceId}
       />
 
       {/* Pending invites */}
@@ -459,12 +572,15 @@ export function MembersManager({
               </TableHeader>
               <TableBody>
                 {pendingInvites.map((invite) => {
-                  const expired = invite.expiresAt && new Date(invite.expiresAt) < new Date();
+                  const expired =
+                    invite.expiresAt && new Date(invite.expiresAt) < new Date();
                   return (
                     <TableRow key={invite.id}>
                       <TableCell>
                         <div className="font-medium">{invite.email}</div>
-                        <div className="text-sm text-base-content/60">Invited by {invite.invitedByName}</div>
+                        <div className="text-sm text-base-content/60">
+                          Invited by {invite.invitedByName}
+                        </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-base-content/60">
                         {format(new Date(invite.sentAt), "MMM d, yyyy")}
@@ -482,19 +598,35 @@ export function MembersManager({
                       </TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button
-                          variant="ghost"
-                          size="sm"
                           disabled={pending}
-                          onClick={() => run(() => resendInvite({ workspaceId, memberId: invite.id }), () => toast.success(`Invite re-sent to ${invite.email}`))}
+                          onClick={() =>
+                            run(
+                              () =>
+                                resendInvite({
+                                  workspaceId,
+                                  memberId: invite.id,
+                                }),
+                              () =>
+                                toast.success(
+                                  `Invite re-sent to ${invite.email}`
+                                )
+                            )
+                          }
+                          size="sm"
+                          variant="ghost"
                         >
                           Resend
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="sm"
                           className="text-error hover:text-error"
                           disabled={pending}
-                          onClick={() => run(() => cancelInvite({ workspaceId, memberId: invite.id }))}
+                          onClick={() =>
+                            run(() =>
+                              cancelInvite({ workspaceId, memberId: invite.id })
+                            )
+                          }
+                          size="sm"
+                          variant="ghost"
                         >
                           Cancel
                         </Button>

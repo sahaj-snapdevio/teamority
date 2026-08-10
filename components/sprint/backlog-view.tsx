@@ -1,32 +1,29 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
 import {
   CaretDownIcon,
   CaretRightIcon,
-  FlagIcon,
   LightningIcon,
-  PlusIcon,
   TrayIcon,
-  UserIcon,
 } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { toast } from "sonner";
+import {
+  addTaskToSprint,
+  type BacklogList,
+  type BacklogTask,
+  getBacklogTasks,
+  getSprints,
+} from "@/app/actions/sprint";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  getBacklogTasks,
-  getSprints,
-  addTaskToSprint,
-  type BacklogTask,
-  type BacklogList,
-} from "@/app/actions/sprint";
+import { Skeleton } from "@/components/ui/skeleton";
 import { setTaskNavContext } from "@/lib/task-nav-context";
 import { cn } from "@/lib/utils";
 
@@ -72,7 +69,9 @@ function BacklogTaskRow({
 
   async function loadSprints() {
     const res = await getSprints(workspaceId, spaceId);
-    if ("error" in res) return;
+    if ("error" in res) {
+      return;
+    }
     setSprints(
       res.sprints.filter((s) => s.status === "PLANNED" || s.status === "ACTIVE")
     );
@@ -92,6 +91,7 @@ function BacklogTaskRow({
   }
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: row is clickable to open the task, but contains nested interactive controls (Add to Sprint button/popover) — can't be a real <button> (invalid nested-interactive markup)
     <div
       className="group flex items-center gap-3 px-3 py-2 rounded-md hover:bg-base-200/40 cursor-pointer transition-colors"
       onClick={() => {
@@ -100,6 +100,20 @@ function BacklogTaskRow({
           `/${workspaceId}/task/${task.id}?from=sprint&sid=${sprintId}`
         );
       }}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setTaskNavContext({ taskIds: taskNavIds });
+          router.push(
+            `/${workspaceId}/task/${task.id}?from=sprint&sid=${sprintId}`
+          );
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       {/* Status dot */}
       {task.statusColor ? (
@@ -140,7 +154,7 @@ function BacklogTaskRow({
       {task.assignees.length > 0 && (
         <div className="flex -space-x-1.5 shrink-0">
           {task.assignees.slice(0, 3).map((a) => (
-            <Avatar key={a.userId} className="h-5 w-5 border border-base-100">
+            <Avatar className="h-5 w-5 border border-base-100" key={a.userId}>
               <AvatarFallback className="text-[9px]">
                 {(a.name ?? a.email ?? "?").slice(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -155,25 +169,25 @@ function BacklogTaskRow({
       )}
 
       {/* Add to Sprint */}
-      <Popover open={addOpen} onOpenChange={setAddOpen}>
+      <Popover onOpenChange={setAddOpen} open={addOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="ghost"
-            size="sm"
             className="shrink-0 h-6 gap-1 px-2 text-xs opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
             disabled={addLoading}
             onClick={(e) => {
               e.stopPropagation();
               void loadSprints();
             }}
+            size="sm"
+            variant="ghost"
           >
             <LightningIcon className="size-3" />
             Add to Sprint
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-52 p-1"
           align="end"
+          className="w-52 p-1"
           onClick={(e) => e.stopPropagation()}
         >
           {sprints.length === 0 ? (
@@ -183,9 +197,10 @@ function BacklogTaskRow({
           ) : (
             sprints.map((s) => (
               <button
-                key={s.id}
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200 cursor-pointer text-left"
+                key={s.id}
                 onClick={() => void handleAddToSprint(s.id, s.name)}
+                type="button"
               >
                 <LightningIcon className="size-3.5 shrink-0 text-violet-500" />
                 <span className="truncate">{s.name}</span>
@@ -226,6 +241,7 @@ function BacklogListGroup({
       <button
         className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium hover:bg-base-200/30 rounded-t-lg transition-colors"
         onClick={() => setOpen((v) => !v)}
+        type="button"
       >
         {open ? (
           <CaretDownIcon className="size-3.5 shrink-0 text-base-content/60" />
@@ -244,12 +260,12 @@ function BacklogListGroup({
           {group.tasks.map((task) => (
             <BacklogTaskRow
               key={task.id}
-              task={task}
-              workspaceId={workspaceId}
+              onRefresh={onRefresh}
               spaceId={spaceId}
               sprintId={sprintId}
-              onRefresh={onRefresh}
+              task={task}
               taskNavIds={taskNavIds}
+              workspaceId={workspaceId}
             />
           ))}
         </div>
@@ -261,10 +277,10 @@ function BacklogListGroup({
 // ─── BacklogView ──────────────────────────────────────────────────────────────
 
 interface BacklogViewProps {
-  workspaceId: string;
+  refreshKey?: number;
   spaceId: string;
   sprintId: string;
-  refreshKey?: number;
+  workspaceId: string;
 }
 
 export function BacklogView({
@@ -277,6 +293,7 @@ export function BacklogView({
   const [loading, setLoading] = React.useState(true);
   const [internalRefresh, setInternalRefresh] = React.useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey/internalRefresh aren't read in the body — they're included purely to force a new fetchData identity (and thus a refetch) when an external refresh signal fires.
   const fetchData = React.useCallback(async () => {
     setLoading(true);
     const res = await getBacklogTasks(workspaceId, spaceId);
@@ -287,7 +304,7 @@ export function BacklogView({
       setLists(res.lists);
     }
     setLoading(false);
-  }, [workspaceId, spaceId, refreshKey, internalRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workspaceId, spaceId, refreshKey, internalRefresh]);
 
   React.useEffect(() => {
     void fetchData();
@@ -320,7 +337,7 @@ export function BacklogView({
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" key={i} />
           ))}
         </div>
       ) : lists.length === 0 ? (
@@ -337,13 +354,13 @@ export function BacklogView({
         <div className="space-y-2">
           {lists.map((group) => (
             <BacklogListGroup
-              key={group.listId}
               group={group}
-              workspaceId={workspaceId}
+              key={group.listId}
+              onRefresh={handleRefresh}
               spaceId={spaceId}
               sprintId={sprintId}
-              onRefresh={handleRefresh}
               taskNavIds={visibleOrderedTaskIds}
+              workspaceId={workspaceId}
             />
           ))}
         </div>

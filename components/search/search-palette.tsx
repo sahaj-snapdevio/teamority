@@ -357,7 +357,7 @@ export function SearchPalette({
   const spaceOptions: FacetOption[] = (options?.spaces ?? []).map((s) => ({
     value: s.id,
     label: s.name,
-    icon: <SpaceIcon emoji={s.logoEmoji} color={s.color} size="sm" />,
+    icon: <SpaceIcon color={s.color} emoji={s.logoEmoji} size="sm" />,
   }));
   const sprintOptions: FacetOption[] = (options?.sprints ?? []).map((s) => ({
     value: s.id,
@@ -469,8 +469,11 @@ export function SearchPalette({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[6dvh] sm:pt-[12vh]">
-      {/* Backdrop — light blur + a semi-transparent dark overlay. */}
+      {/* Backdrop — light blur + a semi-transparent dark overlay. Purely a
+          dismiss target; Escape (handled above) covers the keyboard path.
+          aria-hidden takes it out of the accessibility tree entirely. */}
       <div
+        aria-hidden="true"
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
@@ -887,9 +890,7 @@ export function SearchPalette({
                             {due && (
                               <span
                                 className={
-                                  due.overdue
-                                    ? "font-medium text-error"
-                                    : ""
+                                  due.overdue ? "font-medium text-error" : ""
                                 }
                               >
                                 {due.label}

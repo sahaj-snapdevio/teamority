@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 import { unarchiveSpace } from "@/app/actions/space";
+import { SpaceIcon } from "@/components/common/space-icon";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useSetTopbar } from "@/lib/topbar-context";
-import { SpaceIcon } from "@/components/common/space-icon";
 
 interface ArchivedProject {
   color: string | null;
-  logoEmoji: string | null;
   id: string;
+  logoEmoji: string | null;
   name: string;
 }
 
@@ -74,8 +74,8 @@ export function ArchivedProjectsEmptyState({
             {archived.map((p) => (
               <li className="flex items-center gap-2.5 px-4 py-2.5" key={p.id}>
                 <SpaceIcon
-                  emoji={p.logoEmoji}
                   color={p.color ?? "#6B7280"}
+                  emoji={p.logoEmoji}
                   size="sm"
                 />
                 <span className="flex-1 truncate text-sm font-medium">

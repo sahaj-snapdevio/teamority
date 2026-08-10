@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   CalendarBlankIcon,
   CaretRightIcon,
@@ -9,6 +8,7 @@ import {
   UserPlusIcon,
 } from "@phosphor-icons/react";
 import { format } from "date-fns";
+import * as React from "react";
 import { toast } from "sonner";
 import { updateTask, updateTaskStatus } from "@/app/actions/task";
 import { addAssignee, removeAssignee } from "@/app/actions/task-assignee";
@@ -25,45 +25,45 @@ import { cn } from "@/lib/utils";
 type StatusType = "OPEN" | "ACTIVE" | "CLOSED";
 
 interface Assignee {
-  userId: string | null;
-  name: string | null;
   email: string | null;
   image: string | null;
+  name: string | null;
+  userId: string | null;
 }
 
 export interface SubtaskRowData {
+  assignees: Assignee[];
+  dueDateEnd: Date | string | null;
+  dueDateStart: Date | string | null;
   id: string;
+  listId: string | null;
   seqNumber: number;
-  title: string;
+  statusColor: string | null;
   statusId: string | null;
   statusName: string | null;
-  statusColor: string | null;
   statusType: StatusType | null;
-  listId: string | null;
-  dueDateStart: Date | string | null;
-  dueDateEnd: Date | string | null;
-  assignees: Assignee[];
+  title: string;
 }
 
 interface Member {
-  userId: string;
-  name: string | null;
   email: string | null;
   image: string | null;
+  name: string | null;
+  userId: string;
 }
 
 interface SubtaskRowProps {
-  subtask: SubtaskRowData;
-  workspaceId: string;
-  spaceId: string;
-  /** The parent task's list — statuses come from here; used as the action list. */
-  parentListId: string | null;
-  statuses: { id: string; name: string; color: string; type: StatusType }[];
-  members: Member[];
   canEdit: boolean;
+  members: Member[];
   onChanged: () => void;
   onDelete: () => void;
   onNavigate: () => void;
+  /** The parent task's list — statuses come from here; used as the action list. */
+  parentListId: string | null;
+  spaceId: string;
+  statuses: { id: string; name: string; color: string; type: StatusType }[];
+  subtask: SubtaskRowData;
+  workspaceId: string;
 }
 
 const STATUS_GROUPS: { type: StatusType; label: string }[] = [
@@ -73,7 +73,9 @@ const STATUS_GROUPS: { type: StatusType; label: string }[] = [
 ];
 
 function toDate(v: Date | string | null): Date | null {
-  if (!v) return null;
+  if (!v) {
+    return null;
+  }
   const d = v instanceof Date ? v : new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
 }
@@ -94,9 +96,15 @@ export function SubtaskRow({
 
   // Optimistic local state so edits feel instant; re-synced from props on reload.
   const [statusId, setStatusId] = React.useState(subtask.statusId);
-  const [assignees, setAssignees] = React.useState<Assignee[]>(subtask.assignees);
-  const [dueStart, setDueStart] = React.useState<Date | null>(toDate(subtask.dueDateStart));
-  const [dueEnd, setDueEnd] = React.useState<Date | null>(toDate(subtask.dueDateEnd));
+  const [assignees, setAssignees] = React.useState<Assignee[]>(
+    subtask.assignees
+  );
+  const [dueStart, setDueStart] = React.useState<Date | null>(
+    toDate(subtask.dueDateStart)
+  );
+  const [dueEnd, setDueEnd] = React.useState<Date | null>(
+    toDate(subtask.dueDateEnd)
+  );
 
   React.useEffect(() => {
     setStatusId(subtask.statusId);
@@ -113,18 +121,32 @@ export function SubtaskRow({
   const currentStatus =
     statuses.find((s) => s.id === statusId) ??
     (subtask.statusColor
-      ? { color: subtask.statusColor, name: subtask.statusName ?? "Status", type: subtask.statusType }
+      ? {
+          color: subtask.statusColor,
+          name: subtask.statusName ?? "Status",
+          type: subtask.statusType,
+        }
       : null);
   const isClosed =
-    (statuses.find((s) => s.id === statusId)?.type ?? subtask.statusType) === "CLOSED";
-  const overdue = !!dueEnd && !isClosed && dueEnd < new Date(new Date().setHours(0, 0, 0, 0));
+    (statuses.find((s) => s.id === statusId)?.type ?? subtask.statusType) ===
+    "CLOSED";
+  const overdue =
+    !!dueEnd && !isClosed && dueEnd < new Date(new Date().setHours(0, 0, 0, 0));
 
   async function chooseStatus(s: { id: string }) {
     setStatusOpen(false);
-    if (s.id === statusId) return;
+    if (s.id === statusId) {
+      return;
+    }
     const prev = statusId;
     setStatusId(s.id);
-    const res = await updateTaskStatus(workspaceId, spaceId, listId, subtask.id, s.id);
+    const res = await updateTaskStatus(
+      workspaceId,
+      spaceId,
+      listId,
+      subtask.id,
+      s.id
+    );
     if (res && typeof res === "object" && "error" in res) {
       setStatusId(prev);
       toast.error(res.error as string);
@@ -139,7 +161,10 @@ export function SubtaskRow({
     setAssignees(
       assigned
         ? assignees.filter((a) => a.userId !== m.userId)
-        : [...assignees, { userId: m.userId, name: m.name, email: m.email, image: m.image }]
+        : [
+            ...assignees,
+            { userId: m.userId, name: m.name, email: m.email, image: m.image },
+          ]
     );
     const res = assigned
       ? await removeAssignee(workspaceId, spaceId, listId, subtask.id, m.userId)
@@ -159,9 +184,19 @@ export function SubtaskRow({
         ? { dueDateEnd: date }
         : { dueDateStart: date, dueDateEnd: date };
     setDueEnd(date);
-    if (date && !dueStart) setDueStart(date);
-    if (!date) setDueStart(null);
-    const res = await updateTask(workspaceId, spaceId, listId, subtask.id, patch);
+    if (date && !dueStart) {
+      setDueStart(date);
+    }
+    if (!date) {
+      setDueStart(null);
+    }
+    const res = await updateTask(
+      workspaceId,
+      spaceId,
+      listId,
+      subtask.id,
+      patch
+    );
     if (res && typeof res === "object" && "error" in res) {
       toast.error(res.error as string);
       return;
@@ -175,12 +210,24 @@ export function SubtaskRow({
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: row navigates on click, but wraps several nested buttons (status/due/assignee/delete) so it can't itself become a <button> — role="button" + tabIndex/onKeyDown provide the same keyboard semantics
     <div
       className="group flex items-center gap-2 rounded-md border bg-elevated px-3 py-2 hover:bg-base-200/30 cursor-pointer"
       onClick={onNavigate}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onNavigate();
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       {/* Status — click the dot to change */}
-      <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+      <Popover onOpenChange={setStatusOpen} open={statusOpen}>
         <PopoverTrigger asChild disabled={!canEdit}>
           <button
             className="flex size-5 shrink-0 items-center justify-center rounded-full hover:ring-2 hover:ring-border disabled:cursor-default"
@@ -198,7 +245,9 @@ export function SubtaskRow({
           <div className="max-h-64 overflow-y-auto">
             {STATUS_GROUPS.map(({ type, label }) => {
               const group = statuses.filter((s) => s.type === type);
-              if (group.length === 0) return null;
+              if (group.length === 0) {
+                return null;
+              }
               return (
                 <div key={type}>
                   <p className="px-2 pt-2 pb-0.5 text-2xs font-semibold uppercase tracking-wider text-base-content/60">
@@ -215,7 +264,9 @@ export function SubtaskRow({
                         className="size-2.5 shrink-0 rounded-full"
                         style={{ backgroundColor: s.color }}
                       />
-                      <span className="flex-1 truncate text-left">{s.name}</span>
+                      <span className="flex-1 truncate text-left">
+                        {s.name}
+                      </span>
                       {s.id === statusId && (
                         <CheckIcon className="size-3.5 shrink-0 text-primary" />
                       )}
@@ -241,7 +292,7 @@ export function SubtaskRow({
       </span>
 
       {/* Due date */}
-      <Popover open={dueOpen} onOpenChange={setDueOpen}>
+      <Popover onOpenChange={setDueOpen} open={dueOpen}>
         <PopoverTrigger asChild disabled={!canEdit}>
           <button
             className={cn(
@@ -279,7 +330,7 @@ export function SubtaskRow({
       </Popover>
 
       {/* Assignees */}
-      <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
+      <Popover onOpenChange={setAssigneeOpen} open={assigneeOpen}>
         <PopoverTrigger asChild disabled={!canEdit}>
           <button
             className={cn(
@@ -337,7 +388,12 @@ export function SubtaskRow({
                   onClick={() => toggleAssignee(m)}
                   type="button"
                 >
-                  <UserAvatar email={m.email} image={m.image} name={m.name} size="sm" />
+                  <UserAvatar
+                    email={m.email}
+                    image={m.image}
+                    name={m.name}
+                    size="sm"
+                  />
                   <span className="flex-1 truncate text-left">
                     {m.name ?? m.email}
                   </span>

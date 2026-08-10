@@ -683,7 +683,12 @@ export async function getFilteredTasks(
 // ─── Search Filter Options ───────────────────────────────────────────────────
 
 export type SearchFilterOptions = {
-  spaces: { id: string; name: string; color: string | null; logoEmoji: string | null }[];
+  spaces: {
+    id: string;
+    name: string;
+    color: string | null;
+    logoEmoji: string | null;
+  }[];
   members: {
     userId: string;
     name: string | null;
@@ -718,7 +723,12 @@ export async function getSearchFilterOptions(
 
   const [spaces, memberRows, tags, sprints] = await Promise.all([
     db
-      .select({ id: space.id, name: space.name, color: space.color, logoEmoji: space.logoEmoji })
+      .select({
+        id: space.id,
+        name: space.name,
+        color: space.color,
+        logoEmoji: space.logoEmoji,
+      })
       .from(space)
       .where(
         and(

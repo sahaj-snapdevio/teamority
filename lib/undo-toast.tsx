@@ -9,14 +9,19 @@ import { toast } from "sonner";
  * The Ctrl+Z shortcut is ignored while focus is in an input, textarea, or
  * contentEditable (e.g. the Tiptap editor) so it never hijacks native undo.
  */
-export function toastWithUndo(message: string, onUndo: () => void | Promise<void>) {
+export function toastWithUndo(
+  message: string,
+  onUndo: () => void | Promise<void>
+) {
   let toastId: string | number = "";
   let done = false;
 
   const cleanup = () => window.removeEventListener("keydown", onKey);
 
   const run = () => {
-    if (done) return;
+    if (done) {
+      return;
+    }
     done = true;
     cleanup();
     toast.dismiss(toastId);
@@ -24,13 +29,19 @@ export function toastWithUndo(message: string, onUndo: () => void | Promise<void
   };
 
   function onKey(e: KeyboardEvent) {
-    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
-    if (e.key !== "z" && e.key !== "Z") return;
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) {
+      return;
+    }
+    if (e.key !== "z" && e.key !== "Z") {
+      return;
+    }
 
     const el = document.activeElement as HTMLElement | null;
     if (
       el &&
-      (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)
+      (el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.isContentEditable)
     ) {
       return;
     }

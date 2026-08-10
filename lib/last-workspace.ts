@@ -12,5 +12,6 @@ const MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 1 year
 
 /** Client-side: record the workspace currently being viewed. */
 export function rememberWorkspace(workspaceId: string): void {
+  // biome-ignore lint/suspicious/noDocumentCookie: legitimate client-side cookie write (non-httpOnly navigation hint); consistent with app/setup/setup-wizard.tsx's applyTheme
   document.cookie = `${LAST_WORKSPACE_COOKIE}=${workspaceId}; path=/; max-age=${MAX_AGE_SECONDS}; SameSite=Lax`;
 }

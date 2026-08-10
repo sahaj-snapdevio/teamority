@@ -17,7 +17,9 @@ export async function setPasswordAction(
 ): Promise<{ ok: true } | { error: string }> {
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   // Guard: never let this overwrite an existing password without proving
   // knowledge of the old one — that's what changePassword is for.

@@ -36,10 +36,13 @@ type IconTone = "neutral" | "primary" | "success" | "info" | "warning";
 
 const ICON_TONE_CLASSES: Record<IconTone, string> = {
   neutral: "bg-base-200 text-base-content/70 dark:text-base-content/80",
-  primary: "bg-primary/10 text-primary dark:bg-base-200 dark:text-base-content/80",
-  success: "bg-success/10 text-success dark:bg-base-200 dark:text-base-content/80",
+  primary:
+    "bg-primary/10 text-primary dark:bg-base-200 dark:text-base-content/80",
+  success:
+    "bg-success/10 text-success dark:bg-base-200 dark:text-base-content/80",
   info: "bg-info/10 text-info dark:bg-base-200 dark:text-base-content/80",
-  warning: "bg-warning/10 text-warning dark:bg-base-200 dark:text-base-content/80",
+  warning:
+    "bg-warning/10 text-warning dark:bg-base-200 dark:text-base-content/80",
 };
 
 interface Tile {

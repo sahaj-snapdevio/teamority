@@ -44,7 +44,9 @@ async function waitForDatabase(client: postgres.Sql) {
       await client`select 1`;
       return;
     } catch (error) {
-      if (attempt === MAX_ATTEMPTS) throw error;
+      if (attempt === MAX_ATTEMPTS) {
+        throw error;
+      }
       const delay = Math.min(2000 * 2 ** (attempt - 1), 30_000);
       console.error(
         `[migrate] database unreachable (${attempt}/${MAX_ATTEMPTS}); retrying in ${

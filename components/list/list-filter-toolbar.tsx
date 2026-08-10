@@ -1,67 +1,77 @@
 "use client";
 
-import * as React from "react";
 import {
-  FloppyDiskIcon,
-  TrashIcon,
-  PencilSimpleIcon,
   CheckIcon,
+  FloppyDiskIcon,
+  PencilSimpleIcon,
+  TrashIcon,
 } from "@phosphor-icons/react";
+import * as React from "react";
+import type { FilterState, SavedFilterRow } from "@/app/actions/search";
+import {
+  createSavedFilter,
+  deleteSavedFilter,
+  getSavedFilters,
+  renameSavedFilter,
+} from "@/app/actions/search";
+import { FacetFilter } from "@/components/filters/facet-filter";
+import { FilterChip } from "@/components/filters/filter-chip";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { FacetFilter } from "@/components/filters/facet-filter";
-import { FilterChip } from "@/components/filters/filter-chip";
 import {
   DUE_OPTIONS,
-  PRIORITY_OPTIONS,
   type DueValue,
+  PRIORITY_OPTIONS,
 } from "@/lib/filters/options";
-import type { FilterState, SavedFilterRow } from "@/app/actions/search";
-import {
-  getSavedFilters,
-  createSavedFilter,
-  deleteSavedFilter,
-  renameSavedFilter,
-} from "@/app/actions/search";
 
 interface Status {
+  color: string;
   id: string;
   name: string;
-  color: string;
   type: string;
 }
 
 interface Member {
-  userId: string;
-  name: string | null;
   email: string | null;
+  name: string | null;
+  userId: string;
 }
 
 interface Tag {
+  color: string;
   id: string;
   name: string;
-  color: string;
 }
 
 interface ListFilterToolbarProps {
-  listId: string;
-  statuses: Status[];
-  members: Member[];
-  tags: Tag[];
   filters: FilterState;
+  listId: string;
+  members: Member[];
   onChange: (f: FilterState) => void;
+  statuses: Status[];
+  tags: Tag[];
 }
 
 function activeCount(filters: FilterState): number {
   let n = 0;
-  if (filters.status?.length) n++;
-  if (filters.priority?.length) n++;
-  if (filters.assignee?.length) n++;
-  if (filters.due) n++;
-  if (filters.tags?.length) n++;
+  if (filters.status?.length) {
+    n++;
+  }
+  if (filters.priority?.length) {
+    n++;
+  }
+  if (filters.assignee?.length) {
+    n++;
+  }
+  if (filters.due) {
+    n++;
+  }
+  if (filters.tags?.length) {
+    n++;
+  }
   return n;
 }
 
@@ -85,16 +95,22 @@ export function ListFilterToolbar({
 
   React.useEffect(() => {
     getSavedFilters(listId).then((res) => {
-      if (!("error" in res)) setSavedFilters(res);
+      if (!("error" in res)) {
+        setSavedFilters(res);
+      }
     });
   }, [listId]);
 
   async function handleSave() {
-    if (!saveName.trim()) return;
+    if (!saveName.trim()) {
+      return;
+    }
     const res = await createSavedFilter(listId, saveName.trim(), filters);
     if (!("error" in res)) {
       const updated = await getSavedFilters(listId);
-      if (!("error" in updated)) setSavedFilters(updated);
+      if (!("error" in updated)) {
+        setSavedFilters(updated);
+      }
     }
     setSaveName("");
     setSavingOpen(false);
@@ -106,10 +122,12 @@ export function ListFilterToolbar({
   }
 
   async function handleRename(id: string) {
-    if (!renameName.trim()) return;
+    if (!renameName.trim()) {
+      return;
+    }
     await renameSavedFilter(id, renameName.trim());
     setSavedFilters((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, name: renameName.trim() } : f)),
+      prev.map((f) => (f.id === id ? { ...f, name: renameName.trim() } : f))
     );
     setRenameId(null);
     setRenameName("");
@@ -128,39 +146,49 @@ export function ListFilterToolbar({
       {/* Shared faceted filters */}
       <FacetFilter
         label="Status"
-        options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
-        selected={filters.status ?? []}
         onChange={(next) => onChange({ ...filters, status: next })}
+        options={statuses.map((s) => ({
+          value: s.id,
+          label: s.name,
+          color: s.color,
+        }))}
+        selected={filters.status ?? []}
       />
       <FacetFilter
         label="Priority"
+        onChange={(next) => onChange({ ...filters, priority: next })}
         options={PRIORITY_OPTIONS}
         selected={filters.priority ?? []}
-        onChange={(next) => onChange({ ...filters, priority: next })}
       />
       <FacetFilter
         label="Due"
-        single
+        onChange={(next) =>
+          onChange({ ...filters, due: (next[0] as DueValue) ?? "" })
+        }
         options={DUE_OPTIONS}
         selected={filters.due ? [filters.due] : []}
-        onChange={(next) => onChange({ ...filters, due: (next[0] as DueValue) ?? "" })}
+        single
       />
       {members.length > 0 && (
         <FacetFilter
           label="Assignee"
-          searchable
-          options={assigneeOptions}
-          selected={filters.assignee ?? []}
           onChange={(next) => onChange({ ...filters, assignee: next })}
+          options={assigneeOptions}
+          searchable
+          selected={filters.assignee ?? []}
         />
       )}
       {tags.length > 0 && (
         <FacetFilter
           label="Tags"
-          searchable
-          options={tags.map((t) => ({ value: t.id, label: t.name, color: t.color }))}
-          selected={filters.tags ?? []}
           onChange={(next) => onChange({ ...filters, tags: next })}
+          options={tags.map((t) => ({
+            value: t.id,
+            label: t.name,
+            color: t.color,
+          }))}
+          searchable
+          selected={filters.tags ?? []}
         />
       )}
 
@@ -168,8 +196,8 @@ export function ListFilterToolbar({
       <Popover>
         <PopoverTrigger asChild>
           <button
-            type="button"
             className="flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border border-base-300 px-2.5 text-xs font-semibold text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+            type="button"
           >
             <FloppyDiskIcon className="size-3.5" /> Saved
           </button>
@@ -178,23 +206,27 @@ export function ListFilterToolbar({
           {savedFilters.length > 0 ? (
             <div className="space-y-1">
               {savedFilters.map((sf) => (
-                <div key={sf.id} className="flex items-center gap-1">
+                <div className="flex items-center gap-1" key={sf.id}>
                   {renameId === sf.id ? (
                     <>
                       <input
                         autoFocus
-                        value={renameName}
+                        className="flex-1 rounded border px-1.5 py-0.5 text-xs"
                         onChange={(e) => setRenameName(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") void handleRename(sf.id);
-                          if (e.key === "Escape") setRenameId(null);
+                          if (e.key === "Enter") {
+                            void handleRename(sf.id);
+                          }
+                          if (e.key === "Escape") {
+                            setRenameId(null);
+                          }
                         }}
-                        className="flex-1 rounded border px-1.5 py-0.5 text-xs"
+                        value={renameName}
                       />
                       <button
-                        type="button"
-                        onClick={() => void handleRename(sf.id)}
                         className="text-primary hover:opacity-70"
+                        onClick={() => void handleRename(sf.id)}
+                        type="button"
                       >
                         <CheckIcon className="size-3.5" />
                       </button>
@@ -202,26 +234,26 @@ export function ListFilterToolbar({
                   ) : (
                     <>
                       <button
-                        type="button"
-                        onClick={() => onChange(sf.filters as FilterState)}
                         className="flex-1 rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-base-200"
+                        onClick={() => onChange(sf.filters as FilterState)}
+                        type="button"
                       >
                         {sf.name}
                       </button>
                       <button
-                        type="button"
+                        className="text-base-content/60 hover:text-base-content"
                         onClick={() => {
                           setRenameId(sf.id);
                           setRenameName(sf.name);
                         }}
-                        className="text-base-content/60 hover:text-base-content"
+                        type="button"
                       >
                         <PencilSimpleIcon className="size-3" />
                       </button>
                       <button
-                        type="button"
-                        onClick={() => void handleDelete(sf.id)}
                         className="text-base-content/60 hover:text-error"
+                        onClick={() => void handleDelete(sf.id)}
+                        type="button"
                       >
                         <TrashIcon className="size-3" />
                       </button>
@@ -231,7 +263,9 @@ export function ListFilterToolbar({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-base-content/60">No saved filters yet.</p>
+            <p className="text-xs text-base-content/60">
+              No saved filters yet.
+            </p>
           )}
 
           {count > 0 &&
@@ -239,29 +273,33 @@ export function ListFilterToolbar({
               <div className="flex items-center gap-1.5">
                 <input
                   autoFocus
-                  placeholder="Filter name…"
-                  value={saveName}
+                  className="flex-1 rounded border px-2 py-1 text-xs"
                   onChange={(e) => setSaveName(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") void handleSave();
-                    if (e.key === "Escape") setSavingOpen(false);
+                    if (e.key === "Enter") {
+                      void handleSave();
+                    }
+                    if (e.key === "Escape") {
+                      setSavingOpen(false);
+                    }
                   }}
-                  className="flex-1 rounded border px-2 py-1 text-xs"
+                  placeholder="Filter name…"
+                  value={saveName}
                 />
                 <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={!saveName.trim()}
                   className="rounded bg-primary px-2 py-1 text-xs text-primary-content disabled:opacity-40"
+                  disabled={!saveName.trim()}
+                  onClick={() => void handleSave()}
+                  type="button"
                 >
                   Save
                 </button>
               </div>
             ) : (
               <button
-                type="button"
-                onClick={() => setSavingOpen(true)}
                 className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-200"
+                onClick={() => setSavingOpen(true)}
+                type="button"
               >
                 <FloppyDiskIcon className="size-3.5" /> Save these filters
               </button>
@@ -272,13 +310,18 @@ export function ListFilterToolbar({
       {/* Active filter chips */}
       {filters.status?.map((sId) => {
         const s = statuses.find((st) => st.id === sId);
-        if (!s) return null;
+        if (!s) {
+          return null;
+        }
         return (
           <FilterChip
             key={sId}
             label={`Status: ${s.name}`}
             onRemove={() =>
-              onChange({ ...filters, status: filters.status?.filter((id) => id !== sId) })
+              onChange({
+                ...filters,
+                status: filters.status?.filter((id) => id !== sId),
+              })
             }
           />
         );
@@ -289,7 +332,10 @@ export function ListFilterToolbar({
           key={p}
           label={`Priority: ${p.charAt(0) + p.slice(1).toLowerCase()}`}
           onRemove={() =>
-            onChange({ ...filters, priority: filters.priority?.filter((v) => v !== p) })
+            onChange({
+              ...filters,
+              priority: filters.priority?.filter((v) => v !== p),
+            })
           }
         />
       ))}
@@ -303,13 +349,17 @@ export function ListFilterToolbar({
 
       {filters.assignee?.map((aId) => {
         const m = members.find((mb) => mb.userId === aId);
-        const label = aId === "unassigned" ? "Unassigned" : (m?.name ?? m?.email ?? aId);
+        const label =
+          aId === "unassigned" ? "Unassigned" : (m?.name ?? m?.email ?? aId);
         return (
           <FilterChip
             key={aId}
             label={`Assignee: ${label}`}
             onRemove={() =>
-              onChange({ ...filters, assignee: filters.assignee?.filter((id) => id !== aId) })
+              onChange({
+                ...filters,
+                assignee: filters.assignee?.filter((id) => id !== aId),
+              })
             }
           />
         );
@@ -317,13 +367,18 @@ export function ListFilterToolbar({
 
       {filters.tags?.map((tId) => {
         const t = tags.find((tg) => tg.id === tId);
-        if (!t) return null;
+        if (!t) {
+          return null;
+        }
         return (
           <FilterChip
             key={tId}
             label={`Tag: ${t.name}`}
             onRemove={() =>
-              onChange({ ...filters, tags: filters.tags?.filter((id) => id !== tId) })
+              onChange({
+                ...filters,
+                tags: filters.tags?.filter((id) => id !== tId),
+              })
             }
           />
         );
@@ -331,9 +386,9 @@ export function ListFilterToolbar({
 
       {count > 1 && (
         <button
-          type="button"
-          onClick={() => onChange(EMPTY_FILTERS)}
           className="h-7 rounded-full border border-error/30 px-2.5 text-xs text-error transition-colors hover:bg-error/10"
+          onClick={() => onChange(EMPTY_FILTERS)}
+          type="button"
         >
           Clear All
         </button>

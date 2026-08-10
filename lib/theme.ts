@@ -23,8 +23,8 @@ export const THEME_COOKIE = "kanbanica_theme";
 export const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 export interface ThemePreference {
-  theme: string;
   appearance: AppearanceMode;
+  theme: string;
 }
 
 const APPEARANCES: readonly string[] = ["light", "dark", "auto"];
@@ -53,7 +53,9 @@ export function serializeThemeCookie(pref: ThemePreference): string {
  * The cookie is attacker-controlled, so both halves are validated against a
  * whitelist before they are rendered into an HTML attribute.
  */
-export function parseThemeCookie(value: string | undefined | null): ThemePreference {
+export function parseThemeCookie(
+  value: string | undefined | null
+): ThemePreference {
   const [theme, appearance] = (value ?? "").split("|");
   return {
     theme: THEME_IDS.includes(theme) ? theme : DEFAULT_THEME,

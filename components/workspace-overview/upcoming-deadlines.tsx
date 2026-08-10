@@ -95,7 +95,9 @@ function DeadlineRow({
     >
       <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${dotClass}`} />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-base-content/90">{task.title}</p>
+        <p className="truncate font-medium text-base-content/90">
+          {task.title}
+        </p>
         {deadline && (
           <p
             className={`mt-0.5 text-xs ${bucketKey === "overdue" ? "text-error" : "text-base-content/60"}`}

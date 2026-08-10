@@ -1,18 +1,18 @@
 "use client";
 
-import * as React from "react";
 import {
+  ArrowCounterClockwiseIcon,
   ArrowSquareOutIcon,
   DownloadSimpleIcon,
   FileIcon,
   FilePdfIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
-  ArrowCounterClockwiseIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -24,10 +24,10 @@ import { cn } from "@/lib/utils";
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface PreviewAttachment {
-  id: string;
   fileName: string;
-  mimeType: string;
   fileSize?: number;
+  id: string;
+  mimeType: string;
   url: string;
 }
 
@@ -56,7 +56,7 @@ export function AttachmentPreviewProvider({
   const [current, setCurrent] = React.useState<PreviewAttachment | null>(null);
   const open = React.useCallback(
     (attachment: PreviewAttachment) => setCurrent(attachment),
-    [],
+    []
   );
   const value = React.useMemo(() => ({ open }), [open]);
 
@@ -66,7 +66,9 @@ export function AttachmentPreviewProvider({
       <AttachmentPreviewModal
         attachment={current}
         onOpenChange={(o) => {
-          if (!o) setCurrent(null);
+          if (!o) {
+            setCurrent(null);
+          }
         }}
       />
     </AttachmentPreviewContext.Provider>
@@ -80,9 +82,15 @@ const ZOOM_MAX = 4;
 const ZOOM_STEP = 0.25;
 
 function formatBytes(bytes?: number) {
-  if (bytes === undefined) return null;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes === undefined) {
+    return null;
+  }
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(0)} KB`;
+  }
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
@@ -113,7 +121,7 @@ function AttachmentPreviewModal({
   React.useEffect(() => {
     setZoom(1);
     setOffset({ x: 0, y: 0 });
-  }, [attachment?.id]);
+  }, []);
 
   const mime = attachment?.mimeType ?? "";
   const isImage = mime.startsWith("image/");
@@ -122,14 +130,20 @@ function AttachmentPreviewModal({
   const isAudio = mime.startsWith("audio/");
 
   // When zoom drops back to fit, recenter so the image never gets stranded.
-  const clampAfterZoom = (next: number) => {
-    if (next <= 1) setOffset({ x: 0, y: 0 });
+  const clampAfterZoom = React.useCallback((next: number) => {
+    if (next <= 1) {
+      setOffset({ x: 0, y: 0 });
+    }
     return next;
-  };
+  }, []);
   const zoomIn = () =>
-    setZoom((z) => clampAfterZoom(Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2))));
+    setZoom((z) =>
+      clampAfterZoom(Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)))
+    );
   const zoomOut = () =>
-    setZoom((z) => clampAfterZoom(Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2))));
+    setZoom((z) =>
+      clampAfterZoom(Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)))
+    );
   const zoomReset = () => {
     setZoom(1);
     setOffset({ x: 0, y: 0 });
@@ -138,35 +152,51 @@ function AttachmentPreviewModal({
   // Wheel to zoom (non-passive so we can prevent the page/scroll default).
   React.useEffect(() => {
     const el = bodyRef.current;
-    if (!el || !isImage) return;
+    if (!el || !isImage) {
+      return;
+    }
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const dir = e.deltaY < 0 ? 1 : -1;
       setZoom((z) =>
         clampAfterZoom(
-          Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(z + dir * ZOOM_STEP).toFixed(2))),
-        ),
+          Math.min(
+            ZOOM_MAX,
+            Math.max(ZOOM_MIN, +(z + dir * ZOOM_STEP).toFixed(2))
+          )
+        )
       );
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [isImage]);
+  }, [isImage, clampAfterZoom]);
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (zoom <= 1) return;
+    if (zoom <= 1) {
+      return;
+    }
     e.currentTarget.setPointerCapture(e.pointerId);
     setDragging(true);
-    dragStart.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+    dragStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      ox: offset.x,
+      oy: offset.y,
+    };
   };
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragging || !dragStart.current) return;
+    if (!dragging || !dragStart.current) {
+      return;
+    }
     setOffset({
       x: dragStart.current.ox + (e.clientX - dragStart.current.x),
       y: dragStart.current.oy + (e.clientY - dragStart.current.y),
     });
   };
   const endDrag = (e: React.PointerEvent) => {
-    if (!dragging) return;
+    if (!dragging) {
+      return;
+    }
     setDragging(false);
     dragStart.current = null;
     try {
@@ -177,15 +207,15 @@ function AttachmentPreviewModal({
   };
 
   return (
-    <Dialog open={attachment !== null} onOpenChange={onOpenChange}>
+    <Dialog onOpenChange={onOpenChange} open={attachment !== null}>
       <DialogContent
-        showCloseButton={false}
         aria-describedby={undefined}
         className={cn(
           "flex flex-col gap-0 p-0 overflow-hidden",
           "h-[90vh] w-[95vw] max-w-275 sm:max-w-275",
-          "rounded-xl",
+          "rounded-xl"
         )}
+        showCloseButton={false}
       >
         {attachment && (
           <TooltipProvider delayDuration={300}>
@@ -211,9 +241,9 @@ function AttachmentPreviewModal({
                 {isImage && (
                   <>
                     <ToolbarButton
+                      disabled={zoom <= ZOOM_MIN}
                       label="Zoom out"
                       onClick={zoomOut}
-                      disabled={zoom <= ZOOM_MIN}
                     >
                       <MagnifyingGlassMinusIcon className="size-4" />
                     </ToolbarButton>
@@ -223,34 +253,40 @@ function AttachmentPreviewModal({
                       </span>
                     </ToolbarButton>
                     <ToolbarButton
+                      disabled={zoom >= ZOOM_MAX}
                       label="Zoom in"
                       onClick={zoomIn}
-                      disabled={zoom >= ZOOM_MAX}
                     >
                       <MagnifyingGlassPlusIcon className="size-4" />
                     </ToolbarButton>
-                    <ToolbarButton label="Reset zoom (100%)" onClick={zoomReset}>
+                    <ToolbarButton
+                      label="Reset zoom (100%)"
+                      onClick={zoomReset}
+                    >
                       <ArrowCounterClockwiseIcon className="size-4" />
                     </ToolbarButton>
                     <div className="mx-1 h-5 w-px bg-base-300" />
                   </>
                 )}
-                <ToolbarButton label="Download" asChild>
-                  <a href={attachment.url} download={attachment.fileName}>
+                <ToolbarButton asChild label="Download">
+                  <a download={attachment.fileName} href={attachment.url}>
                     <DownloadSimpleIcon className="size-4" />
                   </a>
                 </ToolbarButton>
-                <ToolbarButton label="Open in new tab" asChild>
+                <ToolbarButton asChild label="Open in new tab">
                   <a
                     href={attachment.url}
-                    target="_blank"
                     rel="noopener noreferrer"
+                    target="_blank"
                   >
                     <ArrowSquareOutIcon className="size-4" />
                   </a>
                 </ToolbarButton>
                 <div className="mx-1 h-5 w-px bg-base-300" />
-                <ToolbarButton label="Close" onClick={() => onOpenChange(false)}>
+                <ToolbarButton
+                  label="Close"
+                  onClick={() => onOpenChange(false)}
+                >
                   <XIcon className="size-4" />
                 </ToolbarButton>
               </div>
@@ -260,52 +296,62 @@ function AttachmentPreviewModal({
             <div
               className={cn(
                 "relative flex-1 bg-base-200/40",
-                isImage ? "select-none overflow-hidden" : "overflow-auto",
+                isImage ? "select-none overflow-hidden" : "overflow-auto"
               )}
               onPointerDown={isImage ? onPointerDown : undefined}
+              onPointerLeave={isImage ? endDrag : undefined}
               onPointerMove={isImage ? onPointerMove : undefined}
               onPointerUp={isImage ? endDrag : undefined}
-              onPointerLeave={isImage ? endDrag : undefined}
               ref={bodyRef}
               style={
                 isImage
-                  ? { cursor: zoom > 1 ? (dragging ? "grabbing" : "grab") : "default" }
+                  ? {
+                      cursor:
+                        zoom > 1 ? (dragging ? "grabbing" : "grab") : "default",
+                    }
                   : undefined
               }
             >
               {isImage ? (
                 <div className="flex h-full w-full items-center justify-center p-6">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {/* biome-ignore lint/performance/noImgElement: arbitrary user-uploaded attachment with unpredictable dimensions inside a custom zoom/pan viewer — next/image's fixed sizing doesn't fit this use case */}
                   <img
-                    src={attachment.url}
                     alt={attachment.fileName}
+                    className={cn(
+                      "max-h-full max-w-full origin-center object-contain",
+                      !dragging && "transition-transform duration-150"
+                    )}
                     draggable={false}
+                    src={attachment.url}
                     style={{
                       transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
                     }}
-                    className={cn(
-                      "max-h-full max-w-full origin-center object-contain",
-                      !dragging && "transition-transform duration-150",
-                    )}
                   />
                 </div>
               ) : isPdf ? (
                 <iframe
+                  className="h-full w-full border-0 bg-white"
                   src={attachment.url}
                   title={attachment.fileName}
-                  className="h-full w-full border-0 bg-white"
                 />
               ) : isVideo ? (
                 <div className="flex h-full w-full items-center justify-center p-6">
+                  {/* biome-ignore lint/a11y/useMediaCaption: arbitrary user-uploaded attachment — no caption/transcript source is available to attach */}
                   <video
-                    src={attachment.url}
-                    controls
                     className="max-h-full max-w-full rounded-lg"
+                    controls
+                    src={attachment.url}
                   />
                 </div>
               ) : isAudio ? (
                 <div className="flex h-full w-full items-center justify-center p-6">
-                  <audio src={attachment.url} controls className="w-full max-w-md" />
+                  {/* biome-ignore lint/a11y/useMediaCaption: arbitrary user-uploaded attachment — no caption/transcript source is available to attach */}
+                  <audio
+                    className="w-full max-w-md"
+                    controls
+                    src={attachment.url}
+                  />
                 </div>
               ) : (
                 <UnpreviewableState attachment={attachment} />
@@ -330,10 +376,10 @@ function ToolbarButton({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          variant="ghost"
-          size="icon-xs"
-          className="text-base-content/60 hover:text-base-content"
           asChild={asChild}
+          className="text-base-content/60 hover:text-base-content"
+          size="icon-xs"
+          variant="ghost"
           {...props}
         >
           {children}
@@ -359,14 +405,14 @@ function UnpreviewableState({ attachment }: { attachment: PreviewAttachment }) {
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <Button size="sm" asChild>
-          <a href={attachment.url} download={attachment.fileName}>
+        <Button asChild size="sm">
+          <a download={attachment.fileName} href={attachment.url}>
             <DownloadSimpleIcon className="size-4" />
             Download
           </a>
         </Button>
-        <Button size="sm" variant="outline" asChild>
-          <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+        <Button asChild size="sm" variant="outline">
+          <a href={attachment.url} rel="noopener noreferrer" target="_blank">
             <ArrowSquareOutIcon className="size-4" />
             Open in new tab
           </a>

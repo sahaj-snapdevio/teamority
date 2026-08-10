@@ -396,7 +396,9 @@ function AddDependencyDialog({
         <Combobox<SearchResult | null>
           immediate
           onChange={(result) => {
-            if (result) handleSelect(result);
+            if (result) {
+              handleSelect(result);
+            }
           }}
           value={null}
         >

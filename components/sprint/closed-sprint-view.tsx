@@ -1,8 +1,5 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { format } from "date-fns";
 import {
   CalendarBlankIcon,
   CaretDownIcon,
@@ -12,26 +9,39 @@ import {
   LockIcon,
   UserIcon,
 } from "@phosphor-icons/react";
+import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import {
+  type ClosedSprintTask,
+  getClosedSprintView,
+} from "@/app/actions/sprint";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { avatarSrc } from "@/lib/priority-config";
 import { cn } from "@/lib/utils";
-import { getClosedSprintView, type ClosedSprintTask } from "@/app/actions/sprint";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ClosedSprintViewProps {
-  workspaceId: string;
   spaceId: string;
   sprintId: string;
+  workspaceId: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(date: Date | null): string {
-  if (!date) return "—";
+  if (!date) {
+    return "—";
+  }
   return format(new Date(date), "MMM d, yyyy");
 }
 
-const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+const PRIORITY_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: string }
+> = {
   NONE: { label: "No Priority", color: "text-base-content/40", icon: "😴" },
   LOW: { label: "Low", color: "text-blue-500", icon: "🦥" },
   MEDIUM: { label: "Medium", color: "text-yellow-500", icon: "🚶" },
@@ -41,25 +51,27 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: stri
 
 // ─── Assignee avatars ─────────────────────────────────────────────────────────
 
-function AssigneeAvatars({ assignees }: { assignees: ClosedSprintTask["assignees"] }) {
+function AssigneeAvatars({
+  assignees,
+}: {
+  assignees: ClosedSprintTask["assignees"];
+}) {
   if (assignees.length === 0) {
     return <UserIcon className="size-4 text-base-content/30" />;
   }
   return (
     <div className="flex -space-x-1">
       {assignees.slice(0, 3).map((a) => (
-        <div
+        <Avatar
+          className="size-5 border-2 border-base-100 shrink-0"
           key={a.userId}
           title={a.name}
-          className="size-5 rounded-full border-2 border-base-100 bg-base-200 flex items-center justify-center text-[9px] font-semibold text-base-content/60 overflow-hidden shrink-0"
         >
-          {a.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={a.image} alt={a.name} className="size-full object-cover" />
-          ) : (
-            (a.name?.[0] ?? "?").toUpperCase()
-          )}
-        </div>
+          {a.image && <AvatarImage alt={a.name} src={avatarSrc(a.image)} />}
+          <AvatarFallback className="text-[9px] font-semibold text-base-content/60">
+            {(a.name?.[0] ?? "?").toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
       ))}
       {assignees.length > 3 && (
         <div className="size-5 rounded-full border-2 border-base-100 bg-base-200 flex items-center justify-center text-[9px] font-semibold text-base-content/60">
@@ -72,9 +84,16 @@ function AssigneeAvatars({ assignees }: { assignees: ClosedSprintTask["assignees
 
 // ─── Task row ─────────────────────────────────────────────────────────────────
 
-function TaskRow({ task, workspaceId }: { task: ClosedSprintTask; workspaceId: string }) {
+function TaskRow({
+  task,
+  workspaceId,
+}: {
+  task: ClosedSprintTask;
+  workspaceId: string;
+}) {
   const router = useRouter();
-  const priority = PRIORITY_CONFIG[task.priority ?? "NONE"] ?? PRIORITY_CONFIG.NONE;
+  const priority =
+    PRIORITY_CONFIG[task.priority ?? "NONE"] ?? PRIORITY_CONFIG.NONE;
   const isDone = task.statusType === "CLOSED";
 
   return (
@@ -88,13 +107,18 @@ function TaskRow({ task, workspaceId }: { task: ClosedSprintTask; workspaceId: s
           <span className="font-mono text-[11px] text-base-content/50 shrink-0 w-7">
             #{task.seqNumber}
           </span>
-          <span className={cn("text-sm truncate", isDone && "line-through text-base-content/60")}>
+          <span
+            className={cn(
+              "text-sm truncate",
+              isDone && "line-through text-base-content/60"
+            )}
+          >
             {task.title}
           </span>
           {task.tags.slice(0, 2).map((tag) => (
             <span
-              key={tag.id}
               className="hidden sm:inline-flex shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+              key={tag.id}
               style={{ backgroundColor: `${tag.color}22`, color: tag.color }}
             >
               {tag.name}
@@ -108,9 +132,15 @@ function TaskRow({ task, workspaceId }: { task: ClosedSprintTask; workspaceId: s
         {task.statusName ? (
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: `${task.statusColor ?? "#9CA3AF"}18`, color: task.statusColor ?? "#9CA3AF" }}
+            style={{
+              backgroundColor: `${task.statusColor ?? "#9CA3AF"}18`,
+              color: task.statusColor ?? "#9CA3AF",
+            }}
           >
-            <span className="size-1.5 rounded-full" style={{ backgroundColor: task.statusColor ?? "#9CA3AF" }} />
+            <span
+              className="size-1.5 rounded-full"
+              style={{ backgroundColor: task.statusColor ?? "#9CA3AF" }}
+            />
             {task.statusName}
           </span>
         ) : (
@@ -126,7 +156,12 @@ function TaskRow({ task, workspaceId }: { task: ClosedSprintTask; workspaceId: s
       {/* Priority */}
       <td className="py-2.5 px-3 w-28">
         {task.priority && task.priority !== "NONE" ? (
-          <span className={cn("flex items-center gap-1 text-xs font-medium", priority.color)}>
+          <span
+            className={cn(
+              "flex items-center gap-1 text-xs font-medium",
+              priority.color
+            )}
+          >
             <span>{priority.icon}</span>
             {priority.label}
           </span>
@@ -137,12 +172,12 @@ function TaskRow({ task, workspaceId }: { task: ClosedSprintTask; workspaceId: s
 
       {/* Story points */}
       <td className="py-2.5 px-3 w-16 text-right">
-        {task.storyPoints != null ? (
+        {task.storyPoints == null ? (
+          <span className="text-xs text-base-content/30">—</span>
+        ) : (
           <span className="text-xs font-medium text-base-content/60 tabular-nums">
             {task.storyPoints}
           </span>
-        ) : (
-          <span className="text-xs text-base-content/30">—</span>
         )}
       </td>
 
@@ -162,7 +197,12 @@ function TaskRow({ task, workspaceId }: { task: ClosedSprintTask; workspaceId: s
 
 // ─── Status group ─────────────────────────────────────────────────────────────
 
-function StatusGroup({ statusName, statusColor, tasks, workspaceId }: {
+function StatusGroup({
+  statusName,
+  statusColor,
+  tasks,
+  workspaceId,
+}: {
   statusName: string;
   statusColor: string;
   tasks: ClosedSprintTask[];
@@ -173,38 +213,57 @@ function StatusGroup({ statusName, statusColor, tasks, workspaceId }: {
   return (
     <>
       <tr className="bg-base-200/20 border-b border-base-300/40">
-        <td colSpan={6} className="py-2 pl-3 pr-4">
+        <td className="py-2 pl-3 pr-4" colSpan={6}>
           <button
-            onClick={() => setCollapsed((v) => !v)}
             className="flex items-center gap-2 select-none"
+            onClick={() => setCollapsed((v) => !v)}
+            type="button"
           >
-            {collapsed
-              ? <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
-              : <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />}
-            <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
+            {collapsed ? (
+              <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
+            ) : (
+              <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />
+            )}
+            <span
+              className="size-2 rounded-full shrink-0"
+              style={{ backgroundColor: statusColor }}
+            />
             <span className="text-sm font-semibold">{statusName}</span>
-            <span className="text-xs text-base-content/60 tabular-nums">{tasks.length}</span>
+            <span className="text-xs text-base-content/60 tabular-nums">
+              {tasks.length}
+            </span>
           </button>
         </td>
       </tr>
-      {!collapsed && tasks.map((t) => (
-        <TaskRow key={t.id} task={t} workspaceId={workspaceId} />
-      ))}
+      {!collapsed &&
+        tasks.map((t) => (
+          <TaskRow key={t.id} task={t} workspaceId={workspaceId} />
+        ))}
     </>
   );
 }
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 
-export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprintViewProps) {
-  const [data, setData] = React.useState<Awaited<ReturnType<typeof getClosedSprintView>> | null>(null);
+export function ClosedSprintView({
+  workspaceId,
+  spaceId,
+  sprintId,
+}: ClosedSprintViewProps) {
+  const [data, setData] = React.useState<Awaited<
+    ReturnType<typeof getClosedSprintView>
+  > | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     void (async () => {
       setLoading(true);
       try {
-        const result = await getClosedSprintView(workspaceId, spaceId, sprintId);
+        const result = await getClosedSprintView(
+          workspaceId,
+          spaceId,
+          sprintId
+        );
         setData(result);
       } finally {
         setLoading(false);
@@ -217,7 +276,9 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
       <div className="rounded-xl border bg-elevated animate-pulse">
         <div className="h-28 bg-base-200/40 rounded-t-xl" />
         <div className="p-4 space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-10 rounded bg-base-200" />)}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div className="h-10 rounded bg-base-200" key={i} />
+          ))}
         </div>
       </div>
     );
@@ -227,17 +288,27 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
     return (
       <div className="rounded-xl border bg-elevated flex items-center justify-center py-16">
         <p className="text-sm text-base-content/60">
-          {"error" in (data ?? {}) ? (data as { error: string }).error : "Sprint not found"}
+          {"error" in (data ?? {})
+            ? (data as { error: string }).error
+            : "Sprint not found"}
         </p>
       </div>
     );
   }
 
   const { sprint, tasks, stats } = data;
-  const percent = stats.totalTasks > 0 ? Math.round((stats.closedTasks / stats.totalTasks) * 100) : 0;
+  const percent =
+    stats.totalTasks > 0
+      ? Math.round((stats.closedTasks / stats.totalTasks) * 100)
+      : 0;
 
   // Group tasks by status, preserving order
-  const statusOrder: { id: string | null; name: string; color: string; tasks: ClosedSprintTask[] }[] = [];
+  const statusOrder: {
+    id: string | null;
+    name: string;
+    color: string;
+    tasks: ClosedSprintTask[];
+  }[] = [];
   const statusMap = new Map<string, (typeof statusOrder)[number]>();
   for (const t of tasks) {
     const key = t.statusId ?? "__no_status__";
@@ -269,12 +340,17 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
                 {formatDate(sprint.startDate)} → {formatDate(sprint.endDate)}
               </p>
               {sprint.goal && (
-                <p className="text-sm text-base-content/80 mt-1 line-clamp-2">{sprint.goal}</p>
+                <p className="text-sm text-base-content/80 mt-1 line-clamp-2">
+                  {sprint.goal}
+                </p>
               )}
             </div>
           </div>
           <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-base-200 px-2.5 py-1 text-xs font-medium text-base-content/60">
-            <CheckCircleIcon className="size-3.5 text-green-500" weight="fill" />
+            <CheckCircleIcon
+              className="size-3.5 text-green-500"
+              weight="fill"
+            />
             Closed
           </span>
         </div>
@@ -287,7 +363,7 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
             </span>
             <span className="font-semibold tabular-nums">{percent}%</span>
           </div>
-          <Progress value={percent} className="h-2" />
+          <Progress className="h-2" value={percent} />
         </div>
 
         {stats.totalPoints > 0 && (
@@ -305,48 +381,53 @@ export function ClosedSprintView({ workspaceId, spaceId, sprintId }: ClosedSprin
       {/* Task table */}
       {tasks.length === 0 ? (
         <div className="rounded-xl border bg-elevated flex flex-col items-center gap-2 py-16 text-center">
-          <CheckCircleIcon className="size-10 text-base-content/20" weight="fill" />
-          <p className="text-sm text-base-content/60">No tasks were in this sprint</p>
+          <CheckCircleIcon
+            className="size-10 text-base-content/20"
+            weight="fill"
+          />
+          <p className="text-sm text-base-content/60">
+            No tasks were in this sprint
+          </p>
         </div>
       ) : (
         <div className="rounded-xl border bg-elevated overflow-hidden">
           <div className="overflow-x-auto">
-          <table className="w-full min-w-150 border-collapse">
-            <thead>
-              <tr className="border-b border-base-300/60 bg-base-200/20">
-                <th className="py-2 pl-4 pr-3 text-left text-xs font-semibold text-base-content/60">
-                  Task
-                </th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-36">
-                  Status
-                </th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-24">
-                  Assignee
-                </th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-28">
-                  Priority
-                </th>
-                <th className="py-2 px-3 text-right text-xs font-semibold text-base-content/60 w-16">
-                  Pts
-                </th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-28">
-                  Due Date
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {statusOrder.map((group, i) => (
-                <React.Fragment key={group.id ?? `group-${i}`}>
-                  <StatusGroup
-                    statusName={group.name}
-                    statusColor={group.color}
-                    tasks={group.tasks}
-                    workspaceId={workspaceId}
-                  />
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+            <table className="w-full min-w-150 border-collapse">
+              <thead>
+                <tr className="border-b border-base-300/60 bg-base-200/20">
+                  <th className="py-2 pl-4 pr-3 text-left text-xs font-semibold text-base-content/60">
+                    Task
+                  </th>
+                  <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-36">
+                    Status
+                  </th>
+                  <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-24">
+                    Assignee
+                  </th>
+                  <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-28">
+                    Priority
+                  </th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold text-base-content/60 w-16">
+                    Pts
+                  </th>
+                  <th className="py-2 px-3 text-left text-xs font-semibold text-base-content/60 w-28">
+                    Due Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {statusOrder.map((group, i) => (
+                  <React.Fragment key={group.id ?? `group-${i}`}>
+                    <StatusGroup
+                      statusColor={group.color}
+                      statusName={group.name}
+                      tasks={group.tasks}
+                      workspaceId={workspaceId}
+                    />
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

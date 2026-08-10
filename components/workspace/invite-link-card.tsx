@@ -118,9 +118,7 @@ export function InviteLinkCard({
 
             {canManage && (
               <div className="flex flex-wrap items-center gap-2">
-                <Label className="text-xs text-base-content/60">
-                  Joins as
-                </Label>
+                <Label className="text-xs text-base-content/60">Joins as</Label>
                 <Select
                   disabled={pending}
                   onValueChange={(value) =>

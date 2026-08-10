@@ -143,6 +143,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
               <button
                 className="text-xs text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
                 onClick={markAllRead}
+                type="button"
               >
                 Mark all as read
               </button>
@@ -152,6 +153,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
               <button
                 className="text-xs text-base-content/60 hover:text-error transition-colors cursor-pointer"
                 onClick={clearAll}
+                type="button"
               >
                 Clear all
               </button>
@@ -203,6 +205,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
             </div>
           )}
           {notifications.map((n) => (
+            // biome-ignore lint/a11y/useSemanticElements: row is clickable to open, but contains a nested interactive delete button — can't be a real <button> (invalid nested-interactive markup)
             <div
               className={cn(
                 "group relative flex cursor-pointer items-start gap-3 border-b px-4 py-3 transition-colors hover:bg-base-200/50",
@@ -210,6 +213,17 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
               )}
               key={n.id}
               onClick={() => handleNotificationClick(n)}
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) {
+                  return;
+                }
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleNotificationClick(n);
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
               {/* Unread dot */}
               {!n.isRead && (
@@ -261,6 +275,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
                   void deleteNotification(n.id);
                 }}
                 title="Dismiss"
+                type="button"
               >
                 <XIcon className="size-3 text-base-content/60" />
               </button>

@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
 import { PaperPlaneTiltIcon } from "@phosphor-icons/react";
+import * as React from "react";
 import { toast } from "sonner";
 import { inviteMember } from "@/app/actions/workspace";
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,7 @@ export function InviteMemberModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Invite member</DialogTitle>
@@ -94,12 +94,9 @@ export function InviteMemberModal({
           <div className="space-y-2">
             <Label htmlFor="invite-member-email">Email address</Label>
             <Input
-              id="invite-member-email"
-              type="email"
-              placeholder="teammate@example.com"
-              value={email}
-              autoFocus
               aria-invalid={trimmedEmail.length > 0 && !emailValid}
+              autoFocus
+              id="invite-member-email"
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !sending) {
@@ -107,14 +104,22 @@ export function InviteMemberModal({
                   void handleSend();
                 }
               }}
+              placeholder="teammate@example.com"
+              type="email"
+              value={email}
             />
             {trimmedEmail.length > 0 && !emailValid && (
-              <p className="text-xs text-error">Please enter a valid email address.</p>
+              <p className="text-xs text-error">
+                Please enter a valid email address.
+              </p>
             )}
           </div>
           <div className="space-y-2">
             <Label>Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as InviteRole)}>
+            <Select
+              onValueChange={(v) => setRole(v as InviteRole)}
+              value={role}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -128,11 +133,23 @@ export function InviteMemberModal({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
+          <Button
+            disabled={sending}
+            onClick={() => onOpenChange(false)}
+            variant="outline"
+          >
             Cancel
           </Button>
-          <Button onClick={() => void handleSend()} disabled={sending || !emailValid} className="gap-2">
-            {sending ? <Spinner className="size-4" /> : <PaperPlaneTiltIcon className="size-4" />}
+          <Button
+            className="gap-2"
+            disabled={sending || !emailValid}
+            onClick={() => void handleSend()}
+          >
+            {sending ? (
+              <Spinner className="size-4" />
+            ) : (
+              <PaperPlaneTiltIcon className="size-4" />
+            )}
             Send Invite
           </Button>
         </DialogFooter>

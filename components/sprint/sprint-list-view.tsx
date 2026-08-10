@@ -253,6 +253,7 @@ function QuickCreateRow({
       <button
         className="flex w-full items-center gap-2 border-b border-base-300 pl-10 pr-4 py-2 text-sm text-base-content/60 hover:text-base-content hover:bg-base-200/20 transition-colors"
         onClick={() => onOpenChange(true)}
+        type="button"
       >
         <PlusIcon className="size-3.5 shrink-0" />
         Add Task
@@ -289,6 +290,7 @@ function QuickCreateRow({
           className="rounded px-2 py-0.5 text-xs font-medium bg-primary text-primary-content hover:bg-primary/90 disabled:opacity-40 transition-colors shrink-0"
           disabled={saving || !title.trim()}
           onClick={() => void submit()}
+          type="button"
         >
           {saving ? "…" : "Add"}
         </button>
@@ -298,6 +300,7 @@ function QuickCreateRow({
             onOpenChange(false);
             setTitle("");
           }}
+          type="button"
         >
           Esc
         </button>
@@ -432,9 +435,13 @@ function StatusGroup({
 
   function toggleAll() {
     if (allSelected) {
-      tasks.forEach((t) => onSelect(t.id, false));
+      for (const t of tasks) {
+        onSelect(t.id, false);
+      }
     } else {
-      tasks.forEach((t) => onSelect(t.id, true));
+      for (const t of tasks) {
+        onSelect(t.id, true);
+      }
     }
   }
 
@@ -442,9 +449,19 @@ function StatusGroup({
     <>
       <div>
         {/* Group header */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: wraps nested interactive controls (menu popover, add-task button) that would double up if this whole row became a button/role=button */}
+        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: see above */}
         <div
           className="group/header flex flex-wrap items-center gap-2.5 py-1.5 px-3 hover:bg-base-200/40 transition-colors cursor-pointer select-none border-b border-base-300"
           onClick={() => setCollapsed((v) => !v)}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) {
+              return;
+            }
+            if (e.key === "Enter") {
+              setCollapsed((v) => !v);
+            }
+          }}
         >
           <div className="flex size-5 items-center justify-center rounded hover:bg-base-200 transition-colors shrink-0 text-base-content/60 group-hover/header:text-base-content/70">
             {collapsed ? (
@@ -473,13 +490,26 @@ function StatusGroup({
             {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
           </span>
 
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: only stops the click from bubbling to the header's collapse toggle; nested buttons remain independently keyboard-accessible */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: see above */}
           <div
             className="ml-2 flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/header:opacity-100"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.target !== e.currentTarget) {
+                return;
+              }
+              if (e.key === "Enter") {
+                e.stopPropagation();
+              }
+            }}
           >
             <Popover onOpenChange={setMenuOpen} open={menuOpen}>
               <PopoverTrigger asChild>
-                <button className="flex size-6 items-center justify-center rounded hover:bg-base-200 transition-colors">
+                <button
+                  className="flex size-6 items-center justify-center rounded hover:bg-base-200 transition-colors"
+                  type="button"
+                >
                   <DotsThreeIcon
                     className="size-4.5 text-base-content/60"
                     weight="bold"
@@ -501,6 +531,7 @@ function StatusGroup({
                     setRenameName(status.name);
                     setRenameOpen(true);
                   }}
+                  type="button"
                 >
                   <PencilSimpleIcon className="size-3.5 text-base-content/60 shrink-0" />
                   Rename
@@ -511,6 +542,7 @@ function StatusGroup({
                     setMenuOpen(false);
                     setNewStatusOpen(true);
                   }}
+                  type="button"
                 >
                   <PlusIcon className="size-3.5 text-base-content/60 shrink-0" />
                   New status
@@ -522,6 +554,7 @@ function StatusGroup({
                     setCollapsed((v) => !v);
                     setMenuOpen(false);
                   }}
+                  type="button"
                 >
                   {collapsed ? (
                     <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
@@ -538,6 +571,7 @@ function StatusGroup({
                 setCollapsed(false);
                 setQuickCreateOpen(true);
               }}
+              type="button"
             >
               <PlusIcon className="size-3.5 text-base-content/60" />
             </button>
@@ -551,9 +585,10 @@ function StatusGroup({
               {/* Column headers with select-all */}
               <div className="flex items-center">
                 <div className="w-0.75 self-stretch shrink-0" />
-                <div
+                <button
                   className="flex w-14 shrink-0 items-center justify-center py-2 pl-2 cursor-pointer"
                   onClick={toggleAll}
+                  type="button"
                 >
                   <div
                     className={cn(
@@ -572,7 +607,7 @@ function StatusGroup({
                       <div className="size-1.5 rounded-sm bg-primary" />
                     )}
                   </div>
-                </div>
+                </button>
                 <div className="flex-1 py-2 pr-4 pl-1 text-2xs font-bold text-gray-400 uppercase tracking-wider">
                   Name
                 </div>
@@ -720,6 +755,7 @@ function StatusGroup({
                   key={color}
                   onClick={() => setNewStatusColor(color)}
                   style={{ backgroundColor: color }}
+                  type="button"
                 />
               ))}
             </div>
@@ -961,6 +997,7 @@ function BulkActionBar({
         <button
           className="flex size-6 shrink-0 items-center justify-center rounded hover:bg-white/10 transition-colors mr-2"
           onClick={onClear}
+          type="button"
         >
           <XIcon className="size-3.5 text-white/70" />
         </button>
@@ -971,6 +1008,7 @@ function BulkActionBar({
             <button
               className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
               disabled={busy}
+              type="button"
             >
               <span className="size-2 rounded-full bg-white/60" />
               Status
@@ -982,6 +1020,7 @@ function BulkActionBar({
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                 key={s.id}
                 onClick={() => handleBulkStatus(s.id)}
+                type="button"
               >
                 <span
                   className="size-2.5 rounded-full shrink-0"
@@ -1006,6 +1045,7 @@ function BulkActionBar({
             <button
               className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
               disabled={busy}
+              type="button"
             >
               <CaretDownIcon className="size-3.5" />
               Move
@@ -1036,6 +1076,7 @@ function BulkActionBar({
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                   key={s.id}
                   onClick={() => handleMoveToSprint(s.id, s.name)}
+                  type="button"
                 >
                   <LightningIcon
                     className={cn(
@@ -1092,6 +1133,7 @@ function BulkActionBar({
                       className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-sm hover:bg-base-200"
                       key={l.id}
                       onClick={() => handleMoveToList(l.id, l.name)}
+                      type="button"
                     >
                       <span
                         className="size-2 rounded-full shrink-0"
@@ -1112,6 +1154,7 @@ function BulkActionBar({
           className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
           disabled={busy}
           onClick={handleMoveToBacklog}
+          type="button"
         >
           <TrayIcon className="size-3.5" />
           Backlog
@@ -1124,6 +1167,7 @@ function BulkActionBar({
           className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
           disabled={busy}
           onClick={handleBulkArchive}
+          type="button"
         >
           <ArchiveIcon className="size-3.5" />
           Archive
@@ -1134,6 +1178,7 @@ function BulkActionBar({
             className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-50"
             disabled={busy}
             onClick={() => setDeleteOpen(true)}
+            type="button"
           >
             <TrashIcon className="size-3.5" />
             Delete
@@ -1169,7 +1214,16 @@ function SprintBoardCardContent({
       (task.priority ?? "NONE") as keyof typeof PRIORITY_CONFIG
     ] ?? PRIORITY_CONFIG.NONE;
 
+  function handleOpen() {
+    if (isDragging || overlay) {
+      return;
+    }
+    setTaskNavContext({ taskIds: taskNavIds });
+    router.push(`/${workspaceId}/task/${task.id}?from=sprint&sid=${sprintId}`);
+  }
+
   return (
+    // biome-ignore lint/a11y/useSemanticElements: content includes block-level children (tags, avatars) that aren't valid inside a native <button>; role="button" emulates it instead
     <div
       className={cn(
         "rounded-lg border bg-elevated p-3 shadow-sm",
@@ -1179,15 +1233,18 @@ function SprintBoardCardContent({
           !overlay &&
           "hover:shadow-md transition-shadow cursor-pointer"
       )}
-      onClick={() => {
-        if (isDragging || overlay) {
+      onClick={handleOpen}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
           return;
         }
-        setTaskNavContext({ taskIds: taskNavIds });
-        router.push(
-          `/${workspaceId}/task/${task.id}?from=sprint&sid=${sprintId}`
-        );
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleOpen();
+        }
       }}
+      role="button"
+      tabIndex={0}
     >
       <div
         {...dragListeners}
@@ -1439,7 +1496,7 @@ export function SprintListView({
   isAdmin,
   canEdit,
   members = [],
-  refreshKey,
+  refreshKey: _refreshKey,
 }: SprintListViewProps) {
   const router = useRouter();
   const [sprintInfo, setSprintInfo] = React.useState<SprintInfo | null>(null);
@@ -1528,7 +1585,7 @@ export function SprintListView({
         setLoading(false);
       }
     }
-  }, [workspaceId, spaceId, listId, refreshKey]);
+  }, [workspaceId, spaceId]);
 
   React.useEffect(() => {
     void fetchData();
@@ -1790,6 +1847,7 @@ export function SprintListView({
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             className="flex items-center gap-3 border-b border-base-300/40 py-2.5 pl-10 pr-3"
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholder list, fixed length, never reordered, no data identity
             key={i}
           >
             <Skeleton className="h-4 w-6 rounded" />
@@ -1852,6 +1910,7 @@ export function SprintListView({
                 )}
                 key={v}
                 onClick={() => setView(v)}
+                type="button"
               >
                 {v === "list" ? (
                   <RowsIcon className="size-3.5" />
@@ -1875,7 +1934,10 @@ export function SprintListView({
           {/* Filter Popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/50 transition-colors cursor-pointer select-none">
+              <button
+                className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/50 transition-colors cursor-pointer select-none"
+                type="button"
+              >
                 <FunnelIcon className="size-3.5 text-base-content/60" />
                 Filters
                 {hasActiveFilters && (
@@ -2029,6 +2091,7 @@ export function SprintListView({
                   setAssigneeFilter([]);
                   setStatusFilter([]);
                 }}
+                type="button"
               >
                 Clear Filters
               </button>
@@ -2040,6 +2103,7 @@ export function SprintListView({
         <button
           className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-content hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
           onClick={() => setCreateOpen(true)}
+          type="button"
         >
           <PlusIcon className="size-3.5" weight="bold" />
           Create Task
@@ -2053,6 +2117,7 @@ export function SprintListView({
             <button
               className="flex items-center gap-2 flex-1 text-left min-w-0"
               onClick={() => setSprintCollapsed((v) => !v)}
+              type="button"
             >
               {sprintCollapsed ? (
                 <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
@@ -2231,6 +2296,7 @@ export function SprintListView({
                                 ]);
                               });
                             }}
+                            type="button"
                           >
                             <ArchiveIcon className="size-3.5 text-base-content/60" />
                             Unarchive

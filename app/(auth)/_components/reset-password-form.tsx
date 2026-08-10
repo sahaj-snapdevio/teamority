@@ -1,20 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { KeyIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
-import { KeyIcon } from "@phosphor-icons/react";
+import { z } from "zod";
+import { PasswordInput } from "@/components/common/password-input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-errors";
-import { Button } from "@/components/ui/button";
-import { PasswordInput } from "@/components/common/password-input";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Spinner } from "@/components/ui/spinner";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -22,7 +30,10 @@ const schema = z
   .object({
     password: z
       .string()
-      .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+      .min(
+        MIN_PASSWORD_LENGTH,
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+      )
       .max(128, "Password must be at most 128 characters"),
     confirmPassword: z.string(),
   })
@@ -48,15 +59,22 @@ export function ResetPasswordForm({ token }: { token: string }) {
   async function onSubmit({ password }: FormData) {
     form.clearErrors("root");
 
-    const { error } = await authClient.resetPassword({ newPassword: password, token });
+    const { error } = await authClient.resetPassword({
+      newPassword: password,
+      token,
+    });
     if (error) {
-      form.setError("root", { message: authErrorMessage(error.code, error.message) });
+      form.setError("root", {
+        message: authErrorMessage(error.code, error.message),
+      });
       return;
     }
 
     // `revokeSessionsOnPasswordReset` already signed out every device.
     setDone(true);
-    toast.success("Password updated", { description: "Sign in with your new password." });
+    toast.success("Password updated", {
+      description: "Sign in with your new password.",
+    });
     router.push("/login");
   }
 
@@ -70,15 +88,25 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={form.handleSubmit(onSubmit)}
+      >
         <FormField
           control={form.control}
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-base-content">New password</FormLabel>
+              <FormLabel className="text-sm font-semibold text-base-content">
+                New password
+              </FormLabel>
               <FormControl>
-                <PasswordInput autoComplete="new-password" placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`} className="h-11 rounded-lg font-medium text-base-content" {...field} />
+                <PasswordInput
+                  autoComplete="new-password"
+                  className="h-11 rounded-lg font-medium text-base-content"
+                  placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+                  {...field}
+                />
               </FormControl>
               <FormDescription className="text-xs">
                 For your security, all devices will be signed out.
@@ -93,9 +121,16 @@ export function ResetPasswordForm({ token }: { token: string }) {
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-base-content">Confirm new password</FormLabel>
+              <FormLabel className="text-sm font-semibold text-base-content">
+                Confirm new password
+              </FormLabel>
               <FormControl>
-                <PasswordInput autoComplete="new-password" placeholder="Re-enter your password" className="h-11 rounded-lg font-medium text-base-content" {...field} />
+                <PasswordInput
+                  autoComplete="new-password"
+                  className="h-11 rounded-lg font-medium text-base-content"
+                  placeholder="Re-enter your password"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -104,24 +139,35 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
         {form.formState.errors.root && (
           <Alert variant="destructive">
-            <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+            <AlertDescription>
+              {form.formState.errors.root.message}
+            </AlertDescription>
           </Alert>
         )}
 
         <Button
-          type="submit"
-          disabled={!isValid || isSubmitting}
           className="h-11 w-full gap-2 rounded-lg text-sm font-semibold shadow-sm disabled:bg-base-200 disabled:text-base-content/60 disabled:opacity-100 disabled:shadow-none"
+          disabled={!isValid || isSubmitting}
+          type="submit"
         >
           {isSubmitting ? (
-            <><Spinner className="size-4" />Updating…</>
+            <>
+              <Spinner className="size-4" />
+              Updating…
+            </>
           ) : (
-            <><KeyIcon className="size-4" />Set new password</>
+            <>
+              <KeyIcon className="size-4" />
+              Set new password
+            </>
           )}
         </Button>
 
         <p className="pt-1 text-center text-sm text-base-content/70">
-          <Link href="/login" className="font-semibold text-base-content underline underline-offset-4 transition-opacity hover:opacity-80">
+          <Link
+            className="font-semibold text-base-content underline underline-offset-4 transition-opacity hover:opacity-80"
+            href="/login"
+          >
             Back to sign in
           </Link>
         </p>

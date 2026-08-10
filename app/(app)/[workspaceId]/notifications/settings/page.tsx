@@ -1,8 +1,10 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import * as React from "react";
 import useSWR from "swr";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -10,10 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
-import { useParams } from "next/navigation";
 import { useSetTopbar } from "@/lib/topbar-context";
 
 // Half-hour slots for the daily-digest send time. A Select rather than
@@ -73,11 +73,11 @@ const TRIGGER_LABELS: Record<string, string> = {
 };
 
 interface NotifPref {
-  triggerType: string;
-  inAppEnabled: boolean;
   emailEnabled: boolean;
+  inAppEnabled: boolean;
   pushEnabled: boolean;
   soundEnabled: boolean;
+  triggerType: string;
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -93,7 +93,7 @@ export default function NotificationSettingsPage() {
 
   const { data: notifPrefData, mutate: mutateNotif } = useSWR(
     "/api/me/notification-preferences",
-    fetcher,
+    fetcher
   );
 
   // Email is only shown when the deployment can actually deliver it. No
@@ -106,7 +106,7 @@ export default function NotificationSettingsPage() {
   // fetched unconditionally.
   const { data: emailPrefData, mutate: mutateEmail } = useSWR(
     "/api/me/email-preferences",
-    fetcher,
+    fetcher
   );
 
   const [prefs, setPrefs] = React.useState<NotifPref[]>([]);
@@ -115,7 +115,13 @@ export default function NotificationSettingsPage() {
   const [soundEnabled, setSoundEnabled] = React.useState<boolean>(true);
   const [saving, setSaving] = React.useState(false);
   const [pushEnabling, setPushEnabling] = React.useState(false);
-  const { supported: pushSupported, permission, subscribed, enable: enablePush, disable: disablePush } = usePushSubscription();
+  const {
+    supported: pushSupported,
+    permission,
+    subscribed,
+    enable: enablePush,
+    disable: disablePush,
+  } = usePushSubscription();
 
   React.useEffect(() => {
     if (notifPrefData?.preferences) {
@@ -168,16 +174,16 @@ export default function NotificationSettingsPage() {
   // stay unchanged; only the rendered rows are filtered.
   const visiblePrefs = React.useMemo(
     () => prefs.filter((p) => !HIDDEN_TRIGGERS.has(p.triggerType)),
-    [prefs],
+    [prefs]
   );
 
   async function saveNotifPref(
     triggerType: string,
     field: keyof Omit<NotifPref, "triggerType">,
-    value: boolean,
+    value: boolean
   ) {
     const updated = prefs.map((p) =>
-      p.triggerType === triggerType ? { ...p, [field]: value } : p,
+      p.triggerType === triggerType ? { ...p, [field]: value } : p
     );
     setPrefs(updated);
 
@@ -185,7 +191,12 @@ export default function NotificationSettingsPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        preferences: [{ triggerType, ...updated.find((p) => p.triggerType === triggerType) }],
+        preferences: [
+          {
+            triggerType,
+            ...updated.find((p) => p.triggerType === triggerType),
+          },
+        ],
       }),
     });
     await mutateNotif();
@@ -213,8 +224,6 @@ export default function NotificationSettingsPage() {
             </div>
             {permission !== "denied" && (
               <Button
-                size="sm"
-                variant={subscribed ? "outline" : "default"}
                 disabled={pushEnabling}
                 onClick={async () => {
                   setPushEnabling(true);
@@ -225,12 +234,10 @@ export default function NotificationSettingsPage() {
                   }
                   setPushEnabling(false);
                 }}
+                size="sm"
+                variant={subscribed ? "outline" : "default"}
               >
-                {pushEnabling
-                  ? "…"
-                  : subscribed
-                    ? "Disable"
-                    : "Enable"}
+                {pushEnabling ? "…" : subscribed ? "Disable" : "Enable"}
               </Button>
             )}
           </div>
@@ -247,11 +254,11 @@ export default function NotificationSettingsPage() {
         <div className="space-y-4 rounded-xl border p-4">
           <h3 className="font-medium">Email Delivery</h3>
           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
-            <Label htmlFor="delivery-mode" className="sm:w-32 sm:shrink-0">
+            <Label className="sm:w-32 sm:shrink-0" htmlFor="delivery-mode">
               Delivery mode
             </Label>
-            <Select value={deliveryMode} onValueChange={setDeliveryMode}>
-              <SelectTrigger id="delivery-mode" className="w-full sm:w-40">
+            <Select onValueChange={setDeliveryMode} value={deliveryMode}>
+              <SelectTrigger className="w-full sm:w-40" id="delivery-mode">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="p-1.5">
@@ -263,11 +270,11 @@ export default function NotificationSettingsPage() {
           </div>
           {deliveryMode === "digest" && (
             <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
-              <Label htmlFor="digest-time" className="sm:w-32 sm:shrink-0">
+              <Label className="sm:w-32 sm:shrink-0" htmlFor="digest-time">
                 Digest time
               </Label>
-              <Select value={digestTime} onValueChange={setDigestTime}>
-                <SelectTrigger id="digest-time" className="w-full sm:w-40">
+              <Select onValueChange={setDigestTime} value={digestTime}>
+                <SelectTrigger className="w-full sm:w-40" id="digest-time">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="p-1.5">
@@ -280,7 +287,7 @@ export default function NotificationSettingsPage() {
               </Select>
             </div>
           )}
-          <Button onClick={saveEmailPrefs} disabled={saving} size="sm">
+          <Button disabled={saving} onClick={saveEmailPrefs} size="sm">
             {saving ? "Saving..." : "Save email preferences"}
           </Button>
         </div>
@@ -292,12 +299,15 @@ export default function NotificationSettingsPage() {
           <div>
             <h3 className="font-medium">In-App Notification Sound</h3>
             <p className="mt-0.5 text-sm text-base-content/60">
-              Master switch for notification sounds. When on, the Sound
-              column below controls which event types actually play one
-              while you're actively using Kanbanica.
+              Master switch for notification sounds. When on, the Sound column
+              below controls which event types actually play one while you're
+              actively using Kanbanica.
             </p>
           </div>
-          <Switch checked={soundEnabled} onCheckedChange={(v) => void saveSoundPref(v)} />
+          <Switch
+            checked={soundEnabled}
+            onCheckedChange={(v) => void saveSoundPref(v)}
+          />
         </div>
       </div>
 
@@ -309,72 +319,84 @@ export default function NotificationSettingsPage() {
               event labels don't fit under ~480px; the min-width keeps every
               column legible and lets the row scroll instead of squeezing. */}
           <div className="overflow-x-auto">
-          <table className="w-full min-w-[480px] text-sm">
-            <thead>
-              <tr className="border-b bg-base-200/50">
-                <th className="px-4 py-2 text-left font-medium">Event</th>
-                <th className="px-4 py-2 text-center font-medium">In-App</th>
-                {emailAvailable && (
-                  <th className="px-4 py-2 text-center font-medium">Email</th>
-                )}
-                <th className="px-4 py-2 text-center font-medium">Push</th>
-                <th className="px-4 py-2 text-center font-medium">Sound</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visiblePrefs.map((pref) => (
-                <tr key={pref.triggerType} className="border-b last:border-0">
-                  <td className="px-4 py-2.5 text-sm">
-                    {TRIGGER_LABELS[pref.triggerType] ?? pref.triggerType}
-                  </td>
-                  <td className="px-4 py-2.5 text-center">
-                    <Switch
-                      checked={pref.inAppEnabled}
-                      onCheckedChange={(v) =>
-                        void saveNotifPref(pref.triggerType, "inAppEnabled", v)
-                      }
-                    />
-                  </td>
+            <table className="w-full min-w-[480px] text-sm">
+              <thead>
+                <tr className="border-b bg-base-200/50">
+                  <th className="px-4 py-2 text-left font-medium">Event</th>
+                  <th className="px-4 py-2 text-center font-medium">In-App</th>
                   {emailAvailable && (
+                    <th className="px-4 py-2 text-center font-medium">Email</th>
+                  )}
+                  <th className="px-4 py-2 text-center font-medium">Push</th>
+                  <th className="px-4 py-2 text-center font-medium">Sound</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visiblePrefs.map((pref) => (
+                  <tr className="border-b last:border-0" key={pref.triggerType}>
+                    <td className="px-4 py-2.5 text-sm">
+                      {TRIGGER_LABELS[pref.triggerType] ?? pref.triggerType}
+                    </td>
                     <td className="px-4 py-2.5 text-center">
                       <Switch
-                        checked={pref.emailEnabled}
+                        checked={pref.inAppEnabled}
                         onCheckedChange={(v) =>
-                          void saveNotifPref(pref.triggerType, "emailEnabled", v)
+                          void saveNotifPref(
+                            pref.triggerType,
+                            "inAppEnabled",
+                            v
+                          )
                         }
                       />
                     </td>
-                  )}
-                  <td className="px-4 py-2.5 text-center">
-                    <Switch
-                      checked={pref.pushEnabled}
-                      onCheckedChange={(v) =>
-                        void saveNotifPref(pref.triggerType, "pushEnabled", v)
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-2.5 text-center">
-                    <Switch
-                      checked={pref.soundEnabled}
-                      onCheckedChange={(v) =>
-                        void saveNotifPref(pref.triggerType, "soundEnabled", v)
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-              {prefs.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={emailAvailable ? 5 : 4}
-                    className="px-4 py-8 text-center text-sm text-base-content/60"
-                  >
-                    Loading preferences...
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    {emailAvailable && (
+                      <td className="px-4 py-2.5 text-center">
+                        <Switch
+                          checked={pref.emailEnabled}
+                          onCheckedChange={(v) =>
+                            void saveNotifPref(
+                              pref.triggerType,
+                              "emailEnabled",
+                              v
+                            )
+                          }
+                        />
+                      </td>
+                    )}
+                    <td className="px-4 py-2.5 text-center">
+                      <Switch
+                        checked={pref.pushEnabled}
+                        onCheckedChange={(v) =>
+                          void saveNotifPref(pref.triggerType, "pushEnabled", v)
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      <Switch
+                        checked={pref.soundEnabled}
+                        onCheckedChange={(v) =>
+                          void saveNotifPref(
+                            pref.triggerType,
+                            "soundEnabled",
+                            v
+                          )
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {prefs.length === 0 && (
+                  <tr>
+                    <td
+                      className="px-4 py-8 text-center text-sm text-base-content/60"
+                      colSpan={emailAvailable ? 5 : 4}
+                    >
+                      Loading preferences...
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

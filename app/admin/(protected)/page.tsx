@@ -1,14 +1,11 @@
-import { getAdminSession } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
+import { getAdminSession } from "@/lib/admin-auth";
 import { env } from "@/lib/env";
 
 interface DashboardData {
-  totalUsers: number;
-  totalWorkspaces: number;
-  totalTasks: number;
-  openTickets: number;
-  newSignupsToday: number;
   newSignupsThisMonth: number;
+  newSignupsToday: number;
+  openTickets: number;
   recentActivity: Array<{
     id: string;
     action: string;
@@ -19,6 +16,9 @@ interface DashboardData {
     description: string;
     createdAt: string;
   }>;
+  totalTasks: number;
+  totalUsers: number;
+  totalWorkspaces: number;
 }
 
 async function getDashboard(): Promise<DashboardData> {
@@ -29,7 +29,9 @@ async function getDashboard(): Promise<DashboardData> {
     headers: { cookie: hdrs.get("cookie") ?? "" },
     cache: "no-store",
   });
-  if (!res.ok) throw new Error("Failed to load dashboard");
+  if (!res.ok) {
+    throw new Error("Failed to load dashboard");
+  }
   return res.json();
 }
 
@@ -44,13 +46,19 @@ const STAT_CARDS = [
 
 export default async function AdminDashboardPage() {
   const session = await getAdminSession();
-  if (!session) redirect("/");
+  if (!session) {
+    redirect("/");
+  }
 
   let data: DashboardData;
   try {
     data = await getDashboard();
   } catch {
-    return <div className="p-4 text-red-500 sm:p-8">Failed to load dashboard data.</div>;
+    return (
+      <div className="p-4 text-red-500 sm:p-8">
+        Failed to load dashboard data.
+      </div>
+    );
   }
 
   return (
@@ -62,9 +70,14 @@ export default async function AdminDashboardPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {STAT_CARDS.map(({ key, label }) => (
-          <div key={key} className="rounded-lg border bg-elevated p-5 shadow-sm">
+          <div
+            className="rounded-lg border bg-elevated p-5 shadow-sm"
+            key={key}
+          >
             <div className="text-sm text-base-content/60">{label}</div>
-            <div className="text-3xl font-bold mt-1">{(data[key] as number).toLocaleString()}</div>
+            <div className="text-3xl font-bold mt-1">
+              {(data[key] as number).toLocaleString()}
+            </div>
           </div>
         ))}
       </div>
@@ -84,21 +97,30 @@ export default async function AdminDashboardPage() {
               </thead>
               <tbody>
                 {data.recentActivity.map((entry) => (
-                  <tr key={entry.id} className="border-t hover:bg-base-200/30">
+                  <tr className="border-t hover:bg-base-200/30" key={entry.id}>
                     <td className="px-4 py-2 text-base-content/60 whitespace-nowrap">
                       {new Date(entry.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-2 font-mono text-xs">{entry.action}</td>
-                    <td className="px-4 py-2 text-base-content/60">{entry.actorEmail ?? entry.actorId ?? "—"}</td>
+                    <td className="px-4 py-2 font-mono text-xs">
+                      {entry.action}
+                    </td>
+                    <td className="px-4 py-2 text-base-content/60">
+                      {entry.actorEmail ?? entry.actorId ?? "—"}
+                    </td>
                     <td className="px-4 py-2 text-base-content/60">
                       {entry.entityType}
-                      {entry.entityId ? ` / ${entry.entityId.slice(0, 8)}…` : ""}
+                      {entry.entityId
+                        ? ` / ${entry.entityId.slice(0, 8)}…`
+                        : ""}
                     </td>
                   </tr>
                 ))}
                 {data.recentActivity.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-base-content/60">
+                    <td
+                      className="px-4 py-6 text-center text-base-content/60"
+                      colSpan={4}
+                    >
                       No activity yet
                     </td>
                   </tr>

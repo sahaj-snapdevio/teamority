@@ -1,33 +1,83 @@
 "use client";
 
-import * as React from "react";
 import { MicrophoneIcon, StopIcon } from "@phosphor-icons/react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 interface VoiceInputButtonProps {
-  onTranscript: (text: string) => void;
   disabled?: boolean;
+  onTranscript: (text: string) => void;
 }
 
-export function VoiceInputButton({ onTranscript, disabled }: VoiceInputButtonProps) {
+// Minimal shape of the Web Speech API's SpeechRecognition — not part of the
+// default TS DOM lib, so only the fields this component actually touches are
+// declared here.
+interface SpeechRecognitionAlternative {
+  transcript: string;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+}
+
+interface SpeechRecognitionInstance {
+  _shouldRestart?: boolean;
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onend: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance;
+}
+
+export function VoiceInputButton({
+  onTranscript,
+  disabled,
+}: VoiceInputButtonProps) {
   const [listening, setListening] = React.useState(false);
   const [supported, setSupported] = React.useState(true);
-  const recognitionRef = React.useRef<any>(null);
+  const recognitionRef = React.useRef<SpeechRecognitionInstance | null>(null);
 
   React.useEffect(() => {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+    const { SpeechRecognition, webkitSpeechRecognition } =
+      window as unknown as {
+        SpeechRecognition?: SpeechRecognitionConstructor;
+        webkitSpeechRecognition?: SpeechRecognitionConstructor;
+      };
+    const SpeechRecognitionCtor = SpeechRecognition || webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
       setSupported(false);
       return;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionCtor();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       let finalTranscript = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
@@ -39,7 +89,7 @@ export function VoiceInputButton({ onTranscript, disabled }: VoiceInputButtonPro
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event) => {
       console.error("Speech recognition error:", event.error);
       if (event.error !== "no-speech") {
         setListening(false);
@@ -67,7 +117,9 @@ export function VoiceInputButton({ onTranscript, disabled }: VoiceInputButtonPro
   }, [onTranscript]);
 
   function toggleListening() {
-    if (!recognitionRef.current) return;
+    if (!recognitionRef.current) {
+      return;
+    }
 
     if (listening) {
       recognitionRef.current._shouldRestart = false;
@@ -84,21 +136,23 @@ export function VoiceInputButton({ onTranscript, disabled }: VoiceInputButtonPro
     }
   }
 
-  if (!supported) return null;
+  if (!supported) {
+    return null;
+  }
 
   return (
     <button
-      type="button"
-      onClick={toggleListening}
-      disabled={disabled}
       className={cn(
         "relative flex size-10 items-center justify-center rounded-md transition-colors sm:size-8",
         listening
           ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
           : "text-base-content/60 hover:bg-base-200 hover:text-base-content",
-        disabled && "opacity-50 cursor-not-allowed",
+        disabled && "opacity-50 cursor-not-allowed"
       )}
+      disabled={disabled}
+      onClick={toggleListening}
       title={listening ? "Stop voice input" : "Start voice input"}
+      type="button"
     >
       {listening ? (
         <>

@@ -2,11 +2,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
-  name?: string | null;
+  className?: string;
   email?: string | null;
   image?: string | null;
+  name?: string | null;
   size?: "xs" | "sm" | "md" | "lg";
-  className?: string;
 }
 
 const SIZE_CLASSES = {
@@ -36,14 +36,20 @@ function getInitials(name?: string | null, email?: string | null): string {
   return (email ?? "?").slice(0, 2).toUpperCase();
 }
 
-export function UserAvatar({ name, email, image, size = "md", className }: UserAvatarProps) {
+export function UserAvatar({
+  name,
+  email,
+  image,
+  size = "md",
+  className,
+}: UserAvatarProps) {
   const avatarUrl = image ? `/api/files/${image}` : null;
   const initials = getInitials(name, email);
 
   return (
     <Avatar className={cn(SIZE_CLASSES[size], className)}>
       {avatarUrl && (
-        <AvatarImage src={avatarUrl} alt={name ?? email ?? "User"} />
+        <AvatarImage alt={name ?? email ?? "User"} src={avatarUrl} />
       )}
       <AvatarFallback className={TEXT_CLASSES[size]}>{initials}</AvatarFallback>
     </Avatar>

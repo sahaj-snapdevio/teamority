@@ -101,9 +101,7 @@ function CreateTaskAction({
             {loadingStatuses ? "Loading…" : "Choose a list"}
           </p>
           {spaces === null ? (
-            <p className="px-2 py-1.5 text-xs text-base-content/60">
-              Loading…
-            </p>
+            <p className="px-2 py-1.5 text-xs text-base-content/60">Loading…</p>
           ) : spaces.length === 0 ? (
             <p className="px-2 py-1.5 text-xs text-base-content/60">
               No lists yet

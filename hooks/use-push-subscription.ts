@@ -23,15 +23,20 @@ function isOptedOut(): boolean {
 
 function setOptedOut(value: boolean) {
   try {
-    if (value) localStorage.setItem(OPT_OUT_KEY, "1");
-    else localStorage.removeItem(OPT_OUT_KEY);
+    if (value) {
+      localStorage.setItem(OPT_OUT_KEY, "1");
+    } else {
+      localStorage.removeItem(OPT_OUT_KEY);
+    }
   } catch {
     // storage unavailable (private mode) — in-memory state still applies
   }
 }
 
 function broadcastSubscribed(subscribed: boolean) {
-  window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { subscribed } }));
+  window.dispatchEvent(
+    new CustomEvent(CHANGE_EVENT, { detail: { subscribed } })
+  );
 }
 
 // The VAPID public key is resolved at RUNTIME from the server (works on every
@@ -42,7 +47,9 @@ async function fetchVapidPublicKey(): Promise<string | null> {
     const res = await fetch("/api/push/vapid-public-key");
     if (res.ok) {
       const data = (await res.json()) as { key?: string | null };
-      if (data.key) return data.key;
+      if (data.key) {
+        return data.key;
+      }
     }
   } catch {
     // ignore — fall back below
@@ -60,7 +67,9 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 /** Upsert a subscription on the server. The POST route is an upsert by endpoint. */
 async function saveSubscription(sub: PushSubscription): Promise<boolean> {
   const json = sub.toJSON();
-  if (!json.keys?.p256dh || !json.keys?.auth) return false;
+  if (!json.keys?.p256dh || !json.keys?.auth) {
+    return false;
+  }
 
   const res = await fetch("/api/me/push-subscriptions", {
     method: "POST",
@@ -76,7 +85,11 @@ async function saveSubscription(sub: PushSubscription): Promise<boolean> {
 }
 
 async function registerAndSubscribe(vapidKey: string): Promise<boolean> {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !vapidKey) {
+  if (
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window) ||
+    !vapidKey
+  ) {
     return false;
   }
 
@@ -87,7 +100,9 @@ async function registerAndSubscribe(vapidKey: string): Promise<boolean> {
     // Re-send an existing subscription rather than assuming the server still
     // knows about it — the row may have been deleted by a Disable elsewhere.
     const existing = await reg.pushManager.getSubscription();
-    if (existing) return await saveSubscription(existing);
+    if (existing) {
+      return await saveSubscription(existing);
+    }
 
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
@@ -101,7 +116,8 @@ async function registerAndSubscribe(vapidKey: string): Promise<boolean> {
 }
 
 export function usePushSubscription() {
-  const [permission, setPermission] = React.useState<NotificationPermission>("default");
+  const [permission, setPermission] =
+    React.useState<NotificationPermission>("default");
   const [subscribed, setSubscribed] = React.useState(false);
   const [supported, setSupported] = React.useState(false);
   const vapidKeyRef = React.useRef<string | null>(null);
@@ -111,16 +127,22 @@ export function usePushSubscription() {
       "Notification" in window &&
       "serviceWorker" in navigator &&
       "PushManager" in window;
-    if (!browserOk) return;
+    if (!browserOk) {
+      return;
+    }
 
     let active = true;
     void (async () => {
       const key = await fetchVapidPublicKey();
-      if (!active) return;
+      if (!active) {
+        return;
+      }
       vapidKeyRef.current = key;
       // Supported only when the browser can do push AND a VAPID key is configured.
       setSupported(!!key);
-      if (!key) return;
+      if (!key) {
+        return;
+      }
 
       setPermission(Notification.permission);
 
@@ -128,12 +150,16 @@ export function usePushSubscription() {
       // turned push off explicitly. Only auto-heal the subscription when they
       // haven't opted out.
       if (Notification.permission !== "granted" || isOptedOut()) {
-        if (active) setSubscribed(false);
+        if (active) {
+          setSubscribed(false);
+        }
         return;
       }
 
       const ok = await registerAndSubscribe(key);
-      if (active) setSubscribed(ok);
+      if (active) {
+        setSubscribed(ok);
+      }
     })();
     return () => {
       active = false;
@@ -144,7 +170,9 @@ export function usePushSubscription() {
   // in sync when one of them enables or disables push.
   React.useEffect(() => {
     const onChange = (e: Event) => {
-      setSubscribed((e as CustomEvent<{ subscribed: boolean }>).detail.subscribed);
+      setSubscribed(
+        (e as CustomEvent<{ subscribed: boolean }>).detail.subscribed
+      );
     };
     window.addEventListener(CHANGE_EVENT, onChange);
     return () => window.removeEventListener(CHANGE_EVENT, onChange);
@@ -152,8 +180,12 @@ export function usePushSubscription() {
 
   async function enable(): Promise<boolean> {
     const key = vapidKeyRef.current;
-    if (!supported || !key) return false;
-    if (Notification.permission === "denied") return false;
+    if (!supported || !key) {
+      return false;
+    }
+    if (Notification.permission === "denied") {
+      return false;
+    }
 
     let perm: NotificationPermission = Notification.permission;
     if (perm !== "granted") {
@@ -161,10 +193,14 @@ export function usePushSubscription() {
       setPermission(perm);
     }
 
-    if (perm !== "granted") return false;
+    if (perm !== "granted") {
+      return false;
+    }
 
     const ok = await registerAndSubscribe(key);
-    if (ok) setOptedOut(false);
+    if (ok) {
+      setOptedOut(false);
+    }
     setSubscribed(ok);
     broadcastSubscribed(ok);
     return ok;
@@ -178,9 +214,12 @@ export function usePushSubscription() {
       const reg = await navigator.serviceWorker?.getRegistration();
       const sub = await reg?.pushManager.getSubscription();
       if (sub) {
-        await fetch(`/api/me/push-subscriptions?endpoint=${encodeURIComponent(sub.endpoint)}`, {
-          method: "DELETE",
-        });
+        await fetch(
+          `/api/me/push-subscriptions?endpoint=${encodeURIComponent(sub.endpoint)}`,
+          {
+            method: "DELETE",
+          }
+        );
         await sub.unsubscribe();
       }
     } catch {

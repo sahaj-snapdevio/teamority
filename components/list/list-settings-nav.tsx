@@ -5,17 +5,21 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface ListSettingsNavProps {
-  workspaceId: string;
-  spaceId: string;
   listId: string;
+  spaceId: string;
+  workspaceId: string;
 }
 
 const NAV_ITEMS = [
-  { label: "General",  path: "general" },
+  { label: "General", path: "general" },
   { label: "Statuses", path: "statuses" },
 ];
 
-export function ListSettingsNav({ workspaceId, spaceId, listId }: ListSettingsNavProps) {
+export function ListSettingsNav({
+  workspaceId,
+  spaceId,
+  listId,
+}: ListSettingsNavProps) {
   const pathname = usePathname();
   const base = `/${workspaceId}/${spaceId}/list/${listId}/settings`;
 
@@ -26,14 +30,14 @@ export function ListSettingsNav({ workspaceId, spaceId, listId }: ListSettingsNa
         const active = pathname === href;
         return (
           <Link
-            key={item.path}
-            href={href}
             className={cn(
               "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
               active
                 ? "border-primary text-base-content"
-                : "border-transparent text-base-content/60 hover:text-base-content",
+                : "border-transparent text-base-content/60 hover:text-base-content"
             )}
+            href={href}
+            key={item.path}
           >
             {item.label}
           </Link>

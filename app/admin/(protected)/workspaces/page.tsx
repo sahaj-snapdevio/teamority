@@ -1,40 +1,50 @@
 "use client";
 
-import { useState } from "react";
-import useSWR from "swr";
 import Link from "next/link";
-import { Input } from "@/components/ui/input";
+import { useRef, useState } from "react";
+import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-function useDebounce<T>(value: T, delay: number): T {
-  const [dv, setDv] = useState(value);
-  useState(() => {
-    const t = setTimeout(() => setDv(value), delay);
-    return () => clearTimeout(t);
-  });
-  return dv;
+interface AdminWorkspace {
+  createdAt: string;
+  createdBy: string;
+  id: string;
+  name: string;
+  ownerEmail: string | null;
+  ownerName: string | null;
+  slug: string;
+  status: string;
 }
 
 export default function AdminWorkspacesPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // manual debounce
   const handleSearch = (val: string) => {
     setSearch(val);
     setPage(1);
-    clearTimeout((handleSearch as any)._t);
-    (handleSearch as any)._t = setTimeout(() => setDebouncedSearch(val), 300);
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(() => setDebouncedSearch(val), 300);
   };
 
   const params = new URLSearchParams({ page: String(page) });
-  if (debouncedSearch) params.set("search", debouncedSearch);
+  if (debouncedSearch) {
+    params.set("search", debouncedSearch);
+  }
 
-  const { data, isLoading } = useSWR(`/api/admin/workspaces?${params}`, fetcher);
-  const workspaces: any[] = data?.workspaces ?? [];
+  const { data, isLoading } = useSWR(
+    `/api/admin/workspaces?${params}`,
+    fetcher
+  );
+  const workspaces: AdminWorkspace[] = data?.workspaces ?? [];
   const total: number = data?.total ?? 0;
   const pageSize = 50;
   const totalPages = Math.ceil(total / pageSize);
@@ -43,10 +53,17 @@ export default function AdminWorkspacesPage() {
     <div className="p-4 space-y-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Workspaces</h1>
-        <p className="text-base-content/60 text-sm mt-1">{total.toLocaleString()} total workspaces</p>
+        <p className="text-base-content/60 text-sm mt-1">
+          {total.toLocaleString()} total workspaces
+        </p>
       </div>
 
-      <Input placeholder="Search by name…" value={search} onChange={(e) => handleSearch(e.target.value)} className="sm:max-w-sm" />
+      <Input
+        className="sm:max-w-sm"
+        onChange={(e) => handleSearch(e.target.value)}
+        placeholder="Search by name…"
+        value={search}
+      />
 
       <div className="rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
@@ -61,21 +78,52 @@ export default function AdminWorkspacesPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={4} className="px-4 py-6 text-center text-base-content/60">Loading…</td></tr>
+                <tr>
+                  <td
+                    className="px-4 py-6 text-center text-base-content/60"
+                    colSpan={4}
+                  >
+                    Loading…
+                  </td>
+                </tr>
               ) : workspaces.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-6 text-center text-base-content/60">No workspaces found</td></tr>
+                <tr>
+                  <td
+                    className="px-4 py-6 text-center text-base-content/60"
+                    colSpan={4}
+                  >
+                    No workspaces found
+                  </td>
+                </tr>
               ) : (
                 workspaces.map((w) => (
-                  <tr key={w.id} className="border-t hover:bg-base-200/30">
+                  <tr className="border-t hover:bg-base-200/30" key={w.id}>
                     <td className="px-4 py-2">
-                      <Link href={`/admin/workspaces/${w.id}`} className="hover:underline font-medium">{w.name}</Link>
-                      <div className="text-xs text-base-content/60">{w.slug}</div>
+                      <Link
+                        className="hover:underline font-medium"
+                        href={`/admin/workspaces/${w.id}`}
+                      >
+                        {w.name}
+                      </Link>
+                      <div className="text-xs text-base-content/60">
+                        {w.slug}
+                      </div>
                     </td>
-                    <td className="px-4 py-2 text-base-content/60">{w.ownerEmail ?? w.createdBy}</td>
+                    <td className="px-4 py-2 text-base-content/60">
+                      {w.ownerEmail ?? w.createdBy}
+                    </td>
                     <td className="px-4 py-2">
-                      <Badge variant={w.status === "ACTIVE" ? "secondary" : "destructive"}>{w.status}</Badge>
+                      <Badge
+                        variant={
+                          w.status === "ACTIVE" ? "secondary" : "destructive"
+                        }
+                      >
+                        {w.status}
+                      </Badge>
                     </td>
-                    <td className="px-4 py-2 text-base-content/60">{new Date(w.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-2 text-base-content/60">
+                      {new Date(w.createdAt).toLocaleDateString()}
+                    </td>
                   </tr>
                 ))
               )}
@@ -86,9 +134,25 @@ export default function AdminWorkspacesPage() {
 
       {totalPages > 1 && (
         <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Previous</button>
-          <span className="text-sm text-base-content/60">Page {page} of {totalPages}</span>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Next</button>
+          <button
+            className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            type="button"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-base-content/60">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            type="button"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

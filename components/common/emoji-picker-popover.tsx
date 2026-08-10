@@ -25,13 +25,21 @@ const EmojiPicker = dynamic(() => import("@emoji-mart/react"), {
       <div className="h-8 rounded-md bg-base-200 animate-pulse" />
       <div className="flex gap-1 pb-1 border-b border-base-300">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div className="size-7 rounded bg-base-200 animate-pulse" key={i} />
+          <div
+            className="size-7 rounded bg-base-200 animate-pulse"
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static skeleton, never reorders
+            key={i}
+          />
         ))}
       </div>
       <div className="h-3 w-20 rounded bg-base-200 animate-pulse" />
       <div className="grid grid-cols-8 gap-1">
         {Array.from({ length: 40 }).map((_, i) => (
-          <div className="size-8 rounded bg-base-200 animate-pulse" key={i} />
+          <div
+            className="size-8 rounded bg-base-200 animate-pulse"
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static skeleton, never reorders
+            key={i}
+          />
         ))}
       </div>
     </div>

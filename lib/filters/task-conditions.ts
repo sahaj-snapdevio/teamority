@@ -5,6 +5,7 @@
 // Server-only (imports db). Assignee/tags/sprint use subqueries so they compose
 // with LIMIT — no post-fetch JS filtering.
 
+import { endOfDay, endOfWeek, startOfDay, startOfWeek } from "date-fns";
 import {
   and,
   gte,
@@ -16,10 +17,9 @@ import {
   or,
   type SQL,
 } from "drizzle-orm";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
-import { db } from "@/lib/db";
-import { task, taskAssignee, taskTag, listStatus } from "@/db/schema";
+import { listStatus, task, taskAssignee, taskTag } from "@/db/schema";
 import { taskSprint } from "@/db/schema/sprint";
+import { db } from "@/lib/db";
 import type { TaskFilters } from "./options";
 
 type PriorityValue = "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
@@ -45,7 +45,7 @@ export function buildTaskFilterConditions(filters: TaskFilters): SQL[] {
 
   if (filters.priority?.length) {
     conditions.push(
-      inArray(task.priority, filters.priority as PriorityValue[]),
+      inArray(task.priority, filters.priority as PriorityValue[])
     );
   }
 
@@ -76,23 +76,25 @@ export function buildTaskFilterConditions(filters: TaskFilters): SQL[] {
           db
             .select({ id: taskAssignee.taskId })
             .from(taskAssignee)
-            .where(inArray(taskAssignee.userId, userIds)),
-        ),
+            .where(inArray(taskAssignee.userId, userIds))
+        )
       );
     }
     if (hasUnassigned) {
       parts.push(
         notInArray(
           task.id,
-          db.select({ id: taskAssignee.taskId }).from(taskAssignee),
-        ),
+          db.select({ id: taskAssignee.taskId }).from(taskAssignee)
+        )
       );
     }
     if (parts.length === 1) {
       conditions.push(parts[0]);
     } else if (parts.length > 1) {
       const combined = or(...parts);
-      if (combined) conditions.push(combined);
+      if (combined) {
+        conditions.push(combined);
+      }
     }
   }
 
@@ -104,8 +106,8 @@ export function buildTaskFilterConditions(filters: TaskFilters): SQL[] {
         db
           .select({ id: taskTag.taskId })
           .from(taskTag)
-          .where(inArray(taskTag.tagId, filters.tags)),
-      ),
+          .where(inArray(taskTag.tagId, filters.tags))
+      )
     );
   }
 
@@ -117,8 +119,8 @@ export function buildTaskFilterConditions(filters: TaskFilters): SQL[] {
         db
           .select({ id: taskSprint.taskId })
           .from(taskSprint)
-          .where(inArray(taskSprint.sprintId, filters.sprint)),
-      ),
+          .where(inArray(taskSprint.sprintId, filters.sprint))
+      )
     );
   }
 
@@ -126,6 +128,9 @@ export function buildTaskFilterConditions(filters: TaskFilters): SQL[] {
 }
 
 /** Merge builder conditions with base conditions into a single `and(...)`. */
-export function withTaskFilters(base: SQL[], filters: TaskFilters): SQL | undefined {
+export function withTaskFilters(
+  base: SQL[],
+  filters: TaskFilters
+): SQL | undefined {
   return and(...base, ...buildTaskFilterConditions(filters));
 }

@@ -115,15 +115,15 @@ import {
 import { useCreateTaskShortcut } from "@/hooks/use-create-task-shortcut";
 import { useListColumnPreferences } from "@/hooks/use-list-column-preferences";
 import { taskUrl } from "@/lib/app-url";
-import {
-  DASHBOARD_CATEGORY_OPTIONS,
-  type DashboardCategory,
-} from "@/lib/dashboard-category";
 import { describeCustomFieldValue } from "@/lib/custom-fields/column-display";
 import {
   type CustomFieldFilters,
   isCustomFieldFilterActive,
 } from "@/lib/custom-fields/filters";
+import {
+  DASHBOARD_CATEGORY_OPTIONS,
+  type DashboardCategory,
+} from "@/lib/dashboard-category";
 import {
   flashDuplicatedTask,
   useIsDuplicateHighlighted,
@@ -974,9 +974,7 @@ function CardContent({
                   <button
                     className={cn(
                       "flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-1.5 sm:py-0.5 text-xs font-semibold transition-colors hover:bg-base-200",
-                      dueDate?.overdue
-                        ? "text-red-500"
-                        : "text-base-content/60"
+                      dueDate?.overdue ? "text-red-500" : "text-base-content/60"
                     )}
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
@@ -1370,8 +1368,8 @@ function CardContent({
                 }}
                 type="button"
               >
-                <LinkIcon className="size-3.5 text-base-content/60" /> Copy
-                task link
+                <LinkIcon className="size-3.5 text-base-content/60" /> Copy task
+                link
               </button>
               <a
                 className={menuItem}
@@ -1391,8 +1389,8 @@ function CardContent({
                 }}
                 type="button"
               >
-                <HashIcon className="size-3.5 text-base-content/60" /> Copy
-                task ID
+                <HashIcon className="size-3.5 text-base-content/60" /> Copy task
+                ID
               </button>
               {canEdit && (
                 <>
@@ -2233,7 +2231,10 @@ export function BoardView({
             {/* Sort */}
             <Popover onOpenChange={setSortMenuOpen} open={sortMenuOpen}>
               <PopoverTrigger asChild>
-                <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors cursor-pointer select-none">
+                <button
+                  className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors cursor-pointer select-none"
+                  type="button"
+                >
                   <ArrowsDownUpIcon className="size-3.5" />
                   Sort:{" "}
                   {sortBy
@@ -2254,6 +2255,7 @@ export function BoardView({
                     setSortBy(null);
                     setSortMenuOpen(false);
                   }}
+                  type="button"
                 >
                   None
                 </button>
@@ -2267,6 +2269,7 @@ export function BoardView({
                     setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
                     setSortMenuOpen(false);
                   }}
+                  type="button"
                 >
                   Task Name
                 </button>
@@ -2280,6 +2283,7 @@ export function BoardView({
                     setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
                     setSortMenuOpen(false);
                   }}
+                  type="button"
                 >
                   Priority
                 </button>
@@ -2360,6 +2364,7 @@ export function BoardView({
         <button
           className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-content hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
           onClick={() => setCreateOpen(true)}
+          type="button"
         >
           <PlusIcon className="size-3.5" weight="bold" />
           Create Task
@@ -2723,9 +2728,7 @@ export function BoardView({
                 placeholder="Group name"
                 value={newGroupName}
               />
-              {groupError && (
-                <p className="text-xs text-error">{groupError}</p>
-              )}
+              {groupError && <p className="text-xs text-error">{groupError}</p>}
               <div className="flex flex-wrap gap-2">
                 {STATUS_PRESET_COLORS.map((color) => (
                   <button

@@ -1,14 +1,14 @@
+import { eq, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { and, eq, inArray } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { workspace, workspaceMember } from "@/db/schema";
-import { user } from "@/db/schema/auth";
 import { MembersManager } from "@/components/workspace/members-manager";
 import { PRODUCT_NAME } from "@/config/platform";
-import { env } from "@/lib/env";
+import { workspace, workspaceMember } from "@/db/schema";
+import { user } from "@/db/schema/auth";
 import { INVITE_LINK_ROLES, type InviteLinkRole } from "@/db/schema/workspace";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 
 interface MembersPageProps {
   params: Promise<{ workspaceId: string }>;
@@ -20,7 +20,9 @@ export default async function MembersPage({ params }: MembersPageProps) {
   const { workspaceId } = await params;
 
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/login");
+  if (!session) {
+    redirect("/login");
+  }
 
   const [ws] = await db
     .select({
@@ -31,7 +33,9 @@ export default async function MembersPage({ params }: MembersPageProps) {
     })
     .from(workspace)
     .where(eq(workspace.id, workspaceId));
-  if (!ws) notFound();
+  if (!ws) {
+    notFound();
+  }
 
   const memberRecords = await db
     .select()
@@ -41,20 +45,31 @@ export default async function MembersPage({ params }: MembersPageProps) {
 
   const userIds = [
     ...new Set(
-      memberRecords.flatMap((m) => [m.userId, m.invitedBy].filter((id): id is string => !!id)),
+      memberRecords.flatMap((m) =>
+        [m.userId, m.invitedBy].filter((id): id is string => !!id)
+      )
     ),
   ];
 
   const users = userIds.length
     ? await db
-        .select({ id: user.id, name: user.name, email: user.email, image: user.image })
+        .select({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        })
         .from(user)
         .where(inArray(user.id, userIds))
     : [];
   const userById = new Map(users.map((u) => [u.id, u]));
 
-  const actor = memberRecords.find((m) => m.userId === session.user.id && m.status === "ACTIVE");
-  if (!actor) notFound();
+  const actor = memberRecords.find(
+    (m) => m.userId === session.user.id && m.status === "ACTIVE"
+  );
+  if (!actor) {
+    notFound();
+  }
 
   const members = memberRecords
     .filter((m) => m.status === "ACTIVE" && m.userId)
@@ -77,26 +92,28 @@ export default async function MembersPage({ params }: MembersPageProps) {
       id: m.id,
       email: m.email ?? "—",
       role: m.role,
-      invitedByName: m.invitedBy ? (userById.get(m.invitedBy)?.name ?? "—") : "—",
+      invitedByName: m.invitedBy
+        ? (userById.get(m.invitedBy)?.name ?? "—")
+        : "—",
       sentAt: m.createdAt.toISOString(),
       expiresAt: m.inviteExpiresAt?.toISOString() ?? null,
     }));
 
   return (
     <MembersManager
-      workspaceId={workspaceId}
-      workspaceName={ws.name}
-      members={members}
-      pendingInvites={pendingInvites}
-      currentUserId={session.user.id}
       actorRole={actor.role}
-      inviteLinkToken={ws.inviteLinkToken ?? null}
+      appUrl={env.APP_URL}
+      currentUserId={session.user.id}
       inviteLinkRole={
         INVITE_LINK_ROLES.includes(ws.inviteLinkRole as InviteLinkRole)
           ? (ws.inviteLinkRole as InviteLinkRole)
           : "MEMBER"
       }
-      appUrl={env.APP_URL}
+      inviteLinkToken={ws.inviteLinkToken ?? null}
+      members={members}
+      pendingInvites={pendingInvites}
+      workspaceId={workspaceId}
+      workspaceName={ws.name}
     />
   );
 }

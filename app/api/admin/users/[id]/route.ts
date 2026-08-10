@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { purgeUser, soleOwnedWorkspaces } from "@/lib/user-deletion";
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const adminSession = await getAdminSession();

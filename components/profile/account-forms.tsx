@@ -7,7 +7,6 @@ import {
   deleteAccountAction,
   updateNameAction,
 } from "@/app/actions/profile";
-import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
 
 const initialState: ActionState = {};
 
@@ -38,13 +38,26 @@ function ActionMessage({ state }: { state: ActionState }) {
   return null;
 }
 
-function EmailChangeForm({ email, callbackURL }: { email: string; callbackURL: string }) {
+function EmailChangeForm({
+  email,
+  callbackURL,
+}: {
+  email: string;
+  callbackURL: string;
+}) {
   const [pending, setPending] = React.useState(false);
-  const [message, setMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = React.useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const newEmail = (new FormData(e.currentTarget).get("email") as string ?? "").trim().toLowerCase();
+    const newEmail = (
+      (new FormData(e.currentTarget).get("email") as string) ?? ""
+    )
+      .trim()
+      .toLowerCase();
 
     if (newEmail === email.toLowerCase()) {
       setMessage({ type: "error", text: "That's already your current email." });
@@ -62,14 +75,20 @@ function EmailChangeForm({ email, callbackURL }: { email: string; callbackURL: s
     setPending(false);
 
     if (error) {
-      setMessage({ type: "error", text: error.message ?? "Failed to send verification email." });
+      setMessage({
+        type: "error",
+        text: error.message ?? "Failed to send verification email.",
+      });
     } else {
-      setMessage({ type: "success", text: `Verification email sent to ${newEmail}. Click the link to confirm your new address.` });
+      setMessage({
+        type: "success",
+        text: `Verification email sent to ${newEmail}. Click the link to confirm your new address.`,
+      });
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form className="space-y-4" onSubmit={handleSubmit}>
       <label className="block" htmlFor="email">
         <span className="mb-2 block font-semibold text-base-content text-sm">
           New email
@@ -83,7 +102,9 @@ function EmailChangeForm({ email, callbackURL }: { email: string; callbackURL: s
         />
       </label>
       {message && (
-        <p className={`rounded-md p-3 text-sm ${message.type === "error" ? "bg-error/10 text-error" : "bg-success-subtle text-success-strong"}`}>
+        <p
+          className={`rounded-md p-3 text-sm ${message.type === "error" ? "bg-error/10 text-error" : "bg-success-subtle text-success-strong"}`}
+        >
           {message.text}
         </p>
       )}
@@ -142,12 +163,12 @@ export function AccountIdentityForms({
         <CardHeader>
           <CardTitle>Email Address</CardTitle>
           <CardDescription>
-            A verification link is sent to the new address. Your old email
-            stays active until you confirm.
+            A verification link is sent to the new address. Your old email stays
+            active until you confirm.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EmailChangeForm email={email} callbackURL={callbackURL} />
+          <EmailChangeForm callbackURL={callbackURL} email={email} />
         </CardContent>
       </Card>
     </div>

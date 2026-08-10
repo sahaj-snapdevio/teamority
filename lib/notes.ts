@@ -25,11 +25,15 @@ export function toTiptapDoc(body: unknown): unknown {
  * (delete removed) ones on edit — in comments and task descriptions.
  */
 export function extractInlineAttachmentIds(body: unknown): string[] {
-  body = toTiptapDoc(body);
-  if (!body || typeof body !== "object") return [];
+  const doc = toTiptapDoc(body);
+  if (!doc || typeof doc !== "object") {
+    return [];
+  }
   const ids: string[] = [];
   function walk(node: unknown) {
-    if (!node || typeof node !== "object") return;
+    if (!node || typeof node !== "object") {
+      return;
+    }
     const n = node as Record<string, unknown>;
     if (
       (n.type === "noteImage" || n.type === "noteFile") &&
@@ -37,13 +41,17 @@ export function extractInlineAttachmentIds(body: unknown): string[] {
       typeof n.attrs === "object"
     ) {
       const attrs = n.attrs as Record<string, unknown>;
-      if (typeof attrs.attachmentId === "string") ids.push(attrs.attachmentId);
+      if (typeof attrs.attachmentId === "string") {
+        ids.push(attrs.attachmentId);
+      }
     }
     if (Array.isArray(n.content)) {
-      for (const child of n.content) walk(child);
+      for (const child of n.content) {
+        walk(child);
+      }
     }
   }
-  walk(body);
+  walk(doc);
   return [...new Set(ids)];
 }
 
@@ -52,21 +60,29 @@ export function extractInlineAttachmentIds(body: unknown): string[] {
  * comment and task-description mention-notification flows.
  */
 export function extractMentionIds(body: unknown): string[] {
-  body = toTiptapDoc(body);
-  if (!body || typeof body !== "object") return [];
+  const doc = toTiptapDoc(body);
+  if (!doc || typeof doc !== "object") {
+    return [];
+  }
   const ids: string[] = [];
   function walk(node: unknown) {
-    if (!node || typeof node !== "object") return;
+    if (!node || typeof node !== "object") {
+      return;
+    }
     const n = node as Record<string, unknown>;
     if (n.type === "mention" && n.attrs && typeof n.attrs === "object") {
       const attrs = n.attrs as Record<string, unknown>;
-      if (typeof attrs.id === "string") ids.push(attrs.id);
+      if (typeof attrs.id === "string") {
+        ids.push(attrs.id);
+      }
     }
     if (Array.isArray(n.content)) {
-      for (const child of n.content) walk(child);
+      for (const child of n.content) {
+        walk(child);
+      }
     }
   }
-  walk(body);
+  walk(doc);
   return [...new Set(ids)];
 }
 
@@ -75,24 +91,34 @@ export function extractMentionIds(body: unknown): string[] {
  * or an inline image node. Used to decide whether to persist a description.
  */
 export function tiptapHasContent(body: unknown): boolean {
-  body = toTiptapDoc(body);
-  if (!body || typeof body !== "object") return false;
+  const doc = toTiptapDoc(body);
+  if (!doc || typeof doc !== "object") {
+    return false;
+  }
   let found = false;
   function walk(node: unknown) {
-    if (found || !node || typeof node !== "object") return;
+    if (found || !node || typeof node !== "object") {
+      return;
+    }
     const n = node as Record<string, unknown>;
     if (n.type === "noteImage" || n.type === "noteFile") {
       found = true;
       return;
     }
-    if (n.type === "text" && typeof n.text === "string" && n.text.trim() !== "") {
+    if (
+      n.type === "text" &&
+      typeof n.text === "string" &&
+      n.text.trim() !== ""
+    ) {
       found = true;
       return;
     }
     if (Array.isArray(n.content)) {
-      for (const child of n.content) walk(child);
+      for (const child of n.content) {
+        walk(child);
+      }
     }
   }
-  walk(body);
+  walk(doc);
   return found;
 }

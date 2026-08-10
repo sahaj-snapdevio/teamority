@@ -952,7 +952,7 @@ export async function getWorkspaceLists(
 
 export async function getListStatuses(
   workspaceId: string,
-  spaceId: string,
+  _spaceId: string,
   listId: string
 ): Promise<
   | {

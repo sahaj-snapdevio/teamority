@@ -21,6 +21,12 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 import {
+  type CustomFieldRow,
+  deleteCustomFieldValue,
+  getCustomFieldsForTasks,
+  setCustomFieldValue,
+} from "@/app/actions/custom-field";
+import {
   archiveTask,
   deleteTask,
   duplicateTask,
@@ -30,12 +36,6 @@ import {
   updateTask,
   updateTaskStatus,
 } from "@/app/actions/task";
-import {
-  deleteCustomFieldValue,
-  getCustomFieldsForTasks,
-  setCustomFieldValue,
-  type CustomFieldRow,
-} from "@/app/actions/custom-field";
 import {
   addAssignee,
   removeAssignee,
@@ -63,8 +63,8 @@ import {
   type TaskActivityFeedHandle,
 } from "@/components/task/task-activity-feed";
 import { TaskDependencies } from "@/components/task/task-dependencies";
-import { TaskTimeTracking } from "@/components/task/task-time-tracking";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
+import { TaskTimeTracking } from "@/components/task/task-time-tracking";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -238,7 +238,8 @@ export function TaskDetailPanel({
   // long scroll. Separate popover-open state from the sidebar's own (below),
   // since both triggers stay mounted (one hidden via CSS) and sharing state
   // would open both Popover instances at once.
-  const [mobileAssigneePopoverOpen, setMobileAssigneePopoverOpen] = React.useState(false);
+  const [mobileAssigneePopoverOpen, setMobileAssigneePopoverOpen] =
+    React.useState(false);
   const [mobileStartCalOpen, setMobileStartCalOpen] = React.useState(false);
   const [mobileEndCalOpen, setMobileEndCalOpen] = React.useState(false);
 
@@ -248,7 +249,7 @@ export function TaskDetailPanel({
   // AttachmentPreviewProvider below and close an open image preview (the modal's
   // open state lives in that provider). The skeleton is shown only on the
   // initial open / task switch, via the effect below.
-  async function load() {
+  const load = React.useCallback(async () => {
     const [detail, mem, tags, customFieldsRes] = await Promise.all([
       getTaskDetail(workspaceId, spaceId, taskId),
       getWorkspaceMembers(workspaceId),
@@ -271,7 +272,7 @@ export function TaskDetailPanel({
       setCustomFieldValues(customFieldsRes.valuesByTask[taskId] ?? {});
     }
     setLoading(false);
-  }
+  }, [workspaceId, spaceId, taskId, listId]);
 
   React.useEffect(() => {
     if (open && taskId) {
@@ -279,7 +280,7 @@ export function TaskDetailPanel({
       setLoading(true);
       load();
     }
-  }, [open, taskId]);
+  }, [open, taskId, load]);
 
   React.useEffect(() => {
     if (data && !("error" in data)) {
@@ -450,16 +451,30 @@ export function TaskDetailPanel({
   // field's default) rather than persisting an explicit null.
   async function handleCustomFieldChange(fieldId: string, value: unknown) {
     if (value === null || value === undefined) {
-      const res = await deleteCustomFieldValue(workspaceId, spaceId, taskId, fieldId);
+      const res = await deleteCustomFieldValue(
+        workspaceId,
+        spaceId,
+        taskId,
+        fieldId
+      );
       if ("error" in res) {
         toast.error(res.error);
         return;
       }
       const field = customFields.find((f) => f.id === fieldId);
-      setCustomFieldValues((prev) => ({ ...prev, [fieldId]: field?.defaultValue ?? null }));
+      setCustomFieldValues((prev) => ({
+        ...prev,
+        [fieldId]: field?.defaultValue ?? null,
+      }));
       return;
     }
-    const res = await setCustomFieldValue(workspaceId, spaceId, taskId, fieldId, value);
+    const res = await setCustomFieldValue(
+      workspaceId,
+      spaceId,
+      taskId,
+      fieldId,
+      value
+    );
     if ("error" in res) {
       toast.error(res.error);
       return;
@@ -594,6 +609,7 @@ export function TaskDetailPanel({
             <button
               className="flex items-center gap-1 hover:text-base-content"
               onClick={() => void copyLink()}
+              type="button"
             >
               <LinkIcon className="size-3" />
               Copy link
@@ -630,11 +646,14 @@ export function TaskDetailPanel({
               value={titleDraft}
             />
           ) : (
-            <h2
-              className="text-base font-semibold cursor-text hover:bg-base-200 rounded px-1 -mx-1 py-0.5"
-              onClick={() => setTitleEditing(true)}
-            >
-              {t.title}
+            <h2 className="text-base font-semibold">
+              <button
+                className="w-full cursor-text rounded px-1 -mx-1 py-0.5 text-left hover:bg-base-200"
+                onClick={() => setTitleEditing(true)}
+                type="button"
+              >
+                {t.title}
+              </button>
             </h2>
           )}
         </div>
@@ -648,6 +667,7 @@ export function TaskDetailPanel({
                 : "text-base-content/60 hover:bg-base-200 hover:text-base-content"
             )}
             onClick={handleToggleWatch}
+            type="button"
           >
             {isWatching ? (
               <EyeSlashIcon className="size-3.5" />
@@ -658,7 +678,10 @@ export function TaskDetailPanel({
           </button>
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex size-11 items-center justify-center rounded-md hover:bg-base-200 sm:size-8">
+              <button
+                className="flex size-11 items-center justify-center rounded-md hover:bg-base-200 sm:size-8"
+                type="button"
+              >
                 <DotsThreeIcon className="size-4.5" weight="bold" />
               </button>
             </PopoverTrigger>
@@ -667,13 +690,14 @@ export function TaskDetailPanel({
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                 disabled={saving}
                 onClick={handleDuplicate}
+                type="button"
               >
-                <CopyIcon className="size-3.5 text-base-content/60" />{" "}
-                Duplicate
+                <CopyIcon className="size-3.5 text-base-content/60" /> Duplicate
               </button>
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                 onClick={handleArchive}
+                type="button"
               >
                 <ArchiveIcon className="size-3.5 text-base-content/60" />{" "}
                 Archive
@@ -682,6 +706,7 @@ export function TaskDetailPanel({
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-error hover:bg-error/10"
                 onClick={handleDelete}
+                type="button"
               >
                 <TrashIcon className="size-3.5" /> Delete
               </button>
@@ -746,7 +771,10 @@ export function TaskDetailPanel({
               {isAdmin && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex size-5 items-center justify-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors">
+                    <button
+                      className="flex size-5 items-center justify-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
+                      type="button"
+                    >
                       <DotsThreeIcon className="size-3.5" weight="bold" />
                     </button>
                   </DropdownMenuTrigger>
@@ -824,7 +852,10 @@ export function TaskDetailPanel({
                       <>
                         <Avatar className="size-5 shrink-0">
                           <AvatarFallback className="text-[9px]">
-                            {userInitials(assignees[0].name, assignees[0].email)}
+                            {userInitials(
+                              assignees[0].name,
+                              assignees[0].email
+                            )}
                           </AvatarFallback>
                         </Avatar>
                         <span className="truncate text-sm">
@@ -837,7 +868,9 @@ export function TaskDetailPanel({
                         )}
                       </>
                     ) : (
-                      <span className="text-sm text-base-content/60">Unassigned</span>
+                      <span className="text-sm text-base-content/60">
+                        Unassigned
+                      </span>
                     )}
                   </button>
                 </PopoverTrigger>
@@ -847,12 +880,15 @@ export function TaskDetailPanel({
                   </p>
                   <div className="space-y-0.5 max-h-48 overflow-y-auto">
                     {members.map((m) => {
-                      const isAssigned = assignees.some((a) => a.userId === m.userId);
+                      const isAssigned = assignees.some(
+                        (a) => a.userId === m.userId
+                      );
                       return (
                         <button
                           className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                           key={m.userId}
                           onClick={() => handleToggleAssignee(m.userId!)}
+                          type="button"
                         >
                           <Avatar className="size-6 shrink-0">
                             <AvatarFallback className="text-2xs">
@@ -876,29 +912,46 @@ export function TaskDetailPanel({
                       setMobileAssigneePopoverOpen(false);
                       setInviteOpen(true);
                     }}
+                    type="button"
                   >
                     <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-base-300">
                       <UserPlusIcon className="size-3.5" />
                     </span>
-                    <span className="flex-1 truncate text-left">Invite member</span>
+                    <span className="flex-1 truncate text-left">
+                      Invite member
+                    </span>
                   </button>
                 </PopoverContent>
               </Popover>
             </div>
             <Separator />
             <div className="flex items-center gap-3">
-              <span className="w-16 shrink-0 text-xs text-base-content/60">Dates</span>
+              <span className="w-16 shrink-0 text-xs text-base-content/60">
+                Dates
+              </span>
               <div className="flex min-h-9 flex-1 items-center gap-1.5 text-sm">
-                <Popover onOpenChange={setMobileStartCalOpen} open={mobileStartCalOpen}>
+                <Popover
+                  onOpenChange={setMobileStartCalOpen}
+                  open={mobileStartCalOpen}
+                >
                   <PopoverTrigger asChild>
                     <button
-                      className={cn("truncate", dueDateStart ? "text-base-content" : "text-base-content/60")}
+                      className={cn(
+                        "truncate",
+                        dueDateStart
+                          ? "text-base-content"
+                          : "text-base-content/60"
+                      )}
                       type="button"
                     >
                       {dueDateStart ? format(dueDateStart, "MMM d") : "Start"}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="w-auto p-0" collisionPadding={16}>
+                  <PopoverContent
+                    align="start"
+                    className="w-auto p-0"
+                    collisionPadding={16}
+                  >
                     <Calendar
                       mode="single"
                       onSelect={(date) => {
@@ -910,18 +963,32 @@ export function TaskDetailPanel({
                   </PopoverContent>
                 </Popover>
                 <span className="shrink-0 text-base-content/60">→</span>
-                <Popover onOpenChange={setMobileEndCalOpen} open={mobileEndCalOpen}>
+                <Popover
+                  onOpenChange={setMobileEndCalOpen}
+                  open={mobileEndCalOpen}
+                >
                   <PopoverTrigger asChild>
                     <button
-                      className={cn("truncate", dueDateEnd ? "text-base-content" : "text-base-content/60")}
+                      className={cn(
+                        "truncate",
+                        dueDateEnd
+                          ? "text-base-content"
+                          : "text-base-content/60"
+                      )}
                       type="button"
                     >
                       {dueDateEnd ? format(dueDateEnd, "MMM d") : "End"}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="w-auto p-0" collisionPadding={16}>
+                  <PopoverContent
+                    align="start"
+                    className="w-auto p-0"
+                    collisionPadding={16}
+                  >
                     <Calendar
-                      disabled={dueDateStart ? { before: dueDateStart } : undefined}
+                      disabled={
+                        dueDateStart ? { before: dueDateStart } : undefined
+                      }
                       mode="single"
                       onSelect={(date) => {
                         handleDueDateChange("end", date ?? null);
@@ -1001,6 +1068,7 @@ export function TaskDetailPanel({
                                 item.id
                               ).then(load)
                             }
+                            type="button"
                           >
                             <XIcon className="size-3" />
                           </button>
@@ -1043,6 +1111,7 @@ export function TaskDetailPanel({
                             ).then(load)
                           }
                           title="Delete checklist"
+                          type="button"
                         >
                           <TrashIcon className="size-3.5" />
                         </button>
@@ -1089,6 +1158,7 @@ export function TaskDetailPanel({
               className="flex items-center gap-1.5 text-xs text-base-content/60 hover:text-base-content transition-colors"
               onClick={() => setAddingChecklist(true)}
               ref={addChecklistTriggerRef}
+              type="button"
             >
               <PlusIcon className="size-3.5" />
               Add checklist
@@ -1137,165 +1207,177 @@ export function TaskDetailPanel({
             already sits near the top of the main column on mobile; see
             above). Unchanged at `sm`+. */}
           <div className="hidden sm:block space-y-5">
-          {/* Assignees */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-base-content/60">
-                Assignees
-              </span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="size-5 flex items-center justify-center rounded hover:bg-base-200">
-                    <PlusIcon className="size-3.5 text-base-content/60" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-56 p-2">
-                  <p className="text-xs font-medium text-base-content/60 mb-1.5 px-1">
-                    Select members
-                  </p>
-                  <div className="space-y-0.5 max-h-48 overflow-y-auto">
-                    {members.map((m) => {
-                      const isAssigned = assignees.some(
-                        (a) => a.userId === m.userId
-                      );
-                      return (
-                        <button
-                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
-                          key={m.userId}
-                          onClick={() => handleToggleAssignee(m.userId!)}
-                        >
-                          <Avatar className="size-6 shrink-0">
-                            <AvatarFallback className="text-2xs">
-                              {userInitials(m.name, m.email)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="flex-1 truncate text-left">
-                            {m.name || m.email}
-                          </span>
-                          {isAssigned && (
-                            <CheckIcon className="size-3.5 text-primary shrink-0" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <Separator className="my-1.5" />
-                  <button
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 hover:bg-base-200 hover:text-base-content"
-                    onClick={() => setInviteOpen(true)}
-                  >
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-base-300">
-                      <UserPlusIcon className="size-3.5" />
-                    </span>
-                    <span className="flex-1 truncate text-left">
-                      Invite member
-                    </span>
-                  </button>
-                </PopoverContent>
-              </Popover>
-            </div>
-            {assignees.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {assignees.map((a) => (
-                  <div
-                    className="flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5"
-                    key={a.userId}
-                  >
-                    <Avatar className="size-4">
-                      <AvatarFallback className="text-[8px]">
-                        {userInitials(a.name, a.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs max-w-20 truncate">
-                      {a.name ?? a.email}
-                    </span>
+            {/* Assignees */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium text-base-content/60">
+                  Assignees
+                </span>
+                <Popover>
+                  <PopoverTrigger asChild>
                     <button
-                      className="text-base-content/60 hover:text-base-content"
-                      onClick={() => handleToggleAssignee(a.userId!)}
+                      className="size-5 flex items-center justify-center rounded hover:bg-base-200"
+                      type="button"
                     >
-                      <XIcon className="size-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-base-content/60">None</p>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* Due date */}
-          <div>
-            <Label className="text-xs font-medium text-base-content/60 block mb-1.5">
-              Due date
-            </Label>
-            <div className="space-y-1">
-              <div>
-                <p className="text-2xs text-base-content/60 mb-0.5">Start</p>
-                <Popover onOpenChange={setStartCalOpen} open={startCalOpen}>
-                  <PopoverTrigger asChild>
-                    <button className="w-full flex items-center rounded-md border bg-base-100 px-2 py-1.5 text-xs hover:bg-base-200 transition-colors text-left">
-                      {dueDateStart ? (
-                        format(dueDateStart, "MMM d, yyyy")
-                      ) : (
-                        <span className="text-base-content/60">
-                          Pick a date
-                        </span>
-                      )}
+                      <PlusIcon className="size-3.5 text-base-content/60" />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent
-                    align="end"
-                    className="w-auto p-0"
-                    collisionPadding={16}
-                  >
-                    <Calendar
-                      mode="single"
-                      onSelect={(date) => {
-                        handleDueDateChange("start", date ?? null);
-                        setStartCalOpen(false);
-                      }}
-                      selected={dueDateStart ?? undefined}
-                    />
+                  <PopoverContent align="end" className="w-56 p-2">
+                    <p className="text-xs font-medium text-base-content/60 mb-1.5 px-1">
+                      Select members
+                    </p>
+                    <div className="space-y-0.5 max-h-48 overflow-y-auto">
+                      {members.map((m) => {
+                        const isAssigned = assignees.some(
+                          (a) => a.userId === m.userId
+                        );
+                        return (
+                          <button
+                            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
+                            key={m.userId}
+                            onClick={() => handleToggleAssignee(m.userId!)}
+                            type="button"
+                          >
+                            <Avatar className="size-6 shrink-0">
+                              <AvatarFallback className="text-2xs">
+                                {userInitials(m.name, m.email)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="flex-1 truncate text-left">
+                              {m.name || m.email}
+                            </span>
+                            {isAssigned && (
+                              <CheckIcon className="size-3.5 text-primary shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <Separator className="my-1.5" />
+                    <button
+                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 hover:bg-base-200 hover:text-base-content"
+                      onClick={() => setInviteOpen(true)}
+                      type="button"
+                    >
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-base-300">
+                        <UserPlusIcon className="size-3.5" />
+                      </span>
+                      <span className="flex-1 truncate text-left">
+                        Invite member
+                      </span>
+                    </button>
                   </PopoverContent>
                 </Popover>
               </div>
-              <div>
-                <p className="text-2xs text-base-content/60 mb-0.5">End</p>
-                <Popover onOpenChange={setEndCalOpen} open={endCalOpen}>
-                  <PopoverTrigger asChild>
-                    <button className="w-full flex items-center rounded-md border bg-base-100 px-2 py-1.5 text-xs hover:bg-base-200 transition-colors text-left">
-                      {dueDateEnd ? (
-                        format(dueDateEnd, "MMM d, yyyy")
-                      ) : (
-                        <span className="text-base-content/60">
-                          Pick a date
-                        </span>
-                      )}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="end"
-                    className="w-auto p-0"
-                    collisionPadding={16}
-                  >
-                    <Calendar
-                      disabled={
-                        dueDateStart ? { before: dueDateStart } : undefined
-                      }
-                      mode="single"
-                      onSelect={(date) => {
-                        handleDueDateChange("end", date ?? null);
-                        setEndCalOpen(false);
-                      }}
-                      selected={dueDateEnd ?? undefined}
-                    />
-                  </PopoverContent>
-                </Popover>
+              {assignees.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {assignees.map((a) => (
+                    <div
+                      className="flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5"
+                      key={a.userId}
+                    >
+                      <Avatar className="size-4">
+                        <AvatarFallback className="text-[8px]">
+                          {userInitials(a.name, a.email)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs max-w-20 truncate">
+                        {a.name ?? a.email}
+                      </span>
+                      <button
+                        className="text-base-content/60 hover:text-base-content"
+                        onClick={() => handleToggleAssignee(a.userId!)}
+                        type="button"
+                      >
+                        <XIcon className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-base-content/60">None</p>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Due date */}
+            <div>
+              <Label className="text-xs font-medium text-base-content/60 block mb-1.5">
+                Due date
+              </Label>
+              <div className="space-y-1">
+                <div>
+                  <p className="text-2xs text-base-content/60 mb-0.5">Start</p>
+                  <Popover onOpenChange={setStartCalOpen} open={startCalOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        className="w-full flex items-center rounded-md border bg-base-100 px-2 py-1.5 text-xs hover:bg-base-200 transition-colors text-left"
+                        type="button"
+                      >
+                        {dueDateStart ? (
+                          format(dueDateStart, "MMM d, yyyy")
+                        ) : (
+                          <span className="text-base-content/60">
+                            Pick a date
+                          </span>
+                        )}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="end"
+                      className="w-auto p-0"
+                      collisionPadding={16}
+                    >
+                      <Calendar
+                        mode="single"
+                        onSelect={(date) => {
+                          handleDueDateChange("start", date ?? null);
+                          setStartCalOpen(false);
+                        }}
+                        selected={dueDateStart ?? undefined}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <p className="text-2xs text-base-content/60 mb-0.5">End</p>
+                  <Popover onOpenChange={setEndCalOpen} open={endCalOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        className="w-full flex items-center rounded-md border bg-base-100 px-2 py-1.5 text-xs hover:bg-base-200 transition-colors text-left"
+                        type="button"
+                      >
+                        {dueDateEnd ? (
+                          format(dueDateEnd, "MMM d, yyyy")
+                        ) : (
+                          <span className="text-base-content/60">
+                            Pick a date
+                          </span>
+                        )}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="end"
+                      className="w-auto p-0"
+                      collisionPadding={16}
+                    >
+                      <Calendar
+                        disabled={
+                          dueDateStart ? { before: dueDateStart } : undefined
+                        }
+                        mode="single"
+                        onSelect={(date) => {
+                          handleDueDateChange("end", date ?? null);
+                          setEndCalOpen(false);
+                        }}
+                        selected={dueDateEnd ?? undefined}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
-          </div>
           </div>
 
           <Separator />
@@ -1308,7 +1390,10 @@ export function TaskDetailPanel({
               </span>
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="size-5 flex items-center justify-center rounded hover:bg-base-200">
+                  <button
+                    className="size-5 flex items-center justify-center rounded hover:bg-base-200"
+                    type="button"
+                  >
                     <PlusIcon className="size-3.5 text-base-content/60" />
                   </button>
                 </PopoverTrigger>
@@ -1339,6 +1424,7 @@ export function TaskDetailPanel({
                     <button
                       className="hover:opacity-70"
                       onClick={() => handleToggleTag(tag.id)}
+                      type="button"
                     >
                       <XIcon className="size-2.5" />
                     </button>
@@ -1403,9 +1489,12 @@ export function TaskDetailPanel({
                     disabled={!canEdit}
                     field={field}
                     members={members.filter(
-                      (m): m is typeof m & { userId: string } => m.userId !== null
+                      (m): m is typeof m & { userId: string } =>
+                        m.userId !== null
                     )}
-                    onChange={(value) => handleCustomFieldChange(field.id, value)}
+                    onChange={(value) =>
+                      handleCustomFieldChange(field.id, value)
+                    }
                     value={customFieldValues[field.id]}
                   />
                 </div>
@@ -1600,6 +1689,7 @@ function TagPicker({
             <button
               className="flex flex-1 min-w-0 items-center gap-2"
               onClick={() => onToggle(tag.id)}
+              type="button"
             >
               <span
                 className="size-2.5 rounded-full shrink-0"
@@ -1618,6 +1708,7 @@ function TagPicker({
                 e.stopPropagation();
                 onDelete(tag.id, tag.name);
               }}
+              type="button"
             >
               <TrashIcon className="size-3" />
             </button>
@@ -1630,6 +1721,7 @@ function TagPicker({
               onCreate(search.trim());
               setSearch("");
             }}
+            type="button"
           >
             <PlusIcon className="size-3.5" />
             Create &ldquo;{search}&rdquo;

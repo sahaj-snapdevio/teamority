@@ -250,7 +250,15 @@ export default function InboxPage() {
     }
     p.set("page", String(page));
     return `/api/me/notifications?${p.toString()}`;
-  }, [activeTab, q, workspaceFilter, actorFilter, eventFilter, dateFilter, page]);
+  }, [
+    activeTab,
+    q,
+    workspaceFilter,
+    actorFilter,
+    eventFilter,
+    dateFilter,
+    page,
+  ]);
 
   const { data, isLoading, isValidating, mutate } =
     useSWR<NotificationsResponse>(url, fetcher, {
@@ -600,6 +608,7 @@ export default function InboxPage() {
             <button
               className="text-sm text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
               onClick={markAllRead}
+              type="button"
             >
               Mark all as read
             </button>
@@ -607,6 +616,7 @@ export default function InboxPage() {
             <button
               className="text-sm text-base-content/60 hover:text-error transition-colors cursor-pointer"
               onClick={clearAll}
+              type="button"
             >
               Clear all
             </button>
@@ -629,6 +639,7 @@ export default function InboxPage() {
                 onClick={() =>
                   updateParams({ filter: t.key === "all" ? null : t.key })
                 }
+                type="button"
               >
                 {t.label}
                 {t.key === "unread" && unreadCount > 0 && (
@@ -770,6 +781,7 @@ export default function InboxPage() {
                 {group.items.map((n) => {
                   const isSelected = selectedTask?.notifId === n.id;
                   return (
+                    // biome-ignore lint/a11y/useSemanticElements: row is clickable to open, but contains nested interactive ActionBtn controls — can't be a real <button> (invalid nested-interactive markup)
                     <div
                       className={cn(
                         "group relative flex cursor-pointer items-center gap-3 border-b px-4 py-3.5 transition-colors hover:bg-base-200/40",
@@ -778,6 +790,17 @@ export default function InboxPage() {
                       )}
                       key={n.id}
                       onClick={() => void handleRowClick(n)}
+                      onKeyDown={(e) => {
+                        if (e.target !== e.currentTarget) {
+                          return;
+                        }
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          void handleRowClick(n);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
                     >
                       {/* Unread dot */}
                       <div className="w-2 shrink-0 flex justify-center">
@@ -898,6 +921,7 @@ export default function InboxPage() {
               className="flex size-7 items-center justify-center rounded-md text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors cursor-pointer"
               onClick={() => setSelectedTask(null)}
               title="Close"
+              type="button"
             >
               <XIcon className="size-4" />
             </button>

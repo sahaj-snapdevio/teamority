@@ -1,5 +1,6 @@
 "use client";
 
+import type { Icon } from "@phosphor-icons/react";
 import {
   DownloadSimpleIcon,
   FileDocIcon,
@@ -17,7 +18,6 @@ import {
   NodeViewWrapper,
   ReactNodeViewRenderer,
 } from "@tiptap/react";
-import type { Icon } from "@phosphor-icons/react";
 import { useAttachmentPreview } from "@/components/task/attachment-preview-modal";
 import { formatBytes } from "@/lib/format-bytes";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,10 @@ function noteFileUrl(key: string): string {
 }
 
 /** Pick an icon + tint for a file chip based on its MIME type / name. */
-function iconForFile(mimeType: string | null, fileName: string | null): {
+function iconForFile(
+  mimeType: string | null,
+  fileName: string | null
+): {
   Icon: Icon;
   className: string;
 } {
@@ -48,7 +51,11 @@ function iconForFile(mimeType: string | null, fileName: string | null): {
   ) {
     return { Icon: FileXlsIcon, className: "text-green-600" };
   }
-  if (type.includes("presentation") || type.includes("powerpoint") || /\.(pptx?|odp)$/.test(name)) {
+  if (
+    type.includes("presentation") ||
+    type.includes("powerpoint") ||
+    /\.(pptx?|odp)$/.test(name)
+  ) {
     return { Icon: FilePptIcon, className: "text-orange-500" };
   }
   if (type.includes("zip") || /\.(zip|rar|7z|tar|gz)$/.test(name)) {
@@ -96,6 +103,10 @@ function NoteFileView({ node, selected, editor, deleteNode }: NodeViewProps) {
 
   return (
     <NodeViewWrapper className="note-file my-2" data-drag-handle>
+      {/* The nested "remove attachment" button (below) means this can't just
+          become a <button> — a button can't be a valid child of a button. */}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: role="button" + tabIndex/onKeyDown make this element keyboard-interactive; a nested <button> below rules out converting the wrapper itself to <button> */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: role="button" + tabIndex/onKeyDown make this element keyboard-interactive; a nested <button> below rules out converting the wrapper itself to <button> */}
       <div
         className={cn(
           "group relative flex max-w-sm items-center gap-3 rounded-lg border bg-base-200/30 px-3 py-2 transition-colors",
@@ -103,7 +114,21 @@ function NoteFileView({ node, selected, editor, deleteNode }: NodeViewProps) {
           selected && "ring-2 ring-primary"
         )}
         onClick={ready ? openPreview : undefined}
+        onKeyDown={
+          ready
+            ? (e) => {
+                if (e.target !== e.currentTarget) {
+                  return;
+                }
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openPreview();
+                }
+              }
+            : undefined
+        }
         role={ready ? "button" : undefined}
+        tabIndex={ready ? 0 : undefined}
       >
         {uploading ? (
           <SpinnerGapIcon className="size-6 shrink-0 animate-spin text-base-content/60" />
@@ -126,13 +151,13 @@ function NoteFileView({ node, selected, editor, deleteNode }: NodeViewProps) {
         )}
         {editable && !uploading && (
           <button
-            type="button"
+            className="absolute -right-2 -top-2 z-10 hidden size-6 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition-colors hover:bg-red-700 group-hover:flex"
             onClick={(e) => {
               e.stopPropagation();
               deleteNode();
             }}
             title="Remove attachment"
-            className="absolute -right-2 -top-2 z-10 hidden size-6 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition-colors hover:bg-red-700 group-hover:flex"
+            type="button"
           >
             <XIcon className="size-3.5" />
           </button>
@@ -185,9 +210,9 @@ export const NoteFile = Node.create({
           return raw ? Number(raw) : null;
         },
         renderHTML: (attrs) =>
-          attrs.fileSize != null
-            ? { "data-file-size": String(attrs.fileSize) }
-            : {},
+          attrs.fileSize == null
+            ? {}
+            : { "data-file-size": String(attrs.fileSize) },
       },
       mimeType: {
         default: null,

@@ -613,7 +613,10 @@ function WeekDayRow({
         "flex w-full flex-col gap-1.5 border-l-[3px] px-3 py-2.5 text-left transition-colors active:bg-base-200/60",
         today
           ? "border-primary bg-primary/5"
-          : cn("border-transparent", weekend && "bg-base-200/30 dark:bg-base-200/10")
+          : cn(
+              "border-transparent",
+              weekend && "bg-base-200/30 dark:bg-base-200/10"
+            )
       )}
       onClick={onOpen}
       type="button"

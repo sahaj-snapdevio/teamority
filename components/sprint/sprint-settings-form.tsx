@@ -2,11 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { saveSprintSettings, type SprintSettings } from "@/app/actions/sprint";
+import { type SprintSettings, saveSprintSettings } from "@/app/actions/sprint";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -14,10 +13,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 const NAME_FORMATS = [
   { value: "Sprint {n}", label: "Sprint {n}" },
@@ -35,15 +43,14 @@ const DATE_FORMATS = [
 ];
 
 function previewName(format: string, n: number, projectName: string): string {
-  return format.replace("{n}", String(n)).replace("{project}", projectName || "Project");
+  return format
+    .replace("{n}", String(n))
+    .replace("{project}", projectName || "Project");
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SprintSettingsFormProps {
-  workspaceId: string;
-  spaceId: string;
-  spaceName: string;
   initialSettings: {
     sprintStartDay: number | null;
     sprintDefaultDurationWeeks: number;
@@ -54,6 +61,9 @@ interface SprintSettingsFormProps {
     sprintAutoMoveIncomplete: boolean;
     sprintAutoArchiveAfterN: number | null;
   };
+  spaceId: string;
+  spaceName: string;
+  workspaceId: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -66,15 +76,33 @@ export function SprintSettingsForm({
 }: SprintSettingsFormProps) {
   const [pending, startTransition] = useTransition();
 
-  const [startDay, setStartDay] = useState<number>(initialSettings.sprintStartDay ?? 1);
-  const [durationWeeks, setDurationWeeks] = useState(initialSettings.sprintDefaultDurationWeeks);
-  const [nameFormat, setNameFormat] = useState(initialSettings.sprintNameFormat);
-  const [dateFormat, setDateFormat] = useState(initialSettings.sprintDateFormat);
-  const [autoMarkDone, setAutoMarkDone] = useState(initialSettings.sprintAutoMarkDone);
-  const [autoCreateNext, setAutoCreateNext] = useState(initialSettings.sprintAutoCreateNext);
-  const [autoMoveIncomplete, setAutoMoveIncomplete] = useState(initialSettings.sprintAutoMoveIncomplete);
-  const [archiveEnabled, setArchiveEnabled] = useState(initialSettings.sprintAutoArchiveAfterN !== null);
-  const [autoArchiveAfterN, setAutoArchiveAfterN] = useState(initialSettings.sprintAutoArchiveAfterN ?? 3);
+  const [startDay, setStartDay] = useState<number>(
+    initialSettings.sprintStartDay ?? 1
+  );
+  const [durationWeeks, setDurationWeeks] = useState(
+    initialSettings.sprintDefaultDurationWeeks
+  );
+  const [nameFormat, setNameFormat] = useState(
+    initialSettings.sprintNameFormat
+  );
+  const [dateFormat, setDateFormat] = useState(
+    initialSettings.sprintDateFormat
+  );
+  const [autoMarkDone, setAutoMarkDone] = useState(
+    initialSettings.sprintAutoMarkDone
+  );
+  const [autoCreateNext, setAutoCreateNext] = useState(
+    initialSettings.sprintAutoCreateNext
+  );
+  const [autoMoveIncomplete, setAutoMoveIncomplete] = useState(
+    initialSettings.sprintAutoMoveIncomplete
+  );
+  const [archiveEnabled, setArchiveEnabled] = useState(
+    initialSettings.sprintAutoArchiveAfterN !== null
+  );
+  const [autoArchiveAfterN, setAutoArchiveAfterN] = useState(
+    initialSettings.sprintAutoArchiveAfterN ?? 3
+  );
 
   const namePreview = previewName(nameFormat, 1, spaceName);
   const namePreview2 = previewName(nameFormat, 2, spaceName);
@@ -102,24 +130,31 @@ export function SprintSettingsForm({
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-8">
+    <form className="space-y-8" onSubmit={handleSave}>
       {/* Schedule */}
       <section className="space-y-4">
         <div>
           <h2 className="text-sm font-semibold">Schedule</h2>
-          <p className="text-sm text-base-content/60 mt-0.5">Control when and how long sprints run.</p>
+          <p className="text-sm text-base-content/60 mt-0.5">
+            Control when and how long sprints run.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Sprint starts on</Label>
-            <Select value={String(startDay)} onValueChange={(v) => setStartDay(Number(v))}>
+            <Select
+              onValueChange={(v) => setStartDay(Number(v))}
+              value={String(startDay)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="p-1.5">
                 {DAY_NAMES.map((day, i) => (
-                  <SelectItem key={i} value={String(i)}>{day}</SelectItem>
+                  <SelectItem key={day} value={String(i)}>
+                    {day}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -127,7 +162,10 @@ export function SprintSettingsForm({
 
           <div className="space-y-1.5">
             <Label>Default duration</Label>
-            <Select value={String(durationWeeks)} onValueChange={(v) => setDurationWeeks(Number(v))}>
+            <Select
+              onValueChange={(v) => setDurationWeeks(Number(v))}
+              value={String(durationWeeks)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -148,19 +186,23 @@ export function SprintSettingsForm({
       <section className="space-y-4">
         <div>
           <h2 className="text-sm font-semibold">Naming</h2>
-          <p className="text-sm text-base-content/60 mt-0.5">Define how sprints are named and how dates display.</p>
+          <p className="text-sm text-base-content/60 mt-0.5">
+            Define how sprints are named and how dates display.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Sprint name format</Label>
-            <Select value={nameFormat} onValueChange={setNameFormat}>
+            <Select onValueChange={setNameFormat} value={nameFormat}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="p-1.5">
                 {NAME_FORMATS.map((f) => (
-                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -168,7 +210,7 @@ export function SprintSettingsForm({
 
           <div className="space-y-1.5">
             <Label>Date format</Label>
-            <Select value={dateFormat} onValueChange={setDateFormat}>
+            <Select onValueChange={setDateFormat} value={dateFormat}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -176,7 +218,9 @@ export function SprintSettingsForm({
                 {DATE_FORMATS.map((f) => (
                   <SelectItem key={f.value} value={f.value}>
                     <span>{f.label}</span>
-                    <span className="ml-2 text-base-content/60 text-xs">{f.example}</span>
+                    <span className="ml-2 text-base-content/60 text-xs">
+                      {f.example}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -199,7 +243,9 @@ export function SprintSettingsForm({
       <section className="space-y-4">
         <div>
           <h2 className="text-sm font-semibold">Automations</h2>
-          <p className="text-sm text-base-content/60 mt-0.5">Automate sprint lifecycle actions.</p>
+          <p className="text-sm text-base-content/60 mt-0.5">
+            Automate sprint lifecycle actions.
+          </p>
         </div>
 
         <div className="space-y-0 divide-y divide-border rounded-md border border-base-300">
@@ -224,7 +270,12 @@ export function SprintSettingsForm({
             </div>
             <Switch
               checked={autoCreateNext}
-              onCheckedChange={(v) => { setAutoCreateNext(v); if (!v) setAutoMoveIncomplete(false); }}
+              onCheckedChange={(v) => {
+                setAutoCreateNext(v);
+                if (!v) {
+                  setAutoMoveIncomplete(false);
+                }
+              }}
             />
           </div>
 
@@ -232,10 +283,17 @@ export function SprintSettingsForm({
           {autoCreateNext && (
             <div className="flex items-start justify-between gap-4 py-3 pl-6 pr-4 bg-base-200/30 sm:pl-10">
               <div>
-                <p className="text-sm font-medium">Move incomplete tasks to next sprint</p>
-                <p className="text-xs text-base-content/60 mt-0.5">Unfinished tasks carry over automatically</p>
+                <p className="text-sm font-medium">
+                  Move incomplete tasks to next sprint
+                </p>
+                <p className="text-xs text-base-content/60 mt-0.5">
+                  Unfinished tasks carry over automatically
+                </p>
               </div>
-              <Switch checked={autoMoveIncomplete} onCheckedChange={setAutoMoveIncomplete} />
+              <Switch
+                checked={autoMoveIncomplete}
+                onCheckedChange={setAutoMoveIncomplete}
+              />
             </div>
           )}
 
@@ -257,21 +315,27 @@ export function SprintSettingsForm({
             <div className="flex flex-wrap items-center gap-3 py-3 pl-6 pr-4 bg-base-200/30 sm:pl-10">
               <p className="text-sm text-base-content/60 shrink-0">Keep last</p>
               <Input
-                type="number"
-                min={1}
-                max={20}
-                value={autoArchiveAfterN}
-                onChange={(e) => setAutoArchiveAfterN(Math.max(1, Math.min(20, Number(e.target.value))))}
                 className="w-16 h-8 text-center"
+                max={20}
+                min={1}
+                onChange={(e) =>
+                  setAutoArchiveAfterN(
+                    Math.max(1, Math.min(20, Number(e.target.value)))
+                  )
+                }
+                type="number"
+                value={autoArchiveAfterN}
               />
-              <p className="text-sm text-base-content/60 shrink-0">sprints visible</p>
+              <p className="text-sm text-base-content/60 shrink-0">
+                sprints visible
+              </p>
             </div>
           )}
         </div>
       </section>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={pending}>
+        <Button disabled={pending} type="submit">
           {pending ? "Saving…" : "Save settings"}
         </Button>
       </div>

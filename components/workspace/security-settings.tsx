@@ -1,11 +1,17 @@
 "use client";
 
+import { WarningIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { WarningIcon } from "@phosphor-icons/react";
 import { deleteWorkspace } from "@/app/actions/workspace";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +40,10 @@ export function SecuritySettings({
 
   async function confirmDelete() {
     setPending(true);
-    const result = await deleteWorkspace({ workspaceId, confirmName: deleteConfirm });
+    const result = await deleteWorkspace({
+      workspaceId,
+      confirmName: deleteConfirm,
+    });
     if ("error" in result) {
       toast.error(result.error);
       setPending(false);
@@ -45,7 +54,9 @@ export function SecuritySettings({
     // a still-valid destination (another workspace, or the create-workspace step)
     // rather than a client refresh of the dead route. Keep `pending` true so the
     // button stays in its loading state until the page unloads.
-    window.location.assign(result.nextWorkspaceId ? `/${result.nextWorkspaceId}` : "/onboarding");
+    window.location.assign(
+      result.nextWorkspaceId ? `/${result.nextWorkspaceId}` : "/onboarding"
+    );
   }
 
   return (
@@ -57,16 +68,22 @@ export function SecuritySettings({
             Danger Zone
           </CardTitle>
           <CardDescription>
-            Deleting the workspace permanently removes all Spaces, Lists, Tasks, comments and files. This cannot be undone.
+            Deleting the workspace permanently removes all Spaces, Lists, Tasks,
+            comments and files. This cannot be undone.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Dialog
+            onOpenChange={(open) => {
+              setDeleteOpen(open);
+              if (!open) {
+                setDeleteConfirm("");
+              }
+            }}
             open={deleteOpen}
-            onOpenChange={(open) => { setDeleteOpen(open); if (!open) setDeleteConfirm(""); }}
           >
             <DialogTrigger asChild>
-              <Button variant="destructive" className="gap-2">
+              <Button className="gap-2" variant="destructive">
                 <WarningIcon className="size-4" />
                 Delete workspace
               </Button>
@@ -75,7 +92,8 @@ export function SecuritySettings({
               <DialogHeader>
                 <DialogTitle>Delete {workspaceName}?</DialogTitle>
                 <DialogDescription>
-                  All data will be permanently deleted. There is no recovery period. Type the workspace name to confirm.
+                  All data will be permanently deleted. There is no recovery
+                  period. Type the workspace name to confirm.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-2">
@@ -88,19 +106,21 @@ export function SecuritySettings({
                 </Label>
                 <Input
                   id="delete-confirm"
-                  value={deleteConfirm}
                   onChange={(e) => setDeleteConfirm(e.target.value)}
+                  value={deleteConfirm}
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+                <Button onClick={() => setDeleteOpen(false)} variant="outline">
                   Cancel
                 </Button>
                 <Button
-                  variant="destructive"
-                  disabled={pending || deleteConfirm.trim() !== workspaceName.trim()}
-                  onClick={confirmDelete}
                   className="gap-2"
+                  disabled={
+                    pending || deleteConfirm.trim() !== workspaceName.trim()
+                  }
+                  onClick={confirmDelete}
+                  variant="destructive"
                 >
                   {pending && <Spinner className="size-4" />}
                   Delete forever

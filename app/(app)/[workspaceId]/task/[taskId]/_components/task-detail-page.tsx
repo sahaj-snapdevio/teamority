@@ -39,6 +39,12 @@ import * as React from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import {
+  type CustomFieldRow,
+  deleteCustomFieldValue,
+  getCustomFieldsForTasks,
+  setCustomFieldValue,
+} from "@/app/actions/custom-field";
+import {
   archiveTask,
   createSubtask,
   deleteTask,
@@ -49,12 +55,6 @@ import {
   updateTask,
   updateTaskStatus,
 } from "@/app/actions/task";
-import {
-  deleteCustomFieldValue,
-  getCustomFieldsForTasks,
-  setCustomFieldValue,
-  type CustomFieldRow,
-} from "@/app/actions/custom-field";
 import {
   addAssignee,
   removeAssignee,
@@ -80,13 +80,13 @@ import {
   AttachmentPreviewProvider,
   useAttachmentPreview,
 } from "@/components/task/attachment-preview-modal";
+import { CustomFieldEditor } from "@/components/task/custom-field-editors";
+import { SubtaskRow } from "@/components/task/subtask-row";
 import {
   TaskActivityFeed,
   type TaskActivityFeedHandle,
 } from "@/components/task/task-activity-feed";
-import { CustomFieldEditor } from "@/components/task/custom-field-editors";
 import { TaskDependencies } from "@/components/task/task-dependencies";
-import { SubtaskRow } from "@/components/task/subtask-row";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
 import { TaskTimeTracking } from "@/components/task/task-time-tracking";
 import {
@@ -132,10 +132,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { InviteMemberModal } from "@/components/workspace/invite-member-modal";
+import { useTaskNavShortcut } from "@/hooks/use-task-nav-shortcut";
+import { useTaskNavigation } from "@/hooks/use-task-navigation";
 import { flashDuplicatedTask } from "@/lib/duplicate-highlight";
 import { useSetTopbar } from "@/lib/topbar-context";
-import { useTaskNavigation } from "@/hooks/use-task-navigation";
-import { useTaskNavShortcut } from "@/hooks/use-task-nav-shortcut";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { cn } from "@/lib/utils";
 import { TaskDetailSkeleton } from "./task-detail-skeleton";
@@ -267,14 +267,21 @@ function StatusPickerContent({
   onManageStatuses: () => void;
 }) {
   return (
-    <div className="max-h-60 overflow-y-auto p-1" onWheel={(e) => e.stopPropagation()}>
+    <div
+      className="max-h-60 overflow-y-auto p-1"
+      onWheel={(e) => e.stopPropagation()}
+    >
       {(["OPEN", "ACTIVE", "CLOSED"] as const).map((type) => {
         const group = statuses.filter((s) => s.type === type);
         if (group.length === 0) {
           return null;
         }
         const label =
-          type === "OPEN" ? "Not started" : type === "ACTIVE" ? "Active" : "Closed";
+          type === "OPEN"
+            ? "Not started"
+            : type === "ACTIVE"
+              ? "Active"
+              : "Closed";
         return (
           <div key={type}>
             <div className="flex items-center px-2 pt-2 pb-0.5">
@@ -287,11 +294,16 @@ function StatusPickerContent({
                     <button
                       className="flex size-4 items-center justify-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
                       onClick={(e) => e.stopPropagation()}
+                      type="button"
                     >
                       <DotsThreeIcon className="size-3.5" weight="bold" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-36" side="right">
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-36"
+                    side="right"
+                  >
                     <DropdownMenuItem onClick={onManageStatuses}>
                       <GearIcon className="size-3.5" />
                       Edit statuses
@@ -305,6 +317,7 @@ function StatusPickerContent({
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
                 key={s.id}
                 onClick={() => onSelect(s.id)}
+                type="button"
               >
                 <span
                   className="size-2.5 rounded-full shrink-0"
@@ -345,6 +358,7 @@ function PriorityPickerContent({
           )}
           key={key}
           onClick={() => onSelect(key)}
+          type="button"
         >
           <span>{cfg.icon}</span>
           <span className="flex-1 text-left">{cfg.label}</span>
@@ -363,7 +377,12 @@ function AssigneePickerContent({
   onToggle,
   onInvite,
 }: {
-  members: { userId: string; name: string; email: string; image: string | null }[];
+  members: {
+    userId: string;
+    name: string;
+    email: string;
+    image: string | null;
+  }[];
   assignedUserIds: string[];
   onToggle: (userId: string) => void;
   onInvite: () => void;
@@ -379,6 +398,7 @@ function AssigneePickerContent({
               className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
               key={m.userId}
               onClick={() => onToggle(m.userId)}
+              type="button"
             >
               <Avatar className="size-6 shrink-0">
                 {m.image && <AvatarImage src={avatarSrc(m.image)} />}
@@ -398,6 +418,7 @@ function AssigneePickerContent({
       <button
         className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-base-content/60 hover:bg-base-200 hover:text-base-content"
         onClick={onInvite}
+        type="button"
       >
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-base-300">
           <UserPlusIcon className="size-3.5" />
@@ -453,6 +474,7 @@ function TagPickerContent({
               <button
                 className="flex flex-1 min-w-0 items-center gap-2"
                 onClick={() => onToggle(tag.id)}
+                type="button"
               >
                 <span
                   className="size-2.5 rounded-full shrink-0"
@@ -471,6 +493,7 @@ function TagPickerContent({
                   e.stopPropagation();
                   onDeleteRequest({ id: tag.id, name: tag.name });
                 }}
+                type="button"
               >
                 <TrashIcon className="size-3" />
               </button>
@@ -481,6 +504,7 @@ function TagPickerContent({
           <button
             className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-base-200"
             onClick={() => onCreate(search.trim())}
+            type="button"
           >
             <PlusIcon className="size-3.5" /> Create &ldquo;{search}&rdquo;
           </button>
@@ -518,12 +542,14 @@ function TaskOverflowMenuItems({
         className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
         disabled={saving}
         onClick={onDuplicate}
+        type="button"
       >
         <CopyIcon className="size-3.5 text-base-content/60" /> Duplicate
       </button>
       <button
         className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
         onClick={onArchiveToggle}
+        type="button"
       >
         <ArchiveIcon className="size-3.5 text-base-content/60" />{" "}
         {isArchived ? "Unarchive" : "Archive"}
@@ -534,6 +560,7 @@ function TaskOverflowMenuItems({
           <button
             className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-base-200"
             onClick={onPinToListToggle}
+            type="button"
           >
             <PushPinIcon
               className={cn(
@@ -550,6 +577,7 @@ function TaskOverflowMenuItems({
       <button
         className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-error hover:bg-error/10"
         onClick={onDelete}
+        type="button"
       >
         <TrashIcon className="size-3.5" /> Delete
       </button>
@@ -720,7 +748,7 @@ export function TaskDetailPage({
     setMobileTagPopoverOpen(false);
     setMobileStartCalOpen(false);
     setMobileEndCalOpen(false);
-  }, [taskId]);
+  }, []);
   // Auto-open every section that already has data, once per task, so a task's
   // subtasks / dependencies / checklist are shown together on open. Guarded to
   // the current task's data and to run only once, so sections the user later
@@ -815,58 +843,66 @@ export function TaskDetailPage({
   // via CSS) never end up both "open" and racing over the same boolean.
   const isMobile = useIsBelowMd();
   const [mobilePropertiesOpen, setMobilePropertiesOpen] = React.useState(true);
-  const [mobileStatusPopoverOpen, setMobileStatusPopoverOpen] = React.useState(false);
-  const [mobilePriorityPopoverOpen, setMobilePriorityPopoverOpen] = React.useState(false);
-  const [mobileAssigneePopoverOpen, setMobileAssigneePopoverOpen] = React.useState(false);
+  const [mobileStatusPopoverOpen, setMobileStatusPopoverOpen] =
+    React.useState(false);
+  const [mobilePriorityPopoverOpen, setMobilePriorityPopoverOpen] =
+    React.useState(false);
+  const [mobileAssigneePopoverOpen, setMobileAssigneePopoverOpen] =
+    React.useState(false);
   const [mobileTagPopoverOpen, setMobileTagPopoverOpen] = React.useState(false);
   const [mobileStartCalOpen, setMobileStartCalOpen] = React.useState(false);
   const [mobileEndCalOpen, setMobileEndCalOpen] = React.useState(false);
 
-  async function fetchAll(showSpinner: boolean) {
-    if (showSpinner) {
-      setLoading(true);
-    }
-    const [detail, mem, tags, attRes, pinRes, customFieldsRes] =
-      await Promise.all([
-        getTaskDetail(workspaceId, spaceId, taskId),
-        getWorkspaceMembers(workspaceId),
-        getWorkspaceTags(workspaceId),
-        fetch(`/api/tasks/${taskId}/attachments`)
-          .then((r) => r.json())
-          .catch(() => ({ attachments: [] })),
-        fetch(`/api/tasks/${taskId}/pin`, { method: "GET" })
-          .then((r) => (r.ok ? r.json() : { pinned: false }))
-          .catch(() => ({ pinned: false })),
-        getCustomFieldsForTasks(workspaceId, spaceId, listId, [taskId]),
-      ]);
-    setData(detail && !("error" in detail) ? detail : null);
-    if (mem && !("error" in mem)) {
-      setMembers(
-        mem.members
-          .filter((m): m is typeof m & { userId: string } => m.userId !== null)
-          .map((m) => ({
-            userId: m.userId!,
-            name: m.name,
-            email: m.email,
-            image: m.image,
-          }))
-      );
-    }
-    if (tags && !("error" in tags)) {
-      setAllTags(tags.tags);
-    }
-    if (attRes?.attachments) {
-      setAttachments(attRes.attachments);
-    }
-    setIsPinned(!!pinRes?.pinned);
-    if (customFieldsRes && !("error" in customFieldsRes)) {
-      setCustomFields(customFieldsRes.fields);
-      setCustomFieldValues(customFieldsRes.valuesByTask[taskId] ?? {});
-    }
-    if (showSpinner) {
-      setLoading(false);
-    }
-  }
+  const fetchAll = React.useCallback(
+    async (showSpinner: boolean) => {
+      if (showSpinner) {
+        setLoading(true);
+      }
+      const [detail, mem, tags, attRes, pinRes, customFieldsRes] =
+        await Promise.all([
+          getTaskDetail(workspaceId, spaceId, taskId),
+          getWorkspaceMembers(workspaceId),
+          getWorkspaceTags(workspaceId),
+          fetch(`/api/tasks/${taskId}/attachments`)
+            .then((r) => r.json())
+            .catch(() => ({ attachments: [] })),
+          fetch(`/api/tasks/${taskId}/pin`, { method: "GET" })
+            .then((r) => (r.ok ? r.json() : { pinned: false }))
+            .catch(() => ({ pinned: false })),
+          getCustomFieldsForTasks(workspaceId, spaceId, listId, [taskId]),
+        ]);
+      setData(detail && !("error" in detail) ? detail : null);
+      if (mem && !("error" in mem)) {
+        setMembers(
+          mem.members
+            .filter(
+              (m): m is typeof m & { userId: string } => m.userId !== null
+            )
+            .map((m) => ({
+              userId: m.userId!,
+              name: m.name,
+              email: m.email,
+              image: m.image,
+            }))
+        );
+      }
+      if (tags && !("error" in tags)) {
+        setAllTags(tags.tags);
+      }
+      if (attRes?.attachments) {
+        setAttachments(attRes.attachments);
+      }
+      setIsPinned(!!pinRes?.pinned);
+      if (customFieldsRes && !("error" in customFieldsRes)) {
+        setCustomFields(customFieldsRes.fields);
+        setCustomFieldValues(customFieldsRes.valuesByTask[taskId] ?? {});
+      }
+      if (showSpinner) {
+        setLoading(false);
+      }
+    },
+    [workspaceId, spaceId, listId, taskId]
+  );
 
   async function handleTogglePin() {
     const next = !isPinned;
@@ -898,7 +934,7 @@ export function TaskDetailPage({
 
   React.useEffect(() => {
     fetchAll(true);
-  }, [taskId]);
+  }, [fetchAll]);
 
   // Live updates: when another user changes THIS task, refetch just this task.
   // Events carrying a different taskId are ignored; events without one (list /
@@ -1264,7 +1300,11 @@ export function TaskDetailPage({
 
   // Shared by the desktop and mobile overflow menus (TaskOverflowMenuItems).
   async function handlePinToListToggle() {
-    const isPinnedToList = !!(data && !("error" in data) && data.task.isPinnedToList);
+    const isPinnedToList = !!(
+      data &&
+      !("error" in data) &&
+      data.task.isPinnedToList
+    );
     const res = await fetch(`/api/tasks/${taskId}/pin-to-list`, {
       method: isPinnedToList ? "DELETE" : "POST",
     });
@@ -1272,7 +1312,7 @@ export function TaskDetailPage({
       load();
     } else if (!isPinnedToList) {
       const d = await res.json().catch(() => ({}));
-      alert(d.error ?? "Failed to pin");
+      toast.error(d.error ?? "Failed to pin");
     }
   }
 
@@ -1362,6 +1402,7 @@ export function TaskDetailPage({
           <button
             className="flex items-center gap-1.5 text-sm text-base-content/60 hover:text-base-content transition-colors"
             onClick={() => router.push(backUrl)}
+            type="button"
           >
             <ArrowLeftIcon className="size-4" />
           </button>
@@ -1370,6 +1411,7 @@ export function TaskDetailPage({
             <button
               className="hover:text-base-content transition-colors shrink-0"
               onClick={() => router.push(listBackUrl)}
+              type="button"
             >
               {contextLabel}
             </button>
@@ -1381,6 +1423,7 @@ export function TaskDetailPage({
                   onClick={() =>
                     router.push(`/${workspaceId}/task/${parentTask.id}`)
                   }
+                  type="button"
                 >
                   {parentTask.title}
                 </button>
@@ -1398,11 +1441,11 @@ export function TaskDetailPage({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        type="button"
                         aria-label="Previous task"
+                        className="flex size-7 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         disabled={!taskNav.prevId}
                         onClick={goPrevTask}
-                        className="flex size-7 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        type="button"
                       >
                         <CaretLeftIcon className="size-4" />
                       </button>
@@ -1415,11 +1458,11 @@ export function TaskDetailPage({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        type="button"
                         aria-label="Next task"
+                        className="flex size-7 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         disabled={!taskNav.nextId}
                         onClick={goNextTask}
-                        className="flex size-7 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        type="button"
                       >
                         <CaretRightIcon className="size-4" />
                       </button>
@@ -1438,6 +1481,7 @@ export function TaskDetailPage({
               )}
               onClick={handleTogglePin}
               title={isPinned ? "Unpin from sidebar" : "Pin to sidebar"}
+              type="button"
             >
               <PushPinIcon
                 className="size-3.5"
@@ -1451,6 +1495,7 @@ export function TaskDetailPage({
               className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
               onClick={() => void copyLink()}
               title="Copy link"
+              type="button"
             >
               <LinkIcon className="size-3.5" />{" "}
               <span className="hidden sm:inline">Copy link</span>
@@ -1464,6 +1509,7 @@ export function TaskDetailPage({
               )}
               onClick={handleToggleWatch}
               title={isWatching ? "Unwatch" : "Watch"}
+              type="button"
             >
               {isWatching ? (
                 <EyeSlashIcon className="size-3.5" />
@@ -1476,7 +1522,10 @@ export function TaskDetailPage({
             </button>
             <Popover>
               <PopoverTrigger asChild>
-                <button className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60">
+                <button
+                  className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 text-base-content/60"
+                  type="button"
+                >
                   <DotsThreeIcon className="size-4.5" weight="bold" />
                 </button>
               </PopoverTrigger>
@@ -1505,6 +1554,7 @@ export function TaskDetailPage({
             aria-label="Back"
             className="flex size-11 shrink-0 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
             onClick={() => router.push(backUrl)}
+            type="button"
           >
             <ArrowLeftIcon className="size-5" />
           </button>
@@ -1538,6 +1588,7 @@ export function TaskDetailPage({
               <button
                 aria-label="More actions"
                 className="flex size-11 shrink-0 items-center justify-center rounded-md text-base-content/60 hover:bg-base-200"
+                type="button"
               >
                 <DotsThreeIcon className="size-5" weight="bold" />
               </button>
@@ -1546,6 +1597,7 @@ export function TaskDetailPage({
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-base-200"
                 onClick={handleTogglePin}
+                type="button"
               >
                 <PushPinIcon
                   className={cn(
@@ -1559,13 +1611,14 @@ export function TaskDetailPage({
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-base-200"
                 onClick={() => void copyLink()}
+                type="button"
               >
-                <LinkIcon className="size-3.5 text-base-content/60" /> Copy
-                link
+                <LinkIcon className="size-3.5 text-base-content/60" /> Copy link
               </button>
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-base-200"
                 onClick={handleToggleWatch}
+                type="button"
               >
                 {isWatching ? (
                   <EyeSlashIcon className="size-3.5 text-base-content/60" />
@@ -1662,14 +1715,18 @@ export function TaskDetailPage({
                   value={titleDraft}
                 />
               ) : (
-                <h1
-                  className={cn(
-                    "text-xl font-bold rounded px-1 -mx-1 py-1 mb-3 transition-colors",
-                    canEditNow && "cursor-text hover:bg-base-200/50"
-                  )}
-                  onClick={() => canEditNow && setTitleEditing(true)}
-                >
-                  {t.title}
+                <h1 className="mb-3">
+                  <button
+                    className={cn(
+                      "block w-full rounded px-1 -mx-1 py-1 text-left text-xl font-bold transition-colors",
+                      canEditNow && "cursor-text hover:bg-base-200/50"
+                    )}
+                    disabled={!canEditNow}
+                    onClick={() => setTitleEditing(true)}
+                    type="button"
+                  >
+                    {t.title}
+                  </button>
                 </h1>
               )}
 
@@ -1685,10 +1742,13 @@ export function TaskDetailPage({
                         backgroundColor: `${currentStatus?.color ?? "#9CA3AF"}20`,
                         color: currentStatus?.color ?? "#9CA3AF",
                       }}
+                      type="button"
                     >
                       <span
                         className="size-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: currentStatus?.color ?? "#9CA3AF" }}
+                        style={{
+                          backgroundColor: currentStatus?.color ?? "#9CA3AF",
+                        }}
                       />
                       {currentStatus?.name ?? "No status"}
                     </button>
@@ -1720,6 +1780,7 @@ export function TaskDetailPage({
                         priority.bg,
                         priority.color
                       )}
+                      type="button"
                     >
                       <span>{priority.icon}</span>
                       {priority.label}
@@ -1776,10 +1837,15 @@ export function TaskDetailPage({
                               <>
                                 <Avatar className="size-5 shrink-0">
                                   {assignees[0].image && (
-                                    <AvatarImage src={avatarSrc(assignees[0].image)} />
+                                    <AvatarImage
+                                      src={avatarSrc(assignees[0].image)}
+                                    />
                                   )}
                                   <AvatarFallback className="text-[9px]">
-                                    {userInitials(assignees[0].name, assignees[0].email)}
+                                    {userInitials(
+                                      assignees[0].name,
+                                      assignees[0].email
+                                    )}
                                   </AvatarFallback>
                                 </Avatar>
                                 <span className="truncate text-sm">
@@ -1826,11 +1892,15 @@ export function TaskDetailPage({
                             <button
                               className={cn(
                                 "truncate",
-                                dueDateStart ? "text-base-content" : "text-base-content/60"
+                                dueDateStart
+                                  ? "text-base-content"
+                                  : "text-base-content/60"
                               )}
                               type="button"
                             >
-                              {dueDateStart ? format(dueDateStart, "MMM d") : "Start"}
+                              {dueDateStart
+                                ? format(dueDateStart, "MMM d")
+                                : "Start"}
                             </button>
                           </PopoverTrigger>
                           <PopoverContent align="start" className="w-auto p-0">
@@ -1853,7 +1923,9 @@ export function TaskDetailPage({
                             <button
                               className={cn(
                                 "truncate",
-                                dueDateEnd ? "text-base-content" : "text-base-content/60"
+                                dueDateEnd
+                                  ? "text-base-content"
+                                  : "text-base-content/60"
                               )}
                               type="button"
                             >
@@ -1862,7 +1934,11 @@ export function TaskDetailPage({
                           </PopoverTrigger>
                           <PopoverContent align="start" className="w-auto p-0">
                             <Calendar
-                              disabled={dueDateStart ? { before: dueDateStart } : undefined}
+                              disabled={
+                                dueDateStart
+                                  ? { before: dueDateStart }
+                                  : undefined
+                              }
                               mode="single"
                               onSelect={(date) => {
                                 handleDueDateChange("end", date ?? null);
@@ -1903,7 +1979,9 @@ export function TaskDetailPage({
                                 </span>
                               ))
                             ) : (
-                              <span className="text-sm text-base-content/60">None</span>
+                              <span className="text-sm text-base-content/60">
+                                None
+                              </span>
                             )}
                             {tags.length > 3 && (
                               <span className="shrink-0 text-xs text-base-content/60">
@@ -1941,7 +2019,9 @@ export function TaskDetailPage({
                             disabled={!canEditNow}
                             field={field}
                             members={members}
-                            onChange={(value) => handleCustomFieldChange(field.id, value)}
+                            onChange={(value) =>
+                              handleCustomFieldChange(field.id, value)
+                            }
                             value={customFieldValues[field.id]}
                           />
                         </div>
@@ -1954,325 +2034,346 @@ export function TaskDetailPage({
 
             {/* ── Desktop/tablet title (`md:`+) — unchanged from before. ── */}
             <div className="hidden md:block">
-            {/* Title */}
-            {titleEditing ? (
-              // Textarea (not a single-line input) so a long title keeps the
-              // same big font AND wraps across lines while editing, matching the
-              // rendered heading. It auto-grows to fit; Enter still saves.
-              <textarea
-                autoFocus
-                className="mb-5 -mx-1 block w-full resize-none overflow-hidden rounded bg-transparent px-1 py-1 text-2xl font-bold leading-tight outline-none"
-                onBlur={saveTitle}
-                onChange={(e) => {
-                  setTitleDraft(e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = `${e.target.scrollHeight}px`;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveTitle();
-                  }
-                  if (e.key === "Escape") {
-                    setTitleEditing(false);
-                  }
-                }}
-                ref={(el) => {
-                  if (el) {
-                    el.style.height = "auto";
-                    el.style.height = `${el.scrollHeight}px`;
-                  }
-                }}
-                rows={1}
-                value={titleDraft}
-              />
-            ) : (
-              <h1
-                className={cn(
-                  "text-2xl font-bold rounded px-1 -mx-1 py-1 mb-5 transition-colors",
-                  canEditNow && "cursor-text hover:bg-base-200/50"
-                )}
-                onClick={() => canEditNow && setTitleEditing(true)}
-              >
-                {t.title}
-              </h1>
-            )}
+              {/* Title */}
+              {titleEditing ? (
+                // Textarea (not a single-line input) so a long title keeps the
+                // same big font AND wraps across lines while editing, matching the
+                // rendered heading. It auto-grows to fit; Enter still saves.
+                <textarea
+                  autoFocus
+                  className="mb-5 -mx-1 block w-full resize-none overflow-hidden rounded bg-transparent px-1 py-1 text-2xl font-bold leading-tight outline-none"
+                  onBlur={saveTitle}
+                  onChange={(e) => {
+                    setTitleDraft(e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      saveTitle();
+                    }
+                    if (e.key === "Escape") {
+                      setTitleEditing(false);
+                    }
+                  }}
+                  ref={(el) => {
+                    if (el) {
+                      el.style.height = "auto";
+                      el.style.height = `${el.scrollHeight}px`;
+                    }
+                  }}
+                  rows={1}
+                  value={titleDraft}
+                />
+              ) : (
+                <h1 className="mb-5">
+                  <button
+                    className={cn(
+                      "block w-full rounded px-1 -mx-1 py-1 text-left text-2xl font-bold transition-colors",
+                      canEditNow && "cursor-text hover:bg-base-200/50"
+                    )}
+                    disabled={!canEditNow}
+                    onClick={() => setTitleEditing(true)}
+                    type="button"
+                  >
+                    {t.title}
+                  </button>
+                </h1>
+              )}
             </div>
 
             {/* ── Desktop/tablet fields grid (`md:`+) — unchanged from before. ── */}
             <div className="hidden md:block">
-            {/* Fields grid */}
-            <div className="rounded-lg border bg-elevated px-4 mb-6">
-              {/* Status */}
-              <FieldRow
-                icon={
-                  <span
-                    className="size-3 rounded-full shrink-0"
-                    style={{
-                      backgroundColor: currentStatus?.color ?? "#9CA3AF",
-                    }}
-                  />
-                }
-                label="Status"
-              >
-                <Popover
-                  onOpenChange={setStatusPopoverOpen}
-                  open={statusPopoverOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <button
-                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-semibold transition-colors hover:opacity-80"
-                      style={{
-                        backgroundColor: `${currentStatus?.color ?? "#9CA3AF"}20`,
-                        color: currentStatus?.color ?? "#9CA3AF",
-                      }}
-                    >
-                      {currentStatus?.name ?? "No status"}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-52 p-0">
-                    <StatusPickerContent
-                      canManage={!!canPinToList}
-                      currentStatusId={t.statusId}
-                      onManageStatuses={() => {
-                        setStatusPopoverOpen(false);
-                        setManageStatusesOpen(true);
-                      }}
-                      onSelect={(id) => {
-                        setStatusPopoverOpen(false);
-                        handleStatusChange(id);
-                      }}
-                      statuses={statuses}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </FieldRow>
-
-              {/* Assignees */}
-              <FieldRow
-                icon={<UserIcon className="size-3.5" />}
-                label="Assignees"
-              >
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {assignees.map((a) => (
-                    <div
-                      className="flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-xs"
-                      key={a.userId}
-                    >
-                      <Avatar className="size-4">
-                        {a.image && <AvatarImage src={avatarSrc(a.image)} />}
-                        <AvatarFallback className="text-[8px]">
-                          {userInitials(a.name, a.email)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span>{a.name ?? a.email}</span>
-                      <button
-                        className="text-base-content/60 hover:text-base-content"
-                        onClick={() => handleToggleAssignee(a.userId)}
-                      >
-                        <XIcon className="size-3" />
-                      </button>
-                    </div>
-                  ))}
-                  <Popover
-                    onOpenChange={setAssigneePopoverOpen}
-                    open={assigneePopoverOpen}
-                  >
-                    <PopoverTrigger asChild>
-                      <button className="flex size-6 items-center justify-center rounded-full border border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors">
-                        <PlusIcon className="size-3.5" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-52 p-2">
-                      <AssigneePickerContent
-                        assignedUserIds={assignees.map((a) => a.userId)}
-                        members={members}
-                        onInvite={() => {
-                          setAssigneePopoverOpen(false);
-                          setInviteOpen(true);
-                        }}
-                        onToggle={handleToggleAssignee}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </FieldRow>
-
-              {/* Dates */}
-              <FieldRow
-                icon={<CalendarBlankIcon className="size-3.5" />}
-                label="Dates"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <Popover onOpenChange={setStartCalOpen} open={startCalOpen}>
-                    <PopoverTrigger asChild>
-                      <button className="flex items-center gap-1.5 rounded-md border bg-base-100 px-2 py-1 text-xs w-32 hover:bg-base-200 transition-colors">
-                        <CalendarBlankIcon className="size-3 text-base-content/60 shrink-0" />
-                        <span
-                          className={
-                            dueDateStart
-                              ? "text-base-content"
-                              : "text-base-content/60"
-                          }
-                        >
-                          {dueDateStart
-                            ? format(dueDateStart, "MMM d, yyyy")
-                            : "Start date"}
-                        </span>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        onSelect={(date) => {
-                          handleDueDateChange("start", date ?? null);
-                          setStartCalOpen(false);
-                        }}
-                        selected={dueDateStart ?? undefined}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <span className="text-base-content/60 text-xs">→</span>
-                  <Popover onOpenChange={setEndCalOpen} open={endCalOpen}>
-                    <PopoverTrigger asChild>
-                      <button className="flex items-center gap-1.5 rounded-md border bg-base-100 px-2 py-1 text-xs w-32 hover:bg-base-200 transition-colors">
-                        <CalendarBlankIcon className="size-3 text-base-content/60 shrink-0" />
-                        <span
-                          className={
-                            dueDateEnd
-                              ? "text-base-content"
-                              : "text-base-content/60"
-                          }
-                        >
-                          {dueDateEnd
-                            ? format(dueDateEnd, "MMM d, yyyy")
-                            : "End date"}
-                        </span>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-auto p-0">
-                      <Calendar
-                        disabled={
-                          dueDateStart ? { before: dueDateStart } : undefined
-                        }
-                        mode="single"
-                        onSelect={(date) => {
-                          handleDueDateChange("end", date ?? null);
-                          setEndCalOpen(false);
-                        }}
-                        selected={dueDateEnd ?? undefined}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </FieldRow>
-
-              {/* Priority */}
-              <FieldRow
-                icon={<FlagIcon className="size-3.5" />}
-                label="Priority"
-              >
-                <Popover
-                  onOpenChange={setPriorityPopoverOpen}
-                  open={priorityPopoverOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <button
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors hover:opacity-80",
-                        priority.bg,
-                        priority.color
-                      )}
-                    >
-                      <span>{priority.icon}</span>
-                      {priority.label}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-44 p-1">
-                    <PriorityPickerContent
-                      currentPriority={t.priority as Priority}
-                      onSelect={(p) => {
-                        setPriorityPopoverOpen(false);
-                        handlePriorityChange(p);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </FieldRow>
-
-              {/* Tags */}
-              <FieldRow icon={<TagIcon className="size-3.5" />} label="Tags">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {tags.map((tag) => (
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                      key={tag.id}
-                      style={{
-                        backgroundColor: `${tag.color}20`,
-                        color: tag.color,
-                      }}
-                    >
-                      {tag.name}
-                      <button
-                        className="opacity-60 hover:opacity-100"
-                        onClick={() => handleToggleTag(tag.id)}
-                      >
-                        <XIcon className="size-3" />
-                      </button>
-                    </span>
-                  ))}
-                  <Popover
-                    onOpenChange={setTagPopoverOpen}
-                    open={tagPopoverOpen}
-                  >
-                    <PopoverTrigger asChild>
-                      <button className="flex size-6 items-center justify-center rounded-full border border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors">
-                        <PlusIcon className="size-3.5" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-52 p-2">
-                      <TagPickerContent
-                        exactMatch={exactTagMatch}
-                        filteredTags={filteredTags}
-                        onCreate={handleCreateTag}
-                        onDeleteRequest={setDeleteTagTarget}
-                        onSearchChange={setTagSearch}
-                        onToggle={handleToggleTag}
-                        search={tagSearch}
-                        selectedTagIds={tags.map((tg) => tg.id)}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {tags.length > 1 && (
-                    <button
-                      className="ml-0.5 text-xs text-base-content/60 hover:text-error transition-colors"
-                      onClick={handleClearAllTags}
-                    >
-                      Clear all
-                    </button>
-                  )}
-                </div>
-              </FieldRow>
-
-              {/* Custom fields */}
-              {customFields.map((field) => (
+              {/* Fields grid */}
+              <div className="rounded-lg border bg-elevated px-4 mb-6">
+                {/* Status */}
                 <FieldRow
-                  icon={<span className="size-3 shrink-0" />}
-                  key={field.id}
-                  label={field.name}
+                  icon={
+                    <span
+                      className="size-3 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: currentStatus?.color ?? "#9CA3AF",
+                      }}
+                    />
+                  }
+                  label="Status"
                 >
-                  <CustomFieldEditor
-                    disabled={!canEditNow}
-                    field={field}
-                    members={members}
-                    onChange={(value) =>
-                      handleCustomFieldChange(field.id, value)
-                    }
-                    value={customFieldValues[field.id]}
-                  />
+                  <Popover
+                    onOpenChange={setStatusPopoverOpen}
+                    open={statusPopoverOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <button
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-semibold transition-colors hover:opacity-80"
+                        style={{
+                          backgroundColor: `${currentStatus?.color ?? "#9CA3AF"}20`,
+                          color: currentStatus?.color ?? "#9CA3AF",
+                        }}
+                        type="button"
+                      >
+                        {currentStatus?.name ?? "No status"}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-52 p-0">
+                      <StatusPickerContent
+                        canManage={!!canPinToList}
+                        currentStatusId={t.statusId}
+                        onManageStatuses={() => {
+                          setStatusPopoverOpen(false);
+                          setManageStatusesOpen(true);
+                        }}
+                        onSelect={(id) => {
+                          setStatusPopoverOpen(false);
+                          handleStatusChange(id);
+                        }}
+                        statuses={statuses}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </FieldRow>
-              ))}
-            </div>
+
+                {/* Assignees */}
+                <FieldRow
+                  icon={<UserIcon className="size-3.5" />}
+                  label="Assignees"
+                >
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {assignees.map((a) => (
+                      <div
+                        className="flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-xs"
+                        key={a.userId}
+                      >
+                        <Avatar className="size-4">
+                          {a.image && <AvatarImage src={avatarSrc(a.image)} />}
+                          <AvatarFallback className="text-[8px]">
+                            {userInitials(a.name, a.email)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{a.name ?? a.email}</span>
+                        <button
+                          className="text-base-content/60 hover:text-base-content"
+                          onClick={() => handleToggleAssignee(a.userId)}
+                          type="button"
+                        >
+                          <XIcon className="size-3" />
+                        </button>
+                      </div>
+                    ))}
+                    <Popover
+                      onOpenChange={setAssigneePopoverOpen}
+                      open={assigneePopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          className="flex size-6 items-center justify-center rounded-full border border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors"
+                          type="button"
+                        >
+                          <PlusIcon className="size-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-52 p-2">
+                        <AssigneePickerContent
+                          assignedUserIds={assignees.map((a) => a.userId)}
+                          members={members}
+                          onInvite={() => {
+                            setAssigneePopoverOpen(false);
+                            setInviteOpen(true);
+                          }}
+                          onToggle={handleToggleAssignee}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </FieldRow>
+
+                {/* Dates */}
+                <FieldRow
+                  icon={<CalendarBlankIcon className="size-3.5" />}
+                  label="Dates"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Popover onOpenChange={setStartCalOpen} open={startCalOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="flex items-center gap-1.5 rounded-md border bg-base-100 px-2 py-1 text-xs w-32 hover:bg-base-200 transition-colors"
+                          type="button"
+                        >
+                          <CalendarBlankIcon className="size-3 text-base-content/60 shrink-0" />
+                          <span
+                            className={
+                              dueDateStart
+                                ? "text-base-content"
+                                : "text-base-content/60"
+                            }
+                          >
+                            {dueDateStart
+                              ? format(dueDateStart, "MMM d, yyyy")
+                              : "Start date"}
+                          </span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          onSelect={(date) => {
+                            handleDueDateChange("start", date ?? null);
+                            setStartCalOpen(false);
+                          }}
+                          selected={dueDateStart ?? undefined}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <span className="text-base-content/60 text-xs">→</span>
+                    <Popover onOpenChange={setEndCalOpen} open={endCalOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="flex items-center gap-1.5 rounded-md border bg-base-100 px-2 py-1 text-xs w-32 hover:bg-base-200 transition-colors"
+                          type="button"
+                        >
+                          <CalendarBlankIcon className="size-3 text-base-content/60 shrink-0" />
+                          <span
+                            className={
+                              dueDateEnd
+                                ? "text-base-content"
+                                : "text-base-content/60"
+                            }
+                          >
+                            {dueDateEnd
+                              ? format(dueDateEnd, "MMM d, yyyy")
+                              : "End date"}
+                          </span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-auto p-0">
+                        <Calendar
+                          disabled={
+                            dueDateStart ? { before: dueDateStart } : undefined
+                          }
+                          mode="single"
+                          onSelect={(date) => {
+                            handleDueDateChange("end", date ?? null);
+                            setEndCalOpen(false);
+                          }}
+                          selected={dueDateEnd ?? undefined}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </FieldRow>
+
+                {/* Priority */}
+                <FieldRow
+                  icon={<FlagIcon className="size-3.5" />}
+                  label="Priority"
+                >
+                  <Popover
+                    onOpenChange={setPriorityPopoverOpen}
+                    open={priorityPopoverOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <button
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors hover:opacity-80",
+                          priority.bg,
+                          priority.color
+                        )}
+                        type="button"
+                      >
+                        <span>{priority.icon}</span>
+                        {priority.label}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-44 p-1">
+                      <PriorityPickerContent
+                        currentPriority={t.priority as Priority}
+                        onSelect={(p) => {
+                          setPriorityPopoverOpen(false);
+                          handlePriorityChange(p);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </FieldRow>
+
+                {/* Tags */}
+                <FieldRow icon={<TagIcon className="size-3.5" />} label="Tags">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {tags.map((tag) => (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                        key={tag.id}
+                        style={{
+                          backgroundColor: `${tag.color}20`,
+                          color: tag.color,
+                        }}
+                      >
+                        {tag.name}
+                        <button
+                          className="opacity-60 hover:opacity-100"
+                          onClick={() => handleToggleTag(tag.id)}
+                          type="button"
+                        >
+                          <XIcon className="size-3" />
+                        </button>
+                      </span>
+                    ))}
+                    <Popover
+                      onOpenChange={setTagPopoverOpen}
+                      open={tagPopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          className="flex size-6 items-center justify-center rounded-full border border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors"
+                          type="button"
+                        >
+                          <PlusIcon className="size-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-52 p-2">
+                        <TagPickerContent
+                          exactMatch={exactTagMatch}
+                          filteredTags={filteredTags}
+                          onCreate={handleCreateTag}
+                          onDeleteRequest={setDeleteTagTarget}
+                          onSearchChange={setTagSearch}
+                          onToggle={handleToggleTag}
+                          search={tagSearch}
+                          selectedTagIds={tags.map((tg) => tg.id)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {tags.length > 1 && (
+                      <button
+                        className="ml-0.5 text-xs text-base-content/60 hover:text-error transition-colors"
+                        onClick={handleClearAllTags}
+                        type="button"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                </FieldRow>
+
+                {/* Custom fields */}
+                {customFields.map((field) => (
+                  <FieldRow
+                    icon={<span className="size-3 shrink-0" />}
+                    key={field.id}
+                    label={field.name}
+                  >
+                    <CustomFieldEditor
+                      disabled={!canEditNow}
+                      field={field}
+                      members={members}
+                      onChange={(value) =>
+                        handleCustomFieldChange(field.id, value)
+                      }
+                      value={customFieldValues[field.id]}
+                    />
+                  </FieldRow>
+                ))}
+              </div>
             </div>
 
             {/* Description — shared by every breakpoint (single instance;
@@ -2551,6 +2652,7 @@ export function TaskDetailPage({
                                   );
                                   load();
                                 }}
+                                type="button"
                               >
                                 <XIcon className="size-3.5" />
                               </button>
@@ -2588,6 +2690,7 @@ export function TaskDetailPage({
                                       );
                                       load();
                                     }}
+                                    type="button"
                                   >
                                     <XIcon className="size-3.5" />
                                   </button>
@@ -2725,6 +2828,7 @@ export function TaskDetailPage({
                     className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-base-content/60 border hover:bg-base-200 hover:text-base-content transition-colors disabled:opacity-50"
                     disabled={uploadingFile}
                     onClick={() => fileInputRef.current?.click()}
+                    type="button"
                   >
                     <PlusIcon className="size-3.5" />
                     {uploadingFile ? "Uploading…" : "Add attachment"}
@@ -2748,6 +2852,7 @@ export function TaskDetailPage({
               {/* Drop zone — always rendered. Clicking anywhere opens the file
                 picker; dragging files in shows a drop overlay. Uses the same
                 upload flow as the "Add attachment" button. */}
+              {/* biome-ignore lint/a11y/useSemanticElements: wraps nested interactive children (attachment card buttons, "Add file" button) — a real <button> can't contain other buttons. */}
               <div
                 aria-label="Add attachments — click to browse or drop files here"
                 className={cn(
@@ -2773,6 +2878,9 @@ export function TaskDetailPage({
                 tabIndex={0}
               >
                 {visibleAttachments.length > 0 ? (
+                  // biome-ignore lint/a11y/noStaticElementInteractions: only stops clicks from bubbling to the drop-zone's onClick; nested buttons below remain independently keyboard-accessible.
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: same as above — no independent action to key-trigger, nested buttons handle their own keyboard access.
+                  // biome-ignore lint/a11y/noNoninteractiveElementInteractions: same as above.
                   <div
                     className="grid grid-cols-2 gap-2 sm:grid-cols-3"
                     onClick={(e) => e.stopPropagation()}
@@ -2791,6 +2899,7 @@ export function TaskDetailPage({
                         e.stopPropagation();
                         fileInputRef.current?.click();
                       }}
+                      type="button"
                     >
                       <PlusIcon className="size-5" />
                       <span className="text-2xs mt-1">
@@ -3037,6 +3146,7 @@ function TaskAttachmentCard({ att, onDelete }: TaskAttachmentCardProps) {
     <div className="group relative rounded-md border bg-elevated overflow-hidden">
       {isImg ? (
         <button className="block w-full" onClick={openPreview} type="button">
+          {/* biome-ignore lint/performance/noImgElement: served from storage.url() — a signed/auth-gated URL next/image can't optimize */}
           <img
             alt={att.fileName}
             className="w-full h-24 object-cover"
@@ -3065,6 +3175,7 @@ function TaskAttachmentCard({ att, onDelete }: TaskAttachmentCardProps) {
       <button
         className="absolute top-1.5 right-1.5 size-6 inline-flex items-center justify-center leading-none rounded-full bg-black/70 text-white hover:bg-red-500 opacity-0 group-hover:opacity-100 transition-all"
         onClick={() => onDelete(att.id)}
+        type="button"
       >
         <XIcon className="size-3.5 shrink-0" weight="bold" />
       </button>
