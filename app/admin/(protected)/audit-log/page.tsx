@@ -6,15 +6,31 @@ import { Input } from "@/components/ui/input";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+// Shape of a row returned by GET /api/admin/audit-log — a JSON-serialized
+// `auditLogs` table row (see db/schema/audit-logs.ts), so `createdAt` comes
+// back as an ISO string rather than a `Date`.
+interface AuditLogEntry {
+  action: string;
+  actorEmail: string | null;
+  actorId: string | null;
+  createdAt: string;
+  description: string;
+  entityId: string | null;
+  entityType: string;
+  id: string;
+}
+
 export default function AdminAuditLogPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
   const params = new URLSearchParams({ page: String(page) });
-  if (search) params.set("search", search);
+  if (search) {
+    params.set("search", search);
+  }
 
   const { data, isLoading } = useSWR(`/api/admin/audit-log?${params}`, fetcher);
-  const logs: any[] = data?.logs ?? [];
+  const logs: AuditLogEntry[] = data?.logs ?? [];
   const total: number = data?.total ?? 0;
   const pageSize = 50;
   const totalPages = Math.ceil(total / pageSize);
@@ -23,14 +39,19 @@ export default function AdminAuditLogPage() {
     <div className="p-4 space-y-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-bold">Audit Log</h1>
-        <p className="text-base-content/60 text-sm mt-1">{total.toLocaleString()} entries</p>
+        <p className="text-base-content/60 text-sm mt-1">
+          {total.toLocaleString()} entries
+        </p>
       </div>
 
       <Input
+        className="max-w-sm"
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(1);
+        }}
         placeholder="Search by action…"
         value={search}
-        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        className="max-w-sm"
       />
 
       <div className="rounded-lg border overflow-hidden">
@@ -47,22 +68,49 @@ export default function AdminAuditLogPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-base-content/60">Loading…</td></tr>
+                <tr>
+                  <td
+                    className="px-4 py-6 text-center text-base-content/60"
+                    colSpan={5}
+                  >
+                    Loading…
+                  </td>
+                </tr>
               ) : logs.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-base-content/60">No entries found</td></tr>
+                <tr>
+                  <td
+                    className="px-4 py-6 text-center text-base-content/60"
+                    colSpan={5}
+                  >
+                    No entries found
+                  </td>
+                </tr>
               ) : (
                 logs.map((log) => (
-                  <tr key={log.id} className="border-t hover:bg-base-200/30">
+                  <tr className="border-t hover:bg-base-200/30" key={log.id}>
                     <td className="px-4 py-2 text-base-content/60 whitespace-nowrap text-xs">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-2 font-mono text-xs">{log.action}</td>
-                    <td className="px-4 py-2 text-base-content/60 text-xs">{log.actorEmail ?? log.actorId ?? "—"}</td>
-                    <td className="px-4 py-2 text-xs">
-                      <span className="text-base-content/60">{log.entityType}</span>
-                      {log.entityId && <span className="text-base-content/60"> / {log.entityId.slice(0, 8)}…</span>}
+                    <td className="px-4 py-2 font-mono text-xs">
+                      {log.action}
                     </td>
-                    <td className="px-4 py-2 text-base-content/60 text-xs">{log.description}</td>
+                    <td className="px-4 py-2 text-base-content/60 text-xs">
+                      {log.actorEmail ?? log.actorId ?? "—"}
+                    </td>
+                    <td className="px-4 py-2 text-xs">
+                      <span className="text-base-content/60">
+                        {log.entityType}
+                      </span>
+                      {log.entityId && (
+                        <span className="text-base-content/60">
+                          {" "}
+                          / {log.entityId.slice(0, 8)}…
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-base-content/60 text-xs">
+                      {log.description}
+                    </td>
                   </tr>
                 ))
               )}
@@ -73,9 +121,25 @@ export default function AdminAuditLogPage() {
 
       {totalPages > 1 && (
         <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Previous</button>
-          <span className="text-sm text-base-content/60">Page {page} of {totalPages}</span>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Next</button>
+          <button
+            className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            type="button"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-base-content/60">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            type="button"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

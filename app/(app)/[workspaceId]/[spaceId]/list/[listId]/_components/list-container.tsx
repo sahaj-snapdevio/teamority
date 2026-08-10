@@ -13,9 +13,9 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { useState, useTransition } from "react";
+import type { CustomFieldRow } from "@/app/actions/custom-field";
 import { archiveList, unarchiveList } from "@/app/actions/list";
 import { getArchivedTasksForList } from "@/app/actions/task";
-import type { CustomFieldRow } from "@/app/actions/custom-field";
 import { DeleteListDialog } from "@/components/list/delete-list-dialog";
 import { DuplicateListDialog } from "@/components/list/duplicate-list-dialog";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
@@ -51,9 +51,7 @@ function loadViewPref(listId: string): View | null {
   }
   try {
     const raw = window.localStorage.getItem(viewPrefKey(listId));
-    return raw === "list" || raw === "board" || raw === "calendar"
-      ? raw
-      : null;
+    return raw === "list" || raw === "board" || raw === "calendar" ? raw : null;
   } catch {
     return null;
   }
@@ -71,7 +69,6 @@ interface Task {
   assignees: { userId: string; name: string; image: string | null }[];
   customFieldValues?: Record<string, unknown>;
   dependencyInfo?: TaskDependencyIndicator;
-  trackedSeconds?: number;
   dueDateEnd: Date | null;
   dueDateStart: Date | null;
   id: string;
@@ -84,6 +81,7 @@ interface Task {
   subtaskCount: number;
   tags: { id: string; name: string; color: string }[];
   title: string;
+  trackedSeconds?: number;
 }
 
 interface ListContainerProps {
@@ -99,7 +97,12 @@ interface ListContainerProps {
     color: string | null;
     description: string | null;
   };
-  members: { userId: string; name: string | null; email: string | null; image: string | null }[];
+  members: {
+    userId: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  }[];
   personallyPinnedIds: Set<string>;
   pinnedTasks: Task[];
   space: {
@@ -164,7 +167,7 @@ export function ListContainer({
       setView(saved);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.id]);
+  }, [list.id, searchParams.get]);
 
   useSetTopbar({
     breadcrumbs: [
@@ -180,7 +183,10 @@ export function ListContainer({
       canManage || isAdmin ? (
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 transition-colors">
+            <button
+              className="flex size-7 items-center justify-center rounded-md hover:bg-base-200 transition-colors"
+              type="button"
+            >
               <DotsThreeIcon
                 className="size-4.5 text-base-content/70"
                 weight="bold"
@@ -197,6 +203,7 @@ export function ListContainer({
                       `/${workspaceId}/${space.id}/list/${list.id}/settings/general`
                     )
                   }
+                  type="button"
                 >
                   <GearIcon className="size-4 shrink-0 text-base-content/70" />{" "}
                   Settings
@@ -204,6 +211,7 @@ export function ListContainer({
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-base-200"
                   onClick={() => setDuplicateOpen(true)}
+                  type="button"
                 >
                   <CopyIcon className="size-4 shrink-0 text-base-content/70" />{" "}
                   Duplicate
@@ -233,6 +241,7 @@ export function ListContainer({
                       });
                     }
                   }}
+                  type="button"
                 >
                   <ArchiveIcon className="size-4 shrink-0 text-base-content/70" />{" "}
                   Archive List
@@ -243,6 +252,7 @@ export function ListContainer({
               <button
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-error transition-colors hover:bg-error/10"
                 onClick={() => setDeleteOpen(true)}
+                type="button"
               >
                 <TrashIcon className="size-3.5 shrink-0" /> Delete List
               </button>
@@ -389,6 +399,7 @@ export function ListContainer({
             )}
             key={key}
             onClick={() => switchView(key)}
+            type="button"
           >
             {icon}
             {label}

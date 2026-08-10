@@ -457,7 +457,11 @@ function StopNoteDialog({
           >
             Skip
           </Button>
-          <Button disabled={saving || !note.trim()} onClick={handleSave} type="button">
+          <Button
+            disabled={saving || !note.trim()}
+            onClick={handleSave}
+            type="button"
+          >
             {saving ? "Saving…" : "Save note"}
           </Button>
         </DialogFooter>

@@ -1,14 +1,20 @@
 "use server";
 
-import { headers } from "next/headers";
-import { refreshWorkspace } from "@/lib/realtime/refresh";
 import { createId } from "@paralleldrive/cuid2";
 import { and, count, eq, ne } from "drizzle-orm";
+import { headers } from "next/headers";
+import {
+  list,
+  listStatus,
+  space,
+  spaceMember,
+  workspaceMember,
+} from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { list, listStatus, space, spaceMember, workspaceMember } from "@/db/schema";
-import { getWorkspaceMembership } from "@/lib/permissions";
 import { createNotifications } from "@/lib/notifications/create-notification";
+import { getWorkspaceMembership } from "@/lib/permissions";
+import { refreshWorkspace } from "@/lib/realtime/refresh";
 
 type SpacePermission = "FULL_ACCESS" | "EDIT" | "VIEW";
 
@@ -28,7 +34,9 @@ async function spaceName(spaceId: string): Promise<string> {
   return row?.name ?? "a project";
 }
 
-function actorNameFrom(session: { user: { name?: string | null; email?: string | null } }): string {
+function actorNameFrom(session: {
+  user: { name?: string | null; email?: string | null };
+}): string {
   return session.user.name ?? session.user.email ?? "Someone";
 }
 
@@ -39,7 +47,10 @@ function actorNameFrom(session: { user: { name?: string | null; email?: string |
  * NOTE: public spaces usually have no explicit `space_member` rows, so we must derive
  * recipients from workspace membership, not just the `space_member` table.
  */
-export async function spaceRecipientUserIds(workspaceId: string, spaceId: string): Promise<string[]> {
+export async function spaceRecipientUserIds(
+  workspaceId: string,
+  spaceId: string
+): Promise<string[]> {
   const [sp] = await db
     .select({ isPrivate: space.isPrivate })
     .from(space)
@@ -51,35 +62,74 @@ export async function spaceRecipientUserIds(workspaceId: string, spaceId: string
     db
       .select({ userId: workspaceMember.userId, role: workspaceMember.role })
       .from(workspaceMember)
-      .where(and(eq(workspaceMember.workspaceId, workspaceId), eq(workspaceMember.status, "ACTIVE"))),
+      .where(
+        and(
+          eq(workspaceMember.workspaceId, workspaceId),
+          eq(workspaceMember.status, "ACTIVE")
+        )
+      ),
     db
       .select({ userId: spaceMember.userId })
       .from(spaceMember)
       .where(eq(spaceMember.spaceId, spaceId)),
   ]);
 
-  const explicitIds = new Set(explicit.map((r) => r.userId).filter((id): id is string => id !== null));
+  const explicitIds = new Set(
+    explicit.map((r) => r.userId).filter((id): id is string => id !== null)
+  );
   const ids = new Set<string>();
   for (const m of members) {
-    if (!m.userId) continue;
-    if (m.role === "OWNER" || m.role === "ADMIN") ids.add(m.userId);
-    else if (m.role === "MEMBER" && !isPrivate) ids.add(m.userId);
-    else if (explicitIds.has(m.userId)) ids.add(m.userId); // guest / private-space member
+    if (!m.userId) {
+      continue;
+    }
+    if (m.role === "OWNER" || m.role === "ADMIN") {
+      ids.add(m.userId);
+    } else if (m.role === "MEMBER" && !isPrivate) {
+      ids.add(m.userId);
+    } else if (explicitIds.has(m.userId)) {
+      ids.add(m.userId); // guest / private-space member
+    }
   }
   return [...ids];
 }
 
 async function requireWorkspaceAdmin(userId: string, workspaceId: string) {
   const m = await getWorkspaceMembership(userId, workspaceId);
-  if (!m || (m.role !== "OWNER" && m.role !== "ADMIN")) return null;
+  if (!m || (m.role !== "OWNER" && m.role !== "ADMIN")) {
+    return null;
+  }
   return m;
 }
 
 const DEFAULT_STATUSES = [
-  { name: "Todo", color: "#6B7280", type: "OPEN" as const, dashboardCategory: "OPEN" as const, orderIndex: 0 },
-  { name: "In Progress", color: "#3B82F6", type: "ACTIVE" as const, dashboardCategory: "WORKING" as const, orderIndex: 1 },
-  { name: "Review", color: "#F59E0B", type: "ACTIVE" as const, dashboardCategory: "REVIEW" as const, orderIndex: 2 },
-  { name: "Done", color: "#10B981", type: "CLOSED" as const, dashboardCategory: "COMPLETED" as const, orderIndex: 3 },
+  {
+    name: "Todo",
+    color: "#6B7280",
+    type: "OPEN" as const,
+    dashboardCategory: "OPEN" as const,
+    orderIndex: 0,
+  },
+  {
+    name: "In Progress",
+    color: "#3B82F6",
+    type: "ACTIVE" as const,
+    dashboardCategory: "WORKING" as const,
+    orderIndex: 1,
+  },
+  {
+    name: "Review",
+    color: "#F59E0B",
+    type: "ACTIVE" as const,
+    dashboardCategory: "REVIEW" as const,
+    orderIndex: 2,
+  },
+  {
+    name: "Done",
+    color: "#10B981",
+    type: "CLOSED" as const,
+    dashboardCategory: "COMPLETED" as const,
+    orderIndex: 3,
+  },
 ];
 
 export async function createSpace(
@@ -89,23 +139,33 @@ export async function createSpace(
     color: string;
     isPrivate: boolean;
     logoEmoji?: string | null;
-  },
+  }
 ): Promise<{ spaceId: string; listId: string } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const admin = await requireWorkspaceAdmin(session.user.id, workspaceId);
-  if (!admin) return { error: "Only Admin and Owner can create Spaces" };
+  if (!admin) {
+    return { error: "Only Admin and Owner can create Spaces" };
+  }
 
   const name = data.name.trim();
-  if (!name) return { error: "Space name is required" };
+  if (!name) {
+    return { error: "Space name is required" };
+  }
 
   const existing = await db
     .select({ id: space.id })
     .from(space)
     .where(and(eq(space.workspaceId, workspaceId), eq(space.name, name)))
     .limit(1);
-  if (existing.length > 0) return { error: `A space named "${name}" already exists in this workspace` };
+  if (existing.length > 0) {
+    return {
+      error: `A space named "${name}" already exists in this workspace`,
+    };
+  }
 
   const [{ value: spaceCount }] = await db
     .select({ value: count() })
@@ -142,9 +202,9 @@ export async function createSpace(
       orderIndex: 0,
     });
 
-    await tx.insert(listStatus).values(
-      DEFAULT_STATUSES.map((s) => ({ id: createId(), listId, ...s })),
-    );
+    await tx
+      .insert(listStatus)
+      .values(DEFAULT_STATUSES.map((s) => ({ id: createId(), listId, ...s })));
   });
 
   void refreshWorkspace(workspaceId);
@@ -161,23 +221,39 @@ export async function updateSpace(
     color: string;
     isPrivate: boolean;
     logoEmoji?: string | null;
-  },
+  }
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const admin = await requireWorkspaceAdmin(session.user.id, workspaceId);
-  if (!admin) return { error: "Only Admin and Owner can update Spaces" };
+  if (!admin) {
+    return { error: "Only Admin and Owner can update Spaces" };
+  }
 
   const name = data.name.trim();
-  if (!name) return { error: "Name is required" };
+  if (!name) {
+    return { error: "Name is required" };
+  }
 
   const existing = await db
     .select({ id: space.id })
     .from(space)
-    .where(and(eq(space.workspaceId, workspaceId), eq(space.name, name), ne(space.id, spaceId)))
+    .where(
+      and(
+        eq(space.workspaceId, workspaceId),
+        eq(space.name, name),
+        ne(space.id, spaceId)
+      )
+    )
     .limit(1);
-  if (existing.length > 0) return { error: `A space named "${name}" already exists in this workspace` };
+  if (existing.length > 0) {
+    return {
+      error: `A space named "${name}" already exists in this workspace`,
+    };
+  }
 
   await db
     .update(space)
@@ -196,13 +272,17 @@ export async function updateSpace(
 
 export async function archiveSpace(
   workspaceId: string,
-  spaceId: string,
+  spaceId: string
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const admin = await requireWorkspaceAdmin(session.user.id, workspaceId);
-  if (!admin) return { error: "Only Admin and Owner can archive Spaces" };
+  if (!admin) {
+    return { error: "Only Admin and Owner can archive Spaces" };
+  }
 
   await db
     .update(space)
@@ -229,13 +309,17 @@ export async function archiveSpace(
 
 export async function unarchiveSpace(
   workspaceId: string,
-  spaceId: string,
+  spaceId: string
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const admin = await requireWorkspaceAdmin(session.user.id, workspaceId);
-  if (!admin) return { error: "Only Admin and Owner can unarchive Spaces" };
+  if (!admin) {
+    return { error: "Only Admin and Owner can unarchive Spaces" };
+  }
 
   await db
     .update(space)
@@ -262,15 +346,21 @@ export async function unarchiveSpace(
 
 export async function deleteSpace(
   workspaceId: string,
-  spaceId: string,
+  spaceId: string
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const m = await getWorkspaceMembership(session.user.id, workspaceId);
-  if (!m || (m.role !== "OWNER" && m.role !== "ADMIN")) return { error: "Only admins can delete spaces" };
+  if (!m || (m.role !== "OWNER" && m.role !== "ADMIN")) {
+    return { error: "Only admins can delete spaces" };
+  }
 
-  await db.delete(space).where(and(eq(space.id, spaceId), eq(space.workspaceId, workspaceId)));
+  await db
+    .delete(space)
+    .where(and(eq(space.id, spaceId), eq(space.workspaceId, workspaceId)));
 
   void refreshWorkspace(workspaceId);
   return { ok: true };
@@ -282,17 +372,23 @@ export async function addSpaceMember(
   workspaceId: string,
   spaceId: string,
   userId: string,
-  permission: SpacePermission,
+  permission: SpacePermission
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const admin = await requireWorkspaceAdmin(session.user.id, workspaceId);
-  if (!admin) return { error: "Only Admin and Owner can manage space members" };
+  if (!admin) {
+    return { error: "Only Admin and Owner can manage space members" };
+  }
 
   // Validate that the target user is a workspace member
   const targetMembership = await getWorkspaceMembership(userId, workspaceId);
-  if (!targetMembership) return { error: "User is not a workspace member" };
+  if (!targetMembership) {
+    return { error: "User is not a workspace member" };
+  }
 
   // Guests cannot be assigned full_access
   if (targetMembership.role === "GUEST" && permission === "FULL_ACCESS") {
@@ -326,13 +422,17 @@ export async function changeSpaceMemberPermission(
   workspaceId: string,
   spaceId: string,
   userId: string,
-  permission: SpacePermission,
+  permission: SpacePermission
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const admin = await requireWorkspaceAdmin(session.user.id, workspaceId);
-  if (!admin) return { error: "Only Admin and Owner can manage space members" };
+  if (!admin) {
+    return { error: "Only Admin and Owner can manage space members" };
+  }
 
   // Guests cannot be assigned full_access
   const targetMembership = await getWorkspaceMembership(userId, workspaceId);
@@ -343,7 +443,9 @@ export async function changeSpaceMemberPermission(
   await db
     .update(spaceMember)
     .set({ permission, updatedAt: new Date() })
-    .where(and(eq(spaceMember.spaceId, spaceId), eq(spaceMember.userId, userId)));
+    .where(
+      and(eq(spaceMember.spaceId, spaceId), eq(spaceMember.userId, userId))
+    );
 
   createNotifications({
     workspaceId,
@@ -362,17 +464,23 @@ export async function changeSpaceMemberPermission(
 export async function removeSpaceMember(
   workspaceId: string,
   spaceId: string,
-  userId: string,
+  userId: string
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const admin = await requireWorkspaceAdmin(session.user.id, workspaceId);
-  if (!admin) return { error: "Only Admin and Owner can manage space members" };
+  if (!admin) {
+    return { error: "Only Admin and Owner can manage space members" };
+  }
 
   await db
     .delete(spaceMember)
-    .where(and(eq(spaceMember.spaceId, spaceId), eq(spaceMember.userId, userId)));
+    .where(
+      and(eq(spaceMember.spaceId, spaceId), eq(spaceMember.userId, userId))
+    );
 
   createNotifications({
     workspaceId,

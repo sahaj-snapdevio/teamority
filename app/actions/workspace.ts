@@ -15,8 +15,6 @@ import { getWorkspaceMembership } from "@/lib/permissions";
 import { rateLimit } from "@/lib/rate-limit";
 import { refreshWorkspace } from "@/lib/realtime/refresh";
 
-type WorkspaceRole = "OWNER" | "ADMIN" | "MEMBER" | "GUEST";
-
 /** "ADMIN" → "Admin" for user-facing notification titles. */
 function roleLabel(role: string): string {
   return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
@@ -40,7 +38,7 @@ async function requireAdmin(userId: string, workspaceId: string) {
 
 async function requireOwner(userId: string, workspaceId: string) {
   const m = await getWorkspaceMembership(userId, workspaceId);
-  if (!m || m.role !== "OWNER") {
+  if (m?.role !== "OWNER") {
     return null;
   }
   return m;

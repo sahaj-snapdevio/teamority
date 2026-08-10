@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAuthMethods } from "@/lib/auth-config";
-import { authErrorMessage } from "@/lib/auth-errors";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PRODUCT_NAME } from "@/config/platform";
+import { getAuthMethods } from "@/lib/auth-config";
+import { authErrorMessage } from "@/lib/auth-errors";
 import { AuthShell } from "../_components/auth-shell";
 import { ResetPasswordForm } from "../_components/reset-password-form";
 
@@ -17,7 +17,9 @@ export default async function ResetPasswordPage({
   // No session redirect here: `revokeSessionsOnPasswordReset` means a valid
   // reset link should still work if the user happens to be signed in elsewhere.
   const methods = await getAuthMethods();
-  if (!methods.passwordSignup || !methods.passwordReset) notFound();
+  if (!methods.passwordSignup || !methods.passwordReset) {
+    notFound();
+  }
 
   const { token, error } = await searchParams;
 
@@ -25,15 +27,17 @@ export default async function ResetPasswordPage({
   if (error || !token) {
     return (
       <AuthShell
-        title="Link no longer valid"
         description="Password reset links expire after 1 hour and can only be used once."
+        title="Link no longer valid"
       >
-        <Alert variant="destructive" className="mb-5">
-          <AlertDescription>{authErrorMessage(error ?? "INVALID_TOKEN")}</AlertDescription>
+        <Alert className="mb-5" variant="destructive">
+          <AlertDescription>
+            {authErrorMessage(error ?? "INVALID_TOKEN")}
+          </AlertDescription>
         </Alert>
         <Link
-          href="/forgot-password"
           className="block text-center text-sm font-semibold text-base-content underline underline-offset-4 transition-opacity hover:opacity-80"
+          href="/forgot-password"
         >
           Request a new link
         </Link>
@@ -43,8 +47,8 @@ export default async function ResetPasswordPage({
 
   return (
     <AuthShell
-      title="Choose a new password"
       description="Pick something you haven't used before."
+      title="Choose a new password"
     >
       <ResetPasswordForm token={token} />
     </AuthShell>

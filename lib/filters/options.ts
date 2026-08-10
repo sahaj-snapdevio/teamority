@@ -4,19 +4,9 @@
 
 export type StatusType = "OPEN" | "ACTIVE" | "CLOSED";
 
-export type DueValue =
-  | ""
-  | "overdue"
-  | "today"
-  | "this_week"
-  | "no_due_date";
+export type DueValue = "" | "overdue" | "today" | "this_week" | "no_due_date";
 
-export type SearchEntityType =
-  | "all"
-  | "tasks"
-  | "lists"
-  | "spaces"
-  | "members";
+export type SearchEntityType = "all" | "tasks" | "lists" | "spaces" | "members";
 
 // Filters that constrain the task table. `status` = concrete status IDs (list
 // view, scoped to one list); `statusType` = global buckets (omnibox, across
@@ -79,7 +69,9 @@ export function toggle<T>(arr: T[] | undefined, val: T): T[] {
 
 /** True when any omnibox filter is active (drives filter-only searches). */
 export function hasActiveFilters(f: GlobalSearchFilters | undefined): boolean {
-  if (!f) return false;
+  if (!f) {
+    return false;
+  }
   return Boolean(
     (f.type && f.type !== "all") ||
       f.statusType?.length ||
@@ -89,6 +81,6 @@ export function hasActiveFilters(f: GlobalSearchFilters | undefined): boolean {
       f.space?.length ||
       f.sprint?.length ||
       f.tags?.length ||
-      f.due,
+      f.due
   );
 }

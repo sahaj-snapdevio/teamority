@@ -1,18 +1,24 @@
-import { headers } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
-import { and, eq, isNull } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { and, eq, isNull } from "drizzle-orm";
+import { headers } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
+import { userNotificationPreference } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { userNotificationPreference } from "@/db/schema";
-import { NOTIFICATION_TRIGGERS, emailDefaultFor, soundDefaultFor } from "@/lib/notifications/types";
+import {
+  emailDefaultFor,
+  NOTIFICATION_TRIGGERS,
+  soundDefaultFor,
+} from "@/lib/notifications/types";
 import { isSmtpConfigured } from "@/lib/smtp/client";
 
 const ALL_TRIGGERS = Object.values(NOTIFICATION_TRIGGERS);
 
 export async function GET(_req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const existing = await db
     .select()
@@ -20,8 +26,8 @@ export async function GET(_req: NextRequest) {
     .where(
       and(
         eq(userNotificationPreference.userId, session.user.id),
-        isNull(userNotificationPreference.workspaceId),
-      ),
+        isNull(userNotificationPreference.workspaceId)
+      )
     );
 
   const prefMap = new Map(existing.map((p) => [p.triggerType, p]));
@@ -46,7 +52,9 @@ export async function GET(_req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = await req.json();
   const updates = body.preferences as Array<{
@@ -58,7 +66,10 @@ export async function PATCH(req: NextRequest) {
   }>;
 
   if (!Array.isArray(updates)) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
   }
 
   const now = new Date();
@@ -71,8 +82,8 @@ export async function PATCH(req: NextRequest) {
         and(
           eq(userNotificationPreference.userId, session.user.id),
           eq(userNotificationPreference.triggerType, update.triggerType),
-          isNull(userNotificationPreference.workspaceId),
-        ),
+          isNull(userNotificationPreference.workspaceId)
+        )
       )
       .limit(1);
 

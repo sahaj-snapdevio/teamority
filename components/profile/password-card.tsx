@@ -2,10 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
-import { authErrorMessage } from "@/lib/auth-errors";
 import { setPasswordAction } from "@/app/actions/auth";
 import { PasswordInput } from "@/components/common/password-input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,8 +14,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
+import { authClient } from "@/lib/auth-client";
+import { authErrorMessage } from "@/lib/auth-errors";
 
 // Must match `emailAndPassword.minPasswordLength` in lib/auth.ts.
 const MIN_PASSWORD_LENGTH = 8;
@@ -57,7 +57,9 @@ export function PasswordCard({ hasPassword }: { hasPassword: boolean }) {
     e.preventDefault();
     const invalid = validate();
     setError(invalid);
-    if (invalid) return;
+    if (invalid) {
+      return;
+    }
 
     if (!hasPassword) {
       // `setPassword` is a server-only Better Auth endpoint.
@@ -85,7 +87,12 @@ export function PasswordCard({ hasPassword }: { hasPassword: boolean }) {
     setSubmitting(false);
 
     if (err) {
-      setError(authErrorMessage(err.code, err.message ?? "Could not change your password."));
+      setError(
+        authErrorMessage(
+          err.code,
+          err.message ?? "Could not change your password."
+        )
+      );
       return;
     }
     reset();
@@ -97,7 +104,9 @@ export function PasswordCard({ hasPassword }: { hasPassword: boolean }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{hasPassword ? "Change Password" : "Set a Password"}</CardTitle>
+        <CardTitle>
+          {hasPassword ? "Change Password" : "Set a Password"}
+        </CardTitle>
         <CardDescription>
           {hasPassword
             ? "Choose a new password. Your other devices will be signed out."
@@ -105,16 +114,16 @@ export function PasswordCard({ hasPassword }: { hasPassword: boolean }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="flex max-w-sm flex-col gap-4">
+        <form className="flex max-w-sm flex-col gap-4" onSubmit={onSubmit}>
           {hasPassword && (
             <div className="space-y-2">
               <Label htmlFor="current-password">Current password</Label>
               <PasswordInput
-                id="current-password"
                 autoComplete="current-password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
                 disabled={busy}
+                id="current-password"
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                value={currentPassword}
               />
             </div>
           )}
@@ -122,23 +131,23 @@ export function PasswordCard({ hasPassword }: { hasPassword: boolean }) {
           <div className="space-y-2">
             <Label htmlFor="new-password">New password</Label>
             <PasswordInput
-              id="new-password"
               autoComplete="new-password"
+              disabled={busy}
+              id="new-password"
+              onChange={(e) => setNewPassword(e.target.value)}
               placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              disabled={busy}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="confirm-password">Confirm new password</Label>
             <PasswordInput
-              id="confirm-password"
               autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
               disabled={busy}
+              id="confirm-password"
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              value={confirmPassword}
             />
           </div>
 
@@ -148,7 +157,12 @@ export function PasswordCard({ hasPassword }: { hasPassword: boolean }) {
             </Alert>
           )}
 
-          <Button type="submit" size="sm" className="w-fit gap-2" disabled={busy}>
+          <Button
+            className="w-fit gap-2"
+            disabled={busy}
+            size="sm"
+            type="submit"
+          >
             {busy && <Spinner className="size-4" />}
             {hasPassword ? "Change password" : "Set password"}
           </Button>

@@ -17,10 +17,10 @@ export function FilterChip({
     <span className="flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 py-0.5 pl-2.5 pr-1.5 text-xs text-primary">
       {label}
       <button
-        type="button"
-        onClick={onRemove}
-        className="transition-colors hover:text-primary/60"
         aria-label={`Remove ${label}`}
+        className="transition-colors hover:text-primary/60"
+        onClick={onRemove}
+        type="button"
       >
         <XIcon className="size-3" />
       </button>

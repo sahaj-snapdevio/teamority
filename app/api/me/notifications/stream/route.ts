@@ -5,7 +5,9 @@ const encoder = new TextEncoder();
 
 export async function GET(req: Request) {
   const session = await auth.api.getSession({ headers: req.headers });
-  if (!session) return new Response("Unauthorized", { status: 401 });
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
   const userId = session.user.id;
   // eslint-disable-next-line prefer-const
@@ -37,14 +39,18 @@ export async function GET(req: Request) {
   req.signal.addEventListener("abort", () => {
     clearInterval(keepalive);
     unregisterClient(userId, ctrl);
-    try { ctrl.close(); } catch { /* already closed */ }
+    try {
+      ctrl.close();
+    } catch {
+      /* already closed */
+    }
   });
 
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
       "X-Accel-Buffering": "no", // disable nginx buffering
     },
   });

@@ -37,29 +37,29 @@ import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { archiveList, unarchiveList } from "@/app/actions/list";
-import { DuplicateListDialog } from "@/components/list/duplicate-list-dialog";
 import { archiveSpace, deleteSpace, unarchiveSpace } from "@/app/actions/space";
 import { getSprintSettings } from "@/app/actions/sprint";
 import { AddChannelMemberModal } from "@/components/channel/add-channel-member-modal";
 import { CreateChannelModal } from "@/components/channel/create-channel-modal";
+import { SpaceIcon } from "@/components/common/space-icon";
 import { CreateListModal } from "@/components/list/create-list-modal";
 import { DeleteListDialog } from "@/components/list/delete-list-dialog";
+import { DuplicateListDialog } from "@/components/list/duplicate-list-dialog";
 import { PushNotificationBanner } from "@/components/notifications/push-notification-banner";
 import { SearchPalette } from "@/components/search/search-palette";
 import { CreateSprintModal } from "@/components/sprint/create-sprint-modal";
+import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { isOverlayOpen } from "@/components/ui/overlay-stack";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { isOverlayOpen } from "@/components/ui/overlay-stack";
 import { Separator } from "@/components/ui/separator";
 import { CreateSpaceModal } from "@/components/workspace/create-space-modal";
 import { SpaceActionDialog } from "@/components/workspace/space-action-dialog";
-import { KeyboardShortcutsDialog } from "@/components/task/keyboard-shortcuts-dialog";
-import { SpaceIcon } from "@/components/common/space-icon";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { authClient } from "@/lib/auth-client";
 import { rememberWorkspace } from "@/lib/last-workspace";
@@ -116,10 +116,10 @@ interface SpaceSummary {
   archivedLists: ListSummary[];
   canManageList: boolean;
   color: string | null;
-  logoEmoji: string | null;
   id: string;
   isPrivate: boolean;
   lists: ListSummary[];
+  logoEmoji: string | null;
   name: string;
   sprintDateFormat: string;
   sprints: SprintSummary[];
@@ -154,7 +154,7 @@ export function WorkspaceShell({
   workspaces,
   spaces,
   archivedSpaces,
-  channels,
+  channels: _channels,
   role,
   isPlatformAdmin = false,
   user,
@@ -195,7 +195,7 @@ export function WorkspaceShell({
     router.push(`/${workspace.id}/${spaceId}/settings/sprints`);
   }
 
-  async function handleCreateSprintClick(spaceId: string, spaceName: string) {
+  async function handleCreateSprintClick(spaceId: string, _spaceName: string) {
     const settings = await getSprintSettings(workspace.id, spaceId);
     if ("error" in settings || settings.sprintStartDay === null) {
       openSprintSettings(spaceId);
@@ -255,7 +255,7 @@ export function WorkspaceShell({
       setCollapsedSpaces(new Set());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspace.id]);
+  }, [collapsedStorageKey]);
   function persistCollapsedSpaces(next: Set<string>) {
     try {
       localStorage.setItem(collapsedStorageKey, JSON.stringify([...next]));
@@ -266,7 +266,11 @@ export function WorkspaceShell({
   function toggleSpaceCollapsed(id: string) {
     setCollapsedSpaces((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       persistCollapsedSpaces(next);
       return next;
     });
@@ -293,7 +297,9 @@ export function WorkspaceShell({
     null
   );
   function openProfileMenu() {
-    if (profileCloseTimer.current) clearTimeout(profileCloseTimer.current);
+    if (profileCloseTimer.current) {
+      clearTimeout(profileCloseTimer.current);
+    }
     setProfileOpen(true);
   }
   // Touch devices still dispatch synthetic mouseenter/mouseleave for taps —
@@ -311,7 +317,9 @@ export function WorkspaceShell({
     }
   }
   function scheduleCloseProfileMenu() {
-    if (profileCloseTimer.current) clearTimeout(profileCloseTimer.current);
+    if (profileCloseTimer.current) {
+      clearTimeout(profileCloseTimer.current);
+    }
     // Swapping in the project picker makes the menu shorter, and it is
     // bottom-anchored (side="top"), so its top edge drops — sliding the panel
     // out from under a stationary cursor and firing a spurious mouseleave.
@@ -319,7 +327,9 @@ export function WorkspaceShell({
     // opened, making the click look like it did nothing. The picker is entered
     // by an explicit click, so keep it up until it's explicitly dismissed
     // (Back, picking a project, Escape, or a click outside).
-    if (showProjectPicker) return;
+    if (showProjectPicker) {
+      return;
+    }
     profileCloseTimer.current = setTimeout(() => {
       setProfileOpen(false);
       setShowProjectPicker(false);
@@ -344,7 +354,9 @@ export function WorkspaceShell({
             t.tagName === "INPUT" ||
             t.tagName === "TEXTAREA" ||
             t.tagName === "SELECT");
-        if (typing) return;
+        if (typing) {
+          return;
+        }
         if (isOverlayOpen()) {
           return;
         }
@@ -385,8 +397,8 @@ export function WorkspaceShell({
         workspaceId={workspace.id}
       />
       <KeyboardShortcutsDialog
-        open={shortcutsOpen}
         onOpenChange={setShortcutsOpen}
+        open={shortcutsOpen}
       />
       <CreateSpaceModal
         onOpenChange={setCreateSpaceOpen}
@@ -469,9 +481,11 @@ export function WorkspaceShell({
       )}
 
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+        <button
+          aria-label="Close sidebar"
+          className="fixed inset-0 z-20 border-0 bg-black/50 p-0 lg:hidden"
           onClick={() => setSidebarOpen(false)}
+          type="button"
         />
       )}
 
@@ -486,7 +500,10 @@ export function WorkspaceShell({
         <div className="flex h-12 shrink-0 items-center border-b border-[rgba(255,255,255,0.06)] px-2">
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors hover:bg-(--bg-sidebar-item-hover) text-(--text-sidebar-active)">
+              <button
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors hover:bg-(--bg-sidebar-item-hover) text-(--text-sidebar-active)"
+                type="button"
+              >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-xs font-semibold text-(--text-sidebar-active)">
                   {workspaceBadge(workspace)}
                 </span>
@@ -536,7 +553,10 @@ export function WorkspaceShell({
                 href: `/${workspace.id}/overview`,
                 label: "Overview",
                 icon: (
-                  <ChartPieSliceIcon className="size-4 shrink-0" weight="fill" />
+                  <ChartPieSliceIcon
+                    className="size-4 shrink-0"
+                    weight="fill"
+                  />
                 ),
                 badge: null,
               },
@@ -594,6 +614,7 @@ export function WorkspaceShell({
                       ? "Expand all projects"
                       : "Collapse all projects"
                   }
+                  type="button"
                 >
                   <CaretUpDownIcon className="size-3.5" />
                 </button>
@@ -603,6 +624,7 @@ export function WorkspaceShell({
                   className="flex size-5 items-center justify-center rounded text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
                   onClick={() => setCreateSpaceOpen(true)}
                   title="Create Project"
+                  type="button"
                 >
                   <PlusIcon className="size-3.5" />
                 </button>
@@ -620,13 +642,14 @@ export function WorkspaceShell({
                           ? "Expand project"
                           : "Collapse project"
                       }
+                      type="button"
                     >
                       {collapsedSpaces.has(s.id) ? (
                         <CaretRightIcon className="size-3 shrink-0 text-(--text-muted)" />
                       ) : (
                         <CaretDownIcon className="size-3 shrink-0 text-(--text-muted)" />
                       )}
-                      <SpaceIcon emoji={s.logoEmoji} color={s.color} />
+                      <SpaceIcon color={s.color} emoji={s.logoEmoji} />
                       <span className="flex-1 truncate">{s.name}</span>
                     </button>
                     {s.isPrivate && (
@@ -637,6 +660,7 @@ export function WorkspaceShell({
                         className="opacity-0 transition-opacity group-hover:opacity-100 flex size-5 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover) text-(--text-muted)"
                         onClick={() => setCreateListForSpace({ spaceId: s.id })}
                         title="Add list"
+                        type="button"
                       >
                         <PlusIcon className="size-3.5" />
                       </button>
@@ -652,6 +676,7 @@ export function WorkspaceShell({
                           className="opacity-0 transition-opacity group-hover:opacity-100 flex size-5 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover) text-(--text-muted)"
                           onClick={(e) => e.stopPropagation()}
                           title="Project options"
+                          type="button"
                         >
                           <DotsThreeIcon className="size-4.5" weight="bold" />
                         </button>
@@ -696,6 +721,7 @@ export function WorkspaceShell({
                               variant: "archive",
                             })
                           }
+                          type="button"
                         >
                           <ArchiveIcon className="size-3.5 shrink-0 text-base-content/60" />
                           Archive Project
@@ -709,6 +735,7 @@ export function WorkspaceShell({
                               variant: "delete",
                             })
                           }
+                          type="button"
                         >
                           <TrashIcon className="size-3.5 shrink-0" />
                           Delete Project
@@ -760,6 +787,7 @@ export function WorkspaceShell({
                                     className="absolute right-1 opacity-0 transition-opacity group-hover/list:opacity-100 flex size-5 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
                                     onClick={(e) => e.stopPropagation()}
                                     title="List options"
+                                    type="button"
                                   >
                                     <DotsThreeIcon
                                       className="size-4.5 text-(--text-muted)"
@@ -797,6 +825,7 @@ export function WorkspaceShell({
                                         list: l,
                                       })
                                     }
+                                    type="button"
                                   >
                                     <CopyIcon className="size-3.5 shrink-0 text-base-content/60" />
                                     Duplicate
@@ -829,6 +858,7 @@ export function WorkspaceShell({
                                         );
                                       }
                                     }}
+                                    type="button"
                                   >
                                     <ArchiveIcon className="size-3.5 shrink-0" />
                                     Archive
@@ -842,6 +872,7 @@ export function WorkspaceShell({
                                           list: l,
                                         })
                                       }
+                                      type="button"
                                     >
                                       <TrashIcon className="size-3.5 shrink-0" />
                                       Delete
@@ -877,12 +908,15 @@ export function WorkspaceShell({
                                 onClick={() =>
                                   setExpandedSprintGroups((prev) => {
                                     const next = new Set(prev);
-                                    next.has(s.id)
-                                      ? next.delete(s.id)
-                                      : next.add(s.id);
+                                    if (next.has(s.id)) {
+                                      next.delete(s.id);
+                                    } else {
+                                      next.add(s.id);
+                                    }
                                     return next;
                                   })
                                 }
+                                type="button"
                               >
                                 {sprintsExpanded ? (
                                   <CaretDownIcon className="size-3 shrink-0 text-(--text-muted)" />
@@ -904,24 +938,48 @@ export function WorkspaceShell({
                                 )}
                                 {s.canManageList && (
                                   <span className="opacity-0 group-hover/sprints:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
+                                    {/* biome-ignore lint/a11y/useSemanticElements: nested inside the outer "Sprints folder header" <button>; a real <button> here would be invalid HTML nesting */}
                                     <span
                                       className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openSprintSettings(s.id);
                                       }}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          openSprintSettings(s.id);
+                                        }
+                                      }}
                                       role="button"
+                                      tabIndex={0}
                                       title="Sprint settings"
                                     >
                                       <GearIcon className="size-3" />
                                     </span>
+                                    {/* biome-ignore lint/a11y/useSemanticElements: nested inside the outer "Sprints folder header" <button>; a real <button> here would be invalid HTML nesting */}
                                     <span
                                       className="flex size-4 items-center justify-center rounded hover:bg-(--bg-sidebar-item-hover)"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleCreateSprintClick(s.id, s.name);
                                       }}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          handleCreateSprintClick(s.id, s.name);
+                                        }
+                                      }}
                                       role="button"
+                                      tabIndex={0}
                                       title="Create sprint"
                                     >
                                       <PlusIcon className="size-3" />
@@ -992,6 +1050,7 @@ export function WorkspaceShell({
                         <button
                           className="flex w-full items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-xs text-(--text-muted) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active)"
                           onClick={() => handleCreateSprintClick(s.id, s.name)}
+                          type="button"
                         >
                           <LightningIcon className="size-3" />
                           Create sprint
@@ -1003,6 +1062,7 @@ export function WorkspaceShell({
                           onClick={() =>
                             setCreateListForSpace({ spaceId: s.id })
                           }
+                          type="button"
                         >
                           <PlusIcon className="size-3" />
                           Add list
@@ -1014,12 +1074,15 @@ export function WorkspaceShell({
                           onClick={() =>
                             setExpandedArchivedLists((prev) => {
                               const next = new Set(prev);
-                              next.has(s.id)
-                                ? next.delete(s.id)
-                                : next.add(s.id);
+                              if (next.has(s.id)) {
+                                next.delete(s.id);
+                              } else {
+                                next.add(s.id);
+                              }
                               return next;
                             })
                           }
+                          type="button"
                         >
                           <ArchiveIcon className="size-3" />
                           {expandedArchivedLists.has(s.id)
@@ -1059,6 +1122,7 @@ export function WorkspaceShell({
                                     );
                                   }
                                 }}
+                                type="button"
                               >
                                 Unarchive
                               </button>
@@ -1077,6 +1141,7 @@ export function WorkspaceShell({
               <button
                 className="flex items-center gap-1.5 px-3 pb-1 text-xs text-(--text-muted) hover:text-(--text-sidebar) transition-colors w-full"
                 onClick={() => setShowArchivedSpaces((v) => !v)}
+                type="button"
               >
                 <ArchiveIcon className="size-3" />
                 <span className="flex-1 text-left uppercase tracking-wide font-medium">
@@ -1093,9 +1158,9 @@ export function WorkspaceShell({
                       key={s.id}
                     >
                       <SpaceIcon
-                        emoji={s.logoEmoji}
                         color={s.color}
                         dotClassName="opacity-40"
+                        emoji={s.logoEmoji}
                       />
                       <span className="flex-1 truncate italic">{s.name}</span>
                       {isAdmin && (
@@ -1104,6 +1169,7 @@ export function WorkspaceShell({
                           onClick={async () => {
                             await unarchiveSpace(workspace.id, s.id);
                           }}
+                          type="button"
                         >
                           Unarchive
                         </button>
@@ -1205,9 +1271,10 @@ export function WorkspaceShell({
           >
             <PopoverTrigger asChild>
               <button
+                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-[13px] text-(--text-sidebar) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active) cursor-pointer"
                 onMouseEnter={handleTriggerHoverEnter}
                 onMouseLeave={handleTriggerHoverLeave}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-[13px] text-(--text-sidebar) transition-colors hover:bg-(--bg-sidebar-item-hover) hover:text-(--text-sidebar-active) cursor-pointer"
+                type="button"
               >
                 <Avatar className="size-7 shrink-0">
                   {avatarUrl && (
@@ -1226,11 +1293,11 @@ export function WorkspaceShell({
             <PopoverContent
               align="start"
               className="w-56 p-1.5"
-              side="top"
-              sideOffset={4}
-              onOpenAutoFocus={(e) => e.preventDefault()}
               onMouseEnter={handleTriggerHoverEnter}
               onMouseLeave={handleTriggerHoverLeave}
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              side="top"
+              sideOffset={4}
             >
               {showProjectPicker && spaces.length > 1 ? (
                 /* Project picker — replaces the menu in-place (single popup, no side panel) */
@@ -1238,6 +1305,7 @@ export function WorkspaceShell({
                   <button
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors hover:bg-base-200"
                     onClick={() => setShowProjectPicker(false)}
+                    type="button"
                   >
                     <ArrowLeftIcon className="size-4 shrink-0 text-base-content/60" />
                     <span className="flex-1 text-left">Project settings</span>
@@ -1260,8 +1328,8 @@ export function WorkspaceShell({
                           }}
                         >
                           <SpaceIcon
-                            emoji={s.logoEmoji}
                             color={s.color ?? "#6B7280"}
+                            emoji={s.logoEmoji}
                             size="sm"
                           />
                           <span className="flex-1 truncate">{s.name}</span>
@@ -1327,6 +1395,7 @@ export function WorkspaceShell({
                           openProfileMenu();
                           setShowProjectPicker(true);
                         }}
+                        type="button"
                       >
                         <FolderIcon className="size-4 shrink-0 text-base-content/60" />
                         <span className="flex-1 text-left">
@@ -1358,12 +1427,12 @@ export function WorkspaceShell({
                     Theme
                   </Link>
                   <button
-                    type="button"
                     className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-base-200"
                     onClick={() => {
                       setProfileOpen(false);
                       setShortcutsOpen(true);
                     }}
+                    type="button"
                   >
                     <KeyboardIcon className="size-4 shrink-0 text-base-content/60" />
                     <span className="flex-1 text-left">Keyboard shortcuts</span>
@@ -1378,6 +1447,7 @@ export function WorkspaceShell({
                       setProfileOpen(false);
                       handleSignOut();
                     }}
+                    type="button"
                   >
                     <SignOutIcon className="size-4 shrink-0" />
                     Sign out
@@ -1492,6 +1562,7 @@ function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
                 title={[item.spaceName, item.listName]
                   .filter(Boolean)
                   .join(" · ")}
+                type="button"
               >
                 <span className="truncate block">{item.taskTitle}</span>
               </button>
@@ -1499,6 +1570,7 @@ function PinnedTasksBar({ workspaceId }: { workspaceId: string }) {
                 className="hidden group-hover/pin:flex shrink-0 h-full items-center px-1 text-base-content/60 hover:text-base-content transition-colors cursor-pointer"
                 onClick={(e) => handleUnpin(e, item.taskId)}
                 title="Unpin"
+                type="button"
               >
                 <PushPinSlashIcon className="size-3" />
               </button>
@@ -1545,24 +1617,25 @@ function TopbarRightColumn({
           {topbar ? (
             <>
               {topbar.breadcrumbs.map((crumb, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: breadcrumbs have no stable id (just label/href/emoji) and are rebuilt fresh per page render, never reordered in place
                 <React.Fragment key={i}>
                   {i > 0 && (
                     <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
                   )}
                   {crumb.href ? (
                     <Link
-                      href={crumb.href}
                       className="flex items-center gap-1.5 text-base-content/60 font-medium shrink-0 hover:text-base-content transition-colors"
+                      href={crumb.href}
                     >
                       {(crumb.emoji || crumb.color) && (
-                        <SpaceIcon emoji={crumb.emoji} color={crumb.color} />
+                        <SpaceIcon color={crumb.color} emoji={crumb.emoji} />
                       )}
                       {crumb.label}
                     </Link>
                   ) : (
                     <span className="flex items-center gap-1.5 text-base-content/60 font-medium shrink-0">
                       {(crumb.emoji || crumb.color) && (
-                        <SpaceIcon emoji={crumb.emoji} color={crumb.color} />
+                        <SpaceIcon color={crumb.color} emoji={crumb.emoji} />
                       )}
                       {crumb.label}
                     </span>
@@ -1595,6 +1668,7 @@ function TopbarRightColumn({
         <button
           className="hidden sm:flex items-center gap-2 h-8 w-52 shrink-0 rounded-md border bg-base-200/50 px-3 text-sm text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
           onClick={onOpenSearch}
+          type="button"
         >
           <MagnifyingGlassIcon className="size-4 shrink-0" />
           <span className="flex-1 text-left text-sm">Search…</span>

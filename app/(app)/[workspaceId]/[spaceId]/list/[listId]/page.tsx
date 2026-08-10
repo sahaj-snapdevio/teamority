@@ -1,7 +1,17 @@
-import { and, asc, count, eq, inArray, isNotNull, isNull, sum } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  sum,
+} from "drizzle-orm";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { getCustomFieldsForTasks } from "@/app/actions/custom-field";
 import {
   list,
   listStatus,
@@ -16,7 +26,6 @@ import {
   user,
   workspaceMember,
 } from "@/db/schema";
-import { getCustomFieldsForTasks } from "@/app/actions/custom-field";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -85,7 +94,12 @@ export default async function ListPage({ params }: ListPageProps) {
 
   const [currentSpace, currentList] = await Promise.all([
     db
-      .select({ id: space.id, name: space.name, color: space.color, logoEmoji: space.logoEmoji })
+      .select({
+        id: space.id,
+        name: space.name,
+        color: space.color,
+        logoEmoji: space.logoEmoji,
+      })
       .from(space)
       .where(eq(space.id, spaceId))
       .limit(1)
@@ -169,104 +183,105 @@ export default async function ListPage({ params }: ListPageProps) {
     subtaskCountRows,
     customFieldsRes,
   ] = await Promise.all([
-      taskIds.length > 0
-        ? db
-            .select({
-              taskId: taskTag.taskId,
-              id: tag.id,
-              name: tag.name,
-              color: tag.color,
-            })
-            .from(taskTag)
-            .innerJoin(tag, eq(taskTag.tagId, tag.id))
-            .where(inArray(taskTag.taskId, taskIds))
-        : Promise.resolve([]),
+    taskIds.length > 0
+      ? db
+          .select({
+            taskId: taskTag.taskId,
+            id: tag.id,
+            name: tag.name,
+            color: tag.color,
+          })
+          .from(taskTag)
+          .innerJoin(tag, eq(taskTag.tagId, tag.id))
+          .where(inArray(taskTag.taskId, taskIds))
+      : Promise.resolve([]),
 
-      taskIds.length > 0
-        ? db
-            .select({
-              taskId: taskAssignee.taskId,
-              userId: taskAssignee.userId,
-              name: user.name,
-              email: user.email,
-              image: user.image,
-            })
-            .from(taskAssignee)
-            .innerJoin(user, eq(user.id, taskAssignee.userId))
-            .where(inArray(taskAssignee.taskId, taskIds))
-        : Promise.resolve([]),
+    taskIds.length > 0
+      ? db
+          .select({
+            taskId: taskAssignee.taskId,
+            userId: taskAssignee.userId,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+          })
+          .from(taskAssignee)
+          .innerJoin(user, eq(user.id, taskAssignee.userId))
+          .where(inArray(taskAssignee.taskId, taskIds))
+      : Promise.resolve([]),
 
-      taskIds.length > 0
-        ? db
-            .select({ taskId: pinnedTask.taskId })
-            .from(pinnedTask)
-            .where(
-              and(
-                eq(pinnedTask.userId, session.user.id),
-                inArray(pinnedTask.taskId, taskIds)
-              )
+    taskIds.length > 0
+      ? db
+          .select({ taskId: pinnedTask.taskId })
+          .from(pinnedTask)
+          .where(
+            and(
+              eq(pinnedTask.userId, session.user.id),
+              inArray(pinnedTask.taskId, taskIds)
             )
-        : Promise.resolve([]),
+          )
+      : Promise.resolve([]),
 
-      // "Blocked by" edges for the visible tasks — one row per blocker, carrying
-      // its status so the list/board indicator can show dependency state (all
-      // completed vs still blocked) without an N+1 query.
-      taskIds.length > 0
-        ? db
-            .select({
-              taskId: taskDependency.taskId,
-              blockerStatusType: listStatus.type,
-            })
-            .from(taskDependency)
-            .innerJoin(task, eq(taskDependency.dependsOnTaskId, task.id))
-            .leftJoin(listStatus, eq(listStatus.id, task.statusId))
-            .where(inArray(taskDependency.taskId, taskIds))
-        : Promise.resolve([]),
+    // "Blocked by" edges for the visible tasks — one row per blocker, carrying
+    // its status so the list/board indicator can show dependency state (all
+    // completed vs still blocked) without an N+1 query.
+    taskIds.length > 0
+      ? db
+          .select({
+            taskId: taskDependency.taskId,
+            blockerStatusType: listStatus.type,
+          })
+          .from(taskDependency)
+          .innerJoin(task, eq(taskDependency.dependsOnTaskId, task.id))
+          .leftJoin(listStatus, eq(listStatus.id, task.statusId))
+          .where(inArray(taskDependency.taskId, taskIds))
+      : Promise.resolve([]),
 
-      // Total completed tracked seconds per task (running timers excluded — the
-      // card badge shows settled time only).
-      taskIds.length > 0
-        ? db
-            .select({
-              taskId: timeEntry.taskId,
-              total: sum(timeEntry.durationSeconds),
-            })
-            .from(timeEntry)
-            .where(
-              and(
-                inArray(timeEntry.taskId, taskIds),
-                isNotNull(timeEntry.endTime)
-              )
+    // Total completed tracked seconds per task (running timers excluded — the
+    // card badge shows settled time only).
+    taskIds.length > 0
+      ? db
+          .select({
+            taskId: timeEntry.taskId,
+            total: sum(timeEntry.durationSeconds),
+          })
+          .from(timeEntry)
+          .where(
+            and(
+              inArray(timeEntry.taskId, taskIds),
+              isNotNull(timeEntry.endTime)
             )
-            .groupBy(timeEntry.taskId)
-        : Promise.resolve([]),
+          )
+          .groupBy(timeEntry.taskId)
+      : Promise.resolve([]),
 
-      // Subtask counts for the collapsible subtask row on Board cards — just
-      // the count, so cards that never get expanded never pay for the full
-      // subtask list (that's fetched lazily via getSubtasks on expand).
-      taskIds.length > 0
-        ? db
-            .select({
-              parentTaskId: task.parentTaskId,
-              count: count(),
-            })
-            .from(task)
-            .where(
-              and(
-                inArray(task.parentTaskId, taskIds),
-                eq(task.isArchived, false)
-              )
-            )
-            .groupBy(task.parentTaskId)
-        : Promise.resolve([]),
+    // Subtask counts for the collapsible subtask row on Board cards — just
+    // the count, so cards that never get expanded never pay for the full
+    // subtask list (that's fetched lazily via getSubtasks on expand).
+    taskIds.length > 0
+      ? db
+          .select({
+            parentTaskId: task.parentTaskId,
+            count: count(),
+          })
+          .from(task)
+          .where(
+            and(inArray(task.parentTaskId, taskIds), eq(task.isArchived, false))
+          )
+          .groupBy(task.parentTaskId)
+      : Promise.resolve([]),
 
-      getCustomFieldsForTasks(workspaceId, spaceId, listId, taskIds),
-    ]);
+    getCustomFieldsForTasks(workspaceId, spaceId, listId, taskIds),
+  ]);
 
   const customFields =
-    customFieldsRes && !("error" in customFieldsRes) ? customFieldsRes.fields : [];
+    customFieldsRes && !("error" in customFieldsRes)
+      ? customFieldsRes.fields
+      : [];
   const customFieldValuesByTask =
-    customFieldsRes && !("error" in customFieldsRes) ? customFieldsRes.valuesByTask : {};
+    customFieldsRes && !("error" in customFieldsRes)
+      ? customFieldsRes.valuesByTask
+      : {};
 
   const tagsByTaskId = new Map<
     string,
@@ -345,7 +360,12 @@ export default async function ListPage({ params }: ListPageProps) {
 
   const members = memberRows
     .filter((m) => m.userId)
-    .map((m) => ({ userId: m.userId!, name: m.name, email: m.email, image: m.image }));
+    .map((m) => ({
+      userId: m.userId!,
+      name: m.name,
+      email: m.email,
+      image: m.image,
+    }));
 
   return (
     <ListContainer

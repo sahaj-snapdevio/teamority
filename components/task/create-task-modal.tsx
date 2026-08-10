@@ -20,9 +20,9 @@ import {
   updateTask,
 } from "@/app/actions/task";
 import { createTag, getWorkspaceTags } from "@/app/actions/task-tag";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { ManageStatusesDialog } from "@/components/list/manage-statuses-dialog";
 import { TaskDescriptionEditor } from "@/components/task/task-description-editor";
-import { UserAvatar } from "@/components/common/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -165,7 +165,14 @@ export function CreateTaskModal({
         }
       });
     }
-  }, [open, defaultStatusId, defaultDueDate]);
+  }, [
+    open,
+    defaultStatusId,
+    defaultDueDate,
+    workspaceId,
+    localStatuses[0]?.id,
+    descImages.reset,
+  ]);
 
   // Statuses may load asynchronously after the modal opens. Once they're
   // available, make sure a valid status is selected so the task is never
@@ -298,7 +305,10 @@ export function CreateTaskModal({
 
           {/* Top bar: tab + close button */}
           <div className="flex items-center border-b px-5 shrink-0">
-            <button className="border-b-2 border-primary py-3 px-1 text-sm font-medium text-base-content">
+            <button
+              className="border-b-2 border-primary py-3 px-1 text-sm font-medium text-base-content"
+              type="button"
+            >
               Task
             </button>
             <div className="flex-1" />
@@ -306,6 +316,7 @@ export function CreateTaskModal({
               className="flex size-7 items-center justify-center rounded-md text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
               onClick={() => onOpenChange(false)}
+              type="button"
             >
               <XIcon className="size-4" />
             </button>
@@ -359,6 +370,7 @@ export function CreateTaskModal({
                       borderColor: currentStatus?.color,
                       color: currentStatus?.color,
                     }}
+                    type="button"
                   >
                     {currentStatus?.name ?? "Status"}
                   </button>
@@ -393,6 +405,7 @@ export function CreateTaskModal({
                                   <button
                                     className="flex size-4 items-center justify-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
                                     onClick={(e) => e.stopPropagation()}
+                                    type="button"
                                   >
                                     <DotsThreeIcon
                                       className="size-3.5"
@@ -426,6 +439,7 @@ export function CreateTaskModal({
                                 setStatusId(s.id);
                                 setStatusPopoverOpen(false);
                               }}
+                              type="button"
                             >
                               <span
                                 className="size-2.5 rounded-full shrink-0"
@@ -450,7 +464,10 @@ export function CreateTaskModal({
                 open={assigneePopoverOpen}
               >
                 <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors">
+                  <button
+                    className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
+                    type="button"
+                  >
                     {selectedMembers.length > 0 ? (
                       <>
                         <div className="flex -space-x-1">
@@ -496,6 +513,7 @@ export function CreateTaskModal({
                                 : [...prev, m.userId]
                             )
                           }
+                          type="button"
                         >
                           <UserAvatar
                             className="shrink-0"
@@ -529,6 +547,7 @@ export function CreateTaskModal({
                         ? "text-base-content"
                         : "text-base-content/60 hover:text-base-content"
                     )}
+                    type="button"
                   >
                     <CalendarBlankIcon className="size-3.5" />
                     {dueDate ? format(dueDate, "MMM d") : "Due date"}
@@ -562,6 +581,7 @@ export function CreateTaskModal({
                       "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors hover:bg-base-200",
                       currentPriority.color
                     )}
+                    type="button"
                   >
                     {priority === "NONE" ? (
                       <>
@@ -588,6 +608,7 @@ export function CreateTaskModal({
                         setPriority(p.value);
                         setPriorityPopoverOpen(false);
                       }}
+                      type="button"
                     >
                       <span>{p.icon}</span>
                       <span className="flex-1 text-left">{p.label}</span>
@@ -602,7 +623,10 @@ export function CreateTaskModal({
               {/* Tags */}
               <Popover onOpenChange={setTagPopoverOpen} open={tagPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors">
+                  <button
+                    className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
+                    type="button"
+                  >
                     <TagIcon className="size-3.5" />
                     {selectedTags.length > 0 ? (
                       <span>{selectedTags.map((t) => t.name).join(", ")}</span>
@@ -633,6 +657,7 @@ export function CreateTaskModal({
                                 : [...prev, t.id]
                             )
                           }
+                          type="button"
                         >
                           <span
                             className="size-2.5 rounded-full shrink-0"
@@ -661,6 +686,7 @@ export function CreateTaskModal({
                             setTagSearch("");
                           }
                         }}
+                        type="button"
                       >
                         <PlusIcon className="size-3.5" />
                         Create &ldquo;{tagSearch}&rdquo;

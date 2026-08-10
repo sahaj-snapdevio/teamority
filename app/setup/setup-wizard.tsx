@@ -87,6 +87,7 @@ function applyTheme(theme: string, appearance: AppearanceMode) {
     (appearance === "auto" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
   root.classList.toggle("dark", isDark);
+  // biome-ignore lint/suspicious/noDocumentCookie: legitimate client-side cookie write (no ThemeProvider/server context yet during /setup); consistent with lib/last-workspace.ts's rememberWorkspace
   document.cookie = `${THEME_COOKIE}=${serializeThemeCookie({ theme, appearance })}; path=/; max-age=${THEME_COOKIE_MAX_AGE}; SameSite=Lax`;
 }
 
@@ -107,7 +108,10 @@ function Stepper({ step }: { step: 1 | 2 | 3 | 4 }) {
           </div>
           {i < 3 && (
             <div
-              className={cn("h-px w-10", n < step ? "bg-primary" : "bg-base-300")}
+              className={cn(
+                "h-px w-10",
+                n < step ? "bg-primary" : "bg-base-300"
+              )}
             />
           )}
         </React.Fragment>

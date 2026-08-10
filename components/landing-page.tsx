@@ -1,47 +1,47 @@
 "use client";
 
 import {
-  motion,
-  useMotionValueEvent,
-  useScroll,
-  useTransform,
-} from "framer-motion";
-import {
-  WarningIcon,
   ArrowRightIcon,
-  SealCheckIcon,
-  ChartBarIcon,
+  ArrowsLeftRightIcon,
   BellIcon,
   CalendarBlankIcon,
-  CheckIcon,
-  CheckCircleIcon,
   CaretRightIcon,
+  ChartBarIcon,
+  ChatIcon,
+  ChatsIcon,
+  CheckCircleIcon,
+  CheckIcon,
   ClockIcon,
   CodeIcon,
   CubeIcon,
   DatabaseIcon,
   GlobeIcon,
+  HardDrivesIcon,
   KanbanIcon,
   KeyIcon,
+  LightningIcon,
   ListBulletsIcon,
   ListIcon,
-  ChatIcon,
-  ChatsIcon,
-  ArrowsLeftRightIcon,
   MagnifyingGlassIcon,
-  HardDrivesIcon,
+  SealCheckIcon,
   ShieldCheckIcon,
   SparkleIcon,
   StarIcon,
   TrendUpIcon,
   UsersIcon,
+  WarningIcon,
   XIcon,
-  LightningIcon,
 } from "@phosphor-icons/react";
+import {
+  motion,
+  useMotionValueEvent,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -74,7 +74,7 @@ function useInView(threshold = 0.12) {
           obs.disconnect();
         }
       },
-      { threshold },
+      { threshold }
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -107,7 +107,7 @@ function Animate({
         visible
           ? "opacity-100 translate-x-0 translate-y-0"
           : cn("opacity-0", translate),
-        className,
+        className
       )}
       ref={ref}
       style={{ transitionDelay: `${delay}ms` }}
@@ -278,7 +278,7 @@ function SectionLabel({
     <span
       className={cn(
         "inline-flex items-center rounded-full border border-[#174D38]/30 bg-[#174D38]/10 px-3 py-1 font-semibold text-[#174D38] text-xs uppercase tracking-wide",
-        className,
+        className
       )}
     >
       {children}
@@ -307,20 +307,20 @@ function MaskButton({
     `mask-btn--${variant}`,
     `mask-btn--${size}`,
     pill && "mask-btn--pill",
-    wrapperClassName,
+    wrapperClassName
   );
 
   return (
     <div className={wrapperCls}>
-      <span className="mask-btn__label" aria-hidden="true">
+      <span aria-hidden="true" className="mask-btn__label">
         {children}
       </span>
       {isHash ? (
-        <a href={href} className="mask-btn__inner">
+        <a className="mask-btn__inner" href={href}>
           {children}
         </a>
       ) : (
-        <Link href={href} className="mask-btn__inner">
+        <Link className="mask-btn__inner" href={href}>
           {children}
         </Link>
       )}
@@ -396,12 +396,12 @@ function Navbar() {
 
         <div className="hidden items-center gap-2 sm:flex shrink-0">
           <Link
-            href="/login"
             className="inline-flex h-8 items-center px-3 text-xs font-medium text-[#6b7280] transition-colors hover:text-[#174D38]"
+            href="/login"
           >
             Sign in
           </Link>
-          <MaskButton href="/login" variant="primary" size="sm" pill>
+          <MaskButton href="/login" pill size="sm" variant="primary">
             Get Started Free <ArrowRightIcon className="ml-1 size-3.5" />
           </MaskButton>
         </div>
@@ -411,8 +411,13 @@ function Navbar() {
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
           className="rounded-md p-2 text-[#6b7280] hover:text-[#174D38] sm:hidden"
           onClick={() => setMobileOpen((v) => !v)}
+          type="button"
         >
-          {mobileOpen ? <XIcon className="size-5" /> : <ListIcon className="size-5" />}
+          {mobileOpen ? (
+            <XIcon className="size-5" />
+          ) : (
+            <ListIcon className="size-5" />
+          )}
         </button>
       </header>
 
@@ -422,6 +427,7 @@ function Navbar() {
           style={mobileMenuStyle}
         >
           <nav className="flex flex-col gap-3 text-sm text-[#6b7280]">
+            {/* biome-ignore lint/a11y/useValidAnchor: real same-page section navigation (href="#features"); onClick only closes the mobile menu as a side effect */}
             <a
               className="hover:text-[#174D38]"
               href="#features"
@@ -429,6 +435,7 @@ function Navbar() {
             >
               Features
             </a>
+            {/* biome-ignore lint/a11y/useValidAnchor: real same-page section navigation (href="#why"); onClick only closes the mobile menu as a side effect */}
             <a
               className="hover:text-[#174D38]"
               href="#why"
@@ -436,6 +443,7 @@ function Navbar() {
             >
               Why us
             </a>
+            {/* biome-ignore lint/a11y/useValidAnchor: real same-page section navigation (href="#how-it-works"); onClick only closes the mobile menu as a side effect */}
             <a
               className="hover:text-[#174D38]"
               href="#how-it-works"
@@ -443,6 +451,7 @@ function Navbar() {
             >
               How it works
             </a>
+            {/* biome-ignore lint/a11y/useValidAnchor: real same-page section navigation (href="#faq"); onClick only closes the mobile menu as a side effect */}
             <a
               className="hover:text-[#174D38]"
               href="#faq"
@@ -452,12 +461,18 @@ function Navbar() {
             </a>
             <div className="flex flex-col gap-2 border-t border-[#CBCBCB] pt-3">
               <Link
-                href="/login"
                 className="inline-flex h-8 w-full items-center justify-center rounded-md border border-[#CBCBCB] px-3 text-xs font-medium text-[#174D38] transition-colors hover:bg-[#F2F2F2]"
+                href="/login"
               >
                 Sign in
               </Link>
-              <MaskButton href="/login" variant="primary" size="sm" pill wrapperClassName="w-full">
+              <MaskButton
+                href="/login"
+                pill
+                size="sm"
+                variant="primary"
+                wrapperClassName="w-full"
+              >
                 Get Started Free
               </MaskButton>
             </div>
@@ -660,7 +675,7 @@ function ListView() {
               <span
                 className={cn(
                   "rounded px-2.5 py-0.5 text-[10px] font-bold tracking-wide",
-                  t.statusCls,
+                  t.statusCls
                 )}
               >
                 {t.status}
@@ -670,7 +685,7 @@ function ListView() {
               <span
                 className={cn(
                   "rounded px-2.5 py-0.5 text-[10px] font-bold tracking-wide",
-                  t.pCls,
+                  t.pCls
                 )}
               >
                 {t.priority}
@@ -795,7 +810,7 @@ function BoardView() {
                   <span
                     className={cn(
                       "rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider",
-                      task.pCls,
+                      task.pCls
                     )}
                   >
                     {task.priority}
@@ -815,6 +830,7 @@ function BoardView() {
   );
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: kept for re-enabling, see usage comment below
 function CalendarView() {
   return (
     <div className="flex flex-col h-full bg-white rounded-lg p-5">
@@ -851,8 +867,9 @@ function CalendarView() {
             <div
               className={cn(
                 "border border-[#E8E8E8] rounded-md p-1 flex flex-col gap-1 min-h-0 relative bg-white transition-colors hover:border-[#174D38]/30",
-                isValidDay ? "text-[#174D38]" : "text-[#CBCBCB] bg-[#F9F9F9]",
+                isValidDay ? "text-[#174D38]" : "text-[#CBCBCB] bg-[#F9F9F9]"
               )}
+              // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static calendar grid mock, never reorders
               key={idx}
             >
               <span className="text-[9px] font-bold leading-none mb-0.5">
@@ -930,12 +947,12 @@ function ProductShowcaseSection() {
   const listOpacityTransform = useTransform(
     scrollYProgress,
     [0, 0.2, 0.35],
-    [1, 0.5, 0],
+    [1, 0.5, 0]
   );
   const listScaleTransform = useTransform(
     scrollYProgress,
     [0, 0.35],
-    [1, 0.95],
+    [1, 0.95]
   );
   const listYTransform = useTransform(scrollYProgress, [0, 0.35], [0, -50]);
 
@@ -943,34 +960,34 @@ function ProductShowcaseSection() {
   const boardOpacityTransform = useTransform(
     scrollYProgress,
     [0, 0.15, 0.35, 0.55, 0.7],
-    [0, 0.4, 1, 0.5, 0],
+    [0, 0.4, 1, 0.5, 0]
   );
   const boardScaleTransform = useTransform(
     scrollYProgress,
     [0, 0.35, 0.7],
-    [0.9, 1, 0.95],
+    [0.9, 1, 0.95]
   );
   const boardYTransform = useTransform(
     scrollYProgress,
     [0, 0.35, 0.7],
-    [150, 0, -50],
+    [150, 0, -50]
   );
 
   // Scroll Transforms for Calendar View
   const calendarOpacityTransform = useTransform(
     scrollYProgress,
     [0.35, 0.55, 0.7],
-    [0, 0.4, 1],
+    [0, 0.4, 1]
   );
   const calendarScaleTransform = useTransform(
     scrollYProgress,
     [0.35, 0.7],
-    [0.9, 1],
+    [0.9, 1]
   );
   const calendarYTransform = useTransform(
     scrollYProgress,
     [0.35, 0.7],
-    [150, 0],
+    [150, 0]
   );
 
   const listOpacity = prefersReducedMotion
@@ -1016,14 +1033,21 @@ function ProductShowcaseSection() {
             <div className="flex flex-1 min-h-0 bg-[#F2F2F2]">
               {/* Sidebar */}
               <div className="flex w-14 flex-col items-center gap-4 border-r border-[#CBCBCB] bg-white px-3.5 py-4 shrink-0">
-                {[ListBulletsIcon, KanbanIcon, BellIcon, MagnifyingGlassIcon, UsersIcon].map((Icon, i) => (
+                {[
+                  ListBulletsIcon,
+                  KanbanIcon,
+                  BellIcon,
+                  MagnifyingGlassIcon,
+                  UsersIcon,
+                ].map((Icon, i) => (
                   <div
                     className={cn(
                       "flex size-8 items-center justify-center rounded-md transition-colors",
                       i === activeSidebarIndex
                         ? "bg-[#174D38] text-white"
-                        : "text-[#9ca3af] hover:bg-[#E8E8E8]",
+                        : "text-[#9ca3af] hover:bg-[#E8E8E8]"
                     )}
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static hardcoded icon list, never reorders
                     key={i}
                   >
                     <Icon className="size-4" />
@@ -1049,7 +1073,7 @@ function ProductShowcaseSection() {
                           "rounded px-2.5 py-1 font-semibold text-xs transition-all duration-200",
                           activeTabIdx === idx
                             ? "bg-[#174D38] text-white"
-                            : "text-[#6b7280] hover:bg-[#E8E8E8] hover:text-[#174D38]",
+                            : "text-[#6b7280] hover:bg-[#E8E8E8] hover:text-[#174D38]"
                         )}
                         key={tab}
                       >
@@ -1137,15 +1161,15 @@ function HeroSection() {
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <MaskButton
               href="/login"
-              variant="primary"
               size="lg"
+              variant="primary"
               wrapperClassName="shadow-lg shadow-[#4D1717]/40"
             >
               Get Started Free <ArrowRightIcon className="ml-1.5 size-4" />
             </MaskButton>
             <a
-              href="#features"
               className="inline-flex h-11 items-center rounded-md border border-[#CBCBCB] px-6 text-base font-medium text-[#174D38] transition-colors hover:bg-[#F2F2F2]"
+              href="#features"
             >
               See what is included
             </a>
@@ -1178,7 +1202,7 @@ function SocialProofBar() {
                   >
                     {name}
                   </span>
-                ),
+                )
               )}
             </div>
           </div>
@@ -1221,7 +1245,7 @@ function FeaturesSection() {
                 "hover:-translate-y-0.5 hover:border-[#174D38]/40 hover:shadow-md",
                 visible
                   ? "translate-y-0 opacity-100"
-                  : "translate-y-4 opacity-0",
+                  : "translate-y-4 opacity-0"
               )}
               key={title}
               style={{
@@ -1287,7 +1311,7 @@ function StatsSection() {
                 "flex flex-col items-center text-center transition-all duration-500 sm:items-start sm:text-left",
                 visible
                   ? "translate-y-0 opacity-100"
-                  : "translate-y-4 opacity-0",
+                  : "translate-y-4 opacity-0"
               )}
               key={label}
               style={{ transitionDelay: visible ? `${i * 90}ms` : "0ms" }}
@@ -1371,7 +1395,7 @@ function OpenSourceHighlightsSection() {
                 "flex flex-col items-center text-center transition-all duration-500 sm:items-start sm:text-left",
                 visible
                   ? "translate-y-0 opacity-100"
-                  : "translate-y-4 opacity-0",
+                  : "translate-y-4 opacity-0"
               )}
               key={value}
               style={{ transitionDelay: visible ? `${i * 90}ms` : "0ms" }}
@@ -1451,7 +1475,7 @@ function BentoSection() {
                   "hover:-translate-y-0.5 hover:shadow-md hover:border-[#174D38]/40",
                   visible
                     ? "translate-y-0 opacity-100"
-                    : "translate-y-4 opacity-0",
+                    : "translate-y-4 opacity-0"
                 )}
                 key={card.title}
                 style={{ transitionDelay: visible ? `${i * 90}ms` : "0ms" }}
@@ -1535,7 +1559,7 @@ function HowItWorksSection() {
                 "relative rounded-xl border border-[#CBCBCB] bg-white p-6 shadow-sm transition-all duration-500",
                 visible
                   ? "translate-y-0 opacity-100"
-                  : "translate-y-4 opacity-0",
+                  : "translate-y-4 opacity-0"
               )}
               key={step.number}
               style={{
@@ -1549,7 +1573,7 @@ function HowItWorksSection() {
                     "pointer-events-none absolute top-10 left-[100%] w-6 h-6 hidden lg:block z-10 transition-all duration-700 ease-out",
                     visible
                       ? "opacity-100 translate-x-0 scale-100"
-                      : "opacity-0 -translate-x-2 scale-75",
+                      : "opacity-0 -translate-x-2 scale-75"
                   )}
                   style={{
                     transitionDelay: `${i * 120 + 150}ms`,
@@ -1680,7 +1704,7 @@ function ViewsShowcaseSection() {
                           "flex items-center gap-3 rounded border px-3 py-2 text-sm",
                           done
                             ? "border-[#CBCBCB] bg-[#F2F2F2]"
-                            : "border-[#174D38]/20 bg-[#174D38]/5",
+                            : "border-[#174D38]/20 bg-[#174D38]/5"
                         )}
                         key={t}
                       >
@@ -1689,7 +1713,7 @@ function ViewsShowcaseSection() {
                             "flex size-4 shrink-0 items-center justify-center rounded border-2",
                             done
                               ? "border-[#174D38] bg-[#174D38]"
-                              : "border-[#CBCBCB]",
+                              : "border-[#CBCBCB]"
                           )}
                         >
                           {done && (
@@ -1704,7 +1728,7 @@ function ViewsShowcaseSection() {
                             "flex-1 text-xs",
                             done
                               ? "text-[#9ca3af] line-through"
-                              : "text-[#174D38]",
+                              : "text-[#174D38]"
                           )}
                         >
                           {t}
@@ -1874,8 +1898,7 @@ const comparisonFeatures = [
   {
     icon: SparkleIcon,
     title: "95% On-Time Delivery",
-    description:
-      `Teams using ${PRODUCT_NAME} complete 95% of tasks before their deadlines.`,
+    description: `Teams using ${PRODUCT_NAME} complete 95% of tasks before their deadlines.`,
     color: "bg-emerald-100 text-emerald-600",
   },
   {
@@ -1894,6 +1917,7 @@ const comparisonFeatures = [
   },
 ];
 
+// biome-ignore lint/correctness/noUnusedVariables: kept for re-enabling, see usage comment below
 function BeforeAfterSection() {
   const [sliderPosition, setSliderPosition] = React.useState(50);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -1941,7 +1965,7 @@ function BeforeAfterSection() {
     (e: React.TouchEvent) => {
       handleMove(e.touches[0].clientX);
     },
-    [handleMove],
+    [handleMove]
   );
 
   React.useEffect(() => {
@@ -2029,7 +2053,7 @@ function BeforeAfterSection() {
                       <div
                         className={cn(
                           "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                          f.color,
+                          f.color
                         )}
                       >
                         <Icon className="size-4" />
@@ -2051,6 +2075,8 @@ function BeforeAfterSection() {
 
           {/* Right — Before/After Slider */}
           <Animate className="lg:col-span-3" from="right">
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: drag handlers are a pointer/touch enhancement; the nested range input below provides real keyboard accessibility */}
+            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: drag handlers are a pointer/touch enhancement; the nested range input below provides real keyboard accessibility */}
             <div
               className="relative cursor-ew-resize select-none overflow-hidden rounded-2xl border border-[#CBCBCB] shadow-xl"
               onMouseDown={handleMouseDown}
@@ -2142,6 +2168,7 @@ function BeforeAfterSection() {
   );
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: kept for re-enabling, see usage comment below
 function TestimonialsSection() {
   const [activeIndex, setActiveIndex] = React.useState(2);
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
@@ -2174,7 +2201,7 @@ function TestimonialsSection() {
 
   const prev = () => {
     setActiveIndex(
-      (prev) => (prev - 1 + testimonials.length) % testimonials.length,
+      (prev) => (prev - 1 + testimonials.length) % testimonials.length
     );
   };
 
@@ -2301,37 +2328,13 @@ function TestimonialsSection() {
                   brightness = 110;
                 } else if (isAnyHovered) {
                   // Non-hovered cards remain in place, but blur and dim
-                  opacity = opacity * 0.45;
+                  opacity *= 0.45;
                   blurVal = Math.max(blurVal, 2.5);
                   brightness = 75;
                 }
 
                 return (
                   <motion.div
-                    className={cn(
-                      "absolute top-12 rounded-2xl p-6 border backdrop-blur-md cursor-pointer select-none",
-                      isActive
-                        ? "border-emerald-500/30 bg-white/[0.04]"
-                        : "border-white/[0.05] bg-white/[0.015]",
-                      isHovered
-                        ? "border-emerald-400/50 bg-white/[0.07] shadow-[0_0_30px_rgba(16,185,129,0.25)]"
-                        : "shadow-2xl",
-                    )}
-                    key={t.name}
-                    style={{
-                      width: cardWidth,
-                      left: `calc(50% - ${cardWidth / 2}px)`,
-                      zIndex: isHovered ? 50 : 10 - Math.abs(diff),
-                      perspective: 1000,
-                    }}
-                    initial={{
-                      opacity: 0,
-                      scale: 0.3,
-                      y: 120,
-                      x: 0,
-                      z: -200,
-                      rotateY: 0,
-                    }}
                     animate={{
                       x,
                       z,
@@ -2340,6 +2343,50 @@ function TestimonialsSection() {
                       opacity,
                       filter: `blur(${blurVal}px) brightness(${brightness}%)`,
                       y: isEntered && !isHovered && !isMobile ? [0, -8, 0] : y,
+                    }}
+                    className={cn(
+                      "absolute top-12 rounded-2xl p-6 border backdrop-blur-md cursor-pointer select-none",
+                      isActive
+                        ? "border-emerald-500/30 bg-white/[0.04]"
+                        : "border-white/[0.05] bg-white/[0.015]",
+                      isHovered
+                        ? "border-emerald-400/50 bg-white/[0.07] shadow-[0_0_30px_rgba(16,185,129,0.25)]"
+                        : "shadow-2xl"
+                    )}
+                    drag={isMobile ? "x" : false}
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.4}
+                    initial={{
+                      opacity: 0,
+                      scale: 0.3,
+                      y: 120,
+                      x: 0,
+                      z: -200,
+                      rotateY: 0,
+                    }}
+                    key={t.name}
+                    onClick={() => {
+                      if (isMobile && !isActive) {
+                        setActiveIndex(idx);
+                      }
+                    }}
+                    onDragEnd={(_event, info) => {
+                      if (!isMobile) {
+                        return;
+                      }
+                      if (info.offset.x < -60) {
+                        next();
+                      } else if (info.offset.x > 60) {
+                        prev();
+                      }
+                    }}
+                    onMouseEnter={() => setHoveredIndex(idx)}
+                    onMouseLeave={() => setHoveredIndex(null)}
+                    style={{
+                      width: cardWidth,
+                      left: `calc(50% - ${cardWidth / 2}px)`,
+                      zIndex: isHovered ? 50 : 10 - Math.abs(diff),
+                      perspective: 1000,
                     }}
                     transition={{
                       y:
@@ -2363,24 +2410,6 @@ function TestimonialsSection() {
                         delay: isEntered ? 0 : idx * 0.15,
                       },
                     }}
-                    onClick={() => {
-                      if (isMobile && !isActive) {
-                        setActiveIndex(idx);
-                      }
-                    }}
-                    onMouseEnter={() => setHoveredIndex(idx)}
-                    onMouseLeave={() => setHoveredIndex(null)}
-                    drag={isMobile ? "x" : false}
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={0.4}
-                    onDragEnd={(event, info) => {
-                      if (!isMobile) return;
-                      if (info.offset.x < -60) {
-                        next();
-                      } else if (info.offset.x > 60) {
-                        prev();
-                      }
-                    }}
                   >
                     {/* Futuristic HUD corner accents */}
                     <div className="absolute top-2.5 left-2.5 size-2.5 border-t border-l border-emerald-500/40 rounded-tl-xs pointer-events-none" />
@@ -2391,6 +2420,7 @@ function TestimonialsSection() {
                       {Array.from({ length: t.rating }).map((_, j) => (
                         <StarIcon
                           className="size-3.5 fill-emerald-400 text-emerald-400 drop-shadow-[0_0_3px_rgba(52,211,153,0.5)]"
+                          // biome-ignore lint/suspicious/noArrayIndexKey: static decorative star rating, never reorders
                           key={j}
                           weight="fill"
                         />
@@ -2407,9 +2437,9 @@ function TestimonialsSection() {
                       <Avatar className="size-8.5 border border-white/[0.08] shadow-sm">
                         {t.avatar && (
                           <AvatarImage
-                            src={t.avatar}
                             alt={t.name}
                             className="object-cover"
+                            src={t.avatar}
                           />
                         )}
                         <AvatarFallback className="bg-emerald-500/10 text-emerald-400 font-mono text-xs">
@@ -2442,8 +2472,9 @@ function TestimonialsSection() {
                   "h-1 rounded-full transition-all duration-300",
                   idx === activeIndex
                     ? "w-6 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"
-                    : "w-1.5 bg-white/20",
+                    : "w-1.5 bg-white/20"
                 )}
+                // biome-ignore lint/suspicious/noArrayIndexKey: static testimonials array, never reorders
                 key={idx}
                 onClick={() => setActiveIndex(idx)}
                 type="button"
@@ -2478,7 +2509,7 @@ function FaqItem({
         <span
           className={cn(
             "font-semibold text-sm transition-colors duration-200",
-            isOpen ? "text-[#174D38]" : "text-[#174D38]",
+            isOpen ? "text-[#174D38]" : "text-[#174D38]"
           )}
         >
           {question}
@@ -2486,19 +2517,19 @@ function FaqItem({
         <div
           className={cn(
             "relative ml-6 h-5 w-5 shrink-0 transition-transform duration-300 ease-out",
-            isOpen ? "rotate-45" : "rotate-0",
+            isOpen ? "rotate-45" : "rotate-0"
           )}
         >
           <span
             className={cn(
               "absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 rounded-full transition-colors duration-300",
-              isOpen ? "bg-[#174D38]" : "bg-[#6b7280]",
+              isOpen ? "bg-[#174D38]" : "bg-[#6b7280]"
             )}
           />
           <span
             className={cn(
               "absolute top-0 left-1/2 h-full w-0.5 -translate-x-1/2 rounded-full transition-all duration-300",
-              isOpen ? "bg-[#174D38]" : "bg-[#6b7280]",
+              isOpen ? "bg-[#174D38]" : "bg-[#6b7280]"
             )}
           />
         </div>
@@ -2520,6 +2551,7 @@ function FaqItem({
   );
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: kept for re-enabling, see usage comment below
 function FaqSection() {
   const [openIndex, setOpenIndex] = React.useState<number | null>(null);
 
@@ -2547,6 +2579,7 @@ function FaqSection() {
               <FaqItem
                 answer={faq.a}
                 isOpen={openIndex === i}
+                // biome-ignore lint/suspicious/noArrayIndexKey: static hardcoded FAQ list, never reorders
                 key={i}
                 onToggle={() => setOpenIndex(openIndex === i ? null : i)}
                 question={faq.q}
@@ -2590,8 +2623,8 @@ function CtaBanner() {
                 no setup fees.
               </p>
               <Link
-                href="/login"
                 className="inline-flex h-11 items-center gap-1.5 rounded-md bg-white px-8 text-base font-semibold text-[#174D38] shadow-lg transition-colors hover:bg-[#F2F2F2]"
+                href="/login"
               >
                 Start for free <ArrowRightIcon className="size-4" />
               </Link>

@@ -1,13 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { format } from "date-fns";
-import { toast } from "sonner";
 import {
+  CalendarBlankIcon,
   CaretDownIcon,
   CaretRightIcon,
-  CalendarBlankIcon,
   CheckCircleIcon,
   ClockCounterClockwiseIcon,
   LightningIcon,
@@ -15,9 +11,20 @@ import {
   TargetIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import {
+  addTaskToSprint,
+  deleteSprint,
+  getBacklogTasks,
+  getSprintSettings,
+  getSprints,
+  getSprintWithTasks,
+  startSprint,
+} from "@/app/actions/sprint";
+import { createTask } from "@/app/actions/task";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,54 +35,53 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  getSprints,
-  getBacklogTasks,
-  getSprintWithTasks,
-  startSprint,
-  deleteSprint,
-  addTaskToSprint,
-  getSprintSettings,
-} from "@/app/actions/sprint";
-import { createTask } from "@/app/actions/task";
-import { CreateSprintModal } from "./create-sprint-modal";
-import { CloseSprintModal } from "./close-sprint-modal";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { AddTasksToSprintModal } from "./add-tasks-to-sprint-modal";
+import { CloseSprintModal } from "./close-sprint-modal";
+import { CreateSprintModal } from "./create-sprint-modal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SprintRow {
+  createdAt: Date;
+  endDate: Date | null;
+  goal: string | null;
   id: string;
   name: string;
-  goal: string | null;
-  status: "PLANNED" | "ACTIVE" | "CLOSED";
   startDate: Date | null;
-  endDate: Date | null;
-  createdAt: Date;
+  status: "PLANNED" | "ACTIVE" | "CLOSED";
 }
 
 interface SprintProgress {
-  total: number;
   closed: number;
+  total: number;
 }
 
-
 interface SprintPanelProps {
-  workspaceId: string;
-  spaceId: string;
   listId?: string;
   onDataChanged?: () => void;
+  spaceId: string;
+  workspaceId: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(date: Date | null): string {
-  if (!date) return "—";
-  return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (!date) {
+    return "—";
+  }
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function getDaysRemaining(endDate: Date | null): number | null {
-  if (!endDate) return null;
+  if (!endDate) {
+    return null;
+  }
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const end = new Date(endDate);
@@ -113,13 +119,29 @@ function QuickCreateSprintTask({
 
   async function submit() {
     const trimmed = title.trim();
-    if (!trimmed) { cancel(); return; }
+    if (!trimmed) {
+      cancel();
+      return;
+    }
     setSaving(true);
     try {
-      const res = await createTask(workspaceId, spaceId, null, { title: trimmed });
-      if ("error" in res) { toast.error(res.error); return; }
-      const sprintRes = await addTaskToSprint(workspaceId, spaceId, sprintId, res.taskId);
-      if ("error" in sprintRes) { toast.error(sprintRes.error); return; }
+      const res = await createTask(workspaceId, spaceId, null, {
+        title: trimmed,
+      });
+      if ("error" in res) {
+        toast.error(res.error);
+        return;
+      }
+      const sprintRes = await addTaskToSprint(
+        workspaceId,
+        spaceId,
+        sprintId,
+        res.taskId
+      );
+      if ("error" in sprintRes) {
+        toast.error(sprintRes.error);
+        return;
+      }
       setTitle("");
       onCreated();
       setTimeout(() => inputRef.current?.focus(), 0);
@@ -131,15 +153,21 @@ function QuickCreateSprintTask({
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") { e.preventDefault(); void submit(); }
-    if (e.key === "Escape") cancel();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void submit();
+    }
+    if (e.key === "Escape") {
+      cancel();
+    }
   }
 
   if (!open) {
     return (
       <button
-        onClick={show}
         className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-base-content/60 hover:text-base-content hover:bg-base-200/40 transition-colors"
+        onClick={show}
+        type="button"
       >
         <PlusIcon className="size-3.5 shrink-0" />
         Create task
@@ -150,27 +178,29 @@ function QuickCreateSprintTask({
   return (
     <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-base-100 px-2 py-1.5 ring-1 ring-primary/20">
       <input
-        ref={inputRef}
-        type="text"
-        placeholder="Task title…"
-        value={title}
+        className="flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/50 disabled:opacity-50"
+        disabled={saving}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={onKeyDown}
-        disabled={saving}
-        className="flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/50 disabled:opacity-50"
+        placeholder="Task title…"
+        ref={inputRef}
+        type="text"
+        value={title}
       />
       <div className="flex items-center gap-1 shrink-0">
         <button
-          onClick={() => void submit()}
-          disabled={saving || !title.trim()}
           className="rounded px-2 py-0.5 text-xs font-medium bg-primary text-primary-content hover:bg-primary/90 disabled:opacity-40 transition-colors"
+          disabled={saving || !title.trim()}
+          onClick={() => void submit()}
+          type="button"
         >
           {saving ? "…" : "Add"}
         </button>
         <button
-          onClick={cancel}
-          disabled={saving}
           className="rounded px-1.5 py-0.5 text-xs text-base-content/60 hover:text-base-content transition-colors"
+          disabled={saving}
+          onClick={cancel}
+          type="button"
         >
           Esc
         </button>
@@ -211,15 +241,23 @@ function ActiveSprintCard({
     <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2 min-w-0">
-          <LightningIcon className="size-4 text-primary shrink-0 mt-0.5" weight="fill" />
+          <LightningIcon
+            className="size-4 text-primary shrink-0 mt-0.5"
+            weight="fill"
+          />
           <div className="min-w-0">
             <p className="text-sm font-semibold truncate">{sprint.name}</p>
             {sprint.goal && (
-              <p className="text-xs text-base-content/60 line-clamp-1 mt-0.5">{sprint.goal}</p>
+              <p className="text-xs text-base-content/60 line-clamp-1 mt-0.5">
+                {sprint.goal}
+              </p>
             )}
           </div>
         </div>
-        <Badge variant="outline" className="shrink-0 border-primary/30 text-primary bg-primary/10 text-xs px-2 py-1 rounded">
+        <Badge
+          className="shrink-0 border-primary/30 text-primary bg-primary/10 text-xs px-2 py-1 rounded"
+          variant="outline"
+        >
           Active
         </Badge>
       </div>
@@ -232,7 +270,7 @@ function ActiveSprintCard({
             </span>
             <span className="font-medium">{percent}%</span>
           </div>
-          <Progress value={percent} className="h-1.5" />
+          <Progress className="h-1.5" value={percent} />
         </div>
       )}
 
@@ -254,12 +292,22 @@ function ActiveSprintCard({
         </div>
         <div className="flex items-center gap-1.5">
           {listId && (
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onAddTasks}>
+            <Button
+              className="h-7 text-xs"
+              onClick={onAddTasks}
+              size="sm"
+              variant="ghost"
+            >
               <PlusIcon className="size-3 mr-1" />
               Add tasks
             </Button>
           )}
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onClose}>
+          <Button
+            className="h-7 text-xs"
+            onClick={onClose}
+            size="sm"
+            variant="outline"
+          >
             Close Sprint
           </Button>
         </div>
@@ -267,10 +315,10 @@ function ActiveSprintCard({
 
       {/* Inline create task */}
       <QuickCreateSprintTask
-        workspaceId={workspaceId}
+        onCreated={onRefresh}
         spaceId={spaceId}
         sprintId={sprint.id}
-        onCreated={onRefresh}
+        workspaceId={workspaceId}
       />
     </div>
   );
@@ -306,7 +354,11 @@ function PlannedSprintRow({
 
   async function handleConfirmDelete() {
     setDeleting(true);
-    try { await onDelete(sprint.id); } finally { setDeleting(false); }
+    try {
+      await onDelete(sprint.id);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -316,44 +368,53 @@ function PlannedSprintRow({
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{sprint.name}</p>
             <p className="text-xs text-base-content/60">
-              {sprint.startDate ? `Starts ${formatDate(sprint.startDate)}` : "No start date"}
+              {sprint.startDate
+                ? `Starts ${formatDate(sprint.startDate)}`
+                : "No start date"}
             </p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <button
-              onClick={() => setExpanded((v) => !v)}
               className="hidden items-center gap-1 text-xs text-base-content/60 hover:text-base-content transition-colors opacity-0 group-hover:opacity-100 px-1 sm:flex"
+              onClick={() => setExpanded((v) => !v)}
+              type="button"
             >
               <PlusIcon className="size-3" />
               New task
             </button>
             {listId && (
               <button
-                onClick={() => onAddTasks(sprint.id)}
                 className="hidden items-center gap-1 text-xs text-base-content/60 hover:text-base-content transition-colors opacity-0 group-hover:opacity-100 px-1 sm:flex"
+                onClick={() => onAddTasks(sprint.id)}
+                type="button"
               >
                 Add tasks
               </button>
             )}
             {!hasActiveSprint && (
               <Button
-                size="sm"
-                variant="outline"
                 className="h-7 text-xs"
                 disabled={starting || deleting}
                 onClick={async () => {
                   setStarting(true);
-                  try { await onStart(sprint.id); } finally { setStarting(false); }
+                  try {
+                    await onStart(sprint.id);
+                  } finally {
+                    setStarting(false);
+                  }
                 }}
+                size="sm"
+                variant="outline"
               >
                 {starting ? "Starting…" : "Start Sprint"}
               </Button>
             )}
             <button
-              disabled={deleting || starting}
-              className="flex size-7 items-center justify-center rounded-md text-base-content/60 opacity-100 transition-all hover:bg-error/10 hover:text-error disabled:opacity-30 sm:opacity-0 sm:group-hover:opacity-100"
               aria-label="Delete sprint"
+              className="flex size-7 items-center justify-center rounded-md text-base-content/60 opacity-100 transition-all hover:bg-error/10 hover:text-error disabled:opacity-30 sm:opacity-0 sm:group-hover:opacity-100"
+              disabled={deleting || starting}
               onClick={() => setConfirmDelete(true)}
+              type="button"
             >
               <TrashIcon className="size-3.5" />
             </button>
@@ -364,28 +425,32 @@ function PlannedSprintRow({
         {expanded && (
           <div className="px-3 pb-3">
             <QuickCreateSprintTask
-              workspaceId={workspaceId}
+              onCreated={() => {
+                onRefresh();
+              }}
               spaceId={spaceId}
               sprintId={sprint.id}
-              onCreated={() => { onRefresh(); }}
+              workspaceId={workspaceId}
             />
           </div>
         )}
       </div>
 
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      <AlertDialog onOpenChange={setConfirmDelete} open={confirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete sprint?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{sprint.name}</strong> will be permanently deleted. Tasks in this sprint will not be deleted — they will return to the backlog.
+              <strong>{sprint.name}</strong> will be permanently deleted. Tasks
+              in this sprint will not be deleted — they will return to the
+              backlog.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              disabled={deleting}
               className="bg-error text-error-content hover:bg-error/90"
+              disabled={deleting}
               onClick={() => void handleConfirmDelete()}
             >
               {deleting ? "Deleting…" : "Delete"}
@@ -399,12 +464,19 @@ function PlannedSprintRow({
 
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
-export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: SprintPanelProps) {
+export function SprintPanel({
+  workspaceId,
+  spaceId,
+  listId,
+  onDataChanged,
+}: SprintPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
   const [sprints, setSprints] = useState<SprintRow[]>([]);
-  const [progressMap, setProgressMap] = useState<Record<string, SprintProgress>>({});
+  const [progressMap, setProgressMap] = useState<
+    Record<string, SprintProgress>
+  >({});
   const [backlogCount, setBacklogCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -438,23 +510,31 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
       const sprintsResult = await getSprints(workspaceId, spaceId);
       const backlogResult = await getBacklogTasks(workspaceId, spaceId);
 
-      if ("error" in sprintsResult) throw new Error(sprintsResult.error);
-      if ("error" in backlogResult) throw new Error(backlogResult.error);
+      if ("error" in sprintsResult) {
+        throw new Error(sprintsResult.error);
+      }
+      if ("error" in backlogResult) {
+        throw new Error(backlogResult.error);
+      }
 
       const rows = sprintsResult.sprints ?? [];
       setSprints(rows);
-      setBacklogCount(backlogResult.lists.reduce((sum, l) => sum + l.tasks.length, 0));
+      setBacklogCount(
+        backlogResult.lists.reduce((sum, l) => sum + l.tasks.length, 0)
+      );
 
       const activeRows = rows.filter((s) => s.status === "ACTIVE");
       if (activeRows.length > 0) {
         const progressResults = await Promise.all(
-          activeRows.map((s) => getSprintWithTasks(workspaceId, spaceId, s.id)),
+          activeRows.map((s) => getSprintWithTasks(workspaceId, spaceId, s.id))
         );
         const map: Record<string, SprintProgress> = {};
         for (let i = 0; i < activeRows.length; i++) {
           const res = progressResults[i];
           if ("tasks" in res) {
-            const closed = res.tasks.filter((t) => t.statusType === "CLOSED").length;
+            const closed = res.tasks.filter(
+              (t) => t.statusType === "CLOSED"
+            ).length;
             map[activeRows[i].id] = { total: res.tasks.length, closed };
           }
         }
@@ -465,9 +545,11 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, spaceId, listId]);
+  }, [workspaceId, spaceId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   function refresh() {
     void fetchData();
@@ -476,13 +558,19 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
 
   async function handleStartSprint(sprintId: string) {
     const result = await startSprint(workspaceId, spaceId, sprintId);
-    if ("error" in result) { setError(result.error); return; }
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
     refresh();
   }
 
   async function handleDeleteSprint(sprintId: string) {
     const result = await deleteSprint(workspaceId, spaceId, sprintId);
-    if ("error" in result) { setError(result.error); return; }
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
     // If we're currently viewing the sprint we just deleted, its page loader
     // would notFound() on refresh — navigate to the workspace home instead.
     if (pathname === `/${workspaceId}/${spaceId}/sprint/${sprintId}`) {
@@ -495,64 +583,91 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
   return (
     <>
       <CreateSprintModal
-        open={createOpen}
+        onCreated={() => {
+          setCreateOpen(false);
+          refresh();
+        }}
         onOpenChange={setCreateOpen}
-        workspaceId={workspaceId}
-        spaceId={spaceId}
-        onCreated={() => { setCreateOpen(false); refresh(); }}
         onOpenSettings={openSprintSettings}
+        open={createOpen}
+        spaceId={spaceId}
+        workspaceId={workspaceId}
       />
       {addTasksTarget && listId && (
         <AddTasksToSprintModal
-          open={true}
-          onOpenChange={(open) => { if (!open) setAddTasksTarget(null); }}
-          workspaceId={workspaceId}
-          spaceId={spaceId}
           listId={listId}
+          onAdded={() => {
+            setAddTasksTarget(null);
+            refresh();
+          }}
+          onOpenChange={(open) => {
+            if (!open) {
+              setAddTasksTarget(null);
+            }
+          }}
+          open={true}
+          spaceId={spaceId}
           sprintId={addTasksTarget.id}
           sprintName={addTasksTarget.name}
-          onAdded={() => { setAddTasksTarget(null); refresh(); }}
+          workspaceId={workspaceId}
         />
       )}
       {closeTarget && (
         <CloseSprintModal
-          open={true}
-          onOpenChange={(open) => { if (!open) setCloseTarget(null); }}
-          workspaceId={workspaceId}
-          spaceId={spaceId}
           listId={listId ?? ""}
+          onClosed={() => {
+            setCloseTarget(null);
+            refresh();
+          }}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCloseTarget(null);
+            }
+          }}
+          open={true}
+          spaceId={spaceId}
           sprintId={closeTarget.id}
           sprintName={closeTarget.name}
-          onClosed={() => { setCloseTarget(null); refresh(); }}
+          workspaceId={workspaceId}
         />
       )}
 
       <div className="rounded-lg border bg-elevated">
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-lg hover:bg-base-200/50 transition-colors">
           <button
-            onClick={() => setExpanded((v) => !v)}
             className="flex flex-1 items-center gap-2 text-left min-w-0"
+            onClick={() => setExpanded((v) => !v)}
+            type="button"
           >
-            {expanded
-              ? <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />
-              : <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />}
+            {expanded ? (
+              <CaretDownIcon className="size-3.5 text-base-content/60 shrink-0" />
+            ) : (
+              <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
+            )}
             <TargetIcon className="size-4 text-base-content/60 shrink-0" />
             <span className="text-sm font-medium">Sprints</span>
           </button>
           <div className="flex items-center gap-2 shrink-0">
             {activeSprints.length > 0 && (
-              <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 text-xs px-2 py-1 rounded">
+              <Badge
+                className="border-primary/30 text-primary bg-primary/10 text-xs px-2 py-1 rounded"
+                variant="outline"
+              >
                 {activeSprints.length} Active
               </Badge>
             )}
             {plannedSprints.length > 0 && (
-              <Badge variant="outline" className="border-base-300 text-base-content/60 bg-base-200 text-xs px-2 py-1 rounded">
+              <Badge
+                className="border-base-300 text-base-content/60 bg-base-200 text-xs px-2 py-1 rounded"
+                variant="outline"
+              >
                 {plannedSprints.length} Planned
               </Badge>
             )}
             <button
-              onClick={handleCreateClick}
               className="flex items-center gap-1 text-xs text-base-content/60 hover:text-base-content transition-colors px-1"
+              onClick={handleCreateClick}
+              type="button"
             >
               <PlusIcon className="size-3.5" />
               Create Sprint
@@ -563,13 +678,18 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
         {expanded && (
           <div className="px-4 pb-4 space-y-3">
             {error && (
-              <p className="rounded-md bg-error/10 px-3 py-2 text-xs text-error">{error}</p>
+              <p className="rounded-md bg-error/10 px-3 py-2 text-xs text-error">
+                {error}
+              </p>
             )}
 
             {loading ? (
               <div className="space-y-2">
                 {[1, 2].map((i) => (
-                  <div key={i} className="h-12 rounded-md bg-base-200 animate-pulse" />
+                  <div
+                    className="h-12 rounded-md bg-base-200 animate-pulse"
+                    key={i}
+                  />
                 ))}
               </div>
             ) : (
@@ -579,14 +699,14 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
                     {activeSprints.map((s) => (
                       <ActiveSprintCard
                         key={s.id}
-                        sprint={s}
-                        progress={progressMap[s.id] ?? null}
-                        workspaceId={workspaceId}
-                        spaceId={spaceId}
                         listId={listId ?? ""}
-                        onClose={() => setCloseTarget(s)}
                         onAddTasks={() => setAddTasksTarget(s)}
+                        onClose={() => setCloseTarget(s)}
                         onRefresh={refresh}
+                        progress={progressMap[s.id] ?? null}
+                        spaceId={spaceId}
+                        sprint={s}
+                        workspaceId={workspaceId}
                       />
                     ))}
                   </div>
@@ -595,20 +715,26 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
                 {plannedSprints.length > 0 && (
                   <div className="space-y-1.5">
                     {activeSprints.length > 0 && (
-                      <p className="text-xs font-medium text-base-content/60 px-1">Planned</p>
+                      <p className="text-xs font-medium text-base-content/60 px-1">
+                        Planned
+                      </p>
                     )}
                     {plannedSprints.map((s) => (
                       <PlannedSprintRow
-                        key={s.id}
-                        sprint={s}
                         hasActiveSprint={activeSprints.length > 0}
-                        workspaceId={workspaceId}
-                        spaceId={spaceId}
+                        key={s.id}
                         listId={listId ?? ""}
-                        onStart={handleStartSprint}
+                        onAddTasks={(id) =>
+                          setAddTasksTarget(
+                            sprints.find((sp) => sp.id === id) ?? null
+                          )
+                        }
                         onDelete={handleDeleteSprint}
-                        onAddTasks={(id) => setAddTasksTarget(sprints.find((sp) => sp.id === id) ?? null)}
                         onRefresh={refresh}
+                        onStart={handleStartSprint}
+                        spaceId={spaceId}
+                        sprint={s}
+                        workspaceId={workspaceId}
                       />
                     ))}
                   </div>
@@ -617,7 +743,9 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
                 {sprints.length === 0 && (
                   <div className="flex flex-col items-center gap-2 py-6 text-center">
                     <TargetIcon className="size-8 text-base-content/40" />
-                    <p className="text-sm text-base-content/60">No sprints yet</p>
+                    <p className="text-sm text-base-content/60">
+                      No sprints yet
+                    </p>
                     <p className="text-xs text-base-content/70">
                       Create a sprint to start organizing work into iterations
                     </p>
@@ -628,39 +756,63 @@ export function SprintPanel({ workspaceId, spaceId, listId, onDataChanged }: Spr
 
                 <div className="flex items-center gap-1.5 px-1 text-xs text-base-content/60">
                   <span className="font-medium">Backlog</span>
-                  <Badge variant="secondary" className="text-xs h-5 px-1.5">{backlogCount}</Badge>
+                  <Badge className="text-xs h-5 px-1.5" variant="secondary">
+                    {backlogCount}
+                  </Badge>
                 </div>
 
                 {closedSprints.length > 0 && (
                   <div className="space-y-1">
                     <button
-                      onClick={() => setClosedExpanded((v) => !v)}
                       className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-xs text-base-content/60 hover:text-base-content hover:bg-base-200/40 transition-colors"
+                      onClick={() => setClosedExpanded((v) => !v)}
+                      type="button"
                     >
-                      {closedExpanded
-                        ? <CaretDownIcon className="size-3 shrink-0" />
-                        : <CaretRightIcon className="size-3 shrink-0" />}
+                      {closedExpanded ? (
+                        <CaretDownIcon className="size-3 shrink-0" />
+                      ) : (
+                        <CaretRightIcon className="size-3 shrink-0" />
+                      )}
                       <ClockCounterClockwiseIcon className="size-3.5 shrink-0" />
                       <span className="font-medium">Past Sprints</span>
-                      <Badge variant="secondary" className="text-xs h-4 px-1 ml-auto">{closedSprints.length}</Badge>
+                      <Badge
+                        className="text-xs h-4 px-1 ml-auto"
+                        variant="secondary"
+                      >
+                        {closedSprints.length}
+                      </Badge>
                     </button>
 
                     {closedExpanded && (
                       <div className="space-y-0.5 pl-1">
                         {closedSprints.map((s) => (
                           <button
-                            key={s.id}
-                            onClick={() => router.push(`/${workspaceId}/${spaceId}/sprint/${s.id}`)}
                             className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-base-200/50 transition-colors group/closed"
+                            key={s.id}
+                            onClick={() =>
+                              router.push(
+                                `/${workspaceId}/${spaceId}/sprint/${s.id}`
+                              )
+                            }
+                            type="button"
                           >
-                            <CheckCircleIcon className="size-3.5 shrink-0 text-green-500" weight="fill" />
+                            <CheckCircleIcon
+                              className="size-3.5 shrink-0 text-green-500"
+                              weight="fill"
+                            />
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium truncate">{s.name}</p>
+                              <p className="text-xs font-medium truncate">
+                                {s.name}
+                              </p>
                               {(s.startDate || s.endDate) && (
                                 <p className="text-[11px] text-base-content/70 truncate">
-                                  {s.startDate ? format(new Date(s.startDate), "MMM d") : "—"}
+                                  {s.startDate
+                                    ? format(new Date(s.startDate), "MMM d")
+                                    : "—"}
                                   {" → "}
-                                  {s.endDate ? format(new Date(s.endDate), "MMM d") : "—"}
+                                  {s.endDate
+                                    ? format(new Date(s.endDate), "MMM d")
+                                    : "—"}
                                 </p>
                               )}
                             </div>

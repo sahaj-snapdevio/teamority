@@ -10,7 +10,9 @@ import { db } from "@/lib/db";
 // banned admin loses access immediately, matching requireAdmin() in lib/authz.ts.
 export async function getAdminSession() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return null;
+  if (!session?.user) {
+    return null;
+  }
 
   const [fresh] = await db
     .select({ role: user.role, banned: user.banned })
@@ -18,6 +20,8 @@ export async function getAdminSession() {
     .where(eq(user.id, session.user.id))
     .limit(1);
 
-  if (!fresh || fresh.banned || fresh.role !== ADMIN_ROLE) return null;
+  if (!fresh || fresh.banned || fresh.role !== ADMIN_ROLE) {
+    return null;
+  }
   return session;
 }

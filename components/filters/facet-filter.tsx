@@ -1,14 +1,19 @@
 "use client";
 
+import {
+  CaretDownIcon,
+  CheckIcon,
+  FunnelIcon,
+  PlusIcon,
+} from "@phosphor-icons/react";
 import * as React from "react";
-import { CaretDownIcon, CheckIcon, FunnelIcon, PlusIcon } from "@phosphor-icons/react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { toggle } from "@/lib/filters/options";
+import { cn } from "@/lib/utils";
 
 export type FacetOption = {
   value: string;
@@ -64,19 +69,27 @@ export function FacetOptionList({
   const [query, setQuery] = React.useState("");
 
   const filtered = React.useMemo(() => {
-    if (!searchable || !query.trim()) return options;
+    if (!searchable || !query.trim()) {
+      return options;
+    }
     const q = query.trim().toLowerCase();
     return options.filter((o) => o.label.toLowerCase().includes(q));
   }, [options, query, searchable]);
 
   const trimmedQuery = query.trim();
   const hasExactMatch = options.some(
-    (o) => o.label.toLowerCase() === trimmedQuery.toLowerCase(),
+    (o) => o.label.toLowerCase() === trimmedQuery.toLowerCase()
   );
   const canCreate = !!onCreate && trimmedQuery.length > 0 && !hasExactMatch;
 
   function handleToggle(value: string) {
-    onChange(single ? (selected.includes(value) ? [] : [value]) : toggle(selected, value));
+    onChange(
+      single
+        ? selected.includes(value)
+          ? []
+          : [value]
+        : toggle(selected, value)
+    );
     onAfterToggle?.();
   }
 
@@ -92,16 +105,18 @@ export function FacetOptionList({
     <div>
       {searchable && (
         <input
-          value={query}
+          className="mb-1 w-full rounded-md border border-base-300 bg-base-100 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
           onChange={(e) => setQuery(e.target.value)}
           placeholder={searchPlaceholder}
-          className="mb-1 w-full rounded-md border border-base-300 bg-base-100 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+          value={query}
         />
       )}
       <div
         className={cn(
           "space-y-0.5",
-          maxListHeight ? "overflow-y-auto" : filtered.length > 8 && "max-h-56 overflow-y-auto",
+          maxListHeight
+            ? "overflow-y-auto"
+            : filtered.length > 8 && "max-h-56 overflow-y-auto"
         )}
         style={maxListHeight ? { maxHeight: maxListHeight } : undefined}
       >
@@ -116,11 +131,11 @@ export function FacetOptionList({
             const active = selected.includes(o.value);
             return (
               <button
-                key={o.value}
-                type="button"
                 aria-pressed={active}
-                onClick={() => handleToggle(o.value)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-base-200"
+                key={o.value}
+                onClick={() => handleToggle(o.value)}
+                type="button"
               >
                 {/* Visual indicator only — the row itself is the button, so a
                     real (button-based) Checkbox/Radio here would nest buttons.
@@ -130,7 +145,7 @@ export function FacetOptionList({
                   className={cn(
                     "flex size-4 shrink-0 items-center justify-center border border-base-300 transition-colors",
                     single ? "rounded-full" : "rounded-none",
-                    active && "border-primary bg-primary text-primary-content",
+                    active && "border-primary bg-primary text-primary-content"
                   )}
                 >
                   {active &&
@@ -154,9 +169,9 @@ export function FacetOptionList({
         )}
         {canCreate && (
           <button
-            type="button"
-            onClick={handleCreate}
             className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs text-primary hover:bg-base-200"
+            onClick={handleCreate}
+            type="button"
           >
             <PlusIcon className="size-3.5 shrink-0" />
             <span className="truncate">Create “{trimmedQuery}”</span>
@@ -167,9 +182,9 @@ export function FacetOptionList({
         <>
           {showClearDivider && <div className="my-1 h-px bg-base-300" />}
           <button
-            type="button"
-            onClick={() => onChange([])}
             className="mt-1 w-full rounded-md px-2 py-1 text-center text-xs text-base-content/60 hover:bg-base-200"
+            onClick={() => onChange([])}
+            type="button"
           >
             {clearLabel}
           </button>
@@ -180,18 +195,18 @@ export function FacetOptionList({
 }
 
 interface FacetFilterProps {
-  label: string;
+  align?: "start" | "center" | "end";
+  className?: string;
+  emptyText?: string;
   icon?: React.ReactNode;
-  options: FacetOption[];
-  selected: string[];
+  label: string;
   onChange: (next: string[]) => void;
-  /** Single-select (radio-like) — e.g. Type, Due. Default multi-select. */
-  single?: boolean;
+  options: FacetOption[];
   /** Show a search box to filter long option lists. */
   searchable?: boolean;
-  align?: "start" | "center" | "end";
-  emptyText?: string;
-  className?: string;
+  selected: string[];
+  /** Single-select (radio-like) — e.g. Type, Due. Default multi-select. */
+  single?: boolean;
 }
 
 /**
@@ -216,23 +231,23 @@ export function FacetFilter({
   const count = selected.length;
   const summary =
     single && count === 1
-      ? options.find((o) => o.value === selected[0])?.label ?? null
+      ? (options.find((o) => o.value === selected[0])?.label ?? null)
       : count > 0
         ? `(${count})`
         : null;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <button
-          type="button"
           className={cn(
             "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
             count > 0
               ? "border-primary bg-primary/10 text-primary"
               : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content",
-            className,
+            className
           )}
+          type="button"
         >
           {icon}
           {label}
@@ -242,15 +257,17 @@ export function FacetFilter({
       </PopoverTrigger>
       <PopoverContent align={align} className="w-56 rounded-xl p-1.5">
         <FacetOptionList
-          options={options}
-          selected={selected}
-          onChange={onChange}
-          single={single}
-          searchable={searchable}
           emptyText={emptyText}
           onAfterToggle={() => {
-            if (single) setOpen(false);
+            if (single) {
+              setOpen(false);
+            }
           }}
+          onChange={onChange}
+          options={options}
+          searchable={searchable}
+          selected={selected}
+          single={single}
         />
       </PopoverContent>
     </Popover>
@@ -260,11 +277,11 @@ export function FacetFilter({
 export interface FacetFilterGroup {
   key: string;
   label: string;
-  options: FacetOption[];
-  selected: string[];
   onChange: (next: string[]) => void;
-  single?: boolean;
+  options: FacetOption[];
   searchable?: boolean;
+  selected: string[];
+  single?: boolean;
 }
 
 /**
@@ -286,17 +303,17 @@ export function CombinedFacetFilter({
   const totalCount = groups.reduce((sum, g) => sum + g.selected.length, 0);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <button
-          type="button"
           className={cn(
             "flex h-8 shrink-0 select-none items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
             totalCount > 0
               ? "border-primary bg-primary/10 text-primary"
               : "border-base-300 text-base-content/60 hover:bg-base-200 hover:text-base-content",
-            className,
+            className
           )}
+          type="button"
         >
           <FunnelIcon className="size-3.5" />
           Filters
@@ -315,11 +332,11 @@ export function CombinedFacetFilter({
               {group.label}
             </p>
             <FacetOptionList
-              options={group.options}
-              selected={group.selected}
               onChange={group.onChange}
-              single={group.single}
+              options={group.options}
               searchable={group.searchable}
+              selected={group.selected}
+              single={group.single}
             />
           </div>
         ))}

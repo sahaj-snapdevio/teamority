@@ -1,7 +1,7 @@
-import type { Job } from "pg-boss";
-import { db } from "@/lib/db";
-import { userEmailPreference } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import type { Job } from "pg-boss";
+import { userEmailPreference } from "@/db/schema";
+import { db } from "@/lib/db";
 import { enqueueJob } from "@/lib/worker/enqueue";
 import { JOB_NAMES } from "@/lib/worker/job-types";
 
@@ -14,7 +14,7 @@ const SCAN_INTERVAL_MINUTES = 30; // must match the cron in lib/worker/boss.ts
  */
 export function localTime(
   now: Date,
-  timeZone: string,
+  timeZone: string
 ): { minutes: number; date: string } {
   const opts: Intl.DateTimeFormatOptions = {
     hour12: false,
@@ -27,9 +27,15 @@ export function localTime(
 
   let parts: Intl.DateTimeFormatPart[];
   try {
-    parts = new Intl.DateTimeFormat("en-CA", { ...opts, timeZone }).formatToParts(now);
+    parts = new Intl.DateTimeFormat("en-CA", {
+      ...opts,
+      timeZone,
+    }).formatToParts(now);
   } catch {
-    parts = new Intl.DateTimeFormat("en-CA", { ...opts, timeZone: "UTC" }).formatToParts(now);
+    parts = new Intl.DateTimeFormat("en-CA", {
+      ...opts,
+      timeZone: "UTC",
+    }).formatToParts(now);
   }
 
   const get = (t: Intl.DateTimeFormatPartTypes) =>
@@ -43,7 +49,9 @@ export function localTime(
   };
 }
 
-export async function handleNotificationDigestScan(_jobs: Job<Record<string, never>>[]) {
+export async function handleNotificationDigestScan(
+  _jobs: Job<Record<string, never>>[]
+) {
   const now = new Date();
 
   // Get all users with digest delivery mode
@@ -74,7 +82,7 @@ export async function handleNotificationDigestScan(_jobs: Job<Record<string, nev
 
     const windowEnd = now.toISOString();
     const windowStart = new Date(
-      now.getTime() - SCAN_INTERVAL_MINUTES * 60 * 1000,
+      now.getTime() - SCAN_INTERVAL_MINUTES * 60 * 1000
     ).toISOString();
 
     await enqueueJob(
@@ -84,7 +92,7 @@ export async function handleNotificationDigestScan(_jobs: Job<Record<string, nev
         // Date-scoped: pg-boss only dedupes while a job is active, so without
         // the local date the same key becomes reusable the next day.
         singletonKey: `digest-${pref.userId}-${local.date}-${pref.digestTime}`,
-      },
+      }
     );
     queued++;
   }
@@ -93,6 +101,6 @@ export async function handleNotificationDigestScan(_jobs: Job<Record<string, nev
     "[notification-digest-scan] scanned",
     digestUsers.length,
     "digest users, queued",
-    queued,
+    queued
   );
 }

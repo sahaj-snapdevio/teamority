@@ -33,10 +33,6 @@
 export type PgSslConfig = boolean | { rejectUnauthorized: boolean };
 
 export interface NormalizedPgConnection {
-  /** Connection string with client-only params removed. Safe for either driver. */
-  url: string;
-  /** Pass explicitly to the driver — `sslmode` has been stripped from `url`. */
-  ssl: PgSslConfig;
   /**
    * `false` when the URL declares a transaction-mode connection pooler.
    * `postgres.js` uses named prepared statements by default, which pgbouncer
@@ -44,6 +40,10 @@ export interface NormalizedPgConnection {
    * transaction-scoped `pg_advisory_xact_lock`s.)
    */
   prepare: boolean;
+  /** Pass explicitly to the driver — `sslmode` has been stripped from `url`. */
+  ssl: PgSslConfig;
+  /** Connection string with client-only params removed. Safe for either driver. */
+  url: string;
 }
 
 /**

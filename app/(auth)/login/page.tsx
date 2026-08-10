@@ -1,11 +1,11 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { getCurrentSession } from "@/lib/authz";
-import { redirectToSetupIfNeeded } from "@/lib/setup";
-import { getAuthMethods } from "@/lib/auth-config";
-import { authErrorMessage } from "@/lib/auth-errors";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LOGO_PATH, PRODUCT_NAME } from "@/config/platform";
+import { getAuthMethods } from "@/lib/auth-config";
+import { authErrorMessage } from "@/lib/auth-errors";
+import { getCurrentSession } from "@/lib/authz";
+import { redirectToSetupIfNeeded } from "@/lib/setup";
 import { LoginFormFlat } from "../_components/auth-form";
 import { WatermarkBackground } from "../_components/watermark-background";
 
@@ -18,7 +18,9 @@ export default async function LoginPage({
 }) {
   await redirectToSetupIfNeeded();
   const session = await getCurrentSession();
-  if (session) redirect("/post-auth");
+  if (session) {
+    redirect("/post-auth");
+  }
 
   const methods = await getAuthMethods();
   // Better Auth redirects OAuth callback failures here (see `onAPIError`).
@@ -30,7 +32,6 @@ export default async function LoginPage({
 
       {/* Modal card */}
       <div className="relative z-10 flex w-full max-w-4xl overflow-hidden rounded-2xl shadow-2xl bg-white">
-
         {/* Left — form */}
         <div className="flex w-full flex-col justify-center px-8 py-10 sm:px-10 lg:w-[46%]">
           {/* Logo */}
@@ -39,15 +40,17 @@ export default async function LoginPage({
               alt={`${PRODUCT_NAME} Logo`}
               className="h-10 w-auto object-contain"
               height={52}
+              priority
               src={LOGO_PATH}
               width={200}
-              priority
             />
           </div>
 
           {/* Heading */}
           <div className="mb-7">
-            <h1 className="text-[28px] font-bold text-base-content tracking-tight leading-tight">Sign in</h1>
+            <h1 className="text-[28px] font-bold text-base-content tracking-tight leading-tight">
+              Sign in
+            </h1>
             <p className="mt-1 text-sm leading-relaxed text-base-content/70">
               {methods.passwordSignup
                 ? "Welcome back. Sign in to pick up where you left off."
@@ -56,7 +59,7 @@ export default async function LoginPage({
           </div>
 
           {error && (
-            <Alert variant="destructive" className="mb-5">
+            <Alert className="mb-5" variant="destructive">
               <AlertDescription>{authErrorMessage(error)}</AlertDescription>
             </Alert>
           )}
@@ -81,18 +84,19 @@ export default async function LoginPage({
 
           <div className="relative z-10 w-full max-w-sm">
             <Image
-              src="/log-illus.webp"
               alt=""
-              width={500}
-              height={500}
-              className="h-auto w-full object-contain drop-shadow-sm"
-              priority
               aria-hidden="true"
+              className="h-auto w-full object-contain drop-shadow-sm"
+              height={500}
+              priority
+              src="/log-illus.webp"
+              width={500}
             />
           </div>
 
           <p className="relative z-10 text-sm leading-relaxed text-[#3d6b52] text-center max-w-xs">
-            Plan sprints, track tasks, and keep every project moving — all in one workspace.
+            Plan sprints, track tasks, and keep every project moving — all in
+            one workspace.
           </p>
         </div>
       </div>

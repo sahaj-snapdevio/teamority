@@ -7,14 +7,14 @@ const SIZES = {
 } as const;
 
 interface SpaceIconProps {
-  /** The project's chosen emoji, or null/undefined to fall back to the color dot. */
-  emoji?: string | null;
+  className?: string;
   /** Fallback dot color when no emoji is set. */
   color?: string | null;
-  size?: keyof typeof SIZES;
-  className?: string;
   /** Extra classes applied only to the fallback dot (e.g. opacity for archived). */
   dotClassName?: string;
+  /** The project's chosen emoji, or null/undefined to fall back to the color dot. */
+  emoji?: string | null;
+  size?: keyof typeof SIZES;
 }
 
 /**

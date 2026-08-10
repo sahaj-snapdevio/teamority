@@ -96,8 +96,8 @@
 
 * {
   box-sizing: border-box;
-  scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
+  scrollbar-width: thin;
 }
 
 /* Unified app-wide scrollbar (WebKit): 6px, transparent track, rounded
@@ -127,10 +127,10 @@ html {
 body {
   height: 100%;
   margin: 0;
-  letter-spacing: 0;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  letter-spacing: 0;
 }
 
 /* Lock body scroll only inside the authenticated app shell */
@@ -139,24 +139,6 @@ body:has(.workspace-shell) {
 }
 
 @theme inline {
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height, auto);
-    }
-  }
-
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height, auto);
-    }
-    to {
-      height: 0;
-    }
-  }
-
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
 
@@ -226,62 +208,79 @@ body:has(.workspace-shell) {
   --radius-selector: var(--radius-sm);
   --radius-field: var(--radius);
   --radius-box: var(--radius-lg);
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height, auto);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height, auto);
+    }
+    to {
+      height: 0;
+    }
+  }
 }
 
 :root {
   /* ── 3-layer surface system ──────────────────────────────────────────── */
-  --bg-app:      #F7F9FB;
-  --bg-surface:  #FFFFFF;
-  --bg-elevated: #FFFFFF;
-  --bg-sidebar:  #1A1D23;
-  --bg-sidebar-item-hover:  rgba(255,255,255,0.06);
-  --bg-sidebar-item-active: rgba(255,255,255,0.10);
+  --bg-app: #f7f9fb;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-sidebar: #1a1d23;
+  --bg-sidebar-item-hover: rgba(255, 255, 255, 0.06);
+  --bg-sidebar-item-active: rgba(255, 255, 255, 0.1);
 
   /* ── Text ─────────────────────────────────────────────────────────────── */
-  --text-primary:        #0F1117;
-  --text-secondary:      #5E6573;
-  --text-muted:          #9AA0AD;
-  --text-inverse:        #FFFFFF;
-  --text-sidebar:        #C9CDD6;
-  --text-sidebar-active: #FFFFFF;
+  --text-primary: #0f1117;
+  --text-secondary: #5e6573;
+  --text-muted: #9aa0ad;
+  --text-inverse: #ffffff;
+  --text-sidebar: #c9cdd6;
+  --text-sidebar-active: #ffffff;
 
   /* ── Brand (indigo) ───────────────────────────────────────────────────── */
-  --brand:       #5B6BF8;
-  --brand-hover: #4554E8;
-  --brand-muted: #EEF0FE;
+  --brand: #5b6bf8;
+  --brand-hover: #4554e8;
+  --brand-muted: #eef0fe;
 
   /* ── Shadows ──────────────────────────────────────────────────────────── */
-  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
-  --shadow-md: 0 2px 8px 0 rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
-  --shadow-lg: 0 8px 24px 0 rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06);
-  --shadow-xl: 0 20px 40px 0 rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.08);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 8px 0 rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px 0 rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 20px 40px 0 rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.08);
 
   /* ── Motion ───────────────────────────────────────────────────────────── */
-  --ease-default:    cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-out:        cubic-bezier(0.0, 0, 0.2, 1);
-  --duration-fast:   120ms;
+  --ease-default: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --duration-fast: 120ms;
   --duration-normal: 200ms;
-  --duration-slow:   300ms;
+  --duration-slow: 300ms;
 
   /* ── Page background ──────────────────────────────────────────────────── */
-  --page: #F4F5F7;
+  --page: #f4f5f7;
 
   /* ── daisyUI base ramp ────────────────────────────────────────────────── */
-  --base-100:     #FFFFFF;
-  --base-200:     #F4F5F7;
-  --base-300:     #E4E7EC;
-  --base-content: #0F1117;
+  --base-100: #ffffff;
+  --base-200: #f4f5f7;
+  --base-300: #e4e7ec;
+  --base-content: #0f1117;
 
   /* ── daisyUI brand role — every :root[data-theme="X"] block below
      overrides --primary/--primary-foreground/--ring ── */
-  --primary:          #5B6BF8;
-  --primary-foreground: #FFFFFF;
+  --primary: #5b6bf8;
+  --primary-foreground: #ffffff;
 
   /* ── daisyUI neutral role. Was `var(--secondary)` — a bug: that rendered
      any bare btn-neutral/badge-neutral illegibly near-white (confirmed zero
      current call sites use it). The sidebar's own dark chrome is the
      correct app-native fit for daisyUI's "always-dark" neutral role. ── */
-  --neutral:         var(--bg-sidebar);
+  --neutral: var(--bg-sidebar);
   --neutral-content: var(--text-sidebar-active);
 
   /* ── daisyUI status roles. Every *-content is now a real token — info-
@@ -289,30 +288,30 @@ body:has(.workspace-shell) {
      against dark mode's lighter info/error fills (fails WCAG AA);
      warning-content was already hardcoded correctly and is just tokenized
      here for symmetry. ── */
-  --info:             #2563EB;
-  --info-content:     #FFFFFF;
-  --success:          #16A34A;
-  --success-content:  #FFFFFF;
-  --warning:          #D97706;
-  --warning-content:  #451A03;
-  --destructive:      #DC2626;
-  --error-content:    #FFFFFF;
+  --info: #2563eb;
+  --info-content: #ffffff;
+  --success: #16a34a;
+  --success-content: #ffffff;
+  --warning: #d97706;
+  --warning-content: #451a03;
+  --destructive: #dc2626;
+  --error-content: #ffffff;
 
   /* ── Custom: daisyUI has no ring/focus-outline role ── */
-  --ring:   #5B6BF8;
+  --ring: #5b6bf8;
 
   /* ── Custom: soft-badge pair (tinted bg + strong text) — daisyUI's
      success-content is for on-solid text, not this pairing, so it stays a
      custom token. Was --success-foreground. ── */
-  --success-subtle: #DCFCE7;
-  --success-strong: #14532D;
+  --success-subtle: #dcfce7;
+  --success-strong: #14532d;
 
   /* ── Legacy — --secondary is untouched, out of Phase 5b's scope.
      --accent/--accent-foreground were retired in Phase 5b (every consumer
      moved to base-200/base-content; --color-accent now aliases primary
      above instead). ── */
-  --secondary:            #F4F5F7;
-  --secondary-foreground: #5E6573;
+  --secondary: #f4f5f7;
+  --secondary-foreground: #5e6573;
 
   /* ── Legacy raw alias — the last one. --background/--muted/--muted-foreground
      were deleted in Phase 6 (their only consumers, sonner.tsx and the status
@@ -338,64 +337,66 @@ body:has(.workspace-shell) {
 
 .dark {
   /* ── 3-layer surface system ──────────────────────────────────────────── */
-  --bg-app:      #0D0F12;
-  --bg-surface:  #161A20;
-  --bg-elevated: #242A33;
-  --bg-sidebar:  #0D0F12;
-  --bg-sidebar-item-hover:  rgba(255,255,255,0.05);
-  --bg-sidebar-item-active: rgba(255,255,255,0.09);
+  --bg-app: #0d0f12;
+  --bg-surface: #161a20;
+  --bg-elevated: #242a33;
+  --bg-sidebar: #0d0f12;
+  --bg-sidebar-item-hover: rgba(255, 255, 255, 0.05);
+  --bg-sidebar-item-active: rgba(255, 255, 255, 0.09);
 
   /* ── Text ─────────────────────────────────────────────────────────────── */
-  --text-primary:        #F0F2F5;
-  --text-secondary:      #8B919E;
-  --text-muted:          #545B68;
-  --text-sidebar:        #8B919E;
-  --text-sidebar-active: #F0F2F5;
+  --text-primary: #f0f2f5;
+  --text-secondary: #8b919e;
+  --text-muted: #545b68;
+  --text-sidebar: #8b919e;
+  --text-sidebar-active: #f0f2f5;
 
   /* ── Brand ────────────────────────────────────────────────────────────── */
-  --brand:       #6475FA;
-  --brand-hover: #7585FB;
-  --brand-muted: #1E2140;
+  --brand: #6475fa;
+  --brand-hover: #7585fb;
+  --brand-muted: #1e2140;
 
   /* ── Shadows (stronger in dark — compensate for low contrast) ── */
-  --shadow-md: 0 2px 8px 0 rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
-  --shadow-lg: 0 8px 24px 0 rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-md:
+    0 2px 8px 0 rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-lg:
+    0 8px 24px 0 rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
 
   /* ── Page ─────────────────────────────────────────────────────────────── */
-  --page: #0D0F12;
+  --page: #0d0f12;
 
   /* ── daisyUI base ramp ────────────────────────────────────────────────── */
-  --base-100:     #161A20;
-  --base-200:     #2B323D;
-  --base-300:     #333B47;
-  --base-content: #F0F2F5;
+  --base-100: #161a20;
+  --base-200: #2b323d;
+  --base-300: #333b47;
+  --base-content: #f0f2f5;
 
   /* ── daisyUI brand role — overridden per :root[data-theme] below ── */
-  --primary:           #6475FA;
-  --primary-foreground: #0D0F12;
+  --primary: #6475fa;
+  --primary-foreground: #0d0f12;
 
   /* --neutral / --neutral-content re-resolve automatically via the var()
      indirection declared in :root (they point at --bg-sidebar /
      --text-sidebar-active, both overridden above) — no redeclaration. */
 
   /* ── daisyUI status roles ─────────────────────────────────────────────── */
-  --info:             #60A5FA;
-  --info-content:     #0D1B2E;
-  --success:          #4ADE80;
-  --success-content:  #052E16;
-  --warning:          #FCD34D;
-  --warning-content:  #451A03;
-  --destructive:      #F87171;
-  --error-content:    #450A0A;
+  --info: #60a5fa;
+  --info-content: #0d1b2e;
+  --success: #4ade80;
+  --success-content: #052e16;
+  --warning: #fcd34d;
+  --warning-content: #451a03;
+  --destructive: #f87171;
+  --error-content: #450a0a;
 
-  --ring:   #6475FA;
+  --ring: #6475fa;
 
-  --success-subtle: #14532D;
-  --success-strong: #DCFCE7;
+  --success-subtle: #14532d;
+  --success-strong: #dcfce7;
 
   /* ── Legacy — --secondary untouched, out of Phase 5b's scope ── */
-  --secondary:            #242A33;
-  --secondary-foreground: #8B919E;
+  --secondary: #242a33;
+  --secondary-foreground: #8b919e;
 
   /* ── Legacy raw alias (consumer listed in :root above) ── */
   --foreground: var(--base-content);
@@ -492,9 +493,9 @@ body:has(.workspace-shell) {
 :root[data-theme="purple"] {
   --primary: oklch(0.58 0.23 295);
   --primary-foreground: oklch(0.99 0.002 277);
-  --ring: oklch(0.68 0.20 295);
+  --ring: oklch(0.68 0.2 295);
   --secondary: oklch(0.97 0.02 295);
-  --secondary-foreground: oklch(0.40 0.15 295);
+  --secondary-foreground: oklch(0.4 0.15 295);
 }
 
 :root[data-theme="teal"] {
@@ -502,7 +503,7 @@ body:has(.workspace-shell) {
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.62 0.13 180);
   --secondary: oklch(0.96 0.01 180);
-  --secondary-foreground: oklch(0.35 0.10 180);
+  --secondary-foreground: oklch(0.35 0.1 180);
 }
 
 :root[data-theme="violet"] {
@@ -545,7 +546,7 @@ body:has(.workspace-shell) {
      the light-mode forest block. */
   --primary-foreground: oklch(0.99 0.002 277);
   --ring: oklch(0.38 0.07 163);
-  --secondary: oklch(0.20 0.018 163);
+  --secondary: oklch(0.2 0.018 163);
   --secondary-foreground: oklch(0.84 0.018 163);
 }
 
@@ -582,7 +583,7 @@ body:has(.workspace-shell) {
 }
 
 .dark[data-theme="purple"] {
-  --primary: oklch(0.68 0.20 295);
+  --primary: oklch(0.68 0.2 295);
   --primary-foreground: oklch(0.155 0.018 277);
   --ring: oklch(0.58 0.23 295);
   --secondary: oklch(0.22 0.03 295);
@@ -611,70 +612,70 @@ body:has(.workspace-shell) {
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
   float: left;
+  height: 0;
   color: color-mix(in oklch, var(--base-content) 60%, transparent);
   pointer-events: none;
-  height: 0;
+  content: attr(data-placeholder);
 }
 
 /* Prose content */
 .ProseMirror h1 {
+  margin: 1rem 0 0.5rem;
   font-size: 1.5rem;
   font-weight: 700;
-  margin: 1rem 0 0.5rem;
 }
 .ProseMirror h2 {
+  margin: 0.875rem 0 0.4rem;
   font-size: 1.25rem;
   font-weight: 600;
-  margin: 0.875rem 0 0.4rem;
 }
 .ProseMirror h3 {
+  margin: 0.75rem 0 0.35rem;
   font-size: 1.1rem;
   font-weight: 600;
-  margin: 0.75rem 0 0.35rem;
 }
 .ProseMirror p {
   margin: 0.25rem 0;
   line-height: 1.65;
 }
 .ProseMirror ul {
-  list-style: disc;
   padding-left: 1.5rem;
   margin: 0.4rem 0;
+  list-style: disc;
 }
 .ProseMirror ol {
-  list-style: decimal;
   padding-left: 1.5rem;
   margin: 0.4rem 0;
+  list-style: decimal;
 }
 .ProseMirror li {
   margin: 0.15rem 0;
 }
 .ProseMirror blockquote {
-  border-left: 3px solid var(--base-300);
   padding-left: 1rem;
-  color: color-mix(in oklch, var(--base-content) 60%, transparent);
   margin: 0.5rem 0;
   font-style: italic;
+  color: color-mix(in oklch, var(--base-content) 60%, transparent);
+  border-left: 3px solid var(--base-300);
 }
 .ProseMirror code {
+  padding: 0.1em 0.35em;
+  font-family: monospace;
+  font-size: 0.875em;
   background: var(--base-200);
   border-radius: 0.25rem;
-  padding: 0.1em 0.35em;
-  font-size: 0.875em;
-  font-family: monospace;
 }
 .ProseMirror pre {
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
   background: var(--base-200);
   border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  overflow-x: auto;
-  margin: 0.5rem 0;
 }
 .ProseMirror pre code {
-  background: none;
   padding: 0;
+  background: none;
 }
 .ProseMirror strong {
   font-weight: 600;
@@ -689,46 +690,43 @@ body:has(.workspace-shell) {
   text-decoration: underline;
 }
 .ProseMirror hr {
+  margin: 1rem 0;
   border: none;
   border-top: 1px solid var(--base-300);
-  margin: 1rem 0;
 }
 
 /* Task list */
 .ProseMirror ul[data-type="taskList"] {
-  list-style: none;
   padding-left: 0.25rem;
+  list-style: none;
 }
 
 /* Mentions */
 .mention {
-  color: var(--primary);
-  background: color-mix(in oklch, var(--primary) 12%, transparent);
-  border-radius: 0.25rem;
   padding: 0 0.25rem;
   font-weight: 500;
+  color: var(--primary);
   cursor: default;
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+  border-radius: 0.25rem;
 }
 
 /* Tippy mention popup — reset default tippy theme */
 .tippy-box[data-theme~="mention-popup"] {
+  padding: 0;
   background: transparent;
   box-shadow: none;
-  padding: 0;
 }
 .tippy-box[data-theme~="mention-popup"] > .tippy-content {
   padding: 0;
 }
 .ProseMirror ul[data-type="taskList"] li {
   display: flex;
-  align-items: flex-start;
   gap: 0.5rem;
+  align-items: flex-start;
 }
 .ProseMirror ul[data-type="taskList"] li > label {
   margin-top: 2px;
-  cursor: pointer;
-}
-.ProseMirror ul[data-type="taskList"] li > label input {
   cursor: pointer;
 }
 .ProseMirror ul[data-type="taskList"] li > div {
@@ -737,45 +735,45 @@ body:has(.workspace-shell) {
 
 /* Force light-mode variables regardless of .dark on <html> */
 .force-light {
-  --bg-app:      #F7F9FB;
-  --bg-surface:  #FFFFFF;
-  --bg-elevated: #FFFFFF;
+  --bg-app: #f7f9fb;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
   --scrollbar-thumb: #c9cdd4;
   --scrollbar-thumb-hover: #aeb5bf;
 
-  --base-100:     #FFFFFF;
-  --base-200:     #F4F5F7;
-  --base-300:     #E4E7EC;
-  --base-content: #0F1117;
+  --base-100: #ffffff;
+  --base-200: #f4f5f7;
+  --base-300: #e4e7ec;
+  --base-content: #0f1117;
 
   /* Legacy raw alias — the last one still standing (see :root for why). */
-  --foreground: #0F1117;
+  --foreground: #0f1117;
 
   /* --secondary stays untouched, out of Phase 5b's scope — keep overriding
      force-light's own brand-tinted variant, unchanged from before this
      migration. */
-  --secondary:   #F4F5F7;
-  --secondary-foreground: #5E6573;
+  --secondary: #f4f5f7;
+  --secondary-foreground: #5e6573;
 
   /* Brand green — matches landing page */
-  --primary:           #174D38;
-  --primary-foreground: #FFFFFF;
-  --ring:              #174D38;
+  --primary: #174d38;
+  --primary-foreground: #ffffff;
+  --ring: #174d38;
 
   /* Belt-and-suspenders: also pin the daisyUI-facing names directly, same as
      this block already did for primary/ring before this migration. Only
      names still generated by @theme inline are listed — background/card/
      popover/muted/primary-foreground were retired there in Phase 6, so
      overriding them here would be dead weight. */
-  --color-base-100: #FFFFFF;
-  --color-base-200: #F4F5F7;
-  --color-base-300: #E4E7EC;
-  --color-base-content: #0F1117;
-  --color-primary: #174D38;
-  --color-primary-content: #FFFFFF;
-  --color-accent: #174D38;
-  --color-accent-content: #FFFFFF;
-  --color-ring: #174D38;
+  --color-base-100: #ffffff;
+  --color-base-200: #f4f5f7;
+  --color-base-300: #e4e7ec;
+  --color-base-content: #0f1117;
+  --color-primary: #174d38;
+  --color-primary-content: #ffffff;
+  --color-accent: #174d38;
+  --color-accent-content: #ffffff;
+  --color-ring: #174d38;
 }
 
 @layer base {
@@ -801,6 +799,9 @@ body:has(.workspace-shell) {
     cursor: pointer;
   }
 }
+.ProseMirror ul[data-type="taskList"] li > label input {
+  cursor: pointer;
+}
 
 /* ── Scrollbar colors (theme-adaptive) ───────────────────────────────────────
    Drive the unified app-wide scrollbar defined near the top of this file.
@@ -823,59 +824,71 @@ body:has(.workspace-shell) {
 
 :root {
   /* Sprite sheet (23 frames, Robin Dela — no changes needed) */
-  --mb-sprite: url('https://raw.githubusercontent.com/robin-dela/css-mask-animation/master/img/nature-sprite.png');
+  --mb-sprite: url("https://raw.githubusercontent.com/robin-dela/css-mask-animation/master/img/nature-sprite.png");
 
   /* Brand palette — override per theme */
-  --mb-brand:      #174D38;
-  --mb-brand-fg:   #ffffff;
-  --mb-border-col: #CBCBCB;
-  --mb-muted-col:  #6b7280;
-  --mb-accent-bg:  rgba(23, 77, 56, 0.06);
+  --mb-brand: #174d38;
+  --mb-brand-fg: #ffffff;
+  --mb-border-col: #cbcbcb;
+  --mb-muted-col: #6b7280;
+  --mb-accent-bg: rgba(23, 77, 56, 0.06);
 
   /* Animation timing — change here to tune all buttons at once */
   --mb-duration: 0.7s;
-  --mb-steps:    steps(22);
+  --mb-steps: steps(22);
 }
 
 /* Paint sprays IN (button fades → label shows beneath) */
 @keyframes mask-btn-in {
-  from { -webkit-mask-position: 0 0;    mask-position: 0 0;    }
-  to   { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  from {
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+  }
+  to {
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+  }
 }
 
 /* Paint sprays OUT (button reveals — plays on page-load & mouse-leave) */
 @keyframes mask-btn-out {
-  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
-  to   { -webkit-mask-position: 0 0;    mask-position: 0 0;    }
+  from {
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+  }
+  to {
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+  }
 }
 
 /* ── Wrapper ──────────────────────────────────────────────────────────────── */
 .mask-btn {
   position: relative;
   display: inline-flex;
+  flex-shrink: 0;
+  height: var(--mb-h, 2rem);
   overflow: hidden;
   border-radius: var(--mb-radius, 0.375rem);
-  height: var(--mb-h, 2rem);
-  flex-shrink: 0;
 }
 
 /* ── Label (behind — always visible, the hover-revealed state) ───────────── */
 .mask-btn__label {
   position: absolute;
   inset: 0;
+  z-index: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 var(--mb-px, 0.75rem);
-  color: var(--mb-label-color, var(--mb-brand));
-  background: var(--mb-label-bg, transparent);
   font-size: var(--mb-fs, 0.75rem);
   font-weight: 600;
+  color: var(--mb-label-color, var(--mb-brand));
   letter-spacing: 0.01em;
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
-  z-index: 0;
+  background: var(--mb-label-bg, transparent);
 }
 
 /* ── Inner (on top — mask-animated, default-visible layer) ──────────────── */
@@ -885,23 +898,23 @@ body:has(.workspace-shell) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 var(--mb-px, 0.75rem);
   width: 101%; /* hairline-gap fix on some browsers */
   height: 100%;
-  color: var(--mb-color, var(--mb-brand));
-  background: var(--mb-bg, transparent);
+  padding: 0 var(--mb-px, 0.75rem);
   font-size: var(--mb-fs, 0.75rem);
   font-weight: 600;
+  color: var(--mb-color, var(--mb-brand));
   letter-spacing: 0.01em;
-  text-decoration: none;
   white-space: nowrap;
+  text-decoration: none;
+  background: var(--mb-bg, transparent);
   /* Mask */
   -webkit-mask-image: var(--mb-sprite);
   mask-image: var(--mb-sprite);
-  -webkit-mask-size: 2300% 100%;
-  mask-size: 2300% 100%;
   -webkit-mask-position: 0 0;
   mask-position: 0 0;
+  -webkit-mask-size: 2300% 100%;
+  mask-size: 2300% 100%;
   /* Plays on load + mouse-leave: button sprays into view */
   animation: mask-btn-out var(--mb-duration) var(--mb-steps) forwards;
 }
@@ -915,73 +928,82 @@ body:has(.workspace-shell) {
 
 /* Primary — solid green → green outline/text on hover */
 .mask-btn--primary {
-  --mb-bg:          var(--mb-brand);
-  --mb-color:       var(--mb-brand-fg);
+  --mb-bg: var(--mb-brand);
+  --mb-color: var(--mb-brand-fg);
   --mb-label-color: var(--mb-brand);
-  --mb-label-bg:    transparent;
+  --mb-label-bg: transparent;
   border: 1.5px solid var(--mb-brand);
 }
 
 /* Outline — bordered transparent → green tint on hover */
 .mask-btn--outline {
-  --mb-bg:          transparent;
-  --mb-color:       var(--mb-brand);
+  --mb-bg: transparent;
+  --mb-color: var(--mb-brand);
   --mb-label-color: var(--mb-brand);
-  --mb-label-bg:    var(--mb-accent-bg);
+  --mb-label-bg: var(--mb-accent-bg);
   border: 1px solid var(--mb-border-col);
 }
 
 /* Ghost — text only; muted → brand-green on hover */
 .mask-btn--ghost {
-  --mb-bg:          transparent;
-  --mb-color:       var(--mb-muted-col);
+  --mb-bg: transparent;
+  --mb-color: var(--mb-muted-col);
   --mb-label-color: var(--mb-brand);
-  --mb-label-bg:    transparent;
+  --mb-label-bg: transparent;
 }
 
 /* White — white fill on dark bg → light-green tint on hover */
 .mask-btn--white {
-  --mb-bg:          #ffffff;
-  --mb-color:       var(--mb-brand);
+  --mb-bg: #ffffff;
+  --mb-color: var(--mb-brand);
   --mb-label-color: var(--mb-brand);
-  --mb-label-bg:    rgba(240, 249, 244, 0.96);
+  --mb-label-bg: rgba(240, 249, 244, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 /* ── Sizes ────────────────────────────────────────────────────────────────── */
 
-.mask-btn--sm {   /* Navbar */
-  --mb-h:  2rem;
+.mask-btn--sm {
+  /* Navbar */
+  --mb-h: 2rem;
   --mb-px: 0.75rem;
   --mb-fs: 0.75rem;
 }
 .mask-btn--md {
-  --mb-h:  2.25rem;
+  --mb-h: 2.25rem;
   --mb-px: 1rem;
   --mb-fs: 0.875rem;
 }
-.mask-btn--lg {   /* Hero CTAs */
-  --mb-h:  2.75rem;
+.mask-btn--lg {
+  /* Hero CTAs */
+  --mb-h: 2.75rem;
   --mb-px: 1.5rem;
   --mb-fs: 1rem;
 }
-.mask-btn--xl {   /* CTA banner */
-  --mb-h:  2.75rem;
+.mask-btn--xl {
+  /* CTA banner */
+  --mb-h: 2.75rem;
   --mb-px: 2rem;
   --mb-fs: 1rem;
 }
 
 /* ── Pill modifier ────────────────────────────────────────────────────────── */
-.mask-btn--pill { --mb-radius: 9999px; }
+.mask-btn--pill {
+  --mb-radius: 9999px;
+}
 
 /* ── Fallback — browsers without CSS mask support ────────────────────────── */
-@supports not ((-webkit-mask-image: url('')) or (mask-image: url(''))) {
-  .mask-btn__label { display: none; }
+@supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
+  .mask-btn__label {
+    display: none;
+  }
   .mask-btn__inner {
-    animation: none !important;
     -webkit-mask-image: none !important;
     mask-image: none !important;
-    transition: color 200ms ease, background 200ms ease;
+    transition:
+      color 200ms ease,
+      background 200ms ease;
+    animation: none !important;
   }
   .mask-btn:hover .mask-btn__inner {
     color: var(--mb-label-color, var(--mb-brand));
@@ -992,8 +1014,8 @@ body:has(.workspace-shell) {
 /* ── Reduced motion ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .mask-btn__inner {
-    animation: none !important;
     transition: color 150ms ease;
+    animation: none !important;
   }
   .mask-btn:hover .mask-btn__inner {
     color: var(--mb-label-color, var(--mb-brand));

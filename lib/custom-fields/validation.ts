@@ -99,7 +99,7 @@ export async function validateCustomFieldValue(
       // Reuses the exact membership check addAssignee (app/actions/task-assignee.ts) already
       // performs — no new membership-checking logic.
       const membership = await getWorkspaceMembership(value, workspaceId);
-      if (!membership || membership.status !== "ACTIVE") {
+      if (membership?.status !== "ACTIVE") {
         return { error: "User is not an active workspace member" };
       }
       return { value };

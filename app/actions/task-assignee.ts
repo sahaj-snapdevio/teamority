@@ -1,22 +1,42 @@
 "use server";
 
-import { headers } from "next/headers";
-import { refreshWorkspace } from "@/lib/realtime/refresh";
 import { and, eq, inArray } from "drizzle-orm";
+import { headers } from "next/headers";
+import {
+  task,
+  taskAssignee,
+  taskWatcher,
+  user,
+  workspaceMember,
+} from "@/db/schema";
+import { writeActivityLog } from "@/lib/activity-log";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { task, taskAssignee, taskWatcher, user, workspaceMember } from "@/db/schema";
-import { canAccessSpace, getSpacePermission, hasPermissionLevel, getWorkspaceMembership } from "@/lib/permissions";
-import { writeActivityLog } from "@/lib/activity-log";
+import {
+  type BulkNotifyTaskInfo,
+  createBulkNotifications,
+} from "@/lib/notifications/create-bulk-notifications";
 import { createNotifications } from "@/lib/notifications/create-notification";
 import {
-  createBulkNotifications,
-  type BulkNotifyTaskInfo,
-} from "@/lib/notifications/create-bulk-notifications";
+  canAccessSpace,
+  getSpacePermission,
+  getWorkspaceMembership,
+  hasPermissionLevel,
+} from "@/lib/permissions";
+import { refreshWorkspace } from "@/lib/realtime/refresh";
 
 // `taskId` lets an open task detail view skip refetching for other tasks.
-function revalidateTask(workspaceId: string, spaceId: string, listId: string, taskId?: string) {
-  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}/list/${listId}`], { taskId });
+function revalidateTask(
+  workspaceId: string,
+  spaceId: string,
+  listId: string,
+  taskId?: string
+) {
+  void refreshWorkspace(
+    workspaceId,
+    [`/${workspaceId}/${spaceId}/list/${listId}`],
+    { taskId }
+  );
 }
 
 export async function addAssignee(
@@ -24,17 +44,28 @@ export async function addAssignee(
   spaceId: string,
   listId: string | null,
   taskId: string,
-  assigneeUserId: string,
+  assigneeUserId: string
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
-  const permission = await getSpacePermission(session.user.id, workspaceId, spaceId);
-  if (permission === null || !hasPermissionLevel(permission, "edit")) return { error: "Forbidden" };
+  const permission = await getSpacePermission(
+    session.user.id,
+    workspaceId,
+    spaceId
+  );
+  if (permission === null || !hasPermissionLevel(permission, "edit")) {
+    return { error: "Forbidden" };
+  }
 
   // Verify assignee is active in workspace
-  const assigneeMembership = await getWorkspaceMembership(assigneeUserId, workspaceId);
-  if (!assigneeMembership || assigneeMembership.status !== "ACTIVE") {
+  const assigneeMembership = await getWorkspaceMembership(
+    assigneeUserId,
+    workspaceId
+  );
+  if (assigneeMembership?.status !== "ACTIVE") {
     return { error: "User is not an active workspace member" };
   }
 
@@ -81,7 +112,9 @@ export async function addAssignee(
     userId: assigneeUserId,
     user_name: assigneeUser?.name ?? assigneeUser?.email ?? "someone",
   });
-  if (listId) revalidateTask(workspaceId, spaceId, listId, taskId);
+  if (listId) {
+    revalidateTask(workspaceId, spaceId, listId, taskId);
+  }
   return { ok: true };
 }
 
@@ -90,17 +123,30 @@ export async function removeAssignee(
   spaceId: string,
   listId: string | null,
   taskId: string,
-  assigneeUserId: string,
+  assigneeUserId: string
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
-  const permission = await getSpacePermission(session.user.id, workspaceId, spaceId);
-  if (permission === null || !hasPermissionLevel(permission, "edit")) return { error: "Forbidden" };
+  const permission = await getSpacePermission(
+    session.user.id,
+    workspaceId,
+    spaceId
+  );
+  if (permission === null || !hasPermissionLevel(permission, "edit")) {
+    return { error: "Forbidden" };
+  }
 
   await db
     .delete(taskAssignee)
-    .where(and(eq(taskAssignee.taskId, taskId), eq(taskAssignee.userId, assigneeUserId)));
+    .where(
+      and(
+        eq(taskAssignee.taskId, taskId),
+        eq(taskAssignee.userId, assigneeUserId)
+      )
+    );
 
   const [removedUser] = await db
     .select({ name: user.name, email: user.email })
@@ -132,7 +178,9 @@ export async function removeAssignee(
     }
   }
 
-  if (listId) revalidateTask(workspaceId, spaceId, listId, taskId);
+  if (listId) {
+    revalidateTask(workspaceId, spaceId, listId, taskId);
+  }
   return { ok: true };
 }
 
@@ -149,16 +197,28 @@ export async function bulkAssignTasks(
   listId: string | null,
   taskIds: string[],
   assigneeUserIds: string[],
-  mode: BulkAssignMode,
+  mode: BulkAssignMode
 ): Promise<{ ok: true; updated: number } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
-  const permission = await getSpacePermission(session.user.id, workspaceId, spaceId);
-  if (permission === null || !hasPermissionLevel(permission, "edit")) return { error: "Forbidden" };
+  const permission = await getSpacePermission(
+    session.user.id,
+    workspaceId,
+    spaceId
+  );
+  if (permission === null || !hasPermissionLevel(permission, "edit")) {
+    return { error: "Forbidden" };
+  }
 
-  if (taskIds.length === 0) return { ok: true, updated: 0 };
-  if (assigneeUserIds.length === 0) return { error: "Select at least one member to assign" };
+  if (taskIds.length === 0) {
+    return { ok: true, updated: 0 };
+  }
+  if (assigneeUserIds.length === 0) {
+    return { error: "Select at least one member to assign" };
+  }
 
   const uniqueAssigneeIds = [...new Set(assigneeUserIds)];
 
@@ -171,11 +231,13 @@ export async function bulkAssignTasks(
       and(
         eq(workspaceMember.workspaceId, workspaceId),
         eq(workspaceMember.status, "ACTIVE"),
-        inArray(workspaceMember.userId, uniqueAssigneeIds),
-      ),
+        inArray(workspaceMember.userId, uniqueAssigneeIds)
+      )
     );
   if (activeMembers.length !== uniqueAssigneeIds.length) {
-    return { error: "One or more selected users are not active workspace members" };
+    return {
+      error: "One or more selected users are not active workspace members",
+    };
   }
 
   // Scope to tasks that actually belong to this space — guards against
@@ -184,7 +246,9 @@ export async function bulkAssignTasks(
     .select({ id: task.id, title: task.title })
     .from(task)
     .where(and(inArray(task.id, taskIds), eq(task.spaceId, spaceId)));
-  if (validTasks.length === 0) return { ok: true, updated: 0 };
+  if (validTasks.length === 0) {
+    return { ok: true, updated: 0 };
+  }
   const validTaskIds = validTasks.map((t) => t.id);
 
   const existingAssignments = await db
@@ -199,17 +263,22 @@ export async function bulkAssignTasks(
   }
 
   const assigneeRows = validTaskIds.flatMap((taskId) =>
-    uniqueAssigneeIds.map((userId) => ({ taskId, userId })),
+    uniqueAssigneeIds.map((userId) => ({ taskId, userId }))
   );
 
   await db.transaction(async (tx) => {
     if (mode === "replace") {
-      await tx.delete(taskAssignee).where(inArray(taskAssignee.taskId, validTaskIds));
+      await tx
+        .delete(taskAssignee)
+        .where(inArray(taskAssignee.taskId, validTaskIds));
     }
     await tx.insert(taskAssignee).values(assigneeRows).onConflictDoNothing();
     // Auto-watch newly assigned members — matches single-task addAssignee.
     await tx.insert(taskWatcher).values(assigneeRows).onConflictDoNothing();
-    await tx.update(task).set({ updatedAt: new Date() }).where(inArray(task.id, validTaskIds));
+    await tx
+      .update(task)
+      .set({ updatedAt: new Date() })
+      .where(inArray(task.id, validTaskIds));
   });
 
   // Activity log stays best-effort and per task/user (same granularity as the
@@ -226,23 +295,37 @@ export async function bulkAssignTasks(
     const added = uniqueAssigneeIds.filter((id) => !previouslyAssigned.has(id));
     const removed =
       mode === "replace"
-        ? [...previouslyAssigned].filter((id) => !uniqueAssigneeIds.includes(id))
+        ? [...previouslyAssigned].filter(
+            (id) => !uniqueAssigneeIds.includes(id)
+          )
         : [];
 
     for (const userId of added) {
-      await writeActivityLog(t.id, session.user.id, "assignee_added", { userId });
+      await writeActivityLog(t.id, session.user.id, "assignee_added", {
+        userId,
+      });
     }
     for (const userId of removed) {
-      await writeActivityLog(t.id, session.user.id, "assignee_removed", { userId });
+      await writeActivityLog(t.id, session.user.id, "assignee_removed", {
+        userId,
+      });
     }
 
     const notifyAdded = added.filter((id) => id !== session.user.id);
     if (notifyAdded.length > 0) {
-      assignedTasks.push({ taskId: t.id, recipientIds: notifyAdded, data: { title: t.title } });
+      assignedTasks.push({
+        taskId: t.id,
+        recipientIds: notifyAdded,
+        data: { title: t.title },
+      });
     }
     const notifyRemoved = removed.filter((id) => id !== session.user.id);
     if (notifyRemoved.length > 0) {
-      unassignedTasks.push({ taskId: t.id, recipientIds: notifyRemoved, data: { title: t.title } });
+      unassignedTasks.push({
+        taskId: t.id,
+        recipientIds: notifyRemoved,
+        data: { title: t.title },
+      });
     }
   }
 
@@ -258,8 +341,10 @@ export async function bulkAssignTasks(
         : {
             title: `${actorName} assigned you to ${group.length} tasks`,
             body:
-              group.map((g) => g.data.title).slice(0, 5).join(", ") +
-              (group.length > 5 ? "…" : ""),
+              group
+                .map((g) => g.data.title)
+                .slice(0, 5)
+                .join(", ") + (group.length > 5 ? "…" : ""),
           },
   });
   createBulkNotifications({
@@ -274,15 +359,20 @@ export async function bulkAssignTasks(
         : {
             title: `You were unassigned from ${group.length} tasks`,
             body:
-              group.map((g) => g.data.title).slice(0, 5).join(", ") +
-              (group.length > 5 ? "…" : ""),
+              group
+                .map((g) => g.data.title)
+                .slice(0, 5)
+                .join(", ") + (group.length > 5 ? "…" : ""),
           },
   });
 
   if (listId) {
     revalidateTask(workspaceId, spaceId, listId);
   } else {
-    void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}`, `/${workspaceId}`]);
+    void refreshWorkspace(workspaceId, [
+      `/${workspaceId}/${spaceId}`,
+      `/${workspaceId}`,
+    ]);
   }
   return { ok: true, updated: validTaskIds.length };
 }
@@ -292,13 +382,21 @@ export async function addWatcher(
   spaceId: string,
   listId: string,
   taskId: string,
-  watcherUserId?: string, // defaults to self
+  watcherUserId?: string // defaults to self
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
-  const accessible = await canAccessSpace(session.user.id, workspaceId, spaceId);
-  if (!accessible) return { error: "Unauthorized" };
+  const accessible = await canAccessSpace(
+    session.user.id,
+    workspaceId,
+    spaceId
+  );
+  if (!accessible) {
+    return { error: "Unauthorized" };
+  }
 
   const userId = watcherUserId ?? session.user.id;
 
@@ -314,13 +412,21 @@ export async function removeWatcher(
   spaceId: string,
   listId: string,
   taskId: string,
-  watcherUserId?: string, // defaults to self
+  watcherUserId?: string // defaults to self
 ): Promise<{ ok: true } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
-  const accessible = await canAccessSpace(session.user.id, workspaceId, spaceId);
-  if (!accessible) return { error: "Unauthorized" };
+  const accessible = await canAccessSpace(
+    session.user.id,
+    workspaceId,
+    spaceId
+  );
+  if (!accessible) {
+    return { error: "Unauthorized" };
+  }
 
   const userId = watcherUserId ?? session.user.id;
 
@@ -328,7 +434,9 @@ export async function removeWatcher(
     .delete(taskWatcher)
     .where(and(eq(taskWatcher.taskId, taskId), eq(taskWatcher.userId, userId)));
 
-  await writeActivityLog(taskId, session.user.id, "watcher_removed", { userId });
+  await writeActivityLog(taskId, session.user.id, "watcher_removed", {
+    userId,
+  });
   revalidateTask(workspaceId, spaceId, listId, taskId);
   return { ok: true };
 }
@@ -337,29 +445,49 @@ export async function toggleWatcher(
   workspaceId: string,
   spaceId: string,
   listId: string,
-  taskId: string,
+  taskId: string
 ): Promise<{ watching: boolean } | { error: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
-  const accessible = await canAccessSpace(session.user.id, workspaceId, spaceId);
-  if (!accessible) return { error: "Unauthorized" };
+  const accessible = await canAccessSpace(
+    session.user.id,
+    workspaceId,
+    spaceId
+  );
+  if (!accessible) {
+    return { error: "Unauthorized" };
+  }
 
   const [existing] = await db
     .select({ taskId: taskWatcher.taskId })
     .from(taskWatcher)
-    .where(and(eq(taskWatcher.taskId, taskId), eq(taskWatcher.userId, session.user.id)))
+    .where(
+      and(
+        eq(taskWatcher.taskId, taskId),
+        eq(taskWatcher.userId, session.user.id)
+      )
+    )
     .limit(1);
 
   if (existing) {
     await db
       .delete(taskWatcher)
-      .where(and(eq(taskWatcher.taskId, taskId), eq(taskWatcher.userId, session.user.id)));
+      .where(
+        and(
+          eq(taskWatcher.taskId, taskId),
+          eq(taskWatcher.userId, session.user.id)
+        )
+      );
     revalidateTask(workspaceId, spaceId, listId, taskId);
     return { watching: false };
-  } else {
-    await db.insert(taskWatcher).values({ taskId, userId: session.user.id }).onConflictDoNothing();
-    revalidateTask(workspaceId, spaceId, listId, taskId);
-    return { watching: true };
   }
+  await db
+    .insert(taskWatcher)
+    .values({ taskId, userId: session.user.id })
+    .onConflictDoNothing();
+  revalidateTask(workspaceId, spaceId, listId, taskId);
+  return { watching: true };
 }

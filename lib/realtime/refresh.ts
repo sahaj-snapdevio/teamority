@@ -1,5 +1,8 @@
 import { revalidatePath, revalidateTag } from "next/cache";
-import { broadcastDataChanged, type DataChangedMeta } from "@/lib/realtime/broadcast";
+import {
+  broadcastDataChanged,
+  type DataChangedMeta,
+} from "@/lib/realtime/broadcast";
 import { workspaceOverviewCacheTag } from "@/lib/realtime/cache-tags";
 
 /**
@@ -24,10 +27,12 @@ import { workspaceOverviewCacheTag } from "@/lib/realtime/cache-tags";
 export async function refreshWorkspace(
   workspaceId: string,
   paths?: string[],
-  meta?: DataChangedMeta,
+  meta?: DataChangedMeta
 ): Promise<void> {
   if (paths && paths.length > 0) {
-    for (const path of paths) revalidatePath(path);
+    for (const path of paths) {
+      revalidatePath(path);
+    }
   } else {
     revalidatePath(`/${workspaceId}`, "layout");
   }

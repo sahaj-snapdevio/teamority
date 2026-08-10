@@ -21,8 +21,8 @@ import {
 } from "@/components/ui/card";
 import { ADMIN_ROLE } from "@/config/platform";
 import { session as sessionTable, user } from "@/db/schema";
-import { requireSession } from "@/lib/authz";
 import { userHasPassword } from "@/lib/auth-password";
+import { requireSession } from "@/lib/authz";
 import { db } from "@/lib/db";
 
 export const metadata = {
@@ -77,8 +77,8 @@ export default async function ProfilePage() {
           <CardContent>
             <AvatarUpload
               currentImageKey={freshUser.image ?? null}
-              name={freshUser.name ?? null}
               email={freshUser.email}
+              name={freshUser.name ?? null}
             />
           </CardContent>
         </Card>
@@ -98,7 +98,7 @@ export default async function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild variant="secondary" size="sm">
+            <Button asChild size="sm" variant="secondary">
               <a download href="/api/account/export">
                 Download JSON export
               </a>

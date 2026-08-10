@@ -21,9 +21,10 @@ export function VerifyEmailEmail({
     >
       <Text style={emailStyles.heading}>Verify your email</Text>
       <Text style={emailStyles.paragraph}>
-        Confirm that <strong style={{ color: "#174D38" }}>{email}</strong> belongs
-        to you to finish setting up your {productName} account. If you were
-        changing your email, your old address stays active until you confirm.
+        Confirm that <strong style={{ color: "#174D38" }}>{email}</strong>{" "}
+        belongs to you to finish setting up your {productName} account. If you
+        were changing your email, your old address stays active until you
+        confirm.
       </Text>
       <Section style={{ margin: "24px 0" }}>
         <Button href={verifyUrl} style={emailStyles.button}>

@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
 import { useRouter } from "next/navigation";
+import * as React from "react";
 import { deleteList } from "@/app/actions/list";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,11 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface DeleteListDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  workspaceId: string;
-  spaceId: string;
   list: { id: string; name: string };
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  spaceId: string;
+  workspaceId: string;
 }
 
 export function DeleteListDialog({
@@ -36,12 +36,17 @@ export function DeleteListDialog({
   const [error, setError] = React.useState("");
 
   function handleOpenChange(val: boolean) {
-    if (!val) { setConfirm(""); setError(""); }
+    if (!val) {
+      setConfirm("");
+      setError("");
+    }
     onOpenChange(val);
   }
 
   async function handleDelete() {
-    if (confirm !== list.name) return;
+    if (confirm !== list.name) {
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -49,29 +54,36 @@ export function DeleteListDialog({
     const result = await deleteList(workspaceId, spaceId, list.id);
 
     setLoading(false);
-    if ("error" in result) { setError(result.error); return; }
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
 
     handleOpenChange(false);
     router.push(`/${workspaceId}`);
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog onOpenChange={handleOpenChange} open={open}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete List</DialogTitle>
           <DialogDescription>
-            This will permanently delete <strong>{list.name}</strong> and all its tasks,
-            comments, and attachments. This cannot be undone.
+            This will permanently delete <strong>{list.name}</strong> and all
+            its tasks, comments, and attachments. This cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2">
           <p className="text-sm text-base-content/60">
-            Consider archiving instead — archived lists can be restored any time.
+            Consider archiving instead — archived lists can be restored any
+            time.
           </p>
           <div className="space-y-1.5">
-            <Label htmlFor="delete-confirm" className="flex-wrap sm:flex-nowrap">
+            <Label
+              className="flex-wrap sm:flex-nowrap"
+              htmlFor="delete-confirm"
+            >
               Type{" "}
               <span className="normal-case font-semibold tracking-normal text-base-content">
                 {list.name}
@@ -79,8 +91,9 @@ export function DeleteListDialog({
               to confirm
             </Label>
             <Input
+              autoFocus
+              disabled={loading}
               id="delete-confirm"
-              value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && confirm === list.name && !loading) {
@@ -89,22 +102,26 @@ export function DeleteListDialog({
                 }
               }}
               placeholder={list.name}
-              autoFocus
-              disabled={loading}
+              value={confirm}
             />
           </div>
           {error && <p className="text-sm text-error">{error}</p>}
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={loading}>
+          <Button
+            disabled={loading}
+            onClick={() => handleOpenChange(false)}
+            type="button"
+            variant="ghost"
+          >
             Cancel
           </Button>
           <Button
-            type="button"
-            variant="destructive"
             disabled={confirm !== list.name || loading}
             onClick={handleDelete}
+            type="button"
+            variant="destructive"
           >
             {loading ? "Deleting…" : "Delete List"}
           </Button>

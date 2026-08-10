@@ -237,7 +237,7 @@ function groupBySpace(tasks: MyTask[]): Group[] {
   return Array.from(map.values()).map((g, i) => ({
     key: `space-${i}`,
     label: g.label,
-    icon: <SpaceIcon emoji={g.logoEmoji} color={g.color} size="sm" />,
+    icon: <SpaceIcon color={g.color} emoji={g.logoEmoji} size="sm" />,
     tasks: g.tasks,
   }));
 }
@@ -486,6 +486,7 @@ function TaskGroup({
           <button
             className="flex items-center gap-2 select-none"
             onClick={() => setCollapsed((v) => !v)}
+            type="button"
           >
             {collapsed ? (
               <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
@@ -525,7 +526,7 @@ export function MyTasksView(_props: MyTasksViewProps) {
   const [tasks, setTasks] = React.useState<MyTask[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [groupBy, setGroupBy] = React.useState<MyTasksGroupBy>("due_date");
-  const [showCompleted, setShowCompleted] = React.useState(false);
+  const [showCompleted, _setShowCompleted] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const router = useRouter();
   const pathname = usePathname();
@@ -610,7 +611,10 @@ export function MyTasksView(_props: MyTasksViewProps) {
         {/* Group by */}
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/30 transition-colors cursor-pointer select-none">
+            <button
+              className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/30 transition-colors cursor-pointer select-none"
+              type="button"
+            >
               <SquaresFourIcon className="size-3.5 text-gray-500" />
               Group By:{" "}
               {GROUP_BY_OPTIONS.find((o) => o.value === groupBy)?.label}
@@ -628,6 +632,7 @@ export function MyTasksView(_props: MyTasksViewProps) {
                 )}
                 key={o.value}
                 onClick={() => setGroupBy(o.value)}
+                type="button"
               >
                 {o.label}
               </button>
@@ -686,6 +691,7 @@ export function MyTasksView(_props: MyTasksViewProps) {
               <button
                 className="text-xs text-primary hover:underline"
                 onClick={() => setSearch("")}
+                type="button"
               >
                 Clear search
               </button>

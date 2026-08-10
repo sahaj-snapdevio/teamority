@@ -1,7 +1,24 @@
 "use client";
 
-import * as React from "react";
-import { format } from "date-fns";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  restrictToVerticalAxis,
+  restrictToWindowEdges,
+} from "@dnd-kit/modifiers";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   ArchiveIcon,
   ArrowCounterClockwiseIcon,
@@ -18,25 +35,8 @@ import {
   TrashIcon,
   UserIcon,
 } from "@phosphor-icons/react";
-import {
-  DndContext,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  restrictToVerticalAxis,
-  restrictToWindowEdges,
-} from "@dnd-kit/modifiers";
+import { format } from "date-fns";
+import * as React from "react";
 import { toast } from "sonner";
 import {
   archiveCustomFieldDefinition,
@@ -353,7 +353,7 @@ export function CustomFieldsSettings({
             </Label>
           </div>
         </div>
-        <Button onClick={openCreate} size="sm" className="w-full sm:w-auto">
+        <Button className="w-full sm:w-auto" onClick={openCreate} size="sm">
           Create Field
         </Button>
       </div>
@@ -436,13 +436,22 @@ function FieldRow({
   onEdit: () => void;
 }) {
   const meta = FIELD_TYPE_META[field.type];
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ disabled: field.isArchived, id: field.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ disabled: field.isArchived, id: field.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
   return (
     <TableRow
-      className={cn(field.isArchived && "opacity-50", isDragging && "opacity-50")}
+      className={cn(
+        field.isArchived && "opacity-50",
+        isDragging && "opacity-50"
+      )}
       ref={setNodeRef}
       style={style}
     >
@@ -673,7 +682,9 @@ function FieldFormDialog({
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label className={FIELD_LABEL_CLASS} htmlFor="cf-name">Name</Label>
+            <Label className={FIELD_LABEL_CLASS} htmlFor="cf-name">
+              Name
+            </Label>
             <Input
               disabled={busy}
               id="cf-name"
@@ -682,7 +693,9 @@ function FieldFormDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className={FIELD_LABEL_CLASS} htmlFor="cf-description">Description</Label>
+            <Label className={FIELD_LABEL_CLASS} htmlFor="cf-description">
+              Description
+            </Label>
             <Input
               disabled={busy}
               id="cf-description"
@@ -691,7 +704,9 @@ function FieldFormDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className={FIELD_LABEL_CLASS} htmlFor="cf-placeholder">Placeholder</Label>
+            <Label className={FIELD_LABEL_CLASS} htmlFor="cf-placeholder">
+              Placeholder
+            </Label>
             <Input
               disabled={busy}
               id="cf-placeholder"
@@ -730,7 +745,9 @@ function FieldFormDialog({
           </div>
           {(type === "SINGLE_SELECT" || type === "MULTI_SELECT") && (
             <div className="space-y-1.5">
-              <Label className={FIELD_LABEL_CLASS} htmlFor="cf-options">Options (comma separated)</Label>
+              <Label className={FIELD_LABEL_CLASS} htmlFor="cf-options">
+                Options (comma separated)
+              </Label>
               <Input
                 disabled={busy}
                 id="cf-options"
@@ -743,7 +760,9 @@ function FieldFormDialog({
           {type === "NUMBER" && (
             <div className="flex gap-2">
               <div className="flex-1 space-y-1.5">
-                <Label className={FIELD_LABEL_CLASS} htmlFor="cf-min">Min</Label>
+                <Label className={FIELD_LABEL_CLASS} htmlFor="cf-min">
+                  Min
+                </Label>
                 <Input
                   disabled={busy}
                   id="cf-min"
@@ -753,7 +772,9 @@ function FieldFormDialog({
                 />
               </div>
               <div className="flex-1 space-y-1.5">
-                <Label className={FIELD_LABEL_CLASS} htmlFor="cf-max">Max</Label>
+                <Label className={FIELD_LABEL_CLASS} htmlFor="cf-max">
+                  Max
+                </Label>
                 <Input
                   disabled={busy}
                   id="cf-max"
@@ -778,7 +799,9 @@ function FieldFormDialog({
 
           {type === "TEXT" && (
             <div className="space-y-1.5">
-              <Label className={FIELD_LABEL_CLASS} htmlFor="cf-default-text">Default value</Label>
+              <Label className={FIELD_LABEL_CLASS} htmlFor="cf-default-text">
+                Default value
+              </Label>
               <Input
                 disabled={busy}
                 id="cf-default-text"
@@ -789,7 +812,9 @@ function FieldFormDialog({
           )}
           {type === "NUMBER" && (
             <div className="space-y-1.5">
-              <Label className={FIELD_LABEL_CLASS} htmlFor="cf-default-number">Default value</Label>
+              <Label className={FIELD_LABEL_CLASS} htmlFor="cf-default-number">
+                Default value
+              </Label>
               <Input
                 disabled={busy}
                 id="cf-default-number"

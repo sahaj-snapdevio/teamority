@@ -1,26 +1,32 @@
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { workspace } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { workspace } from "@/db/schema";
 import { getWorkspaceMembership } from "@/lib/permissions";
 import { getWorkspaceLandingState } from "@/lib/workspace-landing";
-import { EmptyWorkspace } from "./_components/empty-workspace";
 import { ArchivedProjectsEmptyState } from "./_components/archived-projects-empty-state";
+import { EmptyWorkspace } from "./_components/empty-workspace";
 
 interface WorkspaceHomeProps {
   params: Promise<{ workspaceId: string }>;
 }
 
-export default async function WorkspaceHomePage({ params }: WorkspaceHomeProps) {
+export default async function WorkspaceHomePage({
+  params,
+}: WorkspaceHomeProps) {
   const { workspaceId } = await params;
 
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/login");
+  if (!session) {
+    redirect("/login");
+  }
 
   const membership = await getWorkspaceMembership(session.user.id, workspaceId);
-  if (!membership) notFound();
+  if (!membership) {
+    notFound();
+  }
 
   const landing = await getWorkspaceLandingState(session.user.id, workspaceId);
 
@@ -30,11 +36,13 @@ export default async function WorkspaceHomePage({ params }: WorkspaceHomeProps) 
       redirect(
         landing.listId
           ? `/${workspaceId}/${landing.spaceId}/list/${landing.listId}`
-          : `/${workspaceId}/${landing.spaceId}`,
+          : `/${workspaceId}/${landing.spaceId}`
       );
+      break;
     case "EMPTY":
       // Truly empty workspace — non-guests create their first project.
       redirect("/onboarding");
+      break;
     case "ONLY_ARCHIVED": {
       // Projects exist but are all archived: stay in the workspace and let the
       // user restore one (admins) instead of forcing the onboarding wizard.
@@ -42,9 +50,9 @@ export default async function WorkspaceHomePage({ params }: WorkspaceHomeProps) 
         membership.role === "OWNER" || membership.role === "ADMIN";
       return (
         <ArchivedProjectsEmptyState
-          workspaceId={workspaceId}
           archived={landing.archived}
           canManage={canManage}
+          workspaceId={workspaceId}
         />
       );
     }

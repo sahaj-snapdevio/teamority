@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckIcon, PlusIcon } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   addTaskToSprint,
   type BacklogTask,
@@ -49,7 +49,7 @@ export function AddTasksToSprintModal({
   onOpenChange,
   workspaceId,
   spaceId,
-  listId,
+  listId: _listId,
   sprintId,
   sprintName,
   onAdded,
@@ -61,18 +61,7 @@ export function AddTasksToSprintModal({
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    setSelected(new Set());
-    setSearch("");
-    setError(null);
-    void loadTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  async function loadTasks() {
+  const loadTasks = useCallback(async () => {
     setLoading(true);
     try {
       const result = await getBacklogTasks(workspaceId, spaceId);
@@ -87,7 +76,17 @@ export function AddTasksToSprintModal({
     } finally {
       setLoading(false);
     }
-  }
+  }, [workspaceId, spaceId]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    setSelected(new Set());
+    setSearch("");
+    setError(null);
+    void loadTasks();
+  }, [open, loadTasks]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -197,6 +196,7 @@ export function AddTasksToSprintModal({
                 <button
                   className="flex w-full items-center gap-3 border-b bg-base-200/30 px-3 py-2 text-left hover:bg-base-200/50 transition-colors"
                   onClick={toggleAll}
+                  type="button"
                 >
                   {/* Visual indicator only — the row itself is the button, so a
                       real (button-based) Checkbox here would nest buttons. */}
@@ -223,6 +223,7 @@ export function AddTasksToSprintModal({
                     className="flex w-full min-w-0 overflow-hidden items-center gap-3 px-3 py-2.5 text-left hover:bg-base-200/50 transition-colors border-b last:border-b-0"
                     key={task.id}
                     onClick={() => toggle(task.id)}
+                    type="button"
                   >
                     {/* Visual indicator only — the row itself is the button, so a
                         real (button-based) Checkbox here would nest buttons. */}

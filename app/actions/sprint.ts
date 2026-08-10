@@ -2,7 +2,6 @@
 
 import { createId } from "@paralleldrive/cuid2";
 import { and, asc, desc, eq, inArray, isNull, notInArray } from "drizzle-orm";
-import { refreshWorkspace } from "@/lib/realtime/refresh";
 import { headers } from "next/headers";
 import {
   list,
@@ -24,6 +23,7 @@ import {
   getSpacePermission,
   hasPermissionLevel,
 } from "@/lib/permissions";
+import { refreshWorkspace } from "@/lib/realtime/refresh";
 import { closeSprintAndRollover } from "@/lib/sprint/rollover";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -71,7 +71,10 @@ async function requireFullAccess(
 }
 
 function revalidateSpace(workspaceId: string, spaceId: string) {
-  void refreshWorkspace(workspaceId, [`/${workspaceId}/${spaceId}`, `/${workspaceId}`]);
+  void refreshWorkspace(workspaceId, [
+    `/${workspaceId}/${spaceId}`,
+    `/${workspaceId}`,
+  ]);
 }
 
 function revalidateList(workspaceId: string, spaceId: string, listId: string) {
@@ -1033,13 +1036,27 @@ export async function getActiveSprintView(
 
 export async function getArchivedTasksForSprint(
   workspaceId: string,
-  spaceId: string,
-): Promise<{ tasks: { id: string; title: string; seqNumber: number; listId: string | null }[] } | { error: string }> {
+  spaceId: string
+): Promise<
+  | {
+      tasks: {
+        id: string;
+        title: string;
+        seqNumber: number;
+        listId: string | null;
+      }[];
+    }
+  | { error: string }
+> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "Unauthorized" };
+  if (!session) {
+    return { error: "Unauthorized" };
+  }
 
   const err = await requireAccess(session.user.id, workspaceId, spaceId);
-  if (err) return err;
+  if (err) {
+    return err;
+  }
 
   const [activeSprint] = await db
     .select({ id: sprint.id })
@@ -1047,18 +1064,25 @@ export async function getArchivedTasksForSprint(
     .where(and(eq(sprint.spaceId, spaceId), eq(sprint.status, "ACTIVE")))
     .limit(1);
 
-  if (!activeSprint) return { tasks: [] };
+  if (!activeSprint) {
+    return { tasks: [] };
+  }
 
   const tasks = await db
-    .select({ id: task.id, title: task.title, seqNumber: task.seqNumber, listId: task.listId })
+    .select({
+      id: task.id,
+      title: task.title,
+      seqNumber: task.seqNumber,
+      listId: task.listId,
+    })
     .from(taskSprint)
     .innerJoin(task, eq(task.id, taskSprint.taskId))
     .where(
       and(
         eq(taskSprint.sprintId, activeSprint.id),
         eq(task.isArchived, true),
-        isNull(task.parentTaskId),
-      ),
+        isNull(task.parentTaskId)
+      )
     )
     .orderBy(asc(task.orderIndex));
 

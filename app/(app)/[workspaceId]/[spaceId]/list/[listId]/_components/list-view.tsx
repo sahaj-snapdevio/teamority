@@ -115,12 +115,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { isOverlayOpen } from "@/components/ui/overlay-stack";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { isOverlayOpen } from "@/components/ui/overlay-stack";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SearchInput } from "@/components/ui/search-input";
 import {
@@ -326,9 +326,21 @@ function PinnedSection({
   return (
     <div className="flex flex-col border border-primary/20 rounded-xl overflow-hidden bg-primary/2 mb-2">
       {/* Header */}
+      {/* biome-ignore lint/a11y/useSemanticElements: wraps a nested interactive "select all" button, so it can't literally be a <button>; kept keyboard-accessible via role+tabIndex+onKeyDown */}
       <div
         className="flex items-center gap-2 px-3 py-1.5 cursor-pointer select-none hover:bg-primary/5 transition-colors"
         onClick={() => setCollapsed((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) {
+            return;
+          }
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setCollapsed((v) => !v);
+          }
+        }}
+        role="button"
+        tabIndex={0}
       >
         <div className="flex size-5 items-center justify-center rounded text-primary/70">
           {collapsed ? (
@@ -352,7 +364,9 @@ function PinnedSection({
           onClick={(e) => {
             e.stopPropagation();
             const target = !allSelected;
-            tasks.forEach((t) => onSelect(t.id, target));
+            for (const t of tasks) {
+              onSelect(t.id, target);
+            }
           }}
           title={allSelected ? "Deselect all" : "Select all"}
           type="button"
@@ -578,6 +592,7 @@ function QuickCreateRow({
       <button
         className="flex w-full items-center gap-1.5 pl-16 pr-4 py-2 text-xs font-semibold text-base-content/60 hover:text-primary hover:bg-base-200/30 transition-colors border-b border-base-300 bg-elevated cursor-pointer select-none text-left"
         onClick={() => onOpenChange(true)}
+        type="button"
       >
         <PlusIcon className="size-3.5 shrink-0" />
         Add Task
@@ -701,7 +716,9 @@ function StatusGroup({
   const groupSomeSelected = groupSelectedCount > 0 && !groupAllSelected;
   function toggleGroupSelection() {
     const target = !groupAllSelected;
-    tasks.forEach((t) => onSelect(t.id, target));
+    for (const t of tasks) {
+      onSelect(t.id, target);
+    }
   }
 
   async function handleRename() {
@@ -754,9 +771,21 @@ function StatusGroup({
     <>
       <div className="flex flex-col">
         {/* Status Group Header */}
+        {/* biome-ignore lint/a11y/useSemanticElements: wraps nested interactive controls (settings menu button), so it can't literally be a <button>; kept keyboard-accessible via role+tabIndex+onKeyDown */}
         <div
           className="group/header flex items-center gap-2.5 py-1.5 px-3 hover:bg-base-200/30 transition-colors cursor-pointer select-none border-b border-base-300"
           onClick={() => onCollapsedChange(!collapsed)}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) {
+              return;
+            }
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onCollapsedChange(!collapsed);
+            }
+          }}
+          role="button"
+          tabIndex={0}
         >
           {/* Arrow */}
           <div className="flex size-5 items-center justify-center rounded hover:bg-base-200 transition-colors shrink-0 text-base-content/60 group-hover/header:text-base-content">
@@ -789,13 +818,26 @@ function StatusGroup({
           </span>
 
           {/* Settings Menu Icon */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: only stops clicks from bubbling to the header's onClick; nested buttons remain independently keyboard-accessible */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: same as above */}
           <div
             className="ml-2 flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.target !== e.currentTarget) {
+                return;
+              }
+              if (e.key === "Enter") {
+                e.stopPropagation();
+              }
+            }}
           >
             <Popover onOpenChange={setMenuOpen} open={menuOpen}>
               <PopoverTrigger asChild>
-                <button className="flex size-6 items-center justify-center rounded hover:bg-base-200 transition-colors cursor-pointer">
+                <button
+                  className="flex size-6 items-center justify-center rounded hover:bg-base-200 transition-colors cursor-pointer"
+                  type="button"
+                >
                   <DotsThreeIcon
                     className="size-4.5 text-base-content/60"
                     weight="bold"
@@ -817,6 +859,7 @@ function StatusGroup({
                     setRenameName(status.name);
                     setRenameOpen(true);
                   }}
+                  type="button"
                 >
                   <PencilSimpleIcon className="size-3.5 text-base-content/60 shrink-0" />
                   Rename Status
@@ -827,6 +870,7 @@ function StatusGroup({
                     setMenuOpen(false);
                     setNewStatusOpen(true);
                   }}
+                  type="button"
                 >
                   <PlusIcon className="size-3.5 text-base-content/60 shrink-0" />
                   New Status
@@ -838,6 +882,7 @@ function StatusGroup({
                     onCollapsedChange(!collapsed);
                     setMenuOpen(false);
                   }}
+                  type="button"
                 >
                   {collapsed ? (
                     <CaretRightIcon className="size-3.5 text-base-content/60 shrink-0" />
@@ -855,6 +900,7 @@ function StatusGroup({
                 onCollapsedChange(false);
                 onAddOpenChange(true);
               }}
+              type="button"
             >
               <PlusIcon className="size-3.5 text-base-content/60" />
             </button>
@@ -935,7 +981,8 @@ function StatusGroup({
             <div
               className={cn(
                 "flex flex-col overflow-x-auto transition-all min-h-1",
-                isOver && "bg-base-200/20 border-y border-dashed border-base-300"
+                isOver &&
+                  "bg-base-200/20 border-y border-dashed border-base-300"
               )}
               ref={setNodeRef}
             >
@@ -1049,6 +1096,7 @@ function StatusGroup({
                   key={color}
                   onClick={() => setNewStatusColor(color)}
                   style={{ backgroundColor: color }}
+                  type="button"
                 />
               ))}
             </div>
@@ -1526,6 +1574,7 @@ function BulkActionBar({
         <button
           className="flex size-6 items-center justify-center rounded hover:bg-white/10 transition-colors mr-2 cursor-pointer"
           onClick={onClear}
+          type="button"
         >
           <XIcon className="size-3.5 text-white/70" />
         </button>
@@ -1535,6 +1584,7 @@ function BulkActionBar({
           className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
           disabled={busy}
           onClick={() => setAssignOpen(true)}
+          type="button"
         >
           <UserPlusIcon className="size-3.5" />
           Assign
@@ -1546,6 +1596,7 @@ function BulkActionBar({
             <button
               className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
               disabled={busy}
+              type="button"
             >
               <span className="size-2 rounded-full bg-white/60" />
               Status
@@ -1561,6 +1612,7 @@ function BulkActionBar({
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-white/10 text-white text-left cursor-pointer"
                 key={s.id}
                 onClick={() => handleBulkStatus(s.id)}
+                type="button"
               >
                 <span
                   className="size-2.5 rounded-full shrink-0"
@@ -1585,6 +1637,7 @@ function BulkActionBar({
             <button
               className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
               disabled={busy}
+              type="button"
             >
               <CaretDownIcon className="size-3.5" />
               Move
@@ -1613,6 +1666,7 @@ function BulkActionBar({
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold hover:bg-white/10 text-white text-left cursor-pointer"
                   key={s.id}
                   onClick={() => handleMoveToSprint(s.id, s.name)}
+                  type="button"
                 >
                   <LightningIcon
                     className={cn(
@@ -1655,8 +1709,8 @@ function BulkActionBar({
                 <div key={sp.id}>
                   <p className="flex items-center gap-1.5 px-2 py-1 text-2xs font-bold text-gray-400 uppercase">
                     <SpaceIcon
-                      emoji={sp.logoEmoji}
                       color={sp.color ?? "#6B7280"}
+                      emoji={sp.logoEmoji}
                     />
                     {sp.name}
                   </p>
@@ -1665,6 +1719,7 @@ function BulkActionBar({
                       className="flex w-full items-center gap-2 rounded pl-5 pr-2 py-1.5 text-xs font-semibold hover:bg-white/10 text-white text-left cursor-pointer"
                       key={l.id}
                       onClick={() => handleMoveToList(l.id, l.name)}
+                      type="button"
                     >
                       <span
                         className="size-1.5 rounded-full shrink-0"
@@ -1720,6 +1775,7 @@ function BulkActionBar({
             className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
             disabled={busy}
             onClick={handleBulkArchive}
+            type="button"
           >
             <ArchiveIcon className="size-3.5" />
             Archive
@@ -1732,6 +1788,7 @@ function BulkActionBar({
             className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-50 cursor-pointer"
             disabled={busy}
             onClick={() => setDeleteOpen(true)}
+            type="button"
           >
             <TrashIcon className="size-3.5" />
             Delete
@@ -1785,10 +1842,10 @@ export function ListView({
   canEdit,
   canManage,
   canPinToList,
-  currentUserId,
+  currentUserId: _currentUserId,
   personallyPinnedIds,
   members = [],
-  tags = [],
+  tags: _tags = [],
   customFields = [],
   archivedTasks,
   onArchivedChanged,
@@ -1874,9 +1931,9 @@ export function ListView({
   // Persisted alongside the other view prefs so collapsing a status group
   // survives navigating into a task and back (the group's own local state
   // would otherwise reset on remount).
-  const [collapsedGroupIds, setCollapsedGroupIds] = React.useState<
-    Set<string>
-  >(new Set());
+  const [collapsedGroupIds, setCollapsedGroupIds] = React.useState<Set<string>>(
+    new Set()
+  );
 
   // Apply persisted view prefs after mount (avoids SSR/client hydration mismatch).
   // `prefsHydrated` gates the persist effect so we never overwrite saved prefs
@@ -2025,7 +2082,7 @@ export function ListView({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  function handleSelect(id: string, checked: boolean) {
+  const handleSelect = React.useCallback((id: string, checked: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (checked) {
@@ -2035,7 +2092,7 @@ export function ListView({
       }
       return next;
     });
-  }
+  }, []);
 
   // ─── Local Filtering & Sorting ─────────────────────────────────────────────
   const processedTasks = React.useMemo(() => {
@@ -2213,11 +2270,19 @@ export function ListView({
         ids.push(id);
       }
     };
-    if (showArchived) {
-      archivedTasks?.forEach((t) => push(t.id));
+    if (showArchived && archivedTasks) {
+      for (const t of archivedTasks) {
+        push(t.id);
+      }
     }
-    pinnedTasks.forEach((t) => push(t.id));
-    groupedGroups.forEach((g) => g.tasks.forEach((t) => push(t.id)));
+    for (const t of pinnedTasks) {
+      push(t.id);
+    }
+    for (const g of groupedGroups) {
+      for (const t of g.tasks) {
+        push(t.id);
+      }
+    }
     return ids;
   }, [showArchived, archivedTasks, pinnedTasks, groupedGroups]);
 
@@ -2268,13 +2333,17 @@ export function ListView({
   const allSelected =
     processedTasks.length > 0 &&
     processedTasks.every((t) => selectedIds.has(t.id));
-  const someSelected = processedTasks.some((t) => selectedIds.has(t.id));
+  const _someSelected = processedTasks.some((t) => selectedIds.has(t.id));
 
-  function toggleAll() {
+  function _toggleAll() {
     if (allSelected) {
-      processedTasks.forEach((t) => handleSelect(t.id, false));
+      for (const t of processedTasks) {
+        handleSelect(t.id, false);
+      }
     } else {
-      processedTasks.forEach((t) => handleSelect(t.id, true));
+      for (const t of processedTasks) {
+        handleSelect(t.id, true);
+      }
     }
   }
 
@@ -2395,7 +2464,7 @@ export function ListView({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router, workspaceId, selectedIds, groupedGroups, groupBy, statuses]);
+  }, [router, workspaceId, selectedIds, statuses, handleSelect]);
 
   // ─── Drag & Drop Event Handlers ────────────────────────────────────────────
   function findGroupForTask(taskId: string) {
@@ -2755,7 +2824,10 @@ export function ListView({
                     the two controls can never disagree or read ambiguously. */}
                   <Popover onOpenChange={setSortMenuOpen} open={sortMenuOpen}>
                     <PopoverTrigger asChild>
-                      <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/30 transition-colors cursor-pointer select-none">
+                      <button
+                        className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/30 transition-colors cursor-pointer select-none"
+                        type="button"
+                      >
                         <ArrowsDownUpIcon className="size-3.5 text-gray-500" />
                         Sort: {sortBy ? SORT_OPTION_LABEL[sortBy] : "None"}
                         {sortBy &&
@@ -2786,6 +2858,7 @@ export function ListView({
                           setSortOrder("asc");
                           setSortMenuOpen(false);
                         }}
+                        type="button"
                       >
                         None
                       </button>
@@ -2802,6 +2875,7 @@ export function ListView({
                               cycleSort(key);
                               setSortMenuOpen(false);
                             }}
+                            type="button"
                           >
                             <span>{label}</span>
                             {active && (
@@ -2837,7 +2911,10 @@ export function ListView({
                     open={groupByMenuOpen}
                   >
                     <PopoverTrigger asChild>
-                      <button className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/30 transition-colors cursor-pointer select-none">
+                      <button
+                        className="flex items-center gap-1.5 h-8 rounded-lg border border-base-300 px-3 text-xs font-semibold text-base-content/70 hover:bg-base-200/30 transition-colors cursor-pointer select-none"
+                        type="button"
+                      >
                         <GearIcon className="size-3.5 text-gray-500" />
                         Group By:{" "}
                         {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
@@ -2850,36 +2927,42 @@ export function ListView({
                       <button
                         className={cn(
                           "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200/30 cursor-pointer",
-                          groupBy === "status" && "bg-base-200 text-base-content"
+                          groupBy === "status" &&
+                            "bg-base-200 text-base-content"
                         )}
                         onClick={() => {
                           setGroupBy("status");
                           setGroupByMenuOpen(false);
                         }}
+                        type="button"
                       >
                         Status
                       </button>
                       <button
                         className={cn(
                           "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200/30 cursor-pointer",
-                          groupBy === "priority" && "bg-base-200 text-base-content"
+                          groupBy === "priority" &&
+                            "bg-base-200 text-base-content"
                         )}
                         onClick={() => {
                           setGroupBy("priority");
                           setGroupByMenuOpen(false);
                         }}
+                        type="button"
                       >
                         Priority
                       </button>
                       <button
                         className={cn(
                           "px-2 py-1.5 text-xs font-semibold text-left rounded hover:bg-base-200/30 cursor-pointer",
-                          groupBy === "assignee" && "bg-base-200 text-base-content"
+                          groupBy === "assignee" &&
+                            "bg-base-200 text-base-content"
                         )}
                         onClick={() => {
                           setGroupBy("assignee");
                           setGroupByMenuOpen(false);
                         }}
+                        type="button"
                       >
                         Assignee
                       </button>
@@ -3020,6 +3103,7 @@ export function ListView({
               <button
                 className="flex items-center gap-1.5 h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-content hover:bg-primary/95 transition-all shadow-sm shrink-0 cursor-pointer select-none"
                 onClick={() => setCreateForStatusId(statuses[0]?.id || "")}
+                type="button"
               >
                 <PlusIcon className="size-3.5" weight="bold" />
                 Create Task
@@ -3056,7 +3140,10 @@ export function ListView({
               </div>
 
               <div className="flex items-center gap-2">
-                <Sheet onOpenChange={setMobileFiltersOpen} open={mobileFiltersOpen}>
+                <Sheet
+                  onOpenChange={setMobileFiltersOpen}
+                  open={mobileFiltersOpen}
+                >
                   <SheetTrigger asChild>
                     <button
                       className={cn(
@@ -3156,12 +3243,18 @@ export function ListView({
                                   <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wide text-primary">
                                     {sortOrder === "asc" ? (
                                       <>
-                                        <CaretUpIcon className="size-3" weight="bold" />
+                                        <CaretUpIcon
+                                          className="size-3"
+                                          weight="bold"
+                                        />
                                         Asc
                                       </>
                                     ) : (
                                       <>
-                                        <CaretDownIcon className="size-3" weight="bold" />
+                                        <CaretDownIcon
+                                          className="size-3"
+                                          weight="bold"
+                                        />
                                         Desc
                                       </>
                                     )}
@@ -3183,7 +3276,8 @@ export function ListView({
                               <button
                                 className={cn(
                                   "rounded-md px-2.5 py-2 text-left text-sm font-medium capitalize hover:bg-base-200",
-                                  groupBy === g && "bg-base-200 text-base-content"
+                                  groupBy === g &&
+                                    "bg-base-200 text-base-content"
                                 )}
                                 key={g}
                                 onClick={() => setGroupBy(g)}
@@ -3316,7 +3410,9 @@ export function ListView({
                         key={sId}
                         label={s.name}
                         onRemove={() =>
-                          setStatusFilter(statusFilter.filter((id) => id !== sId))
+                          setStatusFilter(
+                            statusFilter.filter((id) => id !== sId)
+                          )
                         }
                       />
                     );
@@ -3378,6 +3474,7 @@ export function ListView({
               )}
               <div className="divide-y divide-border">
                 {archivedTasks?.map((t) => (
+                  // biome-ignore lint/a11y/useSemanticElements: wraps a nested interactive "Unarchive" button, so it can't literally be a <button>; kept keyboard-accessible via role+tabIndex+onKeyDown
                   <div
                     className="group flex cursor-pointer items-center gap-3 px-4 py-2 transition-colors hover:bg-base-200/30"
                     key={t.id}
@@ -3385,6 +3482,18 @@ export function ListView({
                       setTaskNavContext({ taskIds: visibleOrderedTaskIds });
                       router.push(`/${workspaceId}/task/${t.id}?from=list`);
                     }}
+                    onKeyDown={(e) => {
+                      if (e.target !== e.currentTarget) {
+                        return;
+                      }
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setTaskNavContext({ taskIds: visibleOrderedTaskIds });
+                        router.push(`/${workspaceId}/task/${t.id}?from=list`);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <span className="text-2xs text-base-content/60 font-mono shrink-0 select-none">
                       #{t.seqNumber}
@@ -3403,6 +3512,7 @@ export function ListView({
                           await onArchivedChanged?.();
                         });
                       }}
+                      type="button"
                     >
                       <ArchiveIcon className="size-3.5 text-base-content/60" />
                       Unarchive
@@ -3425,8 +3535,8 @@ export function ListView({
               selectedIds={selectedIds}
               spaceId={spaceId}
               statuses={statuses}
-              tasks={pinnedTasks}
               taskNavIds={visibleOrderedTaskIds}
+              tasks={pinnedTasks}
               visibleCustomFields={visibleCustomFields}
               workspaceId={workspaceId}
               workspaceMembers={members}
@@ -3479,6 +3589,7 @@ export function ListView({
         className="md:hidden fixed bottom-6 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
         onClick={() => setCreateForStatusId(statuses[0]?.id || "")}
         title="Create Task"
+        type="button"
       >
         <PlusIcon className="size-6 font-bold" />
       </button>

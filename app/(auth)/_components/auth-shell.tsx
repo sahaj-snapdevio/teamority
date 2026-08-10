@@ -26,9 +26,9 @@ export function AuthShell({
             alt={`${PRODUCT_NAME} Logo`}
             className="h-10 w-auto object-contain"
             height={52}
+            priority
             src={LOGO_PATH}
             width={200}
-            priority
           />
         </div>
 

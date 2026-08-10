@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircleIcon, ClockIcon, WarningIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   closeSprint,
   getSprintSettings,
@@ -84,26 +84,7 @@ export function CloseSprintModal({
 
   const incompleteTasks = totalTasks - closedTasks;
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    setStep(1);
-    setStrategy("move_to_backlog");
-    setTargetSprintId("");
-    setError(null);
-    void loadSprintData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, sprintId]);
-
-  useEffect(() => {
-    if (step === 2 && strategy === "move_to_next_sprint") {
-      void loadPlannedSprints();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, strategy]);
-
-  async function loadSprintData() {
+  const loadSprintData = useCallback(async () => {
     setLoadingData(true);
     try {
       const [result, settings] = await Promise.all([
@@ -127,9 +108,9 @@ export function CloseSprintModal({
     } finally {
       setLoadingData(false);
     }
-  }
+  }, [workspaceId, spaceId, sprintId]);
 
-  async function loadPlannedSprints() {
+  const loadPlannedSprints = useCallback(async () => {
     setLoadingPlanned(true);
     try {
       const result = await getSprints(workspaceId, spaceId);
@@ -140,15 +121,35 @@ export function CloseSprintModal({
         .filter((s) => s.status === "PLANNED")
         .map((s) => ({ id: s.id, name: s.name }));
       setPlannedSprints(planned);
-      if (planned.length > 0 && !targetSprintId) {
-        setTargetSprintId(planned[0].id);
-      }
+      // Functional update so this callback doesn't need targetSprintId as a
+      // dependency (which would change identity — and re-trigger the effect
+      // below — every time a target is picked).
+      setTargetSprintId((current) =>
+        planned.length > 0 && !current ? planned[0].id : current
+      );
     } catch {
       // non-fatal
     } finally {
       setLoadingPlanned(false);
     }
-  }
+  }, [workspaceId, spaceId]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    setStep(1);
+    setStrategy("move_to_backlog");
+    setTargetSprintId("");
+    setError(null);
+    void loadSprintData();
+  }, [open, loadSprintData]);
+
+  useEffect(() => {
+    if (step === 2 && strategy === "move_to_next_sprint") {
+      void loadPlannedSprints();
+    }
+  }, [step, strategy, loadPlannedSprints]);
 
   async function handleMarkAllDone() {
     setMarkingDone(true);

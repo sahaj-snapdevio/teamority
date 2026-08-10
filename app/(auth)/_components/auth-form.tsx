@@ -216,6 +216,7 @@ export function LoginFormFlat({
           <button
             className="underline underline-offset-4 hover:text-base-content transition-colors"
             onClick={() => setSent(false)}
+            type="button"
           >
             Try again
           </button>
@@ -424,6 +425,7 @@ export function LoginForm({
             <button
               className="underline underline-offset-4 hover:text-base-content transition-colors"
               onClick={() => setSent(false)}
+              type="button"
             >
               Try again
             </button>

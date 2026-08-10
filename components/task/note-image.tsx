@@ -63,10 +63,10 @@ function NoteImageView({ node, selected, editor, deleteNode }: NodeViewProps) {
             + saving cleans up its storage object via server reconciliation. */}
         {editable && (
           <button
-            type="button"
+            className="absolute right-1.5 top-1.5 z-10 hidden size-6 items-center justify-center rounded-md bg-red-600 text-white shadow-sm transition-colors hover:bg-red-700 group-hover:flex"
             onClick={() => deleteNode()}
             title="Remove image"
-            className="absolute right-1.5 top-1.5 z-10 hidden size-6 items-center justify-center rounded-md bg-red-600 text-white shadow-sm transition-colors hover:bg-red-700 group-hover:flex"
+            type="button"
           >
             <XIcon className="size-3.5" />
           </button>
@@ -74,9 +74,9 @@ function NoteImageView({ node, selected, editor, deleteNode }: NodeViewProps) {
         {src &&
           (fileKey ? (
             <button
-              type="button"
-              onClick={openPreview}
               className="block cursor-zoom-in"
+              onClick={openPreview}
+              type="button"
             >
               {/* biome-ignore lint/performance/noImgElement: served from auth-gated /api/files storage keys; next/image can't optimize these */}
               <img

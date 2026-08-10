@@ -10,8 +10,9 @@ export function BoardSkeleton({ columns = 4 }: { columns?: number }) {
     <div className="flex gap-3 overflow-x-auto pb-4">
       {Array.from({ length: columns }).map((_, colIndex) => (
         <div
-          key={colIndex}
           className="flex w-64 shrink-0 flex-col gap-2 self-start rounded-xl bg-base-200/40 p-2"
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static skeleton, never reorders
+          key={colIndex}
         >
           {/* Column header */}
           <div className="flex items-center gap-2 px-1 py-1">
@@ -22,8 +23,14 @@ export function BoardSkeleton({ columns = 4 }: { columns?: number }) {
 
           {/* Cards */}
           <div className="flex flex-col gap-2 p-1">
-            {Array.from({ length: cardCounts[colIndex % cardCounts.length] }).map((_, cardIndex) => (
-              <div key={cardIndex} className="rounded-lg border bg-elevated p-3 shadow-sm">
+            {Array.from({
+              length: cardCounts[colIndex % cardCounts.length],
+            }).map((_, cardIndex) => (
+              <div
+                className="rounded-lg border bg-elevated p-3 shadow-sm"
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static skeleton, never reorders
+                key={cardIndex}
+              >
                 <Skeleton className="h-4 w-[85%] rounded" />
                 <div className="mt-1.5 flex gap-1">
                   <Skeleton className="h-4 w-12 rounded-full" />

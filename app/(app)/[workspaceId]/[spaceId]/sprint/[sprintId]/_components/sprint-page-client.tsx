@@ -1,28 +1,39 @@
 "use client";
 
-import * as React from "react";
 import { TrayIcon } from "@phosphor-icons/react";
-import { SprintPanel } from "@/components/sprint/sprint-panel";
-import { SprintListView } from "@/components/sprint/sprint-list-view";
-import { ClosedSprintView } from "@/components/sprint/closed-sprint-view";
+import * as React from "react";
 import { BacklogView } from "@/components/sprint/backlog-view";
+import { ClosedSprintView } from "@/components/sprint/closed-sprint-view";
+import { SprintListView } from "@/components/sprint/sprint-list-view";
+import { SprintPanel } from "@/components/sprint/sprint-panel";
 import { Button } from "@/components/ui/button";
 import { useSetTopbar } from "@/lib/topbar-context";
 
 interface SprintPageClientProps {
-  workspaceId: string;
+  canEdit: boolean;
+  isAdmin: boolean;
+  members: { userId: string; name: string | null; email: string | null }[];
+  spaceColor: string | null;
   spaceId: string;
+  spaceLogoEmoji: string | null;
+  spaceName: string;
   sprintId: string;
   sprintStatus: "PLANNED" | "ACTIVE" | "CLOSED";
-  spaceName: string;
-  spaceColor: string | null;
-  spaceLogoEmoji: string | null;
-  isAdmin: boolean;
-  canEdit: boolean;
-  members: { userId: string; name: string | null; email: string | null }[];
+  workspaceId: string;
 }
 
-export function SprintPageClient({ workspaceId, spaceId, sprintId, sprintStatus, spaceName, spaceColor, spaceLogoEmoji, isAdmin, canEdit, members }: SprintPageClientProps) {
+export function SprintPageClient({
+  workspaceId,
+  spaceId,
+  sprintId,
+  sprintStatus,
+  spaceName,
+  spaceColor,
+  spaceLogoEmoji,
+  isAdmin,
+  canEdit,
+  members,
+}: SprintPageClientProps) {
   const [refreshKey, setRefreshKey] = React.useState(0);
   const [showBacklog, setShowBacklog] = React.useState(false);
 
@@ -45,35 +56,35 @@ export function SprintPageClient({ workspaceId, spaceId, sprintId, sprintStatus,
   return (
     <>
       <SprintPanel
-        workspaceId={workspaceId}
-        spaceId={spaceId}
         onDataChanged={handleDataChanged}
+        spaceId={spaceId}
+        workspaceId={workspaceId}
       />
 
       {sprintStatus === "CLOSED" ? (
         <ClosedSprintView
-          workspaceId={workspaceId}
           spaceId={spaceId}
           sprintId={sprintId}
+          workspaceId={workspaceId}
         />
       ) : (
         <>
           <SprintListView
-            workspaceId={workspaceId}
-            spaceId={spaceId}
-            isAdmin={isAdmin}
             canEdit={canEdit}
+            isAdmin={isAdmin}
             members={members}
             refreshKey={refreshKey}
+            spaceId={spaceId}
+            workspaceId={workspaceId}
           />
 
           {/* Backlog toggle */}
           <div className="pt-2">
             <Button
-              variant="ghost"
-              size="sm"
               className="gap-2 text-base-content/60 hover:text-base-content"
               onClick={() => setShowBacklog((v) => !v)}
+              size="sm"
+              variant="ghost"
             >
               <TrayIcon className="size-4" />
               {showBacklog ? "Hide Backlog" : "Show Backlog"}
@@ -82,10 +93,10 @@ export function SprintPageClient({ workspaceId, spaceId, sprintId, sprintStatus,
 
           {showBacklog && (
             <BacklogView
-              workspaceId={workspaceId}
+              refreshKey={refreshKey}
               spaceId={spaceId}
               sprintId={sprintId}
-              refreshKey={refreshKey}
+              workspaceId={workspaceId}
             />
           )}
         </>

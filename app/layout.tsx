@@ -4,8 +4,12 @@ import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/config/platform";
+import {
+  parseThemeCookie,
+  resolvesToDarkOnServer,
+  THEME_COOKIE,
+} from "@/lib/theme";
 import { cn } from "@/lib/utils";
-import { THEME_COOKIE, parseThemeCookie, resolvesToDarkOnServer } from "@/lib/theme";
 import "./globals.css";
 
 const inter = Inter({
@@ -43,7 +47,7 @@ export default async function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   // Mirrored from the DB on every theme save — see components/theme/theme-provider.tsx.
   const { theme, appearance } = parseThemeCookie(
-    (await cookies()).get(THEME_COOKIE)?.value,
+    (await cookies()).get(THEME_COOKIE)?.value
   );
 
   return (
@@ -51,10 +55,10 @@ export default async function RootLayout({
       className={cn(
         "scroll-smooth font-sans",
         inter.variable,
-        resolvesToDarkOnServer(appearance) && "dark",
+        resolvesToDarkOnServer(appearance) && "dark"
       )}
-      data-theme={theme}
       data-appearance={appearance}
+      data-theme={theme}
       lang="en"
       suppressHydrationWarning
     >
@@ -68,7 +72,7 @@ export default async function RootLayout({
         {/** biome-ignore lint/security/noDangerouslySetInnerHtml: static, non-user-controlled snippet that must run before first paint. */}
         <script dangerouslySetInnerHTML={{ __html: AUTO_APPEARANCE_SCRIPT }} />
         {children}
-        <Toaster richColors position="bottom-right" />
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );

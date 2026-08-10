@@ -8,19 +8,19 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
     <div className="force-light min-h-screen bg-base-100 text-base-content">
       <header className="border-b border-base-300">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link className="flex items-center gap-2" href="/">
             <Image
-              src={LOGO_PATH}
               alt={PRODUCT_NAME}
-              width={150}
-              height={32}
               className="h-7 w-auto object-contain"
+              height={32}
               priority
+              src={LOGO_PATH}
+              width={150}
             />
           </Link>
           <Link
-            href="/login"
             className="text-sm font-medium text-base-content/60 transition-colors hover:text-base-content"
+            href="/login"
           >
             Sign in
           </Link>

@@ -1,6 +1,6 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { db } from "@/lib/db";
 import { workspaceMember } from "@/db/schema";
+import { db } from "@/lib/db";
 import { pushToUser } from "@/lib/sse-clients";
 
 /**
@@ -13,7 +13,9 @@ import { pushToUser } from "@/lib/sse-clients";
 const PROTOCOL_VERSION = 1;
 
 /** Active workspace members that have an account (invites without a userId are skipped). */
-export async function getWorkspaceMemberUserIds(workspaceId: string): Promise<string[]> {
+export async function getWorkspaceMemberUserIds(
+  workspaceId: string
+): Promise<string[]> {
   const rows = await db
     .select({ userId: workspaceMember.userId })
     .from(workspaceMember)
@@ -21,8 +23,8 @@ export async function getWorkspaceMemberUserIds(workspaceId: string): Promise<st
       and(
         eq(workspaceMember.workspaceId, workspaceId),
         eq(workspaceMember.status, "ACTIVE"),
-        isNotNull(workspaceMember.userId),
-      ),
+        isNotNull(workspaceMember.userId)
+      )
     );
 
   return rows.map((r) => r.userId).filter((id): id is string => id !== null);
@@ -45,7 +47,7 @@ export interface DataChangedMeta {
  */
 export async function broadcastDataChanged(
   workspaceId: string,
-  meta?: DataChangedMeta,
+  meta?: DataChangedMeta
 ): Promise<void> {
   try {
     const userIds = await getWorkspaceMemberUserIds(workspaceId);

@@ -7,8 +7,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { LAST_WORKSPACE_COOKIE } from "@/lib/last-workspace";
 import { readPendingJoin } from "@/lib/pending-join";
-import { getWorkspaceLandingState } from "@/lib/workspace-landing";
 import { redirectToSetupIfNeeded } from "@/lib/setup";
+import { getWorkspaceLandingState } from "@/lib/workspace-landing";
 
 export default async function PostAuthPage() {
   await redirectToSetupIfNeeded();
@@ -87,13 +87,13 @@ export default async function PostAuthPage() {
 
   const landing = await getWorkspaceLandingState(
     session.user.id,
-    membership.workspaceId,
+    membership.workspaceId
   );
   if (landing.kind === "ACTIVE_SPACE") {
     redirect(
       landing.listId
         ? `/${membership.workspaceId}/${landing.spaceId}/list/${landing.listId}`
-        : `/${membership.workspaceId}/${landing.spaceId}`,
+        : `/${membership.workspaceId}/${landing.spaceId}`
     );
   }
   if (landing.kind === "EMPTY") {

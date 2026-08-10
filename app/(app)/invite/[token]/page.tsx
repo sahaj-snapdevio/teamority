@@ -1,8 +1,12 @@
 "use client";
 
-import * as React from "react";
+import {
+  CheckCircleIcon,
+  SpinnerGapIcon,
+  XCircleIcon,
+} from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { CheckCircleIcon, XCircleIcon, SpinnerGapIcon } from "@phosphor-icons/react";
+import * as React from "react";
 import { acceptInvite, declineInvite } from "@/app/actions/workspace";
 import { Button } from "@/components/ui/button";
 
@@ -29,7 +33,9 @@ export default function InvitePage({
   }, [params]);
 
   async function handleAccept() {
-    if (!token || acceptingRef.current) return;
+    if (!token || acceptingRef.current) {
+      return;
+    }
     acceptingRef.current = true;
     setStatus("loading");
     try {
@@ -47,7 +53,9 @@ export default function InvitePage({
   }
 
   async function handleDecline() {
-    if (!token || decliningRef.current) return;
+    if (!token || decliningRef.current) {
+      return;
+    }
     decliningRef.current = true;
     setStatus("declining");
     try {
@@ -67,10 +75,18 @@ export default function InvitePage({
     return (
       <div className="h-full overflow-auto flex items-center justify-center bg-base-200/30 p-4">
         <div className="bg-base-100 rounded-xl border shadow-sm p-8 max-w-sm w-full text-center space-y-4">
-          <CheckCircleIcon className="size-12 text-green-500 mx-auto" weight="fill" />
+          <CheckCircleIcon
+            className="size-12 text-green-500 mx-auto"
+            weight="fill"
+          />
           <h1 className="text-lg font-semibold">You&rsquo;re in!</h1>
-          <p className="text-sm text-base-content/60">You&rsquo;ve successfully joined the workspace.</p>
-          <Button className="w-full" onClick={() => router.push(`/${workspaceId}`)}>
+          <p className="text-sm text-base-content/60">
+            You&rsquo;ve successfully joined the workspace.
+          </p>
+          <Button
+            className="w-full"
+            onClick={() => router.push(`/${workspaceId}`)}
+          >
             Go to workspace
           </Button>
         </div>
@@ -82,10 +98,19 @@ export default function InvitePage({
     return (
       <div className="h-full overflow-auto flex items-center justify-center bg-base-200/30 p-4">
         <div className="bg-base-100 rounded-xl border shadow-sm p-8 max-w-sm w-full text-center space-y-4">
-          <XCircleIcon className="size-12 text-base-content/60 mx-auto" weight="fill" />
+          <XCircleIcon
+            className="size-12 text-base-content/60 mx-auto"
+            weight="fill"
+          />
           <h1 className="text-lg font-semibold">Invitation declined</h1>
-          <p className="text-sm text-base-content/60">You&rsquo;ve declined this workspace invitation.</p>
-          <Button variant="outline" className="w-full" onClick={() => router.push("/")}>
+          <p className="text-sm text-base-content/60">
+            You&rsquo;ve declined this workspace invitation.
+          </p>
+          <Button
+            className="w-full"
+            onClick={() => router.push("/")}
+            variant="outline"
+          >
             Go home
           </Button>
         </div>
@@ -100,7 +125,11 @@ export default function InvitePage({
           <XCircleIcon className="size-12 text-error mx-auto" weight="fill" />
           <h1 className="text-lg font-semibold">Invitation invalid</h1>
           <p className="text-sm text-base-content/60">{errorMsg}</p>
-          <Button variant="outline" className="w-full" onClick={() => router.push("/")}>
+          <Button
+            className="w-full"
+            onClick={() => router.push("/")}
+            variant="outline"
+          >
             Go home
           </Button>
         </div>
@@ -118,8 +147,8 @@ export default function InvitePage({
         <div className="space-y-2">
           <Button
             className="w-full"
-            onClick={handleAccept}
             disabled={status === "loading" || status === "declining" || !token}
+            onClick={handleAccept}
           >
             {status === "loading" ? (
               <span className="flex items-center gap-2">
@@ -131,10 +160,10 @@ export default function InvitePage({
             )}
           </Button>
           <Button
-            variant="outline"
             className="w-full"
-            onClick={handleDecline}
             disabled={status === "loading" || status === "declining" || !token}
+            onClick={handleDecline}
+            variant="outline"
           >
             {status === "declining" ? (
               <span className="flex items-center gap-2">
