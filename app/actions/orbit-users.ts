@@ -7,6 +7,7 @@ import { user } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/authz";
 import { db } from "@/lib/db";
+import { purgeUser, soleOwnedWorkspaces } from "@/lib/user-deletion";
 
 export async function setUserRoleAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
@@ -66,4 +67,46 @@ export async function toggleUserBanAction(formData: FormData): Promise<void> {
   });
 
   revalidatePath("/orbit/users");
+}
+
+export async function deleteUserAction(
+  userId: string
+): Promise<{ error?: string }> {
+  const admin = await requireAdmin();
+
+  if (userId === admin.user.id) {
+    return { error: "You can't delete your own account from Orbit." };
+  }
+
+  const targetUser = await db
+    .select({ email: user.email, id: user.id, image: user.image })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1)
+    .then((r) => r[0] ?? null);
+  if (!targetUser) {
+    return { error: "User not found." };
+  }
+
+  const soleOwned = await soleOwnedWorkspaces(userId);
+  if (soleOwned.length > 0) {
+    return {
+      error:
+        "This user is the sole owner of one or more workspaces. Transfer ownership to another member before deleting them.",
+    };
+  }
+
+  await purgeUser(userId, targetUser.image);
+
+  await audit({
+    action: "orbit.user_deleted",
+    actorEmail: admin.user.email,
+    actorId: admin.user.id,
+    description: `Deleted user ${targetUser.email}`,
+    entityId: userId,
+    entityType: "user",
+  });
+
+  revalidatePath("/orbit/users");
+  return {};
 }

@@ -1,6 +1,10 @@
 import { desc } from "drizzle-orm";
 import { OrbitPageHeader } from "@/components/admin/orbit-page-header";
-import { UserBanForm, UserRoleForm } from "@/components/orbit/user-actions";
+import {
+  UserBanForm,
+  UserDeleteButton,
+  UserRoleForm,
+} from "@/components/orbit/user-actions";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -19,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { ADMIN_ROLE } from "@/config/platform";
 import { user } from "@/db/schema";
+import { requireAdmin } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
 
@@ -27,6 +32,7 @@ export const metadata = {
 };
 
 export default async function OrbitUsersPage() {
+  const admin = await requireAdmin();
   const users = await db.select().from(user).orderBy(desc(user.createdAt));
 
   return (
@@ -89,6 +95,11 @@ export default async function OrbitUsersPage() {
                     <div className="flex flex-wrap gap-2">
                       <UserRoleForm role={item.role} userId={item.id} />
                       <UserBanForm banned={item.banned} userId={item.id} />
+                      <UserDeleteButton
+                        currentUserId={admin.user.id}
+                        email={item.email}
+                        userId={item.id}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
