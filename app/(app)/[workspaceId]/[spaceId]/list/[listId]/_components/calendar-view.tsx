@@ -370,12 +370,13 @@ export function CalendarView({
             to two rows on narrow widths. Desktop/tablet only — mobile gets its
             own compact header in <MobileCalendar> below (same state/handlers,
             different presentation, matching the Board/List convention). */}
-        <div className="sticky top-14 z-10 hidden shrink-0 bg-app md:block">
-          {/* Toolbar: search + facet filters + month navigation. No top padding —
-            the view already sits below the List/Board/Calendar tabs with the
-            container's own gap, so a `py-*` here stacked a second gap on top and
-            pushed the calendar down relative to the List/Board toolbars. */}
-          <div className="flex flex-wrap items-center gap-2 border-b border-base-300 px-4 pb-2 shrink-0">
+        <div className="sticky top-14 z-10 hidden shrink-0 bg-elevated md:block">
+          {/* Toolbar: search + facet filters + month navigation. `pt-5` matches
+            list-view's own sticky toolbar — it's the breathing room between
+            this bar and the List/Board/Calendar tabs above once both are
+            pinned during scroll (the outer container's gap only applies to
+            the initial, unscrolled layout). */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-base-300 px-4 pt-5 pb-2 shrink-0">
             {/* Wrapped in a sized container rather than putting `w-full` only on
               the input: SearchInput's own root is a plain (non-flex) div, so a
               percentage width on the input alone can't expand it to fill the

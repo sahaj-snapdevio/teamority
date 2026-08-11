@@ -386,9 +386,18 @@ export function ListContainer({
       {/* Negative margin lives on this outer wrapper, not the sticky element
           itself — Chromium/WebKit include a sticky element's own negative
           margins in its static position, inflating scrollHeight and causing
-          a phantom scrollbar. */}
+          a phantom scrollbar. Fixed `h-14` (rather than breakpoint-dependent
+          vertical padding) keeps this bar's real height matching the `top-14`
+          the List/Calendar sticky toolbars below it assume — a mismatch here
+          left a gap where stuck content showed through underlying rows.
+          The active view lives INSIDE this wrapper too (not as a sibling) —
+          a sticky element can only stay stuck while its containing block is
+          scrolling through the viewport, so a wrapper sized to the tabs bar
+          alone gave it no room to remain stuck past the first few px of
+          scroll. Nesting the (much taller) view content here gives the
+          sticky bar real scroll range. */}
       <div className="-mx-3 -mt-3 sm:-mx-6 sm:-mt-6">
-        <div className="sticky top-0 z-20 flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b bg-app px-3 pt-3 sm:px-6 sm:pt-6">
+        <div className="sticky top-0 z-20 flex h-14 items-end gap-1 overflow-x-auto overflow-y-hidden border-b bg-elevated px-3 sm:px-6">
           {VIEWS.map(({ key, label, icon }) => (
             <button
               className={cn(
@@ -406,71 +415,79 @@ export function ListContainer({
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Active view — while switching into Board, show a board-shaped skeleton
-          and suppress the outgoing view so they don't overlap. */}
-      {showBoardSkeleton && <BoardSkeleton columns={statuses.length || 4} />}
-      {!showBoardSkeleton && view === "list" && (
-        <ListView
-          archivedLoading={archivedLoading}
-          archivedTasks={showArchived ? archivedTasks : []}
-          canEdit={canEdit}
-          canManage={canManage}
-          canPinToList={canPinToList}
-          currentUserId={currentUserId}
-          customFields={customFields}
-          isAdmin={isAdmin}
-          listId={list.id}
-          members={members}
-          onArchivedChanged={async () => {
-            const result = await getArchivedTasksForList(
-              workspaceId,
-              space.id,
-              list.id
-            );
-            if (!("error" in result)) {
-              setArchivedTasks(result.tasks);
-            }
-          }}
-          onToggleArchived={handleToggleArchived}
-          personallyPinnedIds={personallyPinnedIds}
-          pinnedTasks={pinnedTasks}
-          showArchived={showArchived}
-          spaceId={space.id}
-          statuses={statuses}
-          tags={tags}
-          tasks={tasks}
-          workspaceId={workspaceId}
-        />
-      )}
-      {!showBoardSkeleton && view === "board" && (
-        <BoardView
-          canEdit={canEdit}
-          canManage={canManage}
-          customFields={customFields}
-          headerless
-          isAdmin={isAdmin}
-          list={list}
-          members={members}
-          space={space}
-          statuses={statuses}
-          tags={tags}
-          tasks={tasks}
-          workspaceId={workspaceId}
-        />
-      )}
-      {!showBoardSkeleton && view === "calendar" && (
-        <CalendarView
-          canEdit={canEdit}
-          listId={list.id}
-          members={members}
-          spaceId={space.id}
-          statuses={statuses}
-          tasks={[...pinnedTasks, ...tasks]}
-          workspaceId={workspaceId}
-        />
-      )}
+        {/* Restores the horizontal inset the wrapper's -mx cancelled, and the
+            space-y-5 gap that used to sit between the tabs bar and this
+            content when it was a sibling. Bottom inset still comes from the
+            outer p-3/sm:p-6 — this wrapper only cancels top/left/right. */}
+        <div className="px-3 pt-5 sm:px-6">
+          {/* Active view — while switching into Board, show a board-shaped
+              skeleton and suppress the outgoing view so they don't overlap. */}
+          {showBoardSkeleton && (
+            <BoardSkeleton columns={statuses.length || 4} />
+          )}
+          {!showBoardSkeleton && view === "list" && (
+            <ListView
+              archivedLoading={archivedLoading}
+              archivedTasks={showArchived ? archivedTasks : []}
+              canEdit={canEdit}
+              canManage={canManage}
+              canPinToList={canPinToList}
+              currentUserId={currentUserId}
+              customFields={customFields}
+              isAdmin={isAdmin}
+              listId={list.id}
+              members={members}
+              onArchivedChanged={async () => {
+                const result = await getArchivedTasksForList(
+                  workspaceId,
+                  space.id,
+                  list.id
+                );
+                if (!("error" in result)) {
+                  setArchivedTasks(result.tasks);
+                }
+              }}
+              onToggleArchived={handleToggleArchived}
+              personallyPinnedIds={personallyPinnedIds}
+              pinnedTasks={pinnedTasks}
+              showArchived={showArchived}
+              spaceId={space.id}
+              statuses={statuses}
+              tags={tags}
+              tasks={tasks}
+              workspaceId={workspaceId}
+            />
+          )}
+          {!showBoardSkeleton && view === "board" && (
+            <BoardView
+              canEdit={canEdit}
+              canManage={canManage}
+              customFields={customFields}
+              headerless
+              isAdmin={isAdmin}
+              list={list}
+              members={members}
+              space={space}
+              statuses={statuses}
+              tags={tags}
+              tasks={tasks}
+              workspaceId={workspaceId}
+            />
+          )}
+          {!showBoardSkeleton && view === "calendar" && (
+            <CalendarView
+              canEdit={canEdit}
+              listId={list.id}
+              members={members}
+              spaceId={space.id}
+              statuses={statuses}
+              tasks={[...pinnedTasks, ...tasks]}
+              workspaceId={workspaceId}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
