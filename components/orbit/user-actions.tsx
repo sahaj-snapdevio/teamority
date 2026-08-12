@@ -98,22 +98,22 @@ export function UserDeleteButton({
         Delete
       </Button>
       <Dialog onOpenChange={setOpen} open={open}>
-        <DialogContent className="sm:max-w-xs text-center">
-          <div className="flex flex-col items-center gap-3 pt-2">
-            <div className="flex size-12 items-center justify-center rounded-full bg-error/10">
+        <DialogContent className="min-w-0 sm:max-w-sm text-center">
+          <div className="flex min-w-0 flex-col items-center gap-3 pt-2">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-error/10">
               <TrashIcon className="size-6 text-error" weight="fill" />
             </div>
-            <div>
+            <div className="w-full min-w-0">
               <DialogTitle className="text-base font-bold">
                 Delete User
               </DialogTitle>
-              <p className="mt-1 text-sm text-base-content/60">
+              <p className="mt-1 w-full whitespace-normal break-words text-sm text-base-content/60">
                 This will permanently delete {email} and all of their personal
                 data. This action cannot be undone.
               </p>
             </div>
           </div>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex min-w-0 gap-2">
             <Button
               className="flex-1"
               disabled={deleting}
