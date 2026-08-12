@@ -130,7 +130,7 @@ export function FilterBuilder({
           type="button"
         >
           <FunnelIcon className="size-3.5" />
-          Filters
+          More Filters
           {activeKeys.length > 0 && (
             <span className="font-bold">({activeKeys.length})</span>
           )}
@@ -148,7 +148,7 @@ export function FilterBuilder({
       >
         <div className="flex shrink-0 flex-col gap-1.5 border-b border-base-300 p-2">
           <p className="px-1 text-2xs font-bold uppercase tracking-wide text-base-content/60">
-            Filters
+            More Filters
           </p>
           <div className="flex items-center justify-between gap-2">
             {addFilterButton || <span />}
